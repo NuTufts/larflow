@@ -12,6 +12,7 @@
 #include "larcv/core/DataFormat/Image2D.h"
 
 #include "NuVertexCandidate.h"
+#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -87,8 +88,6 @@ namespace reco {
                              larlite::track& shower_trunk,                                                  
                              larlite::larflowcluster& shower_hitcluster,
                              larlite::pcaxis& shower_pcaxis );
-    
-    
     
   };
   

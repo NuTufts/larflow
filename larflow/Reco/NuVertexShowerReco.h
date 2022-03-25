@@ -7,7 +7,7 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "NuVertexCandidate.h"
-
+#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -61,6 +61,7 @@ namespace reco {
                            std::vector<float>& shower_start,
                            std::vector<float>& shower_dir,
                            float& shower_ll );
+
 
   };
 

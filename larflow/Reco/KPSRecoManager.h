@@ -43,6 +43,7 @@
 #include "LikelihoodProtonMuon.h"
 #include "CosmicProtonFinder.h"
 #include "ShowerdQdx.h"
+#include "PostNuCheckShowerTrunkOverlap.h"
 
 #include "NuSel1e1pEventSelection.h"
 #include "NuSelProngVars.h"
@@ -106,7 +107,8 @@ namespace reco {
     NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
     NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
     NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
-
+    PostNuCheckShowerTrunkOverlap _nuvertex_postcheck_showertrunkoverlap; // remove track overlap
+    
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters

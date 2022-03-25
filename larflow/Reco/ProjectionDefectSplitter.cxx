@@ -67,6 +67,10 @@ namespace reco {
     std::vector<cluster_t> cluster_track_v;
     _runSplitter( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
 
+    // look for short proton clusters in left over veto hits
+    if (_cluster_veto_hits)
+      _findVetoClusters( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
+
     // Fit linesegments to clusters
     larlite::event_track* evout_track
       = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _output_cluster_tree_name );
@@ -1258,6 +1262,54 @@ namespace reco {
     
     return trackout;
   }  
+
+  void ProjectionDefectSplitter::_findVetoClusters( const larlite::event_larflow3dhit& inputhits,
+						    const std::vector<larcv::Image2D>& adc_v,
+						    std::vector<int>& used_hits_v,
+						    std::vector<cluster_t>& output_cluster_v )
+  {
+
+    std::vector< std::vector<float> > veto_pts_v;
+    std::vector< int > hitidx_v;
+
+    veto_pts_v.reserve( inputhits.size()/2 );
+    hitidx_v.reserve( hitidx_v.size()/2 );
+    
+    for (size_t ihit=0; ihit<inputhits.size(); ihit++) {
+      if ( used_hits_v[ihit]==2 ) {
+	// veto hits
+	std::vector<float> pt =
+	  { (float)inputhits[ihit][0],(float)inputhits[ihit][1],(float)inputhits[ihit][2] };
+	
+	veto_pts_v.push_back( pt );
+	hitidx_v.push_back(ihit);
+      }
+    }
+
+    std::vector< larflow::reco::cluster_t > veto_clusters_v;
+    larflow::reco::cluster_sdbscan_spacepoints( veto_pts_v, veto_clusters_v,
+						1.0, 10, _maxkd ); // external implementation, seems best
+
+    larflow::reco::cluster_runpca( veto_clusters_v );
+
+    LARCV_DEBUG() << "look for veto point clusters within " << veto_pts_v.size() << " veto hits" << std::endl;
+    for (int icluster=0; icluster<(int)veto_clusters_v.size()-1; icluster++) {
+      auto& cluster = veto_clusters_v[icluster];
+      LARCV_DEBUG() << "  veto cluster: "
+		    << " nhits=" << cluster.points_v.size()
+		    << " length=" << cluster.pca_len
+		    << " max-radius=" << cluster.pca_max_r
+		    << std::endl;
+      if ( cluster.pca_len>1.0 && cluster.pca_max_r<2.0 ) {
+	for (size_t ichit=0; ichit<cluster.hitidx_v.size(); ichit++) {
+	  int orig_idx = hitidx_v[ cluster.hitidx_v[ichit] ];
+	  used_hits_v[ orig_idx ] = 1;
+	  cluster.hitidx_v[ichit] = orig_idx;
+	}
+	output_cluster_v.emplace_back( std::move(cluster) );
+      }
+    }
+  }
   
 }
 }

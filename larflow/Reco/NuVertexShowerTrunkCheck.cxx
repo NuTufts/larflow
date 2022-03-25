@@ -27,6 +27,7 @@ namespace reco {
     int num_absorbed = 0;
 
     TVector3 vtx( nuvtx.pos[0], nuvtx.pos[1], nuvtx.pos[2] );
+    LARCV_DEBUG() << "--- checking for vertex (" << vtx[0] << "," << vtx[1] << "," << vtx[2] << ") ------" << std::endl;
 
     // loop over showers
     for (int j=0; j<(int)nuvtx.shower_v.size(); j++) {
@@ -36,12 +37,29 @@ namespace reco {
       auto& shower_pca   = nuvtx.shower_pcaxis_v[j];
 
       LARCV_DEBUG() << "shower[" << j << "] check for tracks to absorb" << std::endl;
+      LARCV_DEBUG() << "shower[" << j << "] trunk start=("
+		    << shower_trunk.LocationAtPoint(0)[0] << ","
+		    << shower_trunk.LocationAtPoint(0)[1] << ","
+		    << shower_trunk.LocationAtPoint(0)[2] << ")"	
+		    << std::endl;
+      LARCV_DEBUG() << "shower[" << j << "] pca start=("      
+		    << shower_pca.getEigenVectors()[3][0] << ","
+		    << shower_pca.getEigenVectors()[3][1] << ","
+		    << shower_pca.getEigenVectors()[3][2] << ")"
+		    << std::endl;
+      LARCV_DEBUG() << "shower[" << j << "] pca end=("      
+		    << shower_pca.getEigenVectors()[4][0] << ","
+		    << shower_pca.getEigenVectors()[4][1] << ","
+		    << shower_pca.getEigenVectors()[4][2] << ")"
+		    << std::endl;
     
       // loop over tracks, see if we should absorb it into the shower
       for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
 
-        if ( trunk_absorbed[i]==1 )
+        if ( trunk_absorbed[i]==1 ) {
+	  LARCV_DEBUG() << "  already absorbing track[" << i << "]" << std::endl;
           continue;
+	}
               
         auto& track = nuvtx.track_v[i];
         auto& track_hits = nuvtx.track_hitcluster_v[i];
@@ -80,9 +98,11 @@ namespace reco {
                       << " s2edist=" << s2edist
                       << " dirlen=" << shower_trunk.DirectionAtPoint(0).Mag()
                       << std::endl;
-
-        if ( minvtxdist<0.3 && (ang_track>30.0 || maxvtxdist<1.5) )
+	
+        if ( minvtxdist<0.3 && (ang_track>30.0 || maxvtxdist<1.5) ) {
+	  LARCV_DEBUG() << "  close to vtx or too wide an angle" << std::endl;
           continue;
+	}
 
             
         float frac_path = 0.;
@@ -96,13 +116,26 @@ namespace reco {
                                                    frac_path,
                                                    frac_core );
 
-        LARCV_DEBUG() << "  track[" << i << "] frac_core=" << frac_core << std::endl;
-
+        LARCV_DEBUG() << "  track[" << i << "] frac_core=" << frac_core << "  within_shower=" << within_shower << std::endl;
+	if ( within_shower ) {
+	  if ( frac_path<0.95 && ang_track>15.0 ) {
+	    LARCV_DEBUG() << "angle is wide too wide for partial path coverage" << std::endl;
+	    continue;
+	  }
+	}
+	
         if ( within_shower ) {
           trunk_absorbed[i] = 1;
           num_absorbed++;
-          if ( frac_path>0.8 ) {
-
+          if ( frac_core>frac_path ) {
+            _addTrackToCore( nuvtx.pos,
+                             track,
+                             track_hits,
+                             shower_trunk,
+                             shower,
+                             shower_pca );
+	  }
+          else {
             _addTrackAsNewTrunk( nuvtx.pos,
                                  track,
                                  track_hits,
@@ -110,13 +143,6 @@ namespace reco {
                                  shower,
                                  shower_pca );
           }
-          else if ( frac_core>0.8 )
-            _addTrackToCore( nuvtx.pos,
-                             track,
-                             track_hits,
-                             shower_trunk,
-                             shower,
-                             shower_pca );
         }
       }//end of track loop
     }//end of shower loop
@@ -133,16 +159,28 @@ namespace reco {
       // resort track vector, removing absorbed tracks
       std::vector< larlite::track > keep_track_v;
       std::vector< larlite::larflowcluster > keep_cluster_v;
+      std::vector<float>           keep_track_len_v;
+      std::vector< std::vector<float> > keep_track_dir_v;
       keep_track_v.reserve(   (int)nuvtx.track_v.size() - num_absorbed );
       keep_cluster_v.reserve( (int)nuvtx.track_hitcluster_v.size() - num_absorbed );
+      keep_track_len_v.reserve( nuvtx.track_len_v.size() );
+      keep_track_dir_v.reserve( nuvtx.track_dir_v.size() );
+      
       for (int ii=0; ii<(int)nuvtx.track_v.size(); ii++ ) {
         if ( trunk_absorbed[ii]==0 ) {
           keep_track_v.emplace_back( std::move(nuvtx.track_v[ii]) );
           keep_cluster_v.emplace_back( std::move(nuvtx.track_hitcluster_v[ii]) );
+	  if ( ii<(int)nuvtx.track_len_v.size() )
+	    keep_track_len_v.emplace_back( std::move(nuvtx.track_len_v[ii]) );
+	  if ( ii<(int)nuvtx.track_dir_v.size() )
+	    keep_track_dir_v.emplace_back( std::move(nuvtx.track_dir_v[ii]) );
         }
       }
       std::swap( nuvtx.track_v, keep_track_v );
       std::swap( nuvtx.track_hitcluster_v, keep_cluster_v );
+      std::swap( nuvtx.track_len_v, keep_track_len_v );
+      std::swap( nuvtx.track_dir_v, keep_track_dir_v );
+      
     }
 
 
@@ -236,38 +274,86 @@ namespace reco {
 
 
     std::vector<float> showerdir(3,0);
+    std::vector<float> pathdir(3,0);
+    std::vector<float> pcastart(3,0);
+    std::vector<float> pcaend(3,0);    
     float len = 0.;
     float pcalen = 0.;
     float pcadx = 0.;
+    float pathlen = 0.;
     for (int i=0; i<3; i++) {
       showerdir[i] = shrend[i]-shrstart[i];
       len += showerdir[i]*showerdir[i];
       pcadx = ( shower_pcaxis.getEigenVectors()[3][i] - shower_pcaxis.getEigenVectors()[4][i] );
       pcalen += pcadx*pcadx;
+
+      pathdir[i] = shrstart[i]-vtxpos[i];
+      pathlen += pathdir[i]*pathdir[i];
+      pcastart[i] = shower_pcaxis.getEigenVectors()[3][i];
+      pcaend[i]   = shower_pcaxis.getEigenVectors()[4][i];
     }
     len = sqrt(len);
     pcalen = sqrt(pcalen);
-    for (int i=0; i<3; i++)
-      showerdir[i] /= len;
-
-    int nhits_within_startpath = 0.;
-    int nhits_within_shower = 0.;
-    for (size_t ihit=0; ihit<track_hitcluster.size(); ihit++) {
-      auto const& hit = track_hitcluster[ihit];
-      float r = larflow::reco::pointLineDistance3f( shrstart, shrend, hit );
-      float s_start = larflow::reco::pointRayProjection3f( shrstart, showerdir, hit );
-      if ( r<3.0 && s_start>-1.0 && s_start<pcalen ) {
-        nhits_within_startpath++;
-        nhits_within_shower++;
-      }
+    pathlen = sqrt(pathlen);
+    for (int i=0; i<3; i++) {
+      if (len>0)
+	showerdir[i] /= len;
+      if (pathlen>0)
+	pathdir[i] /= pathlen;
     }
 
-    frac_path = (float)nhits_within_shower/(float)track_hitcluster.size();
-    frac_core = (float)nhits_within_shower/(float)track_hitcluster.size();    
-    LARCV_DEBUG() << " fraction of track hits within cylinder of vtx-to-shower start path: " << frac_path << std::endl;
-    LARCV_DEBUG() << " fraction of track hits within cylinder of shower core: " << frac_core << std::endl;    
+    int nhits_within_startpath = 0.;
+    int nhits_startpath = 0.;    
+    int nhits_within_shower = 0.;
+    std::vector<int> within(track_hitcluster.size(),0);
+    for (size_t ihit=0; ihit<track_hitcluster.size(); ihit++) {
+      auto const& hit = track_hitcluster[ihit];
+      //within shower
+      float r1 = larflow::reco::pointLineDistance3f( shrstart, shrend, hit );
+      float r2 = larflow::reco::pointLineDistance3f( pcastart, pcaend, hit );
+      float r = (r1<r2 ) ? r1 : r2;
+      float s_start = larflow::reco::pointRayProjection3f( shrstart, showerdir, hit );
+      float r_cone = 0.466*s_start;
+      if ( r_cone<2.0 )
+	r_cone = 2.0;
+      if ( r<r_cone && s_start>-0.5 && s_start<pcalen ) {
+        nhits_within_shower++;
+	within[ihit] = 1;
+      }
 
-    if ( frac_path>0.8 || frac_core>0.8 )
+      // along path
+      r = larflow::reco::pointLineDistance3f( vtxpos, shrstart, hit );
+      s_start = larflow::reco::pointRayProjection3f( vtxpos, pathdir, hit );
+      if ( s_start>-0.5 && s_start<pathlen ) {
+	if (r<3.5) {
+	  nhits_within_startpath++;
+	  within[ihit] += 2;	  
+	}
+	nhits_startpath++;
+      }
+      
+    }
+
+    int nclaimed = 0;
+    for (int ihit=0; ihit<(int)within.size(); ihit++) {
+      if ( within[ihit]>0 )
+	nclaimed++;
+    }
+    float frac_within = 0;
+    if ( within.size()>0 )
+      frac_within = (float)nclaimed/(float)within.size();
+
+    frac_path = 0.;
+    if ( nhits_startpath>0 )
+      frac_path = (float)nhits_within_startpath/(float)nhits_startpath;
+    frac_core = 0.;
+    if ( track_hitcluster.size()>0 )
+      frac_core = (float)nhits_within_shower/(float)track_hitcluster.size();    
+    LARCV_DEBUG() << " fraction of track hits within cylinder of vtx-to-shower start path: " << frac_path << std::endl;
+    LARCV_DEBUG() << " fraction of track hits within cylinder of shower core: " << frac_core << std::endl;
+    LARCV_DEBUG() << " fraction of track hits within core or path (frac_within): " << frac_within << std::endl;        
+
+    if ( frac_within>0.9 )
       return true;
     
     return false;
@@ -483,7 +569,7 @@ namespace reco {
     float dist[2] = { 0, 0 };
     for (int iend=0; iend<2; iend++) {
       for (int i=0; i<3; i++) {
-        dist[i] += ( cluster.pca_ends_v[iend][i] - vtxpos[i] )*( cluster.pca_ends_v[iend][i] - vtxpos[i] );
+        dist[iend] += ( cluster.pca_ends_v[iend][i] - vtxpos[i] )*( cluster.pca_ends_v[iend][i] - vtxpos[i] );
       }
     }
 
@@ -519,16 +605,21 @@ namespace reco {
       }
     }//end of loop over pca order
 
-    LARCV_DEBUG() << "make new trunk" << std::endl;    
-    larlite::track new_trunk;
-    new_trunk.reserve( 2 );
-    new_trunk.add_vertex( track.LocationAtPoint(0) );
-    new_trunk.add_direction( track.DirectionAtPoint(0) );
-    new_trunk.add_vertex( track.LocationAtPoint( (int)track.NumberTrajectoryPoints()-1 ) );
-    new_trunk.add_direction( track.DirectionAtPoint( (int)track.NumberTrajectoryPoints()-1 ) );
-
     LARCV_DEBUG() << "make new pca" << std::endl;
     larlite::pcaxis new_pca = larflow::reco::cluster_make_pcaxis( cluster );
+    
+    LARCV_DEBUG() << "make new trunk with " << cluster.points_v.size() << " hits" << std::endl;    
+    larlite::track new_trunk = larflow::reco::cluster_make_trunk( cluster, vtxpos );
+    LARCV_DEBUG() << "new trunk start: ("
+		  << track.LocationAtPoint(0)[0] << ","
+		  << track.LocationAtPoint(0)[1] << ","
+		  << track.LocationAtPoint(0)[2] << ")"
+		  << std::endl;
+    LARCV_DEBUG() << "new trunk end: ("
+		  << track.LocationAtPoint(1)[0] << ","
+		  << track.LocationAtPoint(1)[1] << ","
+		  << track.LocationAtPoint(1)[2] << ")"
+		  << std::endl;
 
     LARCV_DEBUG() << "swap new shower objects" << std::endl;        
     std::swap( shower_hitcluster, lfcluster );
@@ -571,7 +662,7 @@ namespace reco {
     float dist[2] = { 0, 0 };
     for (int iend=0; iend<2; iend++) {
       for (int i=0; i<3; i++) {
-        dist[i] += ( cluster.pca_ends_v[iend][i] - vtxpos[i] )*( cluster.pca_ends_v[iend][i] - vtxpos[i] );
+        dist[iend] += ( cluster.pca_ends_v[iend][i] - vtxpos[i] )*( cluster.pca_ends_v[iend][i] - vtxpos[i] );
       }
     }        
 
@@ -586,7 +677,9 @@ namespace reco {
     
     larlite::larflowcluster lfcluster;
     lfcluster.reserve( cluster.points_v.size() );
-    
+
+    std::vector< std::vector<float> > newtrunk_hits_v;
+    newtrunk_hits_v.reserve( 200 );
     for (int ii=istart; ii!=iend; ii += dii ) {
       int iidx = cluster.ordered_idx_v[ii];
       int ipt  = cluster.hitidx_v[iidx];
@@ -603,13 +696,21 @@ namespace reco {
         ipt *= -1; // make positive
         lfcluster.push_back( track_hitcluster[ipt] );
       }
+
+      if ( fabs(cluster.pca_proj_v[istart]-cluster.pca_proj_v[ii]) < 10.0 ) {
+	std::vector<float> pt = cluster.points_v.at(iidx);
+	newtrunk_hits_v.push_back(pt);	  
+      }
     }//end of loop over pca order
 
-
+    // make new pca axis
     larlite::pcaxis new_pca = larflow::reco::cluster_make_pcaxis( cluster );
-
+    
+    larlite::track shower_newtrunk = larflow::reco::cluster_make_trunk( cluster, vtxpos );
+    
     std::swap( shower_hitcluster, lfcluster );
     std::swap( shower_pcaxis, new_pca );
+    std::swap( shower_trunk, shower_newtrunk );
     
   }
   

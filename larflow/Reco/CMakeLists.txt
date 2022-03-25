@@ -40,7 +40,8 @@ set( HEADERS cluster_functions.h
   TrackForwardBackwardLL.h
   TrackFindBadConnection.h  
   NuTrackKinematics.h
-  NuShowerKinematics.h  
+  NuShowerKinematics.h
+  PostNuCheckShowerTrunkOverlap.h
   NuSelProngVars.h
   NuSelVertexVars.h
   NuSelWCTaggerOverlap.h  
@@ -82,6 +83,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuVertexShowerReco.cxx
   NuVertexShowerTrunkCheck.cxx  
   NuVertexActivityReco.cxx
+  PostNuCheckShowerTrunkOverlap.cxx  
   PerfectTruthNuReco.cxx  
   TrackdQdx.cxx
   ClusterImageMask.cxx  

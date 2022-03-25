@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+//#include "TVector.h"
 #include "ublarcvapp/dbscan/DBScan.h"  ///< hand-written
 #include "ublarcvapp/dbscan/sDBScan.h" ///< external
 #include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
@@ -1033,6 +1034,145 @@ namespace reco {
     // should never get here
     return 0;
   }
-  
+
+  larlite::track cluster_make_trunk( const cluster_t& cluster, const std::vector<float>& vtxpos )
+  {
+
+    float dist[2] = { 0, 0 };
+    for (int iend=0; iend<2; iend++) {
+      for (int i=0; i<3; i++) {
+        dist[iend] += ( cluster.pca_ends_v[iend][i] - vtxpos[i] )*( cluster.pca_ends_v[iend][i] - vtxpos[i] );
+      }
+    }        
+    
+    int istart=0;
+    int iend = (int)cluster.points_v.size();
+    int dii = 1;
+    TVector3 all_pca_dir;
+    TVector3 all_pca_start;
+    TVector3 all_pca_end;    
+    if ( dist[1]<dist[0] ) {
+      istart = (int)cluster.points_v.size() - 1;
+      iend = 0;
+      dii = -1;
+      float pcalen = 0.;
+      for (int v=0; v<3; v++) {
+	all_pca_dir[v] = cluster.pca_ends_v[0][v]-cluster.pca_ends_v[1][v];
+	pcalen += all_pca_dir[v]*all_pca_dir[v];
+	all_pca_start[v] = cluster.pca_ends_v[1][v];
+      }
+      pcalen = sqrt(pcalen);
+      if ( pcalen>0 ) {
+	for (int v=0; v<3; v++) {
+	  all_pca_dir[v] /= pcalen;
+	  all_pca_end[v] = all_pca_start[v] + 10.0*all_pca_dir[v];
+	}
+      }
+    }
+    else {
+      float pcalen = 0.;
+      for (int v=0; v<3; v++) {
+	all_pca_dir[v] = cluster.pca_ends_v[1][v]-cluster.pca_ends_v[0][v];
+	pcalen += all_pca_dir[v]*all_pca_dir[v];
+	all_pca_start[v] = cluster.pca_ends_v[0][v];
+      }
+      pcalen = sqrt(pcalen);
+      if (pcalen>0 ) {
+	for (int v=0; v<3; v++) {
+	  all_pca_dir[v] /= pcalen;
+	  all_pca_end[v] = all_pca_start[v] + 10.0*all_pca_dir[v];	  
+	}
+      }
+    }
+
+    larflow::reco::cluster_t newtrunk_cluster;
+    newtrunk_cluster.points_v.reserve(200);
+    std::vector< std::vector<float> > newtrunk_hits_v;
+    newtrunk_hits_v.reserve( 200 );
+    for (int ii=istart; ii!=iend; ii += dii ) {
+      int iidx = cluster.ordered_idx_v[ii];
+      int ipt  = cluster.hitidx_v[iidx];
+      
+      if ( fabs(cluster.pca_proj_v[istart]-cluster.pca_proj_v[ii]) < 10.0
+	   && cluster.pca_radius_v[ii] < 3.0 ) {
+	std::vector<float> pt = cluster.points_v.at(iidx);
+	newtrunk_hits_v.push_back(pt);
+	newtrunk_cluster.points_v.push_back(pt);
+      }
+    }//end of loop over pca order
+    //LARCV_DEBUG() << newtrunk_cluster.points_v.size() << " hits of " << cluster.points_v.size() << " used to form trunk" << std::endl;
+
+    bool use_all_pca = false;
+    if ( cluster.points_v.size()<10 ) {
+      use_all_pca = true;
+    }
+    else {
+      try {
+	larflow::reco::cluster_pca( newtrunk_cluster );
+      }
+      catch ( std::exception& e ) {
+	//LARCV_DEBUG() << "Error calculating PCA: " << e.what() << std::endl;
+	// we make the trunk using the overall pca
+	use_all_pca = true;
+      }
+    }
+
+    if ( newtrunk_cluster.pca_len<3.0 )
+      use_all_pca = true;
+
+    larlite::track shower_newtrunk;
+    shower_newtrunk.reserve(2);
+    
+    if ( use_all_pca ) {
+      shower_newtrunk.add_vertex( all_pca_start );
+      shower_newtrunk.add_vertex( all_pca_end );
+      shower_newtrunk.add_direction( all_pca_dir );
+      shower_newtrunk.add_direction( all_pca_dir );
+      return shower_newtrunk;
+    }
+    
+    float trunkdist[2] = {0,0};
+    for (int iend=0; iend<2; iend++) {
+      for (int v=0; v<3; v++) {
+	float dx = newtrunk_cluster.pca_ends_v[iend][v]-vtxpos[v];
+	trunkdist[iend] += dx*dx;
+      }
+      trunkdist[iend] = sqrt(trunkdist[iend]);
+    }
+    
+    if ( trunkdist[0]<trunkdist[1] ) {
+      TVector3 trunkstart;
+      TVector3 trunkend;      
+      TVector3 trunkdir;
+      for (int v=0; v<3; v++) {
+	trunkstart[v] = newtrunk_cluster.pca_ends_v[0][v];
+	float dx = newtrunk_cluster.pca_ends_v[1][v]-newtrunk_cluster.pca_ends_v[0][v];
+	trunkdir[v] = dx/newtrunk_cluster.pca_len;
+	trunkend[v] = trunkstart[v] + 10.0*trunkdir[v];
+      }
+      shower_newtrunk.add_vertex( trunkstart );
+      shower_newtrunk.add_vertex( trunkend );
+      shower_newtrunk.add_direction( trunkdir );
+      shower_newtrunk.add_direction( trunkdir );            
+    }
+    else {
+      TVector3 trunkstart;
+      TVector3 trunkend;      
+      TVector3 trunkdir;
+      for (int v=0; v<3; v++) {
+	trunkstart[v] = newtrunk_cluster.pca_ends_v[1][v];
+	float dx = newtrunk_cluster.pca_ends_v[0][v]-newtrunk_cluster.pca_ends_v[1][v];
+	trunkdir[v] = dx/newtrunk_cluster.pca_len;
+	trunkend[v] = trunkstart[v] + 10.0*trunkdir[v];
+      }
+      shower_newtrunk.add_vertex( trunkstart );
+      shower_newtrunk.add_vertex( trunkend );
+      shower_newtrunk.add_direction( trunkdir );
+      shower_newtrunk.add_direction( trunkdir );            
+    }      
+
+    return shower_newtrunk;
+    
+  }
 }
 }

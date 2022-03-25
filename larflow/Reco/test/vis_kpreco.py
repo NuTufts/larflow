@@ -32,8 +32,10 @@ for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
 # OPEN LARLITE FILE
-if args.input_larlite is not None:
+if args.input_larlite is not None or args.input_mcinfo is not None:
     io = larlite.storage_manager( larlite.storage_manager.kREAD )
+    
+if args.input_larlite is not None:
     io.add_in_filename( args.input_larlite )
     HAS_LARLITE = True
     print("HAS_LARLITE")
@@ -42,11 +44,12 @@ else:
     
 if args.input_mcinfo is not None:
     io.add_in_filename( args.input_mcinfo )
+    print("HAS_MCINFO")
     HAS_MC = True
 else:
     HAS_MC = False
 
-if HAS_LARLITE:
+if HAS_LARLITE or HAS_MC:
     io.open()
 
 # OPEN VERTEX RECO FILE
@@ -67,7 +70,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global kpsanatree
     
-    if HAS_LARLITE:
+    if HAS_LARLITE or HAS_MC:
         global io
         io.go_to(entry)
         
@@ -305,7 +308,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( trktrace )
     
 
-    if HAS_MC and HAS_LARLITE:
+    if HAS_MC:
 
         #mcpg = ublarcvapp.mctools.MCPixelPGraph()
         #mcpg.buildgraphonly( io )
