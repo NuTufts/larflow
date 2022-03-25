@@ -153,8 +153,8 @@ namespace reco {
 	      if ( d_v[ipt]<3.0 )
 		frac_inside_cone_pca += 1.0;
 	    }
-	    else if ( s_pca_v[ipt]>=0.0 && s_pca_v[ipt]<2.0 ) {
-	      if ( r_pca_v[ipt]<1.5 ) {
+	    else if ( s_pca_v[ipt]>=0.0 && s_pca_v[ipt]<3.0 ) {
+	      if ( r_pca_v[ipt]<2.0 ) {
 		frac_inside_cone_pca += 1.0;
 	      }
 	    }
@@ -196,7 +196,7 @@ namespace reco {
 	  LARCV_DEBUG() << "  pt cosine mean:   " << pt_cos_mean << std::endl;
 	  LARCV_DEBUG() << "  pt cosine variance:   " << pt_cos_var << std::endl;
 
-	  if ( frac_inside_cone_pca>0.9 )
+	  if ( frac_inside_cone_pca>0.8 )
 	    remove_track[itrk] = 1;
 	}//end of shower loop
       }//end of track loop
