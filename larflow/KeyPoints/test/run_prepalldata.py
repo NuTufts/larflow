@@ -120,7 +120,7 @@ for ientry in range( nentries ):
 
     # fix up some labels
     truthfixer = larflow.prep.TripletTruthFixer()    
-    truthfixer.calc_reassignments( tripmaker, iolcv, ioll )
+    truthfixer.calc_reassignments( tripmaker, iolcv, ioll )    
 
     # make keypoint score ground truth
     kpana.process( iolcv, ioll )

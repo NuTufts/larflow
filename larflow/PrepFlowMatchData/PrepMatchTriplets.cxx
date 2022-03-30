@@ -380,6 +380,8 @@ namespace prep {
     _truth_2plane_v.clear();
     _truth_v.resize( _triplet_v.size(), 0 );
     _truth_2plane_v.resize( _triplet_v.size() );
+    _match_span_v.clear();
+    _match_span_v.resize( _triplet_v.size(), 0 );    
 
     const int true_match_span = 3;
     const int min_required_connections = 1;
@@ -408,12 +410,16 @@ namespace prep {
       int ngood_connections = 0;
       float pixflow  = larflow_v[(int)flow_dir_origin].pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
       int target_col = pix_v[srcplane]->col + (int)pixflow;
-      if ( fabs(pixflow)!=0 && pixflow>-3999 && abs(target_col-pix_v[tarplane]->col)<true_match_span ) {
+      int match_span = abs(target_col-pix_v[tarplane]->col);
+      if ( match_span>10 )
+	match_span = 10;
+
+      if ( fabs(pixflow)!=0 && pixflow>-3999 && match_span<true_match_span ) {
         ngood_connections++;
         _truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
         ndoublet_truth[(int)flow_dir_origin]++;
       }
-      
+      _match_span_v[itrip] = match_span;
       if ( ngood_connections>=min_required_connections ) {
         _truth_v[itrip] = 1;
         ntriplet_truth++;
@@ -1232,6 +1238,11 @@ namespace prep {
     PyArrayObject* truth_t = (PyArrayObject*)PyArray_SimpleNew( 1, truth_t_dim, NPY_LONG );
     PyObject *truth_t_key = Py_BuildValue("s", "truetriplet_t");
 
+    // truth span for triplet
+    npy_intp span_t_dim[] = { (long int)npts };
+    PyArrayObject* span_t = (PyArrayObject*)PyArray_SimpleNew( 1, span_t_dim, NPY_LONG );
+    PyObject *span_t_key = Py_BuildValue("s", "truespan_t");
+    
     ifilled = 0;
     for (auto& idx : idx_v ) {
       auto const& triplet = _triplet_v[idx];
@@ -1243,17 +1254,19 @@ namespace prep {
       *((long*)PyArray_GETPTR1(segment_t,ifilled))  = _pdg_v[idx];
       *((long*)PyArray_GETPTR1(truth_t,ifilled))    = (long)_truth_v[idx];
       *((long*)PyArray_GETPTR1(origin_t,ifilled))   = (long)_origin_v[idx];
+      *((long*)PyArray_GETPTR1(span_t,ifilled))     = (long)_match_span_v[idx];      
       ifilled++;
     }
 
-    // Create and fill dictionary
+    // Create and cfill dictionary
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, spacepoint_t_key, (PyObject*)spacepoint_t);
     PyDict_SetItem(d, imgcoord_t_key,   (PyObject*)imgcoord_t);
     PyDict_SetItem(d, instance_t_key,   (PyObject*)instance_t);
     PyDict_SetItem(d, segment_t_key,    (PyObject*)segment_t);
     PyDict_SetItem(d, origin_t_key,     (PyObject*)origin_t);
-    PyDict_SetItem(d, truth_t_key,      (PyObject*)truth_t);     
+    PyDict_SetItem(d, truth_t_key,      (PyObject*)truth_t);
+    PyDict_SetItem(d, span_t_key,       (PyObject*)span_t);         
 
     Py_DECREF( spacepoint_t );
     Py_DECREF( imgcoord_t );
@@ -1265,7 +1278,8 @@ namespace prep {
     Py_DECREF( instance_t_key );
     Py_DECREF( segment_t_key );
     Py_DECREF( origin_t_key );
-    Py_DECREF( truth_t_key );    
+    Py_DECREF( truth_t_key );
+    Py_DECREF( span_t_key );
 
     return d;
   }
