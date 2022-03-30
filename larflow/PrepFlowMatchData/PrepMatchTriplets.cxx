@@ -517,6 +517,7 @@ namespace prep {
     _ancestor_id_v.resize( _triplet_v.size(), 0);
 
     int nids = 0;
+    int ntrue_triplets =0;
     
     for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
 
@@ -525,6 +526,7 @@ namespace prep {
         continue;
       }
         
+      ntrue_triplets++;
       
       // for each triplet, we look for truth flows that connect the planes
       auto const& triplet = _triplet_v[itrip];
@@ -559,7 +561,9 @@ namespace prep {
     }//end of trips loop
     
     std::cout << "[PrepMatchTriplets::make_ancestorid_vector] " << std::endl;
-    std::cout << "  number labeled: " << nids << " of " << _triplet_v.size() << std::endl;
+    std::cout << "  number labeled: " << nids
+	      << " of " << _triplet_v.size() << " total "
+	      << " and " << ntrue_triplets << "true" << std::endl;
     
   }
 
@@ -644,6 +648,66 @@ namespace prep {
     }//end of trips loop
     
     std::cout << "[PrepMatchTriplets::make_segmentid_vector] " << std::endl;
+    std::cout << "  number labeled: " << nids << " of " << _triplet_v.size() << std::endl;
+    
+  }
+
+  /**
+   * @brief use mcreco data to label spacepoint origin
+   *
+   * Set flag as:
+   *  origin=0 : unknown
+   *  origin=1 : neutrino
+   *  origin=2 : cosmic
+   * 
+   * @param[in] segment_img_v Vector of Image2D which containing larcv particle IDs
+   *
+   */
+  void PrepMatchTriplets::make_origin_vector_frommcreco( larlite::storage_manager& ioll )    
+  {
+
+    _origin_v.resize( _triplet_v.size(), 0 );
+    
+    if ( _ancestor_id_v.size() != _triplet_v.size() ) {
+      throw std::runtime_error("Ancestor ID vector not filled yet. Run make_ancestorid_vector first.");
+    }
+
+    // need instance to ancestor map
+    std::map< int, int > trackid_to_ancestor;
+    std::map< int, int > ancestor_to_origin;
+    larlite::event_mctrack* ev_mctrack
+      = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco");
+    for ( auto const& mctrack : *ev_mctrack ) {
+      trackid_to_ancestor[(int)mctrack.TrackID()] = (int)mctrack.AncestorTrackID();
+      if ( mctrack.TrackID()==mctrack.AncestorTrackID() ) {
+	ancestor_to_origin[(int)mctrack.TrackID()] = mctrack.Origin();
+      }
+    }
+    
+    int nids = 0;
+    
+    for ( size_t itrip=0; itrip<_triplet_v.size(); itrip++ ) {
+
+      if ( _truth_v[itrip]==0 ) {
+        _origin_v[itrip] = 0;
+        continue;
+      }
+
+      int trackid = _instance_id_v[itrip];
+      auto it_t2a = trackid_to_ancestor.find( trackid );
+      if ( it_t2a!=trackid_to_ancestor.end() ) {
+	// found ancestor label
+	int aid = it_t2a->second;
+	auto it_a2o = ancestor_to_origin.find(aid);
+	if ( it_a2o!=ancestor_to_origin.end() ) {
+	  _origin_v[itrip] = it_a2o->second;
+	  nids++;
+	}
+      }
+      
+    }//end of trips loop
+    
+    std::cout << "[PrepMatchTriplets::make_origin_vector_frommcreco] " << std::endl;
     std::cout << "  number labeled: " << nids << " of " << _triplet_v.size() << std::endl;
     
   }
@@ -1072,7 +1136,7 @@ namespace prep {
     make_instanceid_vector( ev_instance->as_vector() );
     make_ancestorid_vector( ev_ancestor->as_vector() );
     make_segmentid_vector( ev_segment->as_vector(), ev_adc->as_vector() );
-    
+    make_origin_vector_frommcreco( ioll );
   }
 
   /**

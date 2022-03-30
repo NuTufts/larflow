@@ -65,6 +65,7 @@ namespace keypoints {
     TChain* ttriplet;   ///< TTree containing space point information (TChain can be thought of as a TTree loading data over several input files)
     TChain* tkeypoint;  ///< TTree containing keypoint information (TChain can be thought of as a TTree loading data over several input files)
     TChain* tssnet;     ///< TTree containing sssnet information (TChain can be though of as a TTree loading data over several input files)
+    TChain* tlarbysmc;  ///< TTree containing some event summary from MC truth (e.g. true vertex)
 
     // Branch variables
     int _run;    ///< run number ID
@@ -94,6 +95,14 @@ namespace keypoints {
     std::vector< int >                get_keypoint_types() const;
     std::vector< std::vector<float> > get_keypoint_pos()   const;
     std::vector< std::vector<int> >   get_keypoint_pdg_and_trackid() const;
+
+  public:
+
+    // larbys mc variables we expose
+    bool has_larbysmc;
+    float vtx_sce_x;
+    float vtx_sce_y;
+    float vtx_sce_z;
       
   protected:
     

@@ -17,7 +17,8 @@ namespace keypoints {
     : larcv::larcv_base("LoaderKeypointData"),
       ttriplet(nullptr),
       tkeypoint(nullptr),
-      tssnet(nullptr)
+      tssnet(nullptr),
+      tlarbysmc(nullptr)
   {
     input_files.clear();
     input_files = input_v;
@@ -26,9 +27,10 @@ namespace keypoints {
 
   LoaderKeypointData::~LoaderKeypointData()
   {
-    if ( ttriplet ) delete ttriplet;
-    if ( tkeypoint) delete tkeypoint;
-    if ( tssnet )   delete tssnet;
+    if ( ttriplet )  delete ttriplet;
+    if ( tkeypoint)  delete tkeypoint;
+    if ( tssnet )    delete tssnet;
+    if ( tlarbysmc ) delete tlarbysmc;
   }
 
   /**
@@ -41,11 +43,13 @@ namespace keypoints {
     ttriplet  = new TChain("larmatchtriplet");
     tkeypoint = new TChain("keypointlabels");
     tssnet    = new TChain("ssnetlabels");
+    tlarbysmc = new TChain("LArbysMCTree");
     for (auto const& infile : input_files ) {
       //std::cout << "add " << infile << " to chains" << std::endl;
       ttriplet->Add(infile.c_str());
       tkeypoint->Add(infile.c_str());
       tssnet->Add(infile.c_str());
+      tlarbysmc->Add(infile.c_str());
     }
     std::cout << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
     
@@ -91,6 +95,16 @@ namespace keypoints {
     tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
     tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );
 
+    if ( tlarbysmc->GetEntries()>0 ) {
+      has_larbysmc = true;
+      tlarbysmc->SetBranchAddress( "vtx_sce_x", &vtx_sce_x );
+      tlarbysmc->SetBranchAddress( "vtx_sce_y", &vtx_sce_y );
+      tlarbysmc->SetBranchAddress( "vtx_sce_z", &vtx_sce_z );      
+    }
+    else {
+      has_larbysmc = false;
+    }
+
   }
 
   /**
@@ -102,13 +116,15 @@ namespace keypoints {
   unsigned long LoaderKeypointData::load_entry( int entry )
   {
     unsigned long bytes = ttriplet->GetEntry(entry);
-    bytes = tssnet->GetEntry(entry);
-    bytes = tkeypoint->GetEntry(entry);
+    bytes += tssnet->GetEntry(entry);
+    bytes += tkeypoint->GetEntry(entry);
+    if ( has_larbysmc )
+      bytes += tlarbysmc->GetEntry(entry);
 
     LARCV_INFO() << "Loaded trees (ttriplet,tssnet,tkeypoint)" << std::endl;
-    for (int n=0; n<6; n++) {
-      std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
-    }
+    // for (int n=0; n<6; n++) {
+    //   std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
+    // }
     
     return bytes;
   }
