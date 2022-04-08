@@ -17,7 +17,8 @@ namespace keypoints {
     : larcv::larcv_base("LoaderKeypointData"),
       ttriplet(nullptr),
       tkeypoint(nullptr),
-      tssnet(nullptr)
+      tssnet(nullptr),
+      tlarbysmc(nullptr)
   {
     input_files.clear();
     input_files = input_v;
@@ -26,9 +27,10 @@ namespace keypoints {
 
   LoaderKeypointData::~LoaderKeypointData()
   {
-    if ( ttriplet ) delete ttriplet;
-    if ( tkeypoint) delete tkeypoint;
-    if ( tssnet )   delete tssnet;
+    if ( ttriplet )  delete ttriplet;
+    if ( tkeypoint)  delete tkeypoint;
+    if ( tssnet )    delete tssnet;
+    if ( tlarbysmc ) delete tlarbysmc;
   }
 
   /**
@@ -41,11 +43,13 @@ namespace keypoints {
     ttriplet  = new TChain("larmatchtriplet");
     tkeypoint = new TChain("keypointlabels");
     tssnet    = new TChain("ssnetlabels");
+    tlarbysmc = new TChain("LArbysMCTree");
     for (auto const& infile : input_files ) {
       //std::cout << "add " << infile << " to chains" << std::endl;
       ttriplet->Add(infile.c_str());
       tkeypoint->Add(infile.c_str());
       tssnet->Add(infile.c_str());
+      tlarbysmc->Add(infile.c_str());
     }
     std::cout << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
     
@@ -53,6 +57,7 @@ namespace keypoints {
     for (int i=0; i<6; i++) {
       kplabel_v[i] = 0;
       kppos_v[i] = 0;
+      kptruth_v[i] = 0;
     }
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
@@ -79,9 +84,26 @@ namespace keypoints {
     tkeypoint->SetBranchAddress("kppos_showerstart",  &kppos_v[3]);
     tkeypoint->SetBranchAddress("kppos_showermichel", &kppos_v[4]);
     tkeypoint->SetBranchAddress("kppos_showerdelta",  &kppos_v[5]);    
+
+    tkeypoint->SetBranchAddress("kptruth_nuvertex",     &kptruth_v[0]);
+    tkeypoint->SetBranchAddress("kptruth_trackstart",   &kptruth_v[1]);
+    tkeypoint->SetBranchAddress("kptruth_trackend",     &kptruth_v[2]);    
+    tkeypoint->SetBranchAddress("kptruth_showerstart",  &kptruth_v[3]);
+    tkeypoint->SetBranchAddress("kptruth_showermichel", &kptruth_v[4]);
+    tkeypoint->SetBranchAddress("kptruth_showerdelta",  &kptruth_v[5]);    
     
     tssnet->SetBranchAddress( "ssnet_label_v",    &ssnet_label_v );
     tssnet->SetBranchAddress( "ssnet_weight_v",   &ssnet_weight_v );
+
+    if ( tlarbysmc->GetEntries()>0 ) {
+      has_larbysmc = true;
+      tlarbysmc->SetBranchAddress( "vtx_sce_x", &vtx_sce_x );
+      tlarbysmc->SetBranchAddress( "vtx_sce_y", &vtx_sce_y );
+      tlarbysmc->SetBranchAddress( "vtx_sce_z", &vtx_sce_z );      
+    }
+    else {
+      has_larbysmc = false;
+    }
 
   }
 
@@ -94,13 +116,15 @@ namespace keypoints {
   unsigned long LoaderKeypointData::load_entry( int entry )
   {
     unsigned long bytes = ttriplet->GetEntry(entry);
-    bytes = tssnet->GetEntry(entry);
-    bytes = tkeypoint->GetEntry(entry);
+    bytes += tssnet->GetEntry(entry);
+    bytes += tkeypoint->GetEntry(entry);
+    if ( has_larbysmc )
+      bytes += tlarbysmc->GetEntry(entry);
 
     LARCV_INFO() << "Loaded trees (ttriplet,tssnet,tkeypoint)" << std::endl;
-    for (int n=0; n<6; n++) {
-      std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
-    }
+    // for (int n=0; n<6; n++) {
+    //   std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
+    // }
     
     return bytes;
   }
@@ -540,6 +564,19 @@ namespace keypoints {
       }
     }
     return kp_types;
+  }
+
+  std::vector< std::vector<int> > LoaderKeypointData::get_keypoint_pdg_and_trackid() const
+  {
+    std::vector< std::vector<int> > kp_pdgtrackid;
+    for (int n=0; n<6; n++) {
+      int nkp = (int)kptruth_v[n]->size();
+      for (int i=0; i<nkp; i++) {
+	const std::vector<int>& pdgtrackid = kptruth_v[n]->at(i);	
+	kp_pdgtrackid.push_back( pdgtrackid );
+      }
+    }
+    return kp_pdgtrackid;
   }
   
 }

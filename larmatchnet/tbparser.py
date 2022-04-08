@@ -39,6 +39,7 @@ def extract_values(logdir,filename,nave=100):
 if __name__ == "__main__":
 
 
+    logdir="arxiv/larmatch_lossweights_nossnet"
     tfile = rt.TFile("extracted_tensorboard.root","recreate")
 
     train_loss,tloss = extract_values("runs","data_train_loss_total")

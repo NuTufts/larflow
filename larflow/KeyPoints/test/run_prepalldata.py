@@ -43,6 +43,8 @@ if args.nentries>=0 and args.nentries<nentries:
 
 print("Start loop.")
 tmp = rt.TFile(args.output,"recreate")
+lmc = ublarcvapp.mctools.LArbysMC()
+lmc.initialize()
 
 # ALGOS
 # -----------------------
@@ -86,15 +88,18 @@ for ientry in range( nentries ):
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
+    lmc.process(ioll)
+
     tripmaker = ev_triplet[0]
+    mcpg = ublarcvapp.mctools.MCPixelPGraph()
     
-    ev_adc = iolcv.get_data( larcv.kProductImage2D, "wiremc" )
+    ev_adc = iolcv.get_data( larcv.kProductImage2D, args.adc )
     print("number of images: ",ev_adc.Image2DArray().size())
     adc_v = ev_adc.Image2DArray()
     for p in range(adc_v.size()):
         print(" image[",p,"] ",adc_v[p].meta().dump())
 
-    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wiremc" )
+    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, args.adc )
     ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
     larflow_v  = ev_larflow.Image2DArray()
     
@@ -106,8 +111,16 @@ for ientry in range( nentries ):
     # make triplet proposals
     tripmaker.process( adc_v, badch_v, 10.0, True )
 
+    # dump pgraph
+    mcpg.buildgraphonly( ioll )
+    #mcpg.printGraph(0,False)
+
     # make good/bad triplet ground truth
-    tripmaker.process_truth_labels( iolcv, ioll, "wiremc" )
+    tripmaker.process_truth_labels( iolcv, ioll, args.adc )
+
+    # fix up some labels
+    truthfixer = larflow.prep.TripletTruthFixer()    
+    truthfixer.calc_reassignments( tripmaker, iolcv, ioll )    
 
     # make keypoint score ground truth
     kpana.process( iolcv, ioll )
@@ -143,6 +156,7 @@ ssnet.writeAnaTree()
 kpflow.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
+lmc.finalize()
 
 del kpana
 del ssnet

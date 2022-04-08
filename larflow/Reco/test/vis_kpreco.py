@@ -32,8 +32,10 @@ for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
 # OPEN LARLITE FILE
-if args.input_larlite is not None:
+if args.input_larlite is not None or args.input_mcinfo is not None:
     io = larlite.storage_manager( larlite.storage_manager.kREAD )
+    
+if args.input_larlite is not None:
     io.add_in_filename( args.input_larlite )
     HAS_LARLITE = True
     print("HAS_LARLITE")
@@ -42,11 +44,12 @@ else:
     
 if args.input_mcinfo is not None:
     io.add_in_filename( args.input_mcinfo )
+    print("HAS_MCINFO")
     HAS_MC = True
 else:
     HAS_MC = False
 
-if HAS_LARLITE:
+if HAS_LARLITE or HAS_MC:
     io.open()
 
 # OPEN VERTEX RECO FILE
@@ -67,7 +70,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global kpsanatree
     
-    if HAS_LARLITE:
+    if HAS_LARLITE or HAS_MC:
         global io
         io.go_to(entry)
         
@@ -206,7 +209,11 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             # track-cluster
             lfcluster = nuvtx.track_hitcluster_v[itrack]
             cluster_trace = lardly.data.visualize_larlite_larflowhits( lfcluster, name="v[%d]c[%d]"%(ivtx,itrack) )
-            cluster_trace["marker"]["color"] = "rgb(0,255,0)"
+
+            randcolor = np.random.randint(0,high=254,size=2)
+            zcolor = "rgb(0,%d,%d)"%(randcolor[0],randcolor[1])
+            
+            cluster_trace["marker"]["color"] = zcolor
             cluster_trace["marker"]["opacity"] = 0.8
             cluster_trace["marker"]["size"] = 2.0
             traces_v.append(cluster_trace)            
@@ -301,7 +308,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( trktrace )
     
 
-    if HAS_MC and HAS_LARLITE:
+    if HAS_MC:
 
         #mcpg = ublarcvapp.mctools.MCPixelPGraph()
         #mcpg.buildgraphonly( io )
@@ -310,12 +317,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         larbysmc = ublarcvapp.mctools.LArbysMC()
         larbysmc.process( io )
         larbysmc.printInteractionInfo()
-        
-        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
-        traces_v += mctrack_v
 
-        mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
-        traces_v.append( mcshower_v[2] )
+        mcinfoplots = lardly.data.visualize_nu_interaction(io, do_sce_correction=True )
+        traces_v += mcinfoplots
+        
+        #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        #traces_v += mctrack_v
+
+        #mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
+        #traces_v.append( mcshower_v[2] )
 
     # Check for perfect reco
     num_nu_perfect = 0        

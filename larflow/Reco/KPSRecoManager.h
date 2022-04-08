@@ -43,6 +43,7 @@
 #include "LikelihoodProtonMuon.h"
 #include "CosmicProtonFinder.h"
 #include "ShowerdQdx.h"
+#include "PostNuCheckShowerTrunkOverlap.h"
 
 #include "NuSel1e1pEventSelection.h"
 #include "NuSelProngVars.h"
@@ -106,7 +107,8 @@ namespace reco {
     NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
     NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
     NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
-
+    PostNuCheckShowerTrunkOverlap _nuvertex_postcheck_showertrunkoverlap; // remove track overlap
+    
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
@@ -157,6 +159,7 @@ namespace reco {
 
     void saveEventMCinfo(bool savemc);
     void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
+    void runPerfectMCreco( bool run_perfect=true ) { _run_perfect_mcreco=run_perfect; }; ///< if true and save MC info also set to true, run mc perfect reco
 
     void clear();
 
@@ -182,8 +185,12 @@ namespace reco {
 
   public:
     
-    // for debug
-    bool _stop_after_keypointreco;
+    // reco phase stopping points for debugging and visualization
+    bool _stop_after_prepspacepoints; ///< stop after prepSpacepoints()
+    bool _stop_after_keypointreco;    ///< stop after recoKeypoints()
+    bool _stop_after_subclustering;   ///< stop after clusterSubparticleFragments()
+    bool _stop_after_nutracker;       ///< stop after nutrackbuilder in multiProngReco()
+    bool _run_perfect_mcreco;         ///< if true, and in MC mode, run perfect reconstruction code
     
   public:
 
@@ -192,6 +199,19 @@ namespace reco {
 
     /** @brief Minimize the output file size by not saving intermediate vertex candidates */
     void minimze_output_size( bool domin=true ) { _kMinize_outputfile_size=domin; };
+
+    /** @brief Set reco chain to stop at spacepoint preparation and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_spacepoint_prep( bool stop_here=true ) { _stop_after_prepspacepoints=stop_here; };
+    
+    /** @brief Set reco chain to stop at keypoint reconstruction and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_keypoint_reco( bool stop_here=true ) { _stop_after_keypointreco=stop_here; };
+
+    /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_subclustering( bool stop_here=true ) { _stop_after_subclustering=stop_here; };
+
+    /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
+    void debug_stop_at_nutracker( bool stop_here=true ) { _stop_after_nutracker=stop_here; };
+    
     
   };
 

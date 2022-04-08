@@ -29,7 +29,11 @@ namespace reco {
     _save_selected_only(false),
     _kMinize_outputfile_size(false),
     _reco_version(reco_ver),
-    _stop_after_keypointreco(false)
+    _stop_after_prepspacepoints(false),
+    _stop_after_keypointreco(false),
+    _stop_after_subclustering(false),
+    _stop_after_nutracker(false),
+    _run_perfect_mcreco(false)
   {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
@@ -64,10 +68,12 @@ namespace reco {
     
     larcv::EventChStatus* ev_chstatus =
       (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus, "wire");
+    // std::vector<larcv::Image2D> gapch_v =
+    //   _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
+    //                                    4, 3, 2400, 6*1008, 3456, 6, 1,
+    //                                    5.0, 50, -1.0 );
     std::vector<larcv::Image2D> gapch_v =
-      _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
-                                       4, 3, 2400, 6*1008, 3456, 6, 1,
-                                       5.0, 50, -1.0 );
+      _badchmaker.makeOverlayedBadChannelImage( adc_v, *ev_chstatus, 4, 15.0 );
     
     LARCV_INFO() << "Number of badcv images made: " << gapch_v.size() << std::endl;
     larcv::EventImage2D* evout_badch =
@@ -91,32 +97,53 @@ namespace reco {
           << std::endl;
       throw std::runtime_error(msg.str());
     }
+
+    // Set run, subrun, event indices in ana tree
+    _ana_run = ev_adc->run();
+    _ana_subrun = ev_adc->subrun();
+    _ana_event  = ev_adc->event();
     
     // PREP SETS OF HITS
     // ------------------
     prepSpacepoints( iolcv, ioll  );
-    
+    if ( _stop_after_prepspacepoints ) {
+      // early stoppage to debug (and visualize) prepared spacepoints
+      _ana_tree->Fill();
+      return;
+    }
+
     // Make keypoint candidates from larmatch vertex
     // ---------------------------------------------
     recoKeypoints( iolcv, ioll );
 
     if ( _stop_after_keypointreco ) {
-      // for debug
-      _ana_run = ev_adc->run();
-      _ana_subrun = ev_adc->subrun();
-      _ana_event  = ev_adc->event();
+      // early stoppage to debug (and visualize) prepared keypoints
       _ana_tree->Fill();
       return;
     }
       
     // PARTICLE FRAGMENT RECO
     clusterSubparticleFragments( iolcv, ioll );
+    if ( _stop_after_subclustering ) {
+      // early stopping to debug (and visualize) subclusters
+      _ana_tree->Fill();
+      return;
+    }
     
     // COSMIC RECO
     cosmicTrackReco( iolcv, ioll );
     
     // MULTI-PRONG INTERNAL RECO
     multiProngReco( iolcv, ioll );
+    // if ( _stop_after_nutracker ) {
+    //   _ana_tree->Fill();
+    //   return;
+    // }
+
+    // if ( _stop_after_prongreco ) {
+    //   _ana_tree->Fill();
+    //   return;      
+    // }
 
     // kinematics
     runBasicKinematics( iolcv, ioll );
@@ -136,10 +163,10 @@ namespace reco {
     // make selection variables
     //makeNuCandidateSelectionVariables( iolcv, ioll );
 
-    if ( _save_event_mc_info ) {
+    if ( _save_event_mc_info && _run_perfect_mcreco ) {
       _event_mcinfo_maker.process( ioll );
       LARCV_DEBUG() << "Run perfect reco." << std::endl;
-      _perfect_reco.set_verbosity( larcv::msg::kDEBUG );
+      //_perfect_reco.set_verbosity( larcv::msg::kDEBUG );
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
       _nu_perfect_v.emplace_back( std::move(nuperfect) );
       //truthAna( iolcv, ioll );
@@ -175,6 +202,15 @@ namespace reco {
                                         larlite::storage_manager& ioll )
   {
 
+    // PREP: make sure the larmatch points have their idxhit index set
+    // we can use this as a way to trace identity of hits back to original set
+    larlite::event_larflow3dhit* ev_larmatch =
+      (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "larmatch" );
+    for (size_t ihit=0; ihit<ev_larmatch->size(); ihit++) {
+      auto& hit = ev_larmatch->at(ihit);
+      hit.idxhit = (int)ihit;
+    }
+    
     // PREP: LABEL larmatch POINTS WITH 2D SSNET SHOWER SCORE
     // input:
     //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
@@ -249,6 +285,22 @@ namespace reco {
     _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
     _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
     _choosemaxhit.process( iolcv, ioll );
+
+    // if we're stopping at this stage for debugging/plotting,
+    // we force the saving of all the intermediate hit containers
+    if ( _stop_after_prepspacepoints ) {
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "larmatch" ); ///< save all original hits (now ssnet-labeled)
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxtrackhit_wcfilter" ); ///< final set of in-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxshowerhit" );         ///< final set of in-time shower hits      
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "full_maxtrackhit" );     ///< final set of out-of-time track hits
+
+      // intermediate hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_trackhit" );      //< pre-max out-of-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_showerhit" );     //< pre-max out-of-time shower hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_trackhit" );  //< pre-max in-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_showerhit" ); //< pre-max in-time track hits
+      
+    }
     
   }
   
@@ -325,7 +377,7 @@ namespace reco {
       // after it runs. everything we need downstream is saved to a larlite tree.
       // so we simply re-run the algorithms to work with the additional vertex types.
 
-      // neutrino: the same as reco version 1
+      // neutrino
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_sigma( 10.0 );
       _kpreco_nu.set_min_cluster_size(   50.0, 0 );
@@ -436,15 +488,17 @@ namespace reco {
     //_pcacluster.process( iolcv, ioll );
 
     // PRIMITIVE TRACK FRAGMENTS: WC-FILTER
-    const float _maxdist = 2.0;
+    const float _maxdist = 1.0;
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
-    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );    
+    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
     _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
+    _projsplitter.doClusterVetoHits(false);
     _projsplitter.set_fit_line_segments_to_clusters( true );
     _projsplitter.set_input_larmatchhit_tree_name( "maxtrackhit_wcfilter" );
+    //_projsplitter.set_input_larmatchhit_tree_name( "ssnetsplit_wcfilter_trackhit" );    
     _projsplitter.add_input_keypoint_treename_for_hitveto( "keypoint" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );
@@ -452,7 +506,9 @@ namespace reco {
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
     _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
-    //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
+    //_projsplitter_cosmic.set_dbscan_pars( 3.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
+    //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );
+    _projsplitter_cosmic.doClusterVetoHits(false);
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
     _projsplitter_cosmic.set_fit_line_segments_to_clusters( true ); // can be slow
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
@@ -462,6 +518,7 @@ namespace reco {
     // class: larflow::reco::ShowerRecoKeypoint
     _showerkp.setShowerRadiusThresholdcm( 5.0 );
     _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
+    //_showerkp.set_ssnet_lfhit_tree_name( "ssnetsplit_wcfilter_showerhit" );    
     //_showerkp.set_verbosity( larcv::msg::kDEBUG );
     _showerkp.set_verbosity( larcv::msg::kINFO );    
     _showerkp.process( iolcv, ioll );
@@ -476,7 +533,21 @@ namespace reco {
     // TRACK CLUSTER-ONLY RECO: make tracks without use of keypoints
 
     // SHOWER CLUSTER-ONLY RECO: make showers without use of keypoints
-    
+
+    if ( _stop_after_subclustering ) {
+      // we're going to stop here. save key intermediate products from this stage.
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_wcfilter" ); // in-time track clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_wcfilter" );         // in-time track clusters
+      
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_full" ); // out-of-time track clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_full" );         // out-of-time track clusters
+      
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "showerkp" ); // shower in-time clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "showerkp" );         // shower in-time clusters
+
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "projsplitnoise" ); // unused hits in cluster splitter
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "projsplitvetoed" ); // unused hits in cluster splitter      
+    }
   }
 
   /**
@@ -490,8 +561,8 @@ namespace reco {
   {
 
 
-    //_nuvertexactivity.set_verbosity( larcv::msg::kINFO );
-    _nuvertexactivity.set_verbosity( larcv::msg::kDEBUG );    
+    _nuvertexactivity.set_verbosity( larcv::msg::kINFO );
+    //_nuvertexactivity.set_verbosity( larcv::msg::kDEBUG );    
 
     // configure to use shower and in-time hits
     std::vector<std::string> input_hit_list
@@ -503,7 +574,7 @@ namespace reco {
     _nuvertexactivity.set_input_hit_list( input_hit_list );    
     //_nuvertexactivity.set_input_cluster_list( input_cluster_list );
     _nuvertexactivity.set_output_treename( "keypoint" );
-    _nuvertexactivity.process( iolcv, ioll );
+    //_nuvertexactivity.process( iolcv, ioll );
     
     //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
     _nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
@@ -511,7 +582,7 @@ namespace reco {
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
-    _nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
+    //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     
@@ -520,14 +591,19 @@ namespace reco {
 
     // NuTrackBuilder class
     _nu_track_builder.clear();
-    //_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
-    _nu_track_builder.set_verbosity( larcv::msg::kINFO );    
+    if ( _stop_after_nutracker )
+      _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );    
+    else 
+      _nu_track_builder.set_verbosity( larcv::msg::kINFO );
     _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     // larflow::reco::TrackFindBadConnection track_splitter;
     // track_splitter.set_verbosity( larcv::msg::kINFO );
     // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )
     //   int nsplit = track_splitter.processNuVertexTracks( nuvtx, iolcv );
-    
+    if ( _stop_after_nutracker ) {
+      _nu_track_builder.saveConnections( ioll, "tcb_connections" );
+      ioll.set_data_to_write( larlite::data::kTrack, "tcb_connections" );
+    }
 
     // first attempt
     // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
@@ -541,7 +617,8 @@ namespace reco {
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
     _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
 
-    // repair shower trunks by absorbing tracks or creating hits
+    
+    // - repair shower trunks by absorbing tracks or creating hits
     _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
     int ivtx = 0;
     for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
@@ -551,8 +628,13 @@ namespace reco {
       ivtx++;
     }
 
-    _cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
-    _cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    // post-neutrino-candidate processing:
+    // - remove tracks from neutrino candidates that significantly overlap with showers
+    _nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    //_cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
+    //_cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     
   }
 

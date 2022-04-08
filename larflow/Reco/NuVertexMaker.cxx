@@ -86,19 +86,51 @@ namespace reco {
         it_pca = _cluster_pca_producers.find( it->first );
       }
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
-      LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
+      LARCV_INFO() << "clusters from [" << it->first << "]: " << it_pca->second->size() << " pcaxes" << std::endl;
+
+      if ( _cluster_type[it->first]==NuVertexCandidate::kTrack ) {
+	auto it_track = _cluster_track_producers.find( it->first );
+	it_track->second = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, it->first );
+	LARCV_INFO() << "clusters from [" << it->first << "]: " << it_track->second->size() << " tracks" << std::endl;
+      }
+      
     }
 
     _createCandidates();
     _merge_candidates();
     if ( _apply_cosmic_veto ) {
       _cosmic_veto_candidates( ioll );
-    }
+    }    
+
+    
     LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size()
                  << "  after-merging=" << _merged_v.size()
                  << "  after-veto=" << _vetoed_v.size()
                  << std::endl;
 
+    for ( auto& vertex : _vetoed_v ) {
+      
+      if ( vertex.cluster_v.size()>0 ) {
+        _vertex_v.emplace_back( std::move(vertex) );
+        if ( logger().debug() ) {
+          LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", " << vertex.keypoint_index << "] " << std::endl;
+          LARCV_DEBUG() << "  number of clusters: " << vertex.cluster_v.size() << std::endl;
+          LARCV_DEBUG() << "  producer: " << vertex.keypoint_producer << std::endl;
+          LARCV_DEBUG() << "  pos: (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ")" << std::endl;
+          LARCV_DEBUG() << "  score: " << vertex.score << std::endl;
+          for (size_t ic=0; ic<vertex.cluster_v.size(); ic++) {
+            LARCV_DEBUG() << "  cluster[" << ic << "] "
+                          << " prod=" << vertex.cluster_v[ic].producer
+                          << " idx=" << vertex.cluster_v[ic].index 
+                          << " impact=" << vertex.cluster_v[ic].impact << " cm"
+                          << " gap=" << vertex.cluster_v[ic].gap << " cm"
+                          << " npts=" << vertex.cluster_v[ic].npts
+                          << std::endl;
+          }
+        }//end of if debug
+      }//end of if has clusters
+    }//end of vertex loop
+        
     _refine_position( iolcv, ioll );
     
   }
@@ -153,6 +185,7 @@ namespace reco {
       }
     }
 
+    // we calculate the track ends
 
     // associate to cluster objects
     for ( size_t vtxid=0; vtxid<seed_v.size(); vtxid++ ) {
@@ -236,7 +269,7 @@ namespace reco {
   {
     // Track
     _cluster_type_max_impact_radius[ NuVertexCandidate::kTrack ] = 5.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kTrack ] = 5.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kTrack ] = 10.0;
 
     // ShowerKP
     _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 10.0;
@@ -342,6 +375,8 @@ namespace reco {
   void NuVertexMaker::_merge_candidates()
   {
 
+    LARCV_DEBUG() << "START MERGER ====================" << std::endl;
+    
     // sort by score
     // start with best score, absorb others, (so N^2 algorithm)
 
@@ -402,10 +437,10 @@ namespace reco {
           dist += (test_vtx.pos[v]-cand.pos[v])*(test_vtx.pos[v]-cand.pos[v]);
         dist = sqrt(dist);
 
-        if ( dist>5.0 )
+        if ( dist==0.0 || dist>5.0 )
           continue; // too far to merge (or the same)
 
-        // if within distance, absorb clusters to make union
+        // if within distance, absorb clusters to make union of two vertices
         // set the pos, keypoint producer based on best score
         used_v[i] = 1;
 
@@ -442,6 +477,7 @@ namespace reco {
             auto const& lfcluster = it_clust->second->at(test_clust.index);
             auto const& lfpca     = it_pca->second->at(test_clust.index);
             auto const& clust_t   = it_ctype->second;
+	    LARCV_DEBUG() << "Call _attachClusterToCandidate for merger" << std::endl;
             _attachClusterToCandidate( cand, lfcluster, lfpca, clust_t,
                                        test_clust.producer, test_clust.index, false );
           }
@@ -474,6 +510,13 @@ namespace reco {
   /**
    * @brief add cluster to a neutrino vertex candidate
    *
+   * We attach clusters that point towards the vertex candidate.
+   * 
+   * For clusters with 1st pc axis less than some length, we use the 1st pc axis to determine if
+   * it points to the vertex.
+   * If for longer clusters, we'll use the spacepoints near the end of the cluster 
+   * and determine it's pcaxis.
+   *
    * @param[in] vertex NuVertexCandidate instance to add to
    * @param[in] lfcluster cluster in the form of a larflowcluster instance
    * @param[in] lfpca cluster pca info for lfcluster
@@ -491,39 +534,122 @@ namespace reco {
                                                  bool apply_cut )
   {
 
-    std::vector<float> pcadir(3,0);
-    std::vector<float> start(3,0);
-    std::vector<float> end(3,0);
+    // define the ray to to use to check the intersection.
+    float pcalen = 0.;    
+    std::vector<float> pca_dir(3,0);
+    std::vector<float> pca_start(3,0);
+    std::vector<float> pca_end(3,0);
     float dist[2] = {0,0};
-    float pcalen = 0.;
     float len = 0.;
+    std::vector<float> startpt(3,0);
+    std::vector<float> endpt(3,0);
+    std::vector<float> dir(3,0);
+
     for (int v=0; v<3; v++) {
-      pcadir[v] = lfpca.getEigenVectors()[0][v];
-      start[v]  = lfpca.getEigenVectors()[3][v];
-      end[v]    = lfpca.getEigenVectors()[4][v];
-      dist[0] += ( start[v]-vertex.pos[v] )*( start[v]-vertex.pos[v] );
-      dist[1] += ( end[v]-vertex.pos[v] )*( end[v]-vertex.pos[v] );
-      len += (start[v]-end[v])*(start[v]-end[v]);
-      pcalen += pcadir[v]*pcadir[v];
+      pca_dir[v]   = lfpca.getEigenVectors()[0][v];
+      pca_start[v] = lfpca.getEigenVectors()[3][v];
+      pca_end[v]   = lfpca.getEigenVectors()[4][v];
+      dist[0] += ( pca_start[v]-vertex.pos[v] )*( pca_start[v]-vertex.pos[v] );
+      dist[1] += ( pca_end[v]-vertex.pos[v] )*( pca_end[v]-vertex.pos[v] );
+      len += (pca_start[v]-pca_end[v])*(pca_start[v]-pca_end[v]);
+      pcalen += pca_dir[v]*pca_dir[v];
     }
     pcalen = sqrt(pcalen);
     len = sqrt(len);
-    LARCV_DEBUG() << "  s(" << start[0] << "," << start[1] << "," << start[2] << ") "
-                  << "  e(" << end[0] << "," << end[1] << "," << end[2] << ") "
-                  << "  len=" << len << std::endl;    
-    if (pcalen<0.1 || std::isnan(pcalen) ) {
-      return false;
-    }          
     dist[0] = sqrt(dist[0]);
     dist[1] = sqrt(dist[1]);
     int closestend = (dist[0]<dist[1]) ? 0 : 1;
     float gapdist = dist[closestend];
-    float r = pointLineDistance( start, end, vertex.pos );
+    if ( closestend==0 ) {
+      startpt = pca_start;
+      endpt   = pca_end;
+      dir     = pca_dir;
+    }
+    else {
+      startpt = pca_end;
+      endpt   = pca_start;
+      for (int v=0; v<3; v++)
+	dir[v] = -pca_dir[v];
+    }
+    
+    LARCV_DEBUG() << "  s(" << startpt[0] << "," << startpt[1] << "," << startpt[2] << ") "
+                  << "  e(" << endpt[0] << "," << endpt[1] << "," << endpt[2] << ") "
+                  << "  len=" << len << std::endl;    
+    if (pcalen<0.1 || std::isnan(pcalen) ) {
+      return false;
+    }
 
-    float projs = pointRayProjection<float>( start, pcadir, vertex.pos );
-    float ends  = pointRayProjection<float>( start, pcadir, end );
+    if ( ctype==NuVertexCandidate::kTrack && len>20.0 ) {
+
+      // replace with end of track
+      auto const& track = _cluster_track_producers[producer]->at(icluster);
+      int npts = track.NumberTrajectoryPoints();
+      // which end is closer
+      dist[0] = 0.;
+      dist[1] = 0.;
+      for (int v=0; v<3; v++) {
+	float dx = track.LocationAtPoint(0)[v]-vertex.pos[v];
+	dist[0] += dx*dx;
+	dx = track.LocationAtPoint(npts-1)[v]-vertex.pos[v];
+	dist[1] += dx*dx;
+      }
+      TVector3 enddir;
+      float s = 0.;      
+      if ( dist[0]<dist[1] ) {
+	for (int ipt=0; ipt<npts-1; ipt++) {
+	  auto& current = track.LocationAtPoint(ipt);
+	  auto& nextpt  = track.LocationAtPoint(ipt+1);
+	  float ds = (current-nextpt).Mag();
+	  s+=ds;
+	  if ( s>10.0 ) {
+	    enddir = nextpt-track.LocationAtPoint(0);
+	    for (int v=0; v<3; v++)  {
+	      dir[v] = enddir[v]/enddir.Mag();
+	      startpt[v] = track.LocationAtPoint(0)[v];
+	      endpt[v]   = nextpt[v];
+	    }
+	  }
+	}
+	
+      }
+      else {
+	for (int ipt=npts-1; ipt>=1; ipt--) {
+	  auto& current = track.LocationAtPoint(ipt);
+	  auto& nextpt  = track.LocationAtPoint(ipt-1);
+	  float ds = (current-nextpt).Mag();
+	  s+=ds;
+	  if ( s>10.0 ) {
+	    enddir = nextpt-track.LocationAtPoint(npts-1);
+	    for (int v=0; v<3; v++)  {
+	      dir[v] = enddir[v]/enddir.Mag();
+	      startpt[v] = track.LocationAtPoint(npts-1)[v];
+	      endpt[v]   = nextpt[v];
+	    }
+	  }
+	}
+      }
+
+      LARCV_DEBUG() << "  long track. "
+		    << "  s(" << startpt[0] << "," << startpt[1] << "," << startpt[2] << ") "
+		    << "  e(" << endpt[0] << "," << endpt[1] << "," << endpt[2] << ") "
+		    << "  len=" << len << std::endl;    	
+
+    }//if cluster is track and longer than 20 cm
+    
+    float r = pointLineDistance( startpt, endpt, vertex.pos );
+
+    float projs = pointRayProjection<float>( startpt, dir, vertex.pos );
+    float ends  = pointRayProjection<float>( startpt, dir, endpt );
 
     if ( apply_cut ) {
+      
+      LARCV_DEBUG() << "  connection metrics: "
+		    << " gapdist=" << gapdist << " [" << (gapdist<_cluster_type_max_gap[ctype]) << "]"
+		    << " r=" << r << " [" << (r<_cluster_type_max_impact_radius[ctype]) << "]"
+		    << " projs=" << projs
+		    << " ends=" << ends
+		    << std::endl;
+      
       // wide association for now
       if ( gapdist>_cluster_type_max_gap[ctype] )
         return false;
@@ -543,16 +669,20 @@ namespace reco {
     cluster.index = icluster;
     cluster.dir.resize(3,0);
     cluster.pos.resize(3,0);
-    for ( int i=0; i<3; i++) {
-      if ( closestend==0 ) {
-        cluster.dir[i] = pcadir[i];
-        cluster.pos[i] = start[i];
-      }
-      else {
-        cluster.dir[i] = -pcadir[i];
-        cluster.pos[i] = end[i];
+
+    if ( closestend==0 ) {
+      for ( int i=0; i<3; i++) {
+	cluster.dir[i] = pca_dir[i];
+	cluster.pos[i] = pca_start[i];
       }
     }
+    else {
+      for ( int i=0; i<3; i++) {
+	cluster.dir[i] = -pca_dir[i];
+	cluster.pos[i] = pca_end[i];
+      }      
+    }
+    
     cluster.gap = gapdist;
     cluster.impact = r;
     cluster.type = ctype;
@@ -716,7 +846,6 @@ namespace reco {
     }
     
   }
-  
   
 }
 }

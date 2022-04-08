@@ -36,10 +36,13 @@ namespace reco {
       _input_lfhit_tree_name("larmatch"),
       _output_cluster_tree_name("projsplit"),
       _min_larmatch_score(0.0),
-      _maxdist(2.0),
+      _maxdist(1.0),
       _minsize(20),
       _maxkd(30),
+      _kp_veto_radius(3.0),
+      _kp_veto_score_threshold(0.85),
       _veto_hits_around_keypoints(false),
+      _cluster_veto_hits(false),
       _fit_line_segments_to_clusters(false)      
       {};
     virtual ~ProjectionDefectSplitter() {};
@@ -49,6 +52,8 @@ namespace reco {
     int split_clusters( std::vector<cluster_t>& cluster_v,
                         const std::vector<larcv::Image2D>& adc_v,
                         const float min_second_pca_len );
+    
+    void doClusterVetoHits( bool doit=true ) { _cluster_veto_hits=doit; };
 
   protected:
 
@@ -68,6 +73,11 @@ namespace reco {
                        std::vector<int>& used_hits_v,
                        std::vector<cluster_t>& output_cluster_v );
 
+    void _findVetoClusters( const larlite::event_larflow3dhit& inputhits,
+			    const std::vector<larcv::Image2D>& adc_v,
+			    std::vector<int>& used_hits_v,
+			    std::vector<cluster_t>& output_cluster_v );    
+    
     void _defragment_clusters( std::vector<cluster_t>& cluster_v,
                                const float max_2nd_pca_eigenvalue );
     
@@ -80,6 +90,8 @@ namespace reco {
     float _maxdist;                         ///< maximum distance two spacepoints can be connected for dbscan
     int   _minsize;                         ///< minimum cluster size for dbscan
     int   _maxkd;                           ///< max number of neighbors per spaecepoint for dbscan
+    float _kp_veto_radius;                  ///< radius from keypoint within which spacepoints are vetoed
+    float _kp_veto_score_threshold;         ///< keypoint scores above threshold used to veto keypoints
 
   public:
 
@@ -92,6 +104,12 @@ namespace reco {
     /** @brief set minimum larmatch score must have to be included in clusters */
     void set_min_larmatch_score( float min_score ) { _min_larmatch_score = min_score; };
 
+    /** @brief set keypoint vertex veto radius */
+    void set_keypoint_veto_radius( float radius_cm ) { _kp_veto_radius = radius_cm; };
+
+    /** @brief set keypoint score threshold for veto */
+    void set_keypoint_score_threshold( float score ) { _kp_veto_score_threshold = score; };
+    
 
     /** 
      * @brief set the dbscan parameters for clustering 
@@ -114,10 +132,14 @@ namespace reco {
   protected:
 
     bool _veto_hits_around_keypoints; ///< if true, veto hits around keypoints to help separate particle clusters
+    bool _cluster_veto_hits;          ///< if true, we try to cluster veto'd hits around the keypoint
     std::vector< std::string > _keypoint_veto_trees_v; ///< contains name of keypoint tree names for vetoing hits
     std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  ///< we veto clusters if they are near these 3d space points
     int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
                                     std::vector<int>& used_hits_v );
+    int _veto_hits_using_keypoint_scores( const larlite::event_larflow3dhit& inputhits,
+					  std::vector<int>& used_hits_v,
+					  float kp_score_threshold );
 
     bool _fit_line_segments_to_clusters; ///< if true, run routine to fit line segments to the different clusters
 

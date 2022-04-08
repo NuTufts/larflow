@@ -1,6 +1,7 @@
 #include "TrackClusterBuilder.h"
 #include <sstream>
 #include "TVector3.h"
+
 #include "larflow/Reco/geofuncs.h"
 
 #include "larcv/core/DataFormat/Image2D.h"
@@ -181,10 +182,13 @@ namespace reco {
 
       for (int jnode=inode+1; jnode<(int)_nodepos_v.size(); jnode++) {
 
+	
         // do not connect nodes on the same segment
         auto it_segedge = _segedge_m.find( std::pair<int,int>(inode,jnode) );
         if ( it_segedge!=_segedge_m.end() )
           continue;
+
+	LARCV_DEBUG() << "--- check node[" << inode << "] -> node[" << jnode << "]" << std::endl;	
                 
         // define a connection in both directions
         NodePos_t& node_j = _nodepos_v[jnode];
@@ -197,9 +201,15 @@ namespace reco {
         }
         dist = sqrt(dist);
         if ( dist>0 ) for (int v=0; v<3; v++) dir_ij[v] /= dist;
+	LARCV_DEBUG() << "  pos[" << inode << "]: (" << node_i.pos[0] << "," << node_i.pos[1] << "," << node_i.pos[2] << ")" << std::endl;
+	LARCV_DEBUG() << "  pos[" << jnode << "]: (" << node_j.pos[0] << "," << node_j.pos[1] << "," << node_j.pos[2] << ")" << std::endl;
+	LARCV_DEBUG() << "  dist=" << dist << std::endl;
 
         // enforce max distance two cluster ends can be connected
-        if ( dist>100.0 ) continue;
+        if ( dist>_max_node_endpt_dist ) {
+	  LARCV_DEBUG() << "  no connect: dist=" << dist << "> max_node_endpt_dist (" << _max_node_endpt_dist << ")" << std::endl;
+	  continue;
+	}
 
         // make sure this is the shortest distance
         // between the segments
@@ -219,6 +229,7 @@ namespace reco {
 
         if ( pairdist<dist ) {
           // the node's segment pair is closer to node_i, so we do not make this connection
+	  LARCV_DEBUG() << "  no connect: segment pair closer" << std::endl;
           continue;
         }
 
@@ -255,22 +266,48 @@ namespace reco {
           //masker.set_verbosity( larcv::msg::kDEBUG );
           std::vector<float> ncharged_v(mask_adc_v.size(),0);
           std::vector<float> frac_v(mask_adc_v.size(),0);
+	  std::vector<float> plane_gap_dist(mask_adc_v.size(),0);
+	  std::vector< std::vector<float> > plane_gap_dir(mask_adc_v.size());
+	  float maxgapsize = 0.0;
           for (int p=0; p<(int)mask_adc_v.size(); p++) {
             auto& mask = mask_adc_v[p];
-            auto const& adc = padc_v->at(p);
-            ncharged_v[p] = (float)masker.maskTrack( gap, adc, mask, 10.0, 0, 0, 2.0 );
-            
-            float nall = (float)masker.maskTrack( gap, adc, mask, -1.0, 0, 0, 2.0 );
+            //auto const& adc = padc_v->at(p);
+	    auto const& adc = pbadch_v->at(p); // use bad channel filled image
+            ncharged_v[p] = (float)masker.maskTrack( gap, adc, mask, 10.0, 0, 0, 0.3 );
+	    float nall = masker.getPathPixels();
             if ( nall>0 ) {              
               frac_v[p] = ncharged_v[p]/nall;
-            }            
+            }
+	    
+	    // record the maxgap info
+	    std::vector< std::vector<float> > gap_colrow_coord;
+	    float plane_gapsize = masker.getMaximumChargeGap(gap_colrow_coord);
+	    plane_gap_dist[p] = plane_gapsize;
+	    if ( plane_gapsize>maxgapsize )
+	      maxgapsize = plane_gapsize;
+	    plane_gap_dir[p].resize(2,0);
+	    for (int v=0; v<2; v++)
+	      plane_gap_dir[p][v] = gap_colrow_coord[1][v]-gap_colrow_coord[0][v];	    
+	    
+	    LARCV_DEBUG() << "  plane[" << p << "]"
+			  << " maxgap=" << plane_gapsize
+			  << " gap (col,row)="
+			  << "(" << gap_colrow_coord[0][0] << "," << gap_colrow_coord[0][1] << ")"
+			  << "->(" << gap_colrow_coord[1][0] << "," << gap_colrow_coord[1][1] << ")"
+			  << std::endl;
           }//end of plane loop
           //masker.maskTrack( gap, *padc_v, mask_adc_v, -1.0, 1, 1 );
+	  
+	  if ( maxgapsize>10.0 ) {
+	    LARCV_DEBUG() << "  fail charge check: maxgapsize=" << maxgapsize << " > 10.0 " << std::endl;
+	    pass_charge_check = false;
+	  }
+	  
           std::chrono::steady_clock::time_point end_masker = std::chrono::steady_clock::now();                    
 
           int nplane_w_charge = 0;
           std::stringstream ssout;
-          ssout << "path fraction: ";
+          ssout << "  path fraction: ";
           for (int p=0; p<(int)mask_adc_v[p].size(); p++) {
             float& frac = frac_v[p];
             ssout << " " << frac;
@@ -278,14 +315,19 @@ namespace reco {
               nplane_w_charge++;
           }
           LARCV_DEBUG() << ssout.str() << std::endl;
+
+	  bool vplane_check = _checkForMissingVplane( frac_v, plane_gap_dir[1], 0.5 );
+	  if ( vplane_check )
+	    LARCV_DEBUG() << "  v-plane check allows connect to pass" << std::endl;
           
-          if ( nplane_w_charge==(int)mask_adc_v.size() ) {
+          if ( nplane_w_charge!=(int)mask_adc_v.size() && !vplane_check ) {
+	    LARCV_DEBUG() << "  fail charge check: nplane_wcharge="	<< nplane_w_charge << std::endl;
             pass_charge_check = false;
             nfail_charge_check++;
           }
-
+	  
           std::chrono::steady_clock::time_point end_check = std::chrono::steady_clock::now();
-          LARCV_DEBUG() << "TrackClusterBuilder:: total-check-time="
+          LARCV_DEBUG() << "  TrackClusterBuilder:: total-check-time="
                         << std::chrono::duration_cast<std::chrono::microseconds>(end_check - start_check).count()
                         << std::endl;
           LARCV_DEBUG() << "                   :: paint-time="
@@ -301,9 +343,13 @@ namespace reco {
 
         }
 
-        if ( !pass_charge_check || !pass_badch_check )
-          continue;
-          
+        if ( !pass_charge_check || !pass_badch_check ) {
+	  LARCV_DEBUG() << "  no connect: fail charge check" << std::endl;	  
+          continue;	  
+	}
+
+	LARCV_DEBUG() << "  make connection!" << std::endl;
+	
         // i->j
         Connection_t con_ij;
         con_ij.node = nullptr;
@@ -521,18 +567,18 @@ namespace reco {
       }
 
       // add this segment
-      // LARCV_DEBUG() << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
-      //               << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
-      //               << "dist=" << gaplen << " "
-      //               << " seg1-seg2=" << segcos
-      //               << " seg1-edge=" << concos1
-      //               << " edge-seg2=" << concos2
-      //               << std::endl;
+      LARCV_DEBUG() << "  consider node[" << node.nodeidx << "]->node[" << nextnode.nodeidx << "] "
+                    << " seg[" << node.segidx << "]->seg[" << nextnode.segidx << "] "
+                    << "dist=" << gaplen << " "
+                    << " seg1-seg2=" << segcos
+                    << " seg1-edge=" << concos1
+                    << " edge-seg2=" << concos2
+                    << std::endl;
       
       // criteria for accepting connection
       // ugh, the heuristics ...
-      if ( (gaplen<2.0 && segcos>0 ) // close: only check direction between segments
-           || (gaplen>=2.0 && gaplen<10.0 && segcos>0.8 && concos1>0.8 && concos2>0.8 )  // far: everything in the same direction           
+      if ( (gaplen<3.0 && segcos>0.0 ) // close: only check direction between segments
+           || (gaplen>=3.0 && gaplen<10.0 && segcos>0.7 )  // far: everything in the same direction           
            || (gaplen>=10.0 && segcos>0.9 && concos1>0.9 && concos2>0.9 ) ) {  // far: everything in the same direction
 
         //std::cin.get();
@@ -1249,6 +1295,61 @@ namespace reco {
       
     }//end of loop over tracks
     
+  }
+
+  void TrackClusterBuilder::saveConnections( larlite::storage_manager& ioll,
+					     std::string tree_name )
+  {
+    // we save a larlite::track to represent an edge between segments
+    larlite::event_track* ev_seg =
+      (larlite::event_track*)ioll.get_data( larlite::data::kTrack, tree_name );
+    for ( auto it=_connect_m.begin(); it!=_connect_m.end(); it++ ) {
+      if ( it->first.first<it->first.second ) {
+	auto const& connection = it->second;
+	larlite::track seg;
+	seg.reserve(2);
+	TVector3 p1;
+	TVector3 p2;
+	TVector3 dir;
+	for (int v=0; v<3; v++) {
+	  p1[v] = _nodepos_v[ connection.from_seg_idx ].pos[v];
+	  p2[v] = _nodepos_v[ connection.to_seg_idx ].pos[v];
+	  dir[v] = connection.dir[v];
+	}
+	seg.add_vertex( p1 );
+	seg.add_vertex( p2 );
+	seg.add_direction( dir );
+	seg.add_direction( dir );
+	ev_seg->emplace_back( std::move(seg) );
+      }
+    }
+  }
+
+  /**
+   * @brief check for failed gap connections along a v-wire
+   *
+   */
+  bool TrackClusterBuilder::_checkForMissingVplane( const std::vector<float>& frac_v,
+						    const std::vector<float>& seg_dir,
+						    const float frac_threshold ) {
+
+    // if the U and Y planes fail, then no need to check
+    if ( frac_v[0]<frac_threshold || frac_v[2]<frac_threshold )
+      return false;
+
+    // the y-plane is already fine
+    if ( frac_v[1]>=frac_threshold )
+      return true;
+
+    LARCV_DEBUG() << "  plane gap img coord dir (dcol,drow) = (" << seg_dir[0] << "," << seg_dir[1] << ")" << std::endl;
+
+    // the segment is along the v-plane wire direction, we let it pass
+    // less than 3 wire change
+    if (fabs(seg_dir[0])<=2)
+      return true;
+
+    // otherwise the segment fails
+    return false;
   }
   
 }

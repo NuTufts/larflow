@@ -6,6 +6,7 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/larflowcluster.h"
 #include "larlite/DataFormat/pcaxis.h"
+#include "larlite/DataFormat/track.h"
 
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
@@ -125,6 +126,8 @@ namespace reco {
   float cluster_dist_to_bbox( const cluster_t& cluster, const std::vector<float>& testpt  );
 
   int cluster_closest_pcaend( const cluster_t& cluster, const std::vector<float>& testpt );
+
+  larlite::track cluster_make_trunk( const cluster_t& cluster, const std::vector<float>& vtxpos );
 
 }
 }

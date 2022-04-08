@@ -17,6 +17,7 @@
 #pragma link C++ class larflow::spatialembed::Prep3DSpatialEmbed+;
 #pragma link C++ struct larflow::spatialembed::Prep3DSpatialEmbed::VoxelData_t+;
 #pragma link C++ class std::vector<larflow::spatialembed::Prep3DSpatialEmbed::VoxelData_t>+;
+#pragma link C++ class larflow::spatialembed::PrepProngEmbed+;
 #pragma link C++ class larflow::spatialembed::SpatialEmbed3DNetProducts+;
 
 //ADD_NEW_CLASS ... do not change this line

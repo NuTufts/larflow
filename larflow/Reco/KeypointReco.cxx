@@ -3,6 +3,9 @@
 #include <iostream>
 #include <fstream>
 
+#include "TMath.h"
+#include <Eigen/Dense>
+
 #include "nlohmann/json.hpp"
 
 #include "larlite/DataFormat/larflow3dhit.h"
@@ -11,6 +14,8 @@
 #include "larlite/LArUtil/Geometry.h"
 
 #include "cluster_functions.h"
+
+
 
 namespace larflow {
 namespace reco {
@@ -23,13 +28,14 @@ namespace reco {
   {
     _sigma = 5.0; // cm
     _larmatch_score_threshold = 0.5;    
-    _num_passes = 2;
+    _num_passes = 1;
     _keypoint_score_threshold_v = std::vector<float>( 2, 0.5 );
     _min_cluster_size_v = std::vector<int>(2,50);
     _max_dbscan_dist = 2.0;
     _input_larflowhit_tree_name = "larmatch";
     _output_tree_name = "keypoint";
     _keypoint_type = -1;
+    _threshold_cluster_max_score = 0.75;
   }
   
   /**
@@ -198,7 +204,7 @@ namespace reco {
     // cluster the points
     std::vector< cluster_t > cluster_v;
     float maxdist = _max_dbscan_dist;
-    int maxkd     = 20;
+    int maxkd     = 100;
 
     LARCV_INFO() << "finding keypoint clusters using " << skimmed_pt_v.size() << " points" << std::endl;
     LARCV_DEBUG() << "  clustering pars: maxdist=" << _max_dbscan_dist
@@ -211,8 +217,21 @@ namespace reco {
     float sigma = _sigma; // bandwidth
 
     for ( auto& cluster : cluster_v ) {
+
+      if ( cluster.points_v.size()<4 )
+	continue;
+      
       // make kpcluster
-      KPCluster kpc = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
+      KPCluster kpc     = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
+      KPCluster kpc_fit = _fit_cluster_CARUANA(  cluster, skimmed_pt_v, skimmed_index_v );
+      kpc.center_pt_v = kpc_fit.center_pt_v;
+      if ( kpc.max_score < _threshold_cluster_max_score )
+	continue;
+      
+      // insert cluster into class continer
+      _cluster_v.emplace_back( std::move(cluster) );
+      kpc._cluster_idx = (int)_cluster_v.size()-1;      
+
       kpc._cluster_type = _keypoint_type;
       auto& kpc_cluster = _cluster_v[ kpc._cluster_idx ];
 
@@ -343,14 +362,72 @@ namespace reco {
     LARCV_DEBUG() << "  center: (" << kpc.center_pt_v[0] << "," << kpc.center_pt_v[1] << "," << kpc.center_pt_v[2] << ")" << std::endl;
     LARCV_DEBUG() << "  pca: (" << cluster.pca_axis_v[0][0] << "," << cluster.pca_axis_v[0][1] << "," << cluster.pca_axis_v[0][2] << ")" << std::endl;
 
-    // insert cluster into class continer
-    _cluster_v.emplace_back( std::move(cluster) );
-    kpc._cluster_idx = (int)_cluster_v.size()-1;
-
-    
     return kpc;
   }
 
+  /**
+   * @brief Find the center of the cluster by fitting score pattern
+   *
+   * The network is trained to predict a score for each spacepoint.
+   * The target score is a gaussian with mean at the location of true best point
+   * We use Caruana's algorithm taken from a description in https://arxiv.org/pdf/1907.07241.pdf
+   * We can solve a linear system of equations by finding a bunch of moments.
+   * We solve it 3-times, one for each spatial dimension, as the target Gaussian has no correlations by construction.
+   *
+   * @param[in] cluster Cluster to characterize
+   * @param[in] skimmed_pt_v     Points used to cluster
+   * @param[in] skimmed_index_v  Index of point in the Original Point list, _initial_pt_pos_v.
+   * @return Keypoint cluster represented as KPCluster object
+   */
+  KPCluster KeypointReco::_fit_cluster_CARUANA( cluster_t& cluster,
+						std::vector< std::vector<float> >& skimmed_pt_v,
+						std::vector< int >& skimmed_index_v )
+  {
+
+    std::vector<double> mean(3,0);
+
+    for (int dim=0; dim<3; dim++) {
+
+      // we calculate 4 moments
+      std::vector<double> x_sum(4,0);
+      std::vector<double> lny_terms(3,0);
+
+      for (auto const& idx : cluster.hitidx_v ) {
+	auto const& pt = skimmed_pt_v.at( idx );
+	for (int n=1; n<=4; n++)
+	  x_sum[n-1] += TMath::Power(pt[dim],n);
+	double lny = TMath::Log(pt[3]);
+	lny_terms[0] += lny;
+	lny_terms[1] += pt[dim]*lny;
+	lny_terms[2] += pt[dim]*pt[dim]*lny;	
+      }
+      double N = cluster.hitidx_v.size();
+      
+      // construct the matrix
+      Eigen::Matrix3d A;
+      A << N, x_sum[0], x_sum[1],
+	   x_sum[0], x_sum[1], x_sum[2],
+	   x_sum[1], x_sum[2], x_sum[3];
+      Eigen::Vector3d b;
+      b << lny_terms[0], lny_terms[1], lny_terms[2];
+      
+      Eigen::Matrix3d invA = A.inverse();
+      Eigen::Vector3d sol = invA*b;
+      mean[dim] = -sol(1)/(2*sol(2));
+    }
+
+    LARCV_DEBUG() << "Solved for mean position, N=" << cluster.hitidx_v.size() << ": "
+		  << "(" << mean[0] << "," << mean[1] << "," << mean[2] << ")" << std::endl;
+    
+    // return a KPCluster object
+    //cluster_pca( cluster );
+    
+    KPCluster kpc;
+    kpc.center_pt_v = { mean[0], mean[1], mean[2] };
+    
+    return kpc;
+  }
+  
   /**
    * @brief we absorb points to clusters, using pca-line, proximity, and confidence score
    *

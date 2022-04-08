@@ -5,11 +5,13 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 
 set( HEADERS PrepMatchEmbed.h
   Prep3DSpatialEmbed.h
+  PrepProngEmbed.h
   SpatialEmbed3DNetProducts.h )
 
 add_library( ${LIBNAME} SHARED
   PrepMatchEmbed.cxx
   Prep3DSpatialEmbed.cxx
+  PrepProngEmbed.cxx  
   SpatialEmbed3DNetProducts.cxx )
 
 # create a property to hold our headers

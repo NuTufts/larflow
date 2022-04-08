@@ -338,33 +338,37 @@ namespace reco {
           }//end of shower cluster loop for given producer
         }//end of if cluster is shower type
       }//loop over producers to build showers
-      
-      larlite::track shower_trunk_dir;
-      shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_start[0],
-                                            rankedprong.axis_start[1],
-                                            rankedprong.axis_start[2]) );
-      shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_end[0],
-                                            rankedprong.axis_end[1],
-                                            rankedprong.axis_end[2]) );
-      double trunkDir[3] = { rankedprong.axis_end[0] - rankedprong.axis_start[0],
-                             rankedprong.axis_end[1] - rankedprong.axis_start[1],
-                             rankedprong.axis_end[2] - rankedprong.axis_start[2] };
-      double trunkMag = sqrt( pow(trunkDir[0],2) + pow(trunkDir[1],2) + pow(trunkDir[2],2) );
-      shower_trunk_dir.add_direction( TVector3(trunkDir[0]/trunkMag,
-                                               trunkDir[1]/trunkMag,
-                                               trunkDir[2]/trunkMag) );
-      shower_trunk_dir.add_direction( TVector3(trunkDir[0]/trunkMag,
-                                               trunkDir[1]/trunkMag,
-                                               trunkDir[2]/trunkMag) );
+
 
       // get pca of shower
       larflow::reco::cluster_t shower_cluster_t = larflow::reco::cluster_from_larflowcluster(shower_hit_v);
       larflow::reco::cluster_pca( shower_cluster_t );
       larlite::pcaxis shower_hit_pca = larflow::reco::cluster_make_pcaxis( shower_cluster_t );
       
+      larlite::track shower_trunk = larflow::reco::cluster_make_trunk( shower_cluster_t, nuvtx.pos );
+    
+      // larlite::track shower_trunk_dir;
+      // shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_start[0],
+      //                                       rankedprong.axis_start[1],
+      //                                       rankedprong.axis_start[2]) );
+      // shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_end[0],
+      //                                       rankedprong.axis_end[1],
+      //                                       rankedprong.axis_end[2]) );
+      // double trunkDir[3] = { rankedprong.axis_end[0] - rankedprong.axis_start[0],
+      //                        rankedprong.axis_end[1] - rankedprong.axis_start[1],
+      //                        rankedprong.axis_end[2] - rankedprong.axis_start[2] };
+      // double trunkMag = sqrt( pow(trunkDir[0],2) + pow(trunkDir[1],2) + pow(trunkDir[2],2) );
+      // shower_trunk_dir.add_direction( TVector3(trunkDir[0]/trunkMag,
+      //                                          trunkDir[1]/trunkMag,
+      //                                          trunkDir[2]/trunkMag) );
+      // shower_trunk_dir.add_direction( TVector3(trunkDir[0]/trunkMag,
+      //                                          trunkDir[1]/trunkMag,
+      //                                          trunkDir[2]/trunkMag) );
+
+      
       // save shower to nuvtx candidate object
       nuvtx.shower_v.emplace_back( std::move(shower_hit_v) );
-      nuvtx.shower_trunk_v.emplace_back( std::move(shower_trunk_dir) );
+      nuvtx.shower_trunk_v.emplace_back( std::move(shower_trunk) );
       nuvtx.shower_pcaxis_v.emplace_back( std::move(shower_hit_pca) );
 
     }//end of seed prong loop      
@@ -553,6 +557,7 @@ namespace reco {
     shower_ll    = rank_v.front().llscore;
     
   }
+
   
 }
 }

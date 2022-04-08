@@ -9,3 +9,4 @@ last_filelist_larlite.txt
 *.tar
 *.cfg
 build/*
+*.ipynb_checkpoints*

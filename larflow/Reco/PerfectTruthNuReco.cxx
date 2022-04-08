@@ -72,6 +72,7 @@ namespace reco {
 
     LARCV_DEBUG() << "Make Tracks" << std::endl;    
     ublarcvapp::mctools::TruthTrackSCE track_convertor( _psce );
+    track_convertor.set_verbosity( larcv::msg::kDEBUG );
     TrackdQdx dqdxalgo;
     
     for ( auto const& track : ev_mctrack ) {
@@ -114,6 +115,11 @@ namespace reco {
     
   }
 
+  /**
+   * 
+   * @brief constructs clusters of larmatch hits for showers using truth information
+   *
+   */
   void PerfectTruthNuReco::makeShowers( NuVertexCandidate& nuvtx,
                                         const larlite::event_mcshower& ev_mcshower,
                                         const larlite::event_larflow3dhit& ev_lm,
@@ -125,6 +131,7 @@ namespace reco {
     const float ar_molier_rad_cm = 9.04;
     const float ar_rad_length_cm = 14.3;
 
+    // algorithm for dq/dx analysis
     TrackdQdx dqdxalgo;
 
     // first make shower daughter 2 mother map, use mcpixelpgraph as help
@@ -133,17 +140,23 @@ namespace reco {
 
 
     std::map<int,int> id2index;
-    std::vector< larlite::larflowcluster > shower_v;
-    std::vector< larlite::track > shower_trunk_v;
-    std::vector< larlite::pcaxis > shower_pca_v;
-    
+    std::vector< larlite::larflowcluster > shower_v; // container for constructed shower clusters
+    std::vector< larlite::track > shower_trunk_v; // container for associated trunk for each shower
+    std::vector< larlite::pcaxis > shower_pca_v;  // container for PCA info for each shower
+
+    // loop over shower objects in the MC truth
+    // we will construct the shower trunk objects in this loop
+    // the trunk line segment will be space-charge corrected
     for ( auto const& shower : ev_mcshower ) {
 
+      // we do not make objects for non-neutrino showers (e.g. cosmics)
       if ( shower.Origin()!=1 ) {
         //not neutrino
         continue;
       }
-      
+
+      // Get the shower det profile object:
+      // it is a better guide for where shower actually started
       auto const& profile = shower.DetProfile();
       //float pmom = profile.Momentum().Vect().Mag();
       //TVector3 dir = profile.Momentum().Vect();
@@ -153,8 +166,18 @@ namespace reco {
       TVector3 pstart = shower.DetProfile().Position().Vect();
 
       LARCV_DEBUG() << "shower start, mcstep[0]: (" << vstart[0] << "," << vstart[1] << "," << vstart[2] << ")" << std::endl;
-      LARCV_DEBUG() << "shower start, profile: (" << pstart[0] << "," << pstart[1] << "," << pstart[2] << ")" << std::endl;
+      LARCV_DEBUG() << "shower start, profile: pstart.Mag()=" << pstart.Mag()
+		    << " (" << pstart[0] << "," << pstart[1] << "," << pstart[2] << ")"
+		    << std::endl;
 
+      // check if profile is invalid. means no energy deposited inside tpc
+      if (pstart[0]>=larlite::data::kINVALID_DOUBLE
+	  || pstart[1]>=larlite::data::kINVALID_DOUBLE
+	  || pstart[2]>=larlite::data::kINVALID_DOUBLE ) {
+	LARCV_DEBUG() << "invalid profile. skip this shower. " << std::endl;
+	continue;
+      }
+      
       if ( shower.PdgCode()==22 ) {
         LARCV_DEBUG() << "For gamma, use profile" << std::endl;
         vstart = pstart;
@@ -162,9 +185,12 @@ namespace reco {
         pmom = dir.Mag();
       }
 
+      // if shower momentum is too small, skip it
       if ( dir.Mag()<0.1 )
         continue;
-      
+
+      // we define the direction with a line segment from start + 5 cm in true direction
+      // we will then apply space charge corrections to this line
       std::vector<float> fdir(3,0);
       std::vector<float> fstart(3,0);
       std::vector<float> fend(3,0);
@@ -173,7 +199,7 @@ namespace reco {
         dir[i] /= pmom;
         fdir[i] = (float)dir[i];
         fstart[i] = vstart[i];
-        fend[i] = fstart[i] + 10.0*fdir[i];
+        fend[i] = fstart[i] + 5.0*fdir[i];
         vend[i] = fend[i];
       }
 
@@ -220,17 +246,21 @@ namespace reco {
       id2index[ shower.TrackID() ] = (int)shower_v.size()-1;
 
     }//end of shower loop, making trunks
-      
+
+    // now we associate larmatch hits to the different true showers
     for ( size_t idx=0; idx<ev_lm.size(); idx++ ) {
+
+      // check if we've already used this hit
       if (used_v[idx]!=0 )
         continue;
       
       auto const& hit = ev_lm[idx];
-      
+
+      // does hit fall within instance image
       if ( hit.tick<=instance_v[0].meta().min_y() || hit.tick>=instance_v[0].meta().max_y() )
         continue;
       int row = instance_v[0].meta().row(hit.tick);
-      
+
       // assign hit by checking instance map
       std::map<int,int> id_votes;
       for (int p=0; p<(int)hit.targetwire.size(); p++) {
@@ -238,8 +268,15 @@ namespace reco {
         if ( hit.targetwire[p]<=meta.min_x() || hit.targetwire[p]>=meta.max_x() )
           continue;
         int col = meta.col( hit.targetwire[p] );
-        float pixval = adc_v[p].pixel( row, col );
-        int iid = instance_v[p].pixel( row, col );
+        float pixval = 0.0;
+	int iid = 0;
+	try {
+	  adc_v[p].pixel( row, col, __FILE__, __LINE__ );
+	  iid = instance_v[p].pixel( row, col, __FILE__, __LINE__ );
+	}
+	catch (...) {
+	  continue;
+	}
         auto it_vote = id_votes.find(iid);
         if ( it_vote==id_votes.end() ) {
           id_votes[iid] = 0;

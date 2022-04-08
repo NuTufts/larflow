@@ -56,6 +56,7 @@ namespace reco {
     std::string _output_tree_name;                  ///< name of the output container tree to put keypoints in
     int   _keypoint_type;                           ///< label of keypoint type we're making
     int   _lfhit_score_index;                       ///< index of column in larflow3d hit info vector with keypoint score
+    float _threshold_cluster_max_score;             ///< the threshold max keypoint score in a keypoint cluster
     
   public:
     
@@ -107,7 +108,7 @@ namespace reco {
     std::vector< cluster_t >   _cluster_v; ///< clusters of spacepoints with keypoint score above some threshold
 
     // make initial points
-    std::vector< std::vector<float> > _initial_pt_pos_v;  ///< initial points we are searching (x,y,z,score)
+    std::vector< std::vector<float> > _initial_pt_pos_v;  ///< initial points we are searching (x,y,z,kp-score,lm-score)
     std::vector< int >                _initial_pt_used_v; ///< flag indicating point is used
     
     void _make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
@@ -124,6 +125,11 @@ namespace reco {
     KPCluster _characterize_cluster( cluster_t& cluster,
                                      std::vector< std::vector<float> >& skimmed_pt_v,
                                      std::vector< int >& skimmed_index_v );
+
+    KPCluster _fit_cluster_CARUANA( cluster_t& cluster,
+				    std::vector< std::vector<float> >& skimmed_pt_v,
+				    std::vector< int >& skimmed_index_v );
+    
     
     void _expand_kpcluster( KPCluster& kp );
 

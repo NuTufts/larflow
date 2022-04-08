@@ -40,9 +40,10 @@ namespace reco {
 
     // get clusters, pca-axis
     std::vector< std::string > cluster_producers =
-      { "trackprojsplit_full",
-        "trackprojsplit_wcfilter",
-        "hip" };
+      // { "trackprojsplit_full",
+      //   "trackprojsplit_wcfilter",
+      //   "hip" };
+      { "trackprojsplit_wcfilter", "cosmicproton" };
     
     for ( auto const& producer : cluster_producers ) {
 

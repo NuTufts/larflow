@@ -2,7 +2,9 @@
 
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
+#include "ublarcvapp/MCTools/NeutrinoVertex.h"
 #include "larflow/Reco/geofuncs.h"
+
 
 namespace larflow {
 namespace prep {
@@ -44,6 +46,7 @@ namespace prep {
       = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
     larlite::event_mctrack* ev_mctrack
       = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco" );
+    std::vector<float> nuvtx = ublarcvapp::mctools::NeutrinoVertex::getPos3DwSCE( ioll, getSCE() );
 
     // fix up missing cosmic pixels if any
     _label_cosmic_pid( tripmaker, mcpg, iolcv );
@@ -78,7 +81,11 @@ namespace prep {
     std::vector<larflow::reco::cluster_t> merged_showers_v;    
     _merge_shower_fragments( cluster_v, pid_v, shower_instance_v, merged_showers_v );
     _reassign_merged_shower_instance_labels( merged_showers_v, _shower_info_v, tripmaker );
-        
+
+    // track relabel
+    // we follow along the path of the trunk. hits within 0.5 cm are absorbed as track
+    _reassign_showers_along_tracks( tripmaker, *ev_mctrack, *ev_mcshower, nuvtx );
+
   }
 
   /**
@@ -1010,6 +1017,66 @@ namespace prep {
 
     std::cout << "number of cosmic-relables: " << nrelabels << std::endl;
   }
-  
+
+  void TripletTruthFixer::_reassign_showers_along_tracks( PrepMatchTriplets& tripmaker,
+							  larlite::event_mctrack& ev_mctrack,
+							  larlite::event_mcshower& ev_mcshower,
+							  std::vector< float >& vtx )
+  {
+    // we limit things to near the neutrino, vertex, else too much.
+    std::vector<int> near_vertex_list_v;
+    near_vertex_list_v.reserve( 1000 );
+    for (int idx=0; idx<(int)tripmaker._triplet_v.size(); idx++) {
+      if ( tripmaker._instance_id_v[idx]==0
+	   || tripmaker._truth_v[idx]==0 ) {
+	continue;
+      }
+
+      int pdg        = tripmaker._pdg_v[idx];
+      if ( pdg!=(int)larcv::kROIEminus && pdg!=larcv::kROIGamma )
+	continue;
+      
+      auto const& pos = tripmaker._pos_v[idx];
+      float dist =0.;
+      for (int v=0; v<3; v++) {
+	dist += (pos[v]-vtx[v])*(pos[v]-vtx[v]);
+      }
+      dist = sqrt(dist);
+      if ( dist<20.0 ) {
+	near_vertex_list_v.push_back( idx );
+      }
+    }
+
+    if ( near_vertex_list_v.size()==0 )
+      return;
+
+    int nconverted = 0;    
+    ublarcvapp::mctools::TruthTrackSCE converter( getSCE() );
+    for (auto& mctrack : ev_mctrack ) {
+
+      if (mctrack.Origin()!=1)
+	continue;
+      
+      larlite::track scetrack = converter.applySCE( mctrack );
+
+      // find points near the line segment
+      for (auto const& idx : near_vertex_list_v ) {
+	auto const& pt = tripmaker._pos_v[ idx ];
+	int instanceid = tripmaker._instance_id_v[idx];
+	if ( instanceid==mctrack.TrackID() )
+	  continue;
+	
+	float min_r = 1.0e9;
+	int min_step = -1;
+	converter.dist2track( pt, scetrack, min_r, min_step );
+	if ( min_r<0.5 ) {
+	  // convert
+	  tripmaker._instance_id_v[idx] = mctrack.TrackID();
+	  nconverted++;
+	}
+      }
+    }//end of mctrack loop
+    std::cout << "TripletTruthFixer::converted " << nconverted << " hits out of " << near_vertex_list_v.size() << " near vertex pixels" << std::endl;
+  }
 }
 }

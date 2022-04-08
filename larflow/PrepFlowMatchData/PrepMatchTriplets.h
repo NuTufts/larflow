@@ -65,6 +65,7 @@ namespace prep {
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
     void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
                                 const std::vector<larcv::Image2D>& adc_v );
+    void make_origin_vector_frommcreco( larlite::storage_manager& ioll );    
     void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
     void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
     void setShuffleWhenSampling( bool shuffle ) { _kshuffle_indices_when_sampling = shuffle; };
@@ -89,6 +90,7 @@ namespace prep {
     std::vector< int >                                    _ancestor_id_v;  ///< ancestor ID label for each space point
     std::vector< int >                                    _pdg_v;          ///< PDG label for each space point
     std::vector< int >                                    _origin_v;       ///< 0: unknown, 1:neutrino, 2:cosmic
+    std::vector< int >                                    _match_span_v;   ///< distance from projection intersection to true intersection in wires
     void clear();
 
     // python/numpy functions, to help network interface

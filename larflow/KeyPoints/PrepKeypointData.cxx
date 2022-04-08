@@ -354,7 +354,7 @@ namespace keypoints {
           max_plane_pixels = pix_v.size();
       }
 
-      if ( max_plane_pixels<10 )
+      if ( max_plane_pixels<20 )
         continue;
 
       auto const& shower = mcshower_v.at( pnode.vidx );
