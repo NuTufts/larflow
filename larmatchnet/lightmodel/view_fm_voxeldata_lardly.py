@@ -34,7 +34,7 @@ for opt in color_by_options:
 
 # DATA LOADER
 batch_size = 1
-dataset = LMDataset( filelist=["test.root"], is_voxeldata=True )
+dataset = LMDataset( filelist=["test.root"], is_voxeldata=True, random_access=False )
 nentries = len(dataset)
 
 print("NENTRIES: ",nentries)
