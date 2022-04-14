@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import ROOT as rt
 from larflow import larflow
-import MinkowskiEngine as ME
+#import MinkowskiEngine as ME
 
 class LMDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
