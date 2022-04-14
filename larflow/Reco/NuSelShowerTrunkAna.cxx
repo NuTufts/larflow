@@ -24,7 +24,7 @@ namespace reco {
     larlite::event_mcshower* ev_mcshower
       = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
     bool has_mc = false;
-    if ( ev_mcshower->size()>0 )
+    if ( ev_mcshower != NULL && ev_mcshower->size()>0 )
       has_mc = true;
 
     dqdx_algo.set_verbosity(larcv::msg::kINFO);    
