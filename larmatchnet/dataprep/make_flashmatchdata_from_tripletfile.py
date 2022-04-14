@@ -209,7 +209,7 @@ for ientry in range(1):
                      ancestor_truth_v, ancestor_weight_v ]:
                      vec.clear()
 
-            data = next(iter(loader))[0]
+            #data = next(iter(loader))[0]
 
             print("Tree entry: ",data["tree_entry"])
             print(" keys: ",data.keys())
@@ -230,7 +230,6 @@ for ientry in range(1):
             clusterTick[0] = track_tick
             flashTick[0] = match
             origin[0] = fmutil.trackOrigin()
-
 
             coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
             feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"] ) )

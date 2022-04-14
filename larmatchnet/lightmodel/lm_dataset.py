@@ -18,7 +18,7 @@ class LMDataset(torch.utils.data.Dataset):
         Parameters:
         is_voxeldata [bool] if true, assumes ROOT file containts trees with larcv::NumpyArray[Int/Float] classes.
                               These classes are easy to transform into numpy arrays.
-                            if false (default), assumes ROOT file contains 3D spacepoint data which we 
+                            if false (default), assumes ROOT file contains 3D spacepoint data which we
                               need to convert into numpy array format.
         """
         file_v = rt.std.vector("string")()
@@ -57,7 +57,7 @@ class LMDataset(torch.utils.data.Dataset):
             for ifile in range(file_v.size()):
                 self.voxeldata_tree.Add( file_v.at(ifile) )
             self.nentries = self.voxeldata_tree.GetEntries()
-            
+
         self.random_access = random_access
         self.partition_index = 0
         self.num_partitions = 1
@@ -98,7 +98,7 @@ class LMDataset(torch.utils.data.Dataset):
                 self._current_entry = 0
 
             ientry = int(self._current_entry)
-        
+
             if self._random_access:
                 # if random access, get next entry in shuffled index list
                 data    = {"entry":ientry,
@@ -115,7 +115,7 @@ class LMDataset(torch.utils.data.Dataset):
 
             # increment the entry index
             self._current_entry += 1
-                
+
             # increment the number of attempts we've made
             num_tries += 1
             if num_tries>=self._max_num_tries:
@@ -137,12 +137,12 @@ class LMDataset(torch.utils.data.Dataset):
             raise("[larvoxel_dataset::__getitem__] Dupe introduced somehow in batch-index=%d"%(ibatch)," arr=",data["voxcoord"].shape)
 
         self._nloaded += 1
-        
+
         return copy.deepcopy(data)
 
-    def get_data_dict_from_triplet_file(self, data):    
+    def get_data_dict_from_triplet_file(self, data):
 
-        # get data from match trees            
+        # get data from match trees
         nbytes = self.loader.load_entry(data["tree_entry"])
         if self._verbose:
             print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
@@ -151,7 +151,7 @@ class LMDataset(torch.utils.data.Dataset):
             dtio = time.time()-tio
 
         if not self._voxelize:
-            # get the spacepoints            
+            # get the spacepoints
             matchdata   = self.loader.triplet_v[0].make_spacepoint_charge_array()
         else:
             # voxelize the data
@@ -162,38 +162,38 @@ class LMDataset(torch.utils.data.Dataset):
             if voxdata["voxcoord"].shape[0]>=self._max_num_voxels:
                 # don't return giant events
                 return None
-            
+
             origin_x = self.voxelizer.get_origin()[0]
             origin_y = self.voxelizer.get_origin()[1]
             origin_z = self.voxelizer.get_origin()[2]
             pos = np.zeros( (voxdata["voxcoord"].shape[0], 6 ), dtype=np.float32 )
             pos[:,0:3] = voxdata["voxcoord"]
             pos[:,0] += origin_x/self._voxelsize_cm
-            pos[:,1] += origin_x/self._voxelsize_cm 
+            pos[:,1] += origin_x/self._voxelsize_cm
             pos[:,2] += origin_x/self._voxelsize_cm
             pos *= self._voxelsize_cm
-            
+
             pos[:,3:] = np.clip( voxdata["voxfeat"]/150.0, 0, 10.0 )
 
             matchdata = {"spacepoint_t":pos,
                          "truetriplet_t":voxdata["voxlabel"]}
             data.update(voxdata)
-        
+
         # add the contents to the data dictionary
         data.update(matchdata)
 
-            
+
         if self._verbose:
-            tottime = time.time()-t_start            
+            tottime = time.time()-t_start
             print("[larennetDataset entry=%d loaded]"%(data["tree_entry"]))
             print("  io time: %.3f secs"%(dtio))
             print("  tot time: %.3f secs"%(tottime))
-            
+
         return data
 
     def get_data_dict_from_voxelarray_file(self, data):
-        
-        # get data from match trees            
+
+        # get data from match trees
         nbytes = self.voxeldata_tree.GetEntry(data["tree_entry"])
         if self._verbose:
             print("nbytes: ",nbytes," for tree[",name,"] entry=",data['tree_entry'])
@@ -208,13 +208,13 @@ class LMDataset(torch.utils.data.Dataset):
         if data["voxcoord"].shape[0]>=self._max_num_voxels:
             # don't return giant events
             return None
-        
+
         data["voxfeat"]  = self.voxeldata_tree.feat_v.at(0).tonumpy()
         #print("prenorm: ",data["voxfeat"].shape,", ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))
         # normalize features
         data["voxfeat"] = np.clip( data["voxfeat"]/150.0, 0, 10.0 )
-        #print("postnorm: ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))        
-        
+        #print("postnorm: ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))
+
         data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
         data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()
         data["voxlabel"] = self.voxeldata_tree.larmatch_truth_v.at(0).tonumpy()
@@ -223,13 +223,13 @@ class LMDataset(torch.utils.data.Dataset):
         data["ssnet_weights"] = self.voxeldata_tree.ssnet_weight_v.at(0).tonumpy()
 
         if self._verbose:
-            tottime = time.time()-t_start            
+            tottime = time.time()-t_start
             print("[LMDataset::get_data_dict_from_voxelarray_file entry=%d loaded]"%(data["tree_entry"]))
             print("  io time: %.3f secs"%(dtio))
             print("  tot time: %.3f secs"%(tottime))
-            
+
         return data
-    
+
     def __len__(self):
         return self.nentries
 
@@ -250,13 +250,13 @@ class LMDataset(torch.utils.data.Dataset):
         batch_size = len(batch)
         tree_entries = [ x["tree_entry"] for x in batch ]
         npoints_v = []
-        #print("[LMDataset::collate_fn] batch len=%d tree entries="%(batch_size),tree_entries)
-        
+        print("[LMDataset::collate_fn] batch len=%d tree entries="%(batch_size),tree_entries)
+
         for ib,data in enumerate(batch):
-            #print("batch[%d]: "%(ib),data["voxcoord"].shape)
+            print("batch[%d]: "%(ib),data["voxcoord"].shape)
             npoints += data["voxcoord"].shape[0]
             npoints_v.append( data["voxcoord"].shape[0] )
-        #print("[LMDataset::collate_fn] batch: ",type(batch)," len=",len(batch)," nvoxels=",npoints)
+        print("[LMDataset::collate_fn] batch: ",type(batch)," len=",len(batch)," nvoxels=",npoints)
 
         # check for duplicates in individual entries in batch
         for ib,data in enumerate(batch):
@@ -270,24 +270,24 @@ class LMDataset(torch.utils.data.Dataset):
                     hasdupe = True
             if hasdupe:
                 raise("Dupe introduced somehow in batch-index=%d"%(ib)," arr=",data["voxcoord"].shape)
-        
+
 
         v = ["tree_entry","voxcoord","voxfeat","voxlabel","ssnet_labels","kplabel","voxlmweight","ssnet_weights","kpweight"]
 
-        #print("batch_size: ",batch_size)
-        #for ib in range(batch_size):
-        #    print("batch ",ib," --------------------")
-        #    for vv in v[1:]:
-        #        print("  ",vv,": ",batch[ib][vv].shape)
-        
+        print("batch_size: ",batch_size)
+        for ib in range(batch_size):
+            print("batch ",ib," --------------------")
+            for vv in v[1:]:
+                print("  ",vv,": ",batch[ib][vv].shape)
+
         batch_dict = {"tree_entry":tree_entries,
                       "voxcoord":[],
                       "voxfeat":[]}
         for k in batch[0].keys():
-            #print(k,": ",type(batch[0][k]))            
+            print(k,": ",type(batch[0][k]))
             if type(batch[0][k]) is not np.ndarray:
                 continue
-            arr = batch[0][k]            
+            arr = batch[0][k]
             if k in ["spacepoint_t","truetriplet_t"]:
                 continue
             elif k=="voxcoord":
@@ -295,40 +295,40 @@ class LMDataset(torch.utils.data.Dataset):
                 #batch_dict["voxcoord"].append( arr )
             elif k=="voxfeat":
                 batch_dict[k] = np.zeros( (npoints,arr.shape[1]), dtype=arr.dtype )
-                #batch_dict["voxfeat"].append( arr )                
+                #batch_dict["voxfeat"].append( arr )
             elif len(arr.shape)>1:
                 batch_dict[k] = np.zeros( (1,arr.shape[0],npoints), dtype=arr.dtype )
             else:
                 batch_dict[k] = np.zeros( (1,npoints), dtype=arr.dtype )
-            #print(k," array=",arr.shape," batch array: ",batch_dict[k].shape)
+            print(k," array=",arr.shape," batch array: ",batch_dict[k].shape)
         #coords, feats = ME.utils.sparse_collate(batch_dict["voxcoord"], batch_dict["voxfeat"])
 
-        npoints = 0        
+        npoints = 0
         for ib,data in enumerate(batch):
 
             n = data["voxcoord"].shape[0]
             batch_dict["voxcoord"][npoints:npoints+n,0]  = ib
             batch_dict["voxcoord"][npoints:npoints+n,1:] = data["voxcoord"]
             batch_dict["voxfeat"][npoints:npoints+n,:] = data["voxfeat"]
-            
+
             for k in v[3:]:
                 arr = data[k]
                 if len(arr.shape)>1:
                     batch_dict[k][0,:,npoints:npoints+n] = arr
                 else:
                     batch_dict[k][0,npoints:npoints+n] = arr
-                    
+
             npoints += n
 
         #coords = batch_dict["voxcoord"]
         #feats  = batch_dict["voxfeat"]
         #A = ME.SparseTensor(features=torch.from_numpy(feats), coordinates=torch.from_numpy(coords))
-        #print("sparsetensor: ",A)            
+        #print("sparsetensor: ",A)
         #batch_dict["sparsetensor"] = A
 
         return batch_dict
-    
-            
+
+
 if __name__ == "__main__":
 
     import time
@@ -343,14 +343,14 @@ if __name__ == "__main__":
     import ROOT as rt
     out = rt.TFile("temp_larvoxel_dataset_hist.root",'recreate')
     h = rt.TH1F("hnvoxels","num voxels; number of voxels in event;",20,0,4e6)
-    
-    
+
+
     DEVICE=torch.device("cpu")
     test = LMDataset( filelist=[testfile],
                             is_voxeldata=True,
                             random_access=False )
     print("NENTRIES: ",len(test))
-    
+
     loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=LMDataset.collate_fn)
 
     max_nvoxels = 0
@@ -361,12 +361,12 @@ if __name__ == "__main__":
         print("====================================")
         #for ib,data in enumerate(batch):
         print("ITER[%d]"%(iiter))
-        
+
         batch = next(iter(loader))
 
         print("batch keys: ",batch.keys())
         print(batch["tree_entry"])
-        
+
         for name,d in batch.items():
             if type(d) is np.ndarray:
                 print("  ",name,": ",d.shape)
@@ -386,7 +386,7 @@ if __name__ == "__main__":
             raise("iteration has dupe! -------------")
 
         coords = batch["voxcoord"]
-        feats  = batch["voxfeat"]        
+        feats  = batch["voxfeat"]
         A = ME.SparseTensor(features=torch.from_numpy(feats).to(DEVICE),
                             coordinates=torch.from_numpy(coords).to(DEVICE))
 
@@ -396,12 +396,12 @@ if __name__ == "__main__":
             max_nvoxels = coords.shape[0]
             maxiter = iiter
         h.Fill( coords.shape[0] )
-        
+
         #xinput = batch["sparsetensor"]
         #print("after sparse collate")
         #print(xinput)
         print("====================================")
-                                            
+
     end = time.time()
     elapsed = end-start
     sec_per_iter = elapsed/float(niter)

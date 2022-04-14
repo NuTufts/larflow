@@ -1,5 +1,12 @@
 from __future__ import print_function
-import os,sys
+import os,sys,argparse
+
+parser = argparse.ArgumentParser("flashmatched voxel data lardly viewer")
+#parser.add_argument("-ll","--larlite",required=True,type=str,help="larlite file with dltagger_allreco tracks")
+parser.add_argument("-ll","--larlite",type=str,default="",help="larlite mcinfo file") # optional
+#parser.add_argument("-e","--entry",required=True,type=int,help="Entry to load")
+
+args = parser.parse_args(sys.argv[1:])
 
 import chart_studio as cs
 import chart_studio.plotly as py
@@ -21,6 +28,12 @@ import lardly
 #from larvoxel_dataset import larvoxelDataset
 from lightmodel.lm_dataset import LMDataset
 
+input_larlite = args.larlite
+io_ll = larlite.storage_manager(larlite.storage_manager.kREAD)
+io_ll.add_in_filename( input_larlite )
+io_ll.open()
+
+
 from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
 detdata = lardly.DetectorOutline()
@@ -40,6 +53,19 @@ nentries = len(dataset)
 print("NENTRIES: ",nentries)
 
 ientry = 1
+
+io_ll.go_to(ientry)
+ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
+mctrack = ev_mctrack.at(3) #seems like only odd numbers contain mctrack points? evens are just meta/setup/type info
+
+traces3d = []
+
+# MCTRACK
+if args.larlite!="":
+    print("VISUALIZE MCTRACKS")
+    mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack )
+    print("mcytrack_v:",mctrack_v)
+    traces3d.append( mctrack_v )
 
 #for i in enumerate(dataset):
 #    print(i)
@@ -151,7 +177,8 @@ app.layout = html.Div( [
 	dcc.Graph(
             id="det3d",
             figure={
-                "data": [],
+                #"data": [],
+                "data": detdata.getlines()+traces3d,
                 "layout": plot_layout,
             },
             config={"editable": True, "scrollZoom": False},
