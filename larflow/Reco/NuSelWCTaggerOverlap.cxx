@@ -50,7 +50,7 @@ namespace reco {
 
         int nplanes_on_thrumu = 0;
         
-        for (int p=0; p<(int)hit.targetwire.size(); p++) {
+        for (int p=0; p<3; p++) {
 
 
           bool pixfound = false;

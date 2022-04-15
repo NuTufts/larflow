@@ -18,7 +18,7 @@ from lightmodel.lm_dataset import LMDataset
 detdata = lardly.DetectorOutline()
 
 # DATA LOADER
-batch_size = 1
+batch_size = 5
 dataset = LMDataset( filelist=["test.root"], is_voxeldata=True )
 nentries = len(dataset)
 
@@ -41,9 +41,9 @@ niter = 11
 
 for iiter in range(niter):
     batch = next(iter(loader))
-    
+
     print("====================================")
-    print("batch: ", batch)
+    #print("batch: ", batch)
     print(batch.keys())
     for name,d in batch.items():
         if  name in ["entry","tree_entry"]:
@@ -53,7 +53,7 @@ for iiter in range(niter):
         else:
             print("  ",name,": ",type(d))
             print(" coord: ",data["coord"][:10,:])
-    
+
     nvoxels = batch["voxcoord"].shape[0]
     pos3d = batch["voxcoord"].astype(np.float64)*0.3
     #pos3d[:,1] -= 117.0

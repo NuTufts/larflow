@@ -203,7 +203,8 @@ for ientry in range(NENTRIES):
     with torch.no_grad():
         pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
     print("Ran model: ",pred_dict.keys())
-    torch.cuda.synchronize()
+    if args.device_name != "cpu":
+        torch.cuda.synchronize()
     sys.stdout.flush()    
     
     # EVALUATE LARMATCH SCORES

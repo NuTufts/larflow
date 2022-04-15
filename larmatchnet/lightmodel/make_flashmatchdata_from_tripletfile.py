@@ -169,7 +169,7 @@ listy = []
 
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
-for ientry in range(1):
+for ientry in range(2):
 
     data = next(iter(loader))[0]
 
@@ -269,39 +269,84 @@ for ientry in range(1):
 
             #print("This is voxinstance: ", *data["voxinstance"])
 
+            #save the mctrack using fmutil
+
             # create array with T/F boolean
             indexmatch_v = [ data["voxinstance"]==iid for iid in iid_v ]
+            #print("indexmatch_v: ",indexmatch_v)
 
-            print("indexmatch_v: ",indexmatch_v)
-
-            #iicoord_v = []
+            # filter for matching instances only
             iicoord_v = [ data["voxcoord"][indexmatch[:],:] for indexmatch in indexmatch_v ]
             iifeat_v = [ data["voxfeat"][indexmatch[:],:] for indexmatch in indexmatch_v ]
 
+            iilm_truth_v = [ data["voxlabel"][indexmatch[:]] for indexmatch in indexmatch_v ]
+            iissnet_truth_v = [ data["ssnet_labels"][indexmatch[:]] for indexmatch in indexmatch_v ]
+            iikp_truth_v = [ data["kplabel"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
+            iilm_weight_v = [ data["voxlmweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
+            iissnet_weight_v = [ data["ssnet_weights"][indexmatch[:]] for indexmatch in indexmatch_v ]
+            iikp_weight_v = [ data["kpweight"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
+            #iiinstance_truth_v = [ data["voxinstance"][indexmatch[:],:] for indexmatch in indexmatch_v ]
+            iiorigin_truth_v = [ data["voxorigin"][indexmatch[:]] for indexmatch in indexmatch_v ]
+            iiorigin_weight_v = [ data["voxoriginweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
+
             print("data[voxcoord]",data["voxcoord"])
-            print("iicoord_v",iicoord_v)
-            print("iicoord_v array",np.array(iicoord_v))
+            print("data[voxlabel]",data["voxlabel"])
+            #print("iicoord_v",iicoord_v)
+            #print("iicoord_v array",np.array(iicoord_v)) # do NOT do this! use concatenate (below)
 
             iicoord = np.concatenate( iicoord_v )
             iifeat = np.concatenate( iifeat_v )
+            iilm_truth = np.concatenate( iilm_truth_v )
+            iissnet_truth = np.concatenate( iissnet_truth_v )
+            iikp_truth = np.concatenate( iikp_truth_v )
+            iilm_weight = np.concatenate( iilm_weight_v )
+            iissnet_weight = np.concatenate( iissnet_weight_v )
+            iikp_weight = np.concatenate( iikp_weight_v )
+            #iiinstance_truth = np.concatenate( iiinstance_truth_v )
+            iiorigin_truth = np.concatenate( iiorigin_truth_v )
+            iiorigin_weight = np.concatenate( iiorigin_weight_v )
+
             print("iicoord",iicoord)
             print("iicoord.shape",iicoord.shape)
             print("iifeat",iifeat)
             print("iifeat.shape",iifeat.shape)
+            print("iilm_truth",iilm_truth)
+            print("iilm_truth.shape",iilm_truth.shape)
 
             coord_v.push_back( larcv.NumpyArrayInt(iicoord.astype(np.int32)))
             feat_v.push_back( larcv.NumpyArrayFloat(iifeat))
 
+            lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.astype(np.int32) ) )
+            #lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.squeeze().astype(np.int32) ) )
+
+
+            ssnet_truth_v.push_back( larcv.NumpyArrayInt( iissnet_truth.astype(np.int32) ) )
+            kp_truth_v.push_back( larcv.NumpyArrayFloat( iikp_truth ) )
+
+            lm_weight_v.push_back( larcv.NumpyArrayFloat( iilm_weight ) )
+            ssnet_weight_v.push_back( larcv.NumpyArrayFloat( iissnet_weight ) )
+            kp_weight_v.push_back( larcv.NumpyArrayFloat( iikp_weight ) )
+
+            #instance_truth_v.push_back(  larcv.NumpyArrayInt( iiinstance_truth.astype(np.int32) ) )
+
+            ancestor_truth_v.push_back(  larcv.NumpyArrayInt( iiorigin_truth.astype(np.int32) ) )
+            ancestor_weight_v.push_back( larcv.NumpyArrayFloat( iiorigin_weight.astype(np.float32) ) )
+
+
+
+            # FULL EVENT
             #coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
             #feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"] ) )
 
-            lm_truth_v.push_back( larcv.NumpyArrayInt( data["voxlabel"].squeeze().astype(np.int32) ) )
+            #lm_truth_v.push_back( larcv.NumpyArrayInt( data["voxlabel"].squeeze().astype(np.int32) ) )
+            '''
             ssnet_truth_v.push_back( larcv.NumpyArrayInt( data["ssnet_labels"].squeeze().astype(np.int32) ) )
             kp_truth_v.push_back( larcv.NumpyArrayFloat( data["kplabel"].squeeze() ) )
 
             lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"].squeeze() ) )
             ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"].squeeze() ) )
             kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"].squeeze() ) )
+            '''
 
             instance_truth_v.push_back(  larcv.NumpyArrayInt( data["voxinstance"].squeeze().astype(np.int32) ) )
 
@@ -315,8 +360,8 @@ for ientry in range(1):
                 instance_map_v.push_back(pair)
             '''
 
-            ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
-            ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
+            #ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
+            #ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
 
 
             outtree.Fill()
