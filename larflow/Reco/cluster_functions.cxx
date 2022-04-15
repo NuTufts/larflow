@@ -935,7 +935,8 @@ namespace reco {
       pca_dir[i] = cluster.pca_ends_v[1][i]-cluster.pca_ends_v[0][i];
       len += pca_dir[i]*pca_dir[i];
     }
-    if (len==0)
+    len = sqrt(len);
+    if (len<0.1)
       return false;
     
     for (int i=0; i<3; i++)

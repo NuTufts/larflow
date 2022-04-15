@@ -130,9 +130,11 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             traces_v.append( pcatrace )
             
     # plot vertices
-    vertex_v = kpsanatree.nufitted_v
+    #vertex_v = kpsanatree.nufitted_v
+    #vertex_v = kpsanatree.numerged_v
+    vertex_v = kpsanatree.nuvetoed_v
     vtxinfo = []
-    for ivtx in range( kpsanatree.nufitted_v.size() ):
+    for ivtx in range( vertex_v.size() ):
         nuvtx = vertex_v.at(ivtx)
         ntracks  = nuvtx.track_v.size()
         nshowers = nuvtx.shower_v.size()
@@ -157,7 +159,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         print( "VERTEX[%d] HAS %d TRACKS and %d SHOWERS"%(ivtx,nuvtx.track_v.size(),nuvtx.shower_v.size()) )
 
         #vertexcand = kpsanatree.nuvetoed_v.at(ivtx)
-        vertexcand_fit = kpsanatree.nufitted_v.at(ivtx)        
+        vertexcand_fit = vertex_v.at(ivtx)        
         # Get the keypoint data
 
         

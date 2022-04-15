@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
@@ -42,6 +43,7 @@ namespace reco {
       _kp_veto_radius(3.0),
       _kp_veto_score_threshold(0.85),
       _veto_hits_around_keypoints(false),
+      _remove_vetoed_hits(false),
       _cluster_veto_hits(false),
       _fit_line_segments_to_clusters(false)      
       {};
@@ -80,6 +82,13 @@ namespace reco {
     
     void _defragment_clusters( std::vector<cluster_t>& cluster_v,
                                const float max_2nd_pca_eigenvalue );
+
+    void _select_clusters( std::vector<larflow::reco::cluster_t>& cluster_v,
+			   std::vector<int>& used_hits_v,
+			   const std::vector<int>& orig_index_v,
+			   const int min_nhits,
+			   const float min_second_pca_len );
+    
     
     // PARAMETER NAMES
   protected:
@@ -132,9 +141,13 @@ namespace reco {
   protected:
 
     bool _veto_hits_around_keypoints; ///< if true, veto hits around keypoints to help separate particle clusters
+    bool _remove_vetoed_hits;         ///< if true, we remove veto hits, else we push away from the keypoint
     bool _cluster_veto_hits;          ///< if true, we try to cluster veto'd hits around the keypoint
     std::vector< std::string > _keypoint_veto_trees_v; ///< contains name of keypoint tree names for vetoing hits
     std::vector< const larlite::event_larflow3dhit* > _event_keypoint_for_veto_v;  ///< we veto clusters if they are near these 3d space points
+    std::vector< const larlite::larflow3dhit* > _keypoints_for_veto_v;
+    std::map<int,int>  _hitidx_to_kpidx;  ///< for vetoed hits, the keypoint index it was vetoed by
+    std::vector<float> _hitidx_to_kpdist; ///< distance to keypoint
     int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
                                     std::vector<int>& used_hits_v );
     int _veto_hits_using_keypoint_scores( const larlite::event_larflow3dhit& inputhits,

@@ -295,6 +295,7 @@ namespace reco {
       auto const& hit = inputhits[idx];
       
       std::vector<float> pt = { hit[0], hit[1], hit[2] };
+      std::vector<float> pt_orig = { hit[0], hit[1], hit[2] };      
       std::vector<float> raddir(3,0);
       float lenr = 0.;
       for (int i=0; i<3; i++) {
@@ -305,11 +306,17 @@ namespace reco {
       for (int i=0; i<3; i++)
 	raddir[i] /= lenr;
 
-      if ( lenr<2.0 ) {
+      if ( lenr<3.0 ) {
 	// we push the point away from the keypoint to prevent overclustering
 	for (int i=0; i<3; i++)
-	  pt[i] += (2.0-lenr+0.25)*raddir[i];
+	  pt[i] += (3.0-lenr+0.25)*raddir[i];
       }
+      std::cout << "  veto clust hit[" << ihit << "] "
+		<< "pt=(" << pt[0] << "," << pt[1] << "," << pt[2] << ") "	
+		<< "pt-orig=(" << pt_orig[0] << "," << pt_orig[1] << "," << pt_orig[2] << ") "
+       		<< "lenr=" << lenr
+       		<< " dir=(" << raddir[0] << "," << raddir[1] << "," << raddir[2] << ")"
+      		<< std::endl;
       
       veto_pts_v.push_back( pt );
       hitidx_v.push_back(ihit);
@@ -319,12 +326,12 @@ namespace reco {
     LARCV_DEBUG() << "look for veto point clusters within " << veto_pts_v.size()
 		  << " unclaimed hits (" << close_hits_v.size() << ")" << std::endl;
     
-    int _maxkd = 10;
-    int minsize = 10;
-    float maxdist = 0.5;
+    int _maxkd = 100;
+    int minsize = 5;
+    float maxdist = 1.0;
     std::vector< larflow::reco::cluster_t > veto_clusters_v;
     larflow::reco::cluster_sdbscan_spacepoints( veto_pts_v, veto_clusters_v,
-						0.5, minsize, _maxkd ); // external implementation, seems best
+						maxdist, minsize, _maxkd ); // external implementation, seems best
 
     //larflow::reco::cluster_runpca( veto_clusters_v );
 
