@@ -921,6 +921,34 @@ namespace reco {
   }
 
   /**
+   * @brief is the projection of the point on the 1st pca axis
+   *
+   * @param[in] cluster Cluster to test. Using end points saved in clust.pca_ends_v to perform calculation
+   * @param[in] pt test point
+   * @return true if projection on line
+   */
+  bool cluster_is_point_within_seg( const cluster_t& cluster, const std::vector<float>& pt ) {
+
+    std::vector<float> pca_dir(3,0);
+    float len = 0.;
+    for (int i=0; i<3; i++) {
+      pca_dir[i] = cluster.pca_ends_v[1][i]-cluster.pca_ends_v[0][i];
+      len += pca_dir[i]*pca_dir[i];
+    }
+    len = sqrt(len);
+    if (len<0.1)
+      return false;
+    
+    for (int i=0; i<3; i++)
+      pca_dir[i] /= len;
+
+    float s = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[0], pca_dir, pt );
+    if ( s>=0 && s<=len )
+      return true;
+    return false;
+  }
+  
+  /**
    * @brief append hits of cluster to another
    *
    * This modifies one cluster by copying contents of other cluster into it

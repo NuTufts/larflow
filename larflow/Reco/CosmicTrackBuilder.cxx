@@ -60,8 +60,18 @@ namespace reco {
         = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
       loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
     }
+
+    // wire plane images for getting dqdx later
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();
     
-    buildNodeConnections();
+    // bad channel images for helping to determine proper gaps to jump
+    larcv::EventImage2D* ev_badch =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "badch" );
+    auto const& badch_v = ev_badch->as_vector();
+    
+    buildNodeConnections( &adc_v, &badch_v );
 
     // make tracks using keypoints
     larlite::event_larflow3dhit* ev_keypoint
@@ -81,10 +91,6 @@ namespace reco {
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
     larlite::event_larflowcluster* evout_trackcluster
       = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
-
-    larcv::EventImage2D* ev_adc =
-      (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
-    auto const& adc_v = ev_adc->as_vector();
 
     fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, adc_v );
 

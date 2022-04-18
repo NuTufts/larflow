@@ -53,10 +53,15 @@ namespace reco {
 
     // get keypoint event containers to veto hits (if any trees were specified)
     _event_keypoint_for_veto_v.clear();
+    _keypoints_for_veto_v.clear();
     if ( _veto_hits_around_keypoints ) {
       for ( auto const& kptreename : _keypoint_veto_trees_v ) {
         larlite::event_larflow3dhit* ev_keypoint
           = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, kptreename );
+	for ( auto const& kp : *ev_keypoint ) {
+	  //std::cout << "kp type=" << kp[3] << std::endl;
+	  _keypoints_for_veto_v.push_back( &kp );
+	}
         _event_keypoint_for_veto_v.push_back( ev_keypoint );
       }
     }
@@ -68,8 +73,8 @@ namespace reco {
     _runSplitter( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
 
     // look for short proton clusters in left over veto hits
-    if (_cluster_veto_hits)
-      _findVetoClusters( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
+    // if (_cluster_veto_hits)
+    //   _findVetoClusters( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
 
     // Fit linesegments to clusters
     larlite::event_track* evout_track
@@ -115,7 +120,7 @@ namespace reco {
         evout_noise->push_back( ev_lfhits->at(i) );
       }
     }
-    // make noise cluster
+    // store veto'd hits
     larlite::event_larflow3dhit* evout_veto = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitvetoed" );    
     for ( size_t i=0; i<ev_lfhits->size(); i++ ) {
       if ( used_hits_v[i]==2 )
@@ -163,11 +168,13 @@ namespace reco {
     for ( size_t i=0; i<cluster_v.size(); i++ ) {
       auto& clust = cluster_v[i];
       std::stringstream ss;
-      ss << "  track cluster[" << i << "] pca axis: "
-                    << " [0]=" << clust.pca_eigenvalues[0] 
-                    << " [1]=" << clust.pca_eigenvalues[1]
-                    << " [2]=" << clust.pca_eigenvalues[2];
-
+      ss << "  track cluster[" << i << "] "
+	 << "nhits=" << clust.points_v.size()
+	 << "pca axis: "
+	 << " [0]=" << clust.pca_eigenvalues[0] 
+	 << " [1]=" << clust.pca_eigenvalues[1]
+	 << " [2]=" << clust.pca_eigenvalues[2];
+      
       if ( clust.pca_eigenvalues[1]<min_second_pca_len ) {
         // cluster is line-enough, just pass on
         ss << " 2nd-pca too small. no split" << std::endl;
@@ -187,13 +194,13 @@ namespace reco {
         continue;
       }
 
-      LARCV_DEBUG() << ss.str() << " do split" << std::endl;
+      LARCV_DEBUG() << ss.str() << " -- do split" << std::endl;
       
       // we split this contour (or at least try)
-      // populate image with contour
+      LARCV_DEBUG() << "populate image with contour" << std::endl;
       larflow::reco::cluster_imageprojection( clust, projimg_v );
 
-      // make contours
+      LARCV_DEBUG() << "make contours" << std::endl;
       ublarcvapp::ContourClusterAlgo contour_algo;
       contour_algo.analyzeImages( projimg_v, 10.0, 2, 5, 10, 10, 2 );
 
@@ -217,6 +224,11 @@ namespace reco {
         ntot += ncontours;
       }
       contour_order.reserve( ntot );
+      LARCV_DEBUG() << "num contours =  " << ntot << " across all planes" << std::endl;
+      if (ntot==0) {
+	LARCV_DEBUG() << "no contours ... cannot split this cluster" << std::endl;
+	continue;
+      }
            
       for ( size_t p=0; p<3; p++ ) {
         int ncontours = contour_algo.m_plane_atomics_v[p].size();
@@ -337,7 +349,7 @@ namespace reco {
         nsplit++;
 
       if ( totclaimed+5<claimedpts.size() ) {
-        // make unclaimed cluster
+        LARCV_DEBUG() << "make unclaimed cluster" << std::endl;
         cluster_t unclaimedcluster;
         for ( size_t idx=0; idx<claimedpts.size(); idx++ ) {
           if ( claimedpts[idx]==0 ) {
@@ -353,6 +365,7 @@ namespace reco {
 
     }//loop over clusters
 
+    LARCV_DEBUG() << "out_v.size()=" << out_v.size() << " and swatp with cluster_v (size=" << cluster_v.size() << ")" << std::endl;
     //larflow::reco::cluster_dump2jsonfile( tmp, "dump_split.json" );
 
     std::swap( out_v, cluster_v );
@@ -503,8 +516,16 @@ namespace reco {
 
       // else calculate distance from pca-line
       float dist2line = cluster_dist_from_pcaline( cluster, hit );
+      bool on_proj_line = false;
+      try {
+	on_proj_line = cluster_is_point_within_seg( cluster, hit );
+      }
+      catch (...) {
+	continue;
+      }
 
-      if ( dist2line < max_dist2line ) {
+      if ( dist2line < max_dist2line && on_proj_line ) {
+	
         std::vector<float> pt = { hit[0], hit[1], hit[2] };
         std::vector<int> coord_v = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
 
@@ -579,7 +600,7 @@ namespace reco {
 
     // veto hits using keypoints
     int nvetoed_kp = _veto_hits_using_keypoints( inputhits, used_hits_v );
-    int nvetoed_kpscore = _veto_hits_using_keypoint_scores( inputhits, used_hits_v, _kp_veto_score_threshold );
+    int nvetoed_kpscore = 0;//_veto_hits_using_keypoint_scores( inputhits, used_hits_v, _kp_veto_score_threshold );
     
     // downsample points, if needed
     std::vector<larlite::larflow3dhit> downsample_hit_v;
@@ -593,37 +614,93 @@ namespace reco {
     LARCV_INFO() << "Downsample points: " << sample << ", downsample_fraction=" << downsample_fraction << std::endl;
     
     int nremaining = 0;
+    int npushed = 0;
     std::vector<int> orig_idx_v;
+    std::vector< std::vector<float> > downsample_pt_v;
     orig_idx_v.reserve( total_pts );
+    downsample_pt_v.reserve( total_pts );
     for ( int ihit=0; ihit<total_pts; ihit++ ) {
 
       if ( used_hits_v[ihit]==1 )
-        continue; // assigned to cluster
+        continue; // assigned to cluster already
 
       nremaining++;
 
+      auto& hit = inputhits[ihit];
+      std::vector<float> pt = { hit[0], hit[1], hit[2] };
+
       if ( used_hits_v[ihit]==2 ) {
         // keypoint veto
-        continue;
+	if ( _remove_vetoed_hits )
+	  continue;
+
+	// else we push away from the keypoint
+	auto const& kphit = *_keypoints_for_veto_v[ _hitidx_to_kpidx[ihit] ];
+
+	if ( kphit.size()>=4 && kphit[3]==0 ) {
+	  continue; // this is nu-vertex
+	}
+	
+	std::vector<float> dirpt(3,0);
+	float lenpt = 0.;
+	for (int v=0; v<3; v++) {
+	  dirpt[v] = pt[v]-kphit[v];
+	  lenpt += dirpt[v]*dirpt[v];
+	}
+	lenpt = sqrt(lenpt);
+	if (lenpt<0.1)
+	  continue;
+	
+	if (lenpt<_kp_veto_radius) {
+	  npushed++;
+	  for (int v=0; v<3; v++) {
+	    dirpt[v] /= lenpt;
+	    pt[v] += (_kp_veto_radius-lenpt)*dirpt[v];
+	  }
+	}
+	// mark the hit as unused (no longer vetod)
+	used_hits_v[ihit]=0;
       }
       
       if ( !sample || rand.Uniform()<downsample_fraction ) {
         downsample_hit_v.push_back( inputhits[ihit] );
+	downsample_pt_v.push_back( pt ); ///< 3d position (if near keypoint, it's pushed away)
         orig_idx_v.push_back( ihit ); ///< map from downsample index to original index
       }
       
-    }
+    }//end of sampling hit loop
     LARCV_INFO() << "Remaining hits, " << nremaining << ", downsampled to " << downsample_hit_v.size() << " of " << total_pts << " total" << std::endl;
+    LARCV_DEBUG() << "number of pushed hits = " << npushed << std::endl;
 
     // cluster the hits in the downsample_hit_v vector
     std::vector<larflow::reco::cluster_t> cluster_pass_v;
-    larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+    //larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+    larflow::reco::cluster_sdbscan_spacepoints( downsample_pt_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+
+    // now we have to replace the position of some clusters with the "unpushed" positions
+    // before we calculate the pca
+    LARCV_DEBUG() << "Update hit positions with true positions before PCA calc" << std::endl;
+    for ( auto& cluster : cluster_pass_v ) {
+      for (int ichit=0; ichit<(int)cluster.points_v.size(); ichit++ ) {
+	int downsample_index = cluster.hitidx_v[ichit];
+	int orig_index = orig_idx_v[downsample_index];
+	auto const& hit = inputhits.at(orig_index);
+	for (int v=0; v<3; v++) {
+	  cluster.points_v[ichit][v] = hit[v];
+	}
+      }
+    }
+
+    LARCV_DEBUG() << "run pca" << std::endl;
     larflow::reco::cluster_runpca( cluster_pass_v ); // get pca for each cluster
+    LARCV_DEBUG() << "After dbscan, number of clusters is " << cluster_pass_v.size() << std::endl;
+
+    _select_clusters( cluster_pass_v, used_hits_v, orig_idx_v, 10, 3.0 );
 
     // now we want to absorb unsampled hits into the clusters we just made
     int nused_final = 0;
     std::vector<larflow::reco::cluster_t> dense_cluster_v;    
-    if ( sample ) {
+    if ( sample && downsample_hit_v.size()<inputhits.size() ) {
 
       LARCV_INFO() << "Absorb unused hits" << std::endl;
       
@@ -645,7 +722,7 @@ namespace reco {
       LARCV_DEBUG() << "After absorbing hits to sparse clusters: " << nused_tot << " of " << total_pts << " all hits" << std::endl;
     }
     else {
-      LARCV_INFO() << "Do not absorb. Pass clusters." << std::endl;      
+      LARCV_INFO() << "Do not absorb. Pass all " << cluster_pass_v.size() << " clusters." << std::endl;      
       for ( auto& cluster : cluster_pass_v ) {
         dense_cluster_v.emplace_back( std::move(cluster) );
       }
@@ -654,7 +731,8 @@ namespace reco {
 
     // if we vetod hits, we assign those veto hits near the ends of found clusters
     // we recalc the pca for these clusters
-    if ( nvetoed_kp>0 || nvetoed_kpscore>0 ) {
+    //if ( nvetoed_kp>0 || nvetoed_kpscore>0 ) {
+    if ( false ) {
       // track which clusters we modified
       std::vector<int> modded_cluster( dense_cluster_v.size(), 0 );
       int nclaimed = 0;
@@ -783,13 +861,13 @@ namespace reco {
     // we perform split functions on the clusters
     int nsplit = 0;
     for (int isplit=0; isplit<3; isplit++ ) {
-      nsplit = split_clusters( dense_cluster_v, adc_v, 2.0 );
+      //nsplit = split_clusters( dense_cluster_v, adc_v, 2.0 );
       LARCV_DEBUG() << "Splitting, pass" << isplit << ": num split=" << nsplit << std::endl;      
       if (nsplit==0 ) break;
     }
       
     LARCV_DEBUG() << "Defrag clusters" << std::endl;
-    _defragment_clusters( dense_cluster_v, 10.0 );
+    //_defragment_clusters( dense_cluster_v, 10.0 );
     
     // now split and merge with pass clusters
     for ( auto& dense : dense_cluster_v ) {
@@ -809,7 +887,7 @@ namespace reco {
           std::stringstream ss;
           ss << __FILE__ << ":L" << __LINE__ << " Bad Index=" << orig_idx << std::endl;
           throw std::runtime_error(ss.str());
-        }
+        }	
         dense.hitidx_v[ii] = orig_idx;
       }
       
@@ -852,6 +930,10 @@ namespace reco {
                                                              std::vector<int>& used_hits_v )
   {
 
+    _hitidx_to_kpidx.clear();
+    _hitidx_to_kpdist.clear();
+    _hitidx_to_kpdist.resize( inputhits.size(), 999.0 );
+    
     float max_dist_sq = _kp_veto_radius*_kp_veto_radius;
     int nhits_vetoed = 0;
     for ( int ihit=0; ihit<(int)inputhits.size(); ihit++ ) {
@@ -859,34 +941,57 @@ namespace reco {
       if ( used_hits_v[ihit]!=0 )
         continue;
       
-      auto const& lfhit = inputhits[ihit];
+      auto const& lfhit = inputhits.at(ihit);
       
       bool veto_hit = false;
-      for ( auto const& pev_keypoint : _event_keypoint_for_veto_v ) {
-        for ( auto const& kphit : *pev_keypoint ) {
+      int min_vertex = -1;
+      int min_type = -1;
+      float min_vertex_dist = 999999.0;
+      
+      for (int ivertex=0; ivertex<(int)_keypoints_for_veto_v.size(); ivertex++) {
+	auto const& kphit = *_keypoints_for_veto_v.at(ivertex);
 
-          float dist = 0.;
-          for (int i=0; i<3; i++) {
-            dist += (lfhit[i]-kphit[i])*(lfhit[i]-kphit[i]);
-          }
-          if ( dist<max_dist_sq+0.3 ) {
-            // we veto this hit
-            veto_hit = true;
-          }
-          if ( veto_hit )
-            break;
-        }
-        if ( veto_hit )
-          break;
-      }
-
+	float dist = 0.;
+	for (int i=0; i<3; i++) {
+	  dist += (lfhit[i]-kphit[i])*(lfhit[i]-kphit[i]);
+	}
+	if ( dist<max_dist_sq+0.3 ) {
+	  // we veto this hit
+	  if ( min_vertex==-1 ) {
+	    min_vertex_dist = dist;
+	    min_vertex = ivertex;
+	    min_type = kphit[3];
+	    veto_hit = true;	    
+	  }
+	  else if ( min_type==0 && kphit[3]==0 && dist<min_vertex_dist ) {
+	    min_vertex = ivertex;
+	    min_vertex_dist = dist;
+	    veto_hit = true;	    
+	  }
+	  else if ( min_type==0 && kphit[3]!=0 ) {
+	    //veto_hit = true;
+	    continue; // do not replace nu-veto
+	  }
+	  else if ( min_type!=0 && kphit[3]==0 ) {
+	    // replace non-nu with nu info
+	    min_vertex_dist = dist;
+	    min_vertex = ivertex;
+	    min_type = 0;
+	    veto_hit = true;
+	  }
+	}
+	if ( dist<_hitidx_to_kpdist[ihit] )
+	  _hitidx_to_kpdist[ihit] = dist;
+      }//loop over vertex
+      
       if ( veto_hit ) {
         nhits_vetoed += 1;
         used_hits_v[ihit] = 2;
+	_hitidx_to_kpidx[ihit] = min_vertex;
       }
       
     }
-    LARCV_INFO() << "Number of hits veto'd by keypoints: " << nhits_vetoed << std::endl;
+    LARCV_INFO() << "Number of hits vetoed by keypoints: " << nhits_vetoed << std::endl;
     return nhits_vetoed;
   }
 
@@ -1309,6 +1414,74 @@ namespace reco {
 	output_cluster_v.emplace_back( std::move(cluster) );
       }
     }
+  }
+
+  /**
+   * @brief use some minimum quality cuts to remove some clusters
+   *
+   */
+  void ProjectionDefectSplitter::_select_clusters( std::vector<larflow::reco::cluster_t>& cluster_v,
+						   std::vector<int>& used_hits_v,
+						   const std::vector<int>& orig_index_v,
+						   const int min_nhits,
+						   const float max_second_pca_len ) 
+  {
+
+    std::vector<larflow::reco::cluster_t> out_v;
+    out_v.reserve( cluster_v.size() );
+    
+    for ( size_t i=0; i<cluster_v.size(); i++ ) {
+      auto& clust = cluster_v[i];
+      bool keep = true;
+      std::stringstream ss;
+      ss << "  track cluster[" << i << "] "
+	 << "nhits=" << clust.points_v.size()
+	 << "pca axis: "
+	 << " [0]=" << clust.pca_eigenvalues[0] 
+	 << " [1]=" << clust.pca_eigenvalues[1]
+	 << " [2]=" << clust.pca_eigenvalues[2];
+      
+      // if ( clust.pca_eigenvalues[1]>max_second_pca_len ) {
+      //   // cluster is line-enough, just pass on
+      //   ss << " -- 2nd-pca too small";
+      // 	keep = false;
+      // }
+
+      if ( clust.points_v.size()<min_nhits ) {
+	ss << " -- cluster too small";
+	keep = false;
+      }
+
+      bool foundnan = false;
+      for (int v=0; v<3; v++) {
+        if ( std::isnan(clust.pca_eigenvalues[v]) )
+          foundnan = true;
+      }
+      if ( foundnan ) {
+        ss << " -- PCA is NAN";
+	keep = false;
+      }
+
+      if ( keep ) {
+	ss << " -- passes" << std::endl;
+	LARCV_DEBUG() << ss.str();
+	out_v.emplace_back( std::move(clust) );
+      }
+      else {
+	ss << " -- reject" << std::endl;
+	LARCV_DEBUG() << ss.str();
+	for (int ichit=0; ichit<(int)clust.points_v.size(); ichit++) {
+	  int downsample_index = clust.hitidx_v[ichit];
+	  int orig_index = orig_index_v[downsample_index];
+	  if ( _hitidx_to_kpdist[orig_index]<5.0 )
+	    used_hits_v[orig_index] = 2; // pass to veto (for later clustering)
+	  else
+	    used_hits_v[orig_index] = 0; 
+	}
+      }
+    }
+    
+    std::swap( out_v, cluster_v );
   }
   
 }

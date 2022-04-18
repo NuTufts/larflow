@@ -320,7 +320,7 @@ namespace reco {
     //  * larflow3dhit_larmatch_tree: output of KPS larmatch network
     // output:
     //  * _kpreco.output_pt_v: container of KPCluster objects
-
+    //LARCV_NORMAL() << "reco keypoints version=" << _reco_version << std::endl;
 
     if ( _reco_version==1 ) {
       // neutrino
@@ -380,6 +380,7 @@ namespace reco {
       // so we simply re-run the algorithms to work with the additional vertex types.
 
       // neutrino
+      //_kpreco_nu.set_verbosity( larcv::msg::kINFO );
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_sigma( 10.0 );
       _kpreco_nu.set_min_cluster_size(   50.0, 0 );
@@ -494,8 +495,8 @@ namespace reco {
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
-    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
-    _projsplitter.set_verbosity( larcv::msg::kINFO );    
+    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    //_projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.doClusterVetoHits(false);
     _projsplitter.set_fit_line_segments_to_clusters( true );
@@ -507,9 +508,9 @@ namespace reco {
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
-    _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
-    //_projsplitter_cosmic.set_dbscan_pars( 3.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
-    //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );
+    //_projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    _projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
+    _projsplitter_cosmic.set_dbscan_pars( 5.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
     _projsplitter_cosmic.doClusterVetoHits(false);
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
     _projsplitter_cosmic.set_fit_line_segments_to_clusters( true ); // can be slow
@@ -579,7 +580,7 @@ namespace reco {
     //_nuvertexactivity.process( iolcv, ioll );
     
     //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertexmaker.set_verbosity( larcv::msg::kINFO );    
+    _nuvertexmaker.set_verbosity( larcv::msg::kINFO );
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
@@ -589,6 +590,7 @@ namespace reco {
     _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     
     _nuvertexmaker.apply_cosmic_veto( true );
+    _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
     _nuvertexmaker.process( iolcv, ioll );
 
     // NuTrackBuilder class
@@ -597,7 +599,8 @@ namespace reco {
       _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );    
     else 
       _nu_track_builder.set_verbosity( larcv::msg::kINFO );
-    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    //_nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_output_candidates() );
     // larflow::reco::TrackFindBadConnection track_splitter;
     // track_splitter.set_verbosity( larcv::msg::kINFO );
     // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )
@@ -617,13 +620,14 @@ namespace reco {
     _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
-    _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
-
+    //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_output_candidates() );
     
     // - repair shower trunks by absorbing tracks or creating hits
     _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
     int ivtx = 0;
-    for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+    //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
       LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
       _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
       //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
@@ -633,7 +637,22 @@ namespace reco {
     // post-neutrino-candidate processing:
     // - remove tracks from neutrino candidates that significantly overlap with showers
     _nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
+    //_nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
+    _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
+
+    // - add hits vetod around keypoints to the ends of track prongs
+    _nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
+    LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
+    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
+      _nuvertex_cluster_vetohits.process( ioll, vtx );
+    }
+
+    // - add dq/dx information
+    _nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
+    LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
+    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {        
+      _nuvertex_trackdqdx.process_nuvertex_tracks( iolcv, vtx );
+    }
 
     //_cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
     //_cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
@@ -699,7 +718,8 @@ namespace reco {
     truthdata.process( iolcv, ioll );
     truthdata.printInteractionInfo();
 
-    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();    
+    //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();    
     std::vector<float> true_vtx = { truthdata._vtx_detx, truthdata._vtx_sce_y, truthdata._vtx_sce_z };
 
     if ( nuvtx_v.size()!=_nu_sel_v.size() ) {
@@ -738,7 +758,8 @@ namespace reco {
                                                           larlite::storage_manager& ioll )
   {
 
-    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
     LARCV_INFO() << "Make Selection Variables for " << nuvtx_v.size() << " candidates" << std::endl;
 
     // NuSelProngVars prongvars;
@@ -853,7 +874,8 @@ namespace reco {
     _nu_track_kine.clear();
     _nu_shower_kine.clear();
     
-    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
 
     for (auto& nuvtx : nuvtx_v ) {
       
@@ -886,7 +908,8 @@ namespace reco {
     
     LARCV_INFO() << "Calculate baseline prong dq/dx-based PID metrics" << std::endl;
     
-    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
     larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
     auto const& adc_v = ev_adc->as_vector();
     
@@ -954,7 +977,8 @@ namespace reco {
     LARCV_INFO() << "run 1e1p development selection" << std::endl;
 
     std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v
-      = _nuvertexmaker.get_mutable_fitted_candidates();
+      //= _nuvertexmaker.get_mutable_fitted_candidates();
+      = _nuvertexmaker.get_mutable_output_candidates();
     
     if ( _nu_sel_v.size()!=nuvtx_v.size() ) {
       LARCV_CRITICAL() << "mismatch in selection and vertex candidates" << std::endl;

@@ -113,6 +113,12 @@ namespace prep {
                             ublarcvapp::mctools::MCPixelPGraph& mcpg,
                             larcv::IOManager& iolcv );
 
+    void _reassign_showers_along_tracks( PrepMatchTriplets& tripmaker,
+					 larlite::event_mctrack& ev_mctrack,
+					 larlite::event_mcshower& ev_mcshower,
+					 std::vector< float >& vtx );
+    
+
     larutil::SpaceChargeMicroBooNE* _p_sce;
     
   };

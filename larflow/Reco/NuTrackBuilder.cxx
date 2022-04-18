@@ -219,24 +219,27 @@ namespace reco {
         auto& hitcluster = fitted_hitcluster_v.at(itrack);
 
         // fitted with dqdx
-        larflow::reco::TrackdQdx dqdx_algo;
-        larlite::track track_dqdx;
-        try {
-          track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
-          if (track_dqdx.NumberTrajectoryPoints()>0) {
-            track_saved_v[itrack] = 1;
-            nuvtx.track_v.emplace_back( std::move(track_dqdx) );
-          }
-        }
-        catch ( const std::exception& e ) {
-          std::stringstream msg;
-          msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << ". filling with original track" << std::endl;
-          if (fitted.NumberTrajectoryPoints()>0) {
-            track_saved_v[itrack] = 1;
-            nuvtx.track_v.push_back(fitted);
-          }
-        }
-       
+        // larflow::reco::TrackdQdx dqdx_algo;
+        // larlite::track track_dqdx;
+        // try {
+        //   track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
+        //   if (track_dqdx.NumberTrajectoryPoints()>0) {
+        //     track_saved_v[itrack] = 1;
+        //     nuvtx.track_v.emplace_back( std::move(track_dqdx) );
+        //   }
+        // }
+        // catch ( const std::exception& e ) {
+        //   std::stringstream msg;
+        //   msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << ". filling with original track" << std::endl;
+        //   if (fitted.NumberTrajectoryPoints()>0) {
+        //     track_saved_v[itrack] = 1;
+        //     nuvtx.track_v.push_back(fitted);
+        //   }
+        // }
+	if (fitted.NumberTrajectoryPoints()>0) {
+	  track_saved_v[itrack] = 1;
+	  nuvtx.track_v.push_back(fitted);
+	}
       }
 
       // pass the hit clusters on
