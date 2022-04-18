@@ -56,7 +56,7 @@ ientry = 1
 
 io_ll.go_to(ientry)
 ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
-mctrack = ev_mctrack.at(3) #seems like only odd numbers contain mctrack points? evens are just meta/setup/type info
+mctrack = ev_mctrack.at(1) #seems like only odd numbers contain mctrack points? evens are just meta/setup/type info
 
 traces3d = []
 
@@ -103,18 +103,22 @@ def make_figures(ientry,loader,minprob=0.0):
     traces_v = []
 
     color = batch["voxfeat"][:,0]
+
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":batch["voxcoord"][:,1],
-        "y":batch["voxcoord"][:,2],
-        "z":batch["voxcoord"][:,3],
+        "x":batch["voxcoord"][:,1]*0.3,
+        "y":batch["voxcoord"][:,2]*0.3,
+        "z":batch["voxcoord"][:,3]*0.3,
         "mode":"markers",
         "name":"voxels",
         "marker":{"color":color,
                   "size":10,
                   "opacity":1}}
     traces_v.append(voxtrace)
+    traces_v.append(mctrack_v)
+    #traces_v.append( detdata.getlines() )
+    traces_v += detdata.getlines()
 
     voxtrace["marker"]["colorscale"]="Viridis"
 
@@ -177,8 +181,8 @@ app.layout = html.Div( [
 	dcc.Graph(
             id="det3d",
             figure={
-                #"data": [],
-                "data": detdata.getlines()+traces3d,
+                "data": [],
+                #"data": detdata.getlines()+traces3d,
                 "layout": plot_layout,
             },
             config={"editable": True, "scrollZoom": False},
