@@ -162,9 +162,11 @@ namespace reco {
 
     // make selection variables
     //makeNuCandidateSelectionVariables( iolcv, ioll );
-
+    if ( _save_event_mc_info ) {
+      _event_mcinfo_maker.process( ioll );      
+    }
     if ( _save_event_mc_info && _run_perfect_mcreco ) {
-      _event_mcinfo_maker.process( ioll );
+
       LARCV_DEBUG() << "Run perfect reco." << std::endl;
       //_perfect_reco.set_verbosity( larcv::msg::kDEBUG );
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
