@@ -167,18 +167,25 @@ namespace reco {
         mask_adc_v.emplace_back( std::move(mask) );
       }
     }
+    if ( mask_adc_v.size()!=3 ) {
+      LARCV_CRITICAL() << "Failed to load ADC image" << std::endl;
+    }
+    
     if ( pbadch_v ) {
       for (auto& img : *pbadch_v ) {
         larcv::Image2D mask(img.meta());
         mask_badch_v.emplace_back( std::move(mask) );
       }
     }
+    if ( mask_badch_v.size()!=3 ) {
+      LARCV_CRITICAL() << "Failed to load BadCh image" << std::endl;
+    }
 
     ublarcvapp::ubimagemod::TrackImageMask masker;
     int nfail_charge_check = 0;
     
     for (int inode=0; inode<(int)_nodepos_v.size(); inode++ ) {
-      NodePos_t& node_i = _nodepos_v[inode];
+      NodePos_t& node_i = _nodepos_v.at(inode);
 
       for (int jnode=inode+1; jnode<(int)_nodepos_v.size(); jnode++) {
 
@@ -191,7 +198,7 @@ namespace reco {
 	LARCV_DEBUG() << "--- check node[" << inode << "] -> node[" << jnode << "]" << std::endl;	
                 
         // define a connection in both directions
-        NodePos_t& node_j = _nodepos_v[jnode];
+        NodePos_t& node_j = _nodepos_v.at(jnode);
 
         float dist = 0.;
         std::vector<float> dir_ij(3,0);
@@ -220,7 +227,7 @@ namespace reco {
         else
           jnode_pair = jnode-1;
 
-        NodePos_t& node_j_pair = _nodepos_v[jnode_pair];
+        NodePos_t& node_j_pair = _nodepos_v.at(jnode_pair);
         float pairdist = 0.;
         for (int v=0; v<3; v++ ) {
           pairdist += ( node_j_pair.pos[v]-node_i.pos[v] )*( node_j_pair.pos[v]-node_i.pos[v] );
@@ -240,8 +247,8 @@ namespace reco {
 
           std::chrono::steady_clock::time_point start_paint = std::chrono::steady_clock::now();
           for ( auto& img : mask_adc_v ) {
-            //img.paint(0);
-            memset( img.as_mod_vector().data(), 0, sizeof(float)*img.as_mod_vector().size() );
+            //img.paint(0); // this is prohibitative slow
+            memset( img.as_mod_vector().data(), 0, sizeof(float)*img.as_mod_vector().size() ); //< much, much faster (10-20 times).
           }
           
           std::chrono::steady_clock::time_point end_paint = std::chrono::steady_clock::now();
@@ -270,7 +277,7 @@ namespace reco {
 	  std::vector< std::vector<float> > plane_gap_dir(mask_adc_v.size());
 	  float maxgapsize = 0.0;
           for (int p=0; p<(int)mask_adc_v.size(); p++) {
-            auto& mask = mask_adc_v[p];
+            auto& mask = mask_adc_v.at(p);
             //auto const& adc = padc_v->at(p);
 	    auto const& adc = pbadch_v->at(p); // use bad channel filled image
             ncharged_v[p] = (float)masker.maskTrack( gap, adc, mask, 10.0, 0, 0, 0.3 );
@@ -286,8 +293,9 @@ namespace reco {
 	    if ( plane_gapsize>maxgapsize )
 	      maxgapsize = plane_gapsize;
 	    plane_gap_dir[p].resize(2,0);
-	    for (int v=0; v<2; v++)
-	      plane_gap_dir[p][v] = gap_colrow_coord[1][v]-gap_colrow_coord[0][v];	    
+	    for (int v=0; v<2; v++) {
+	      plane_gap_dir[p][v] = gap_colrow_coord.at(1).at(v)-gap_colrow_coord.at(0).at(v);
+	    }
 	    
 	    LARCV_DEBUG() << "  plane[" << p << "]"
 			  << " maxgap=" << plane_gapsize
@@ -308,7 +316,7 @@ namespace reco {
           int nplane_w_charge = 0;
           std::stringstream ssout;
           ssout << "  path fraction: ";
-          for (int p=0; p<(int)mask_adc_v[p].size(); p++) {
+          for (int p=0; p<(int)mask_adc_v.size(); p++) { // was this it?
             float& frac = frac_v[p];
             ssout << " " << frac;
             if ( frac>0.5 )

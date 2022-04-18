@@ -21,7 +21,8 @@ namespace reco {
    */
   NuVertexMaker::NuVertexMaker()
     : larcv::larcv_base("NuVertexMaker"),
-    _ana_tree(nullptr)
+      _output_stage( kMerged ),
+      _ana_tree(nullptr)
   {
     _set_defaults();
   }
@@ -135,6 +136,35 @@ namespace reco {
     
   }
 
+  /**
+   * @brief create vertex candidates by associating clusters to vertex seeds
+   *
+   * @return Mutable vector of NuVertex Candidates, which set depends on the _output_stage flag.
+   *  
+   */
+  std::vector<NuVertexCandidate>& NuVertexMaker::get_mutable_output_candidates()
+  {
+    switch (_output_stage) {
+    case kRaw:
+      return get_mutable_nu_candidates();
+      break;
+    case kMerged:
+      return get_mutable_merged_candidates();
+      break;
+    case kVetoed:
+      return get_mutable_vetoed_candidates();
+      break;
+    case kFitted:
+      return get_mutable_fitted_candidates();
+      break;
+    default:
+      throw std::runtime_error("NuVertexMaker::get_mutable_output_candidates: unrecognized _output_stage flag setting");
+      break;
+    };
+
+    return get_mutable_nu_candidates();
+  }
+  
   /**
    * @brief create vertex candidates by associating clusters to vertex seeds
    *

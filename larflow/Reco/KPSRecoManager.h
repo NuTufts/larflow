@@ -35,6 +35,8 @@
 #include "NuVertexShowerReco.h"
 #include "NuVertexShowerTrunkCheck.h"
 #include "NuVertexActivityReco.h"
+#include "VetoHitClustering.h"
+#include "NuTrackdQdx.h"
 #include "PerfectTruthNuReco.h"
 #include "NuTrackKinematics.h"
 #include "NuShowerKinematics.h"
@@ -108,6 +110,8 @@ namespace reco {
     NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
     NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
     PostNuCheckShowerTrunkOverlap _nuvertex_postcheck_showertrunkoverlap; // remove track overlap
+    VetoHitClustering    _nuvertex_cluster_vetohits; ///< add veto'd hits during prong formation to reco'd-prongs
+    NuTrackdQdx          _nuvertex_trackdqdx; ///< calculates dq/dx of tracks
     
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices

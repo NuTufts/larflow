@@ -36,10 +36,14 @@ namespace reco {
     NuVertexMaker();
     virtual ~NuVertexMaker() {};
 
+    typedef enum { kRaw=0, kMerged, kVetoed, kFitted } OutStage_t;
+    void setOutputStage( OutStage_t stage ) { _output_stage=stage; };
+    
     void process( larcv::IOManager& ioman, larlite::storage_manager& ioll );
 
   protected:
 
+    OutStage_t _output_stage;
     std::vector<NuVertexCandidate> _vertex_v; ///< initial vertex candidates
     std::vector<NuVertexCandidate> _merged_v; ///< after merging nearby vertices
     std::vector<NuVertexCandidate> _vetoed_v; ///< after filtering out candidates based on proximity to uncontained cosmic tracks
@@ -97,6 +101,9 @@ namespace reco {
 
     /** @brief get mutable candidates after optimizing vertex position */
     std::vector<NuVertexCandidate>& get_mutable_fitted_candidates() { return _fitted_v; };            
+
+    /** @brief get mutable candidates specified by _output_stage flag */
+    std::vector<NuVertexCandidate>& get_mutable_output_candidates();
     
     void clear();
     
