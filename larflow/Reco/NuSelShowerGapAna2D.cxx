@@ -41,8 +41,9 @@ namespace reco {
     std::vector<cv::Mat> crop_v;
     
     // define row range, which is inclusive [minrow,max_row]
-    int min_row = nuvtx.row-CROP_WIDTH;
-    int max_row = nuvtx.row+CROP_WIDTH;
+    int vtxRow = meta.row( nuvtx.tick, __FILE__, __LINE__ );
+    int min_row = vtxRow-CROP_WIDTH;
+    int max_row = vtxRow+CROP_WIDTH;
 
     // check bounds
     if (min_row<0) min_row = 0;
@@ -53,7 +54,7 @@ namespace reco {
     float max_tick = meta.pos_y(max_row);
 
     int nrows = max_row-min_row+1;
-    int crop_vtx_row = nuvtx.row-min_row;
+    int crop_vtx_row = vtxRow-min_row;
 
     std::vector<int> plane_common_contour_on_pass_v( adc_v.size(), -1 );
 
