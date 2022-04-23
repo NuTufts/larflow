@@ -637,6 +637,8 @@ namespace keypoints {
   void PrepKeypointData::make_proposal_labels( const larflow::prep::PrepMatchTriplets& match_proposals )
   {
 
+    const float max_dist_to_label = 10.0;
+    
     for (int i=0; i<6; i++) {
       _match_proposal_labels_v[i].clear();
       _match_proposal_labels_v[i].reserve(match_proposals._triplet_v.size());
@@ -690,7 +692,9 @@ namespace keypoints {
         // make label vector
 
         // within 50 pixels/15 cm
-        if ( dist<0.3*50 ) {
+	bool is_close = false;
+        if ( dist<max_dist_to_label ) {
+	  is_close = true;
           label_v[0] = 1.0;
           _nclose++;
         }
@@ -699,8 +703,8 @@ namespace keypoints {
           _nfar++;
         }
 
-        // make shift in 3D label
-        if ( dist<0.3*50 ) {
+	if ( is_close ) {	
+	  // make shift in 3D label
           for (int i=0; i<3; i++ ) {
             label_v[1+i] = leafpos[i]-pos[i];
             if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
@@ -716,7 +720,11 @@ namespace keypoints {
             label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
             if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
           }
-        }
+	}
+	else {
+	  // empy label to save space
+	  label_v.clear();
+	}
         _match_proposal_labels_v[ikpclass].push_back(label_v);
       }//end of keypoint class loop
     }//end of match proposal loop

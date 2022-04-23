@@ -69,6 +69,13 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
+# for creating filtered mctrack tree
+f = TFile(input_mcinfo_v[0],"READ")
+t = f.Get('mctrack_mcreco_tree')
+newF = TFile("mctracks.root","recreate")
+newT = TTree("mctrack_mcreco_tree", "mctrack_mcreco_tree")
+newT = t.CloneTree(0)
+
 opio = larlite.storage_manager( larlite.storage_manager.kREAD )
 for f in input_opreco_v:
     opio.add_in_filename( f )
@@ -365,6 +372,7 @@ for ientry in range(2):
 
 
             outtree.Fill()
+            newT.Fill()
 
             #voxelizer.make_voxeldata( labeler.triplet_v[0] )
             #voxdata = voxelizer.get_full_voxel_labelset_dict( labeler )
@@ -390,6 +398,7 @@ print("list: ", listy)
 fmutil.finalize()
 
 outfile.Write()
+newF.Write()
 
 #for name,f in outfiles.items():
 #    print("Writing file for ",name)

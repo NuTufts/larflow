@@ -254,9 +254,9 @@ namespace reco {
       for (int i=0; i<(int)added_hits_v[iprong].size(); i++) {
 	auto const& info = added_hits_v[iprong][i];
 	auto const& addedhit = inputhits[info.origindex];
-	std::cout << "  added hit index=" << info.origindex << " "
-		  << "(" << addedhit[0] << "," << addedhit[1] << "," << addedhit[2] << ")"
-		  << std::endl;
+	// std::cout << "  added hit index=" << info.origindex << " "
+	// 	  << "(" << addedhit[0] << "," << addedhit[1] << "," << addedhit[2] << ")"
+	// 	  << std::endl;
 	modcluster.push_back(addedhit);
       }
       for ( auto const& hit : origcluster ) {
@@ -311,12 +311,12 @@ namespace reco {
 	for (int i=0; i<3; i++)
 	  pt[i] += (3.0-lenr+0.25)*raddir[i];
       }
-      std::cout << "  veto clust hit[" << ihit << "] "
-		<< "pt=(" << pt[0] << "," << pt[1] << "," << pt[2] << ") "	
-		<< "pt-orig=(" << pt_orig[0] << "," << pt_orig[1] << "," << pt_orig[2] << ") "
-       		<< "lenr=" << lenr
-       		<< " dir=(" << raddir[0] << "," << raddir[1] << "," << raddir[2] << ")"
-      		<< std::endl;
+      // std::cout << "  veto clust hit[" << ihit << "] "
+      // 		<< "pt=(" << pt[0] << "," << pt[1] << "," << pt[2] << ") "	
+      // 		<< "pt-orig=(" << pt_orig[0] << "," << pt_orig[1] << "," << pt_orig[2] << ") "
+      //  		<< "lenr=" << lenr
+      //  		<< " dir=(" << raddir[0] << "," << raddir[1] << "," << raddir[2] << ")"
+      // 		<< std::endl;
       
       veto_pts_v.push_back( pt );
       hitidx_v.push_back(ihit);
