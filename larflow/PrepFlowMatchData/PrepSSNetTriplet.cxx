@@ -190,6 +190,7 @@ namespace prep {
     switch (larcv_label){
     case larcv::kROIUnknown:
     case larcv::kROIBNB:
+    case larcv::kROICosmic:            
       return kBG;
       break;      
     case larcv::kROIEminus:
@@ -199,7 +200,6 @@ namespace prep {
       return kGamma;
       break;
     case larcv::kROIMuminus:
-    case larcv::kROICosmic:      
       return kMuon;
       break;
     case larcv::kROIPiminus:
