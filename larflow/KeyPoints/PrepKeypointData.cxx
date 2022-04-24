@@ -723,7 +723,7 @@ namespace keypoints {
 	}
 	else {
 	  // empy label to save space
-	  label_v.clear();
+	  //label_v.clear(); // this messes up file
 	}
         _match_proposal_labels_v[ikpclass].push_back(label_v);
       }//end of keypoint class loop

@@ -44,6 +44,7 @@ if args.nentries>=0 and args.nentries<nentries:
 print("Start loop.")
 tmp = rt.TFile(args.output,"recreate")
 lmc = ublarcvapp.mctools.LArbysMC()
+tmp.cd()
 lmc.initialize()
 
 # ALGOS
@@ -129,6 +130,7 @@ for ientry in range( nentries ):
 
     # make ssnet ground truth
     ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    
     # fill happens automatically (ugh so ugly)
 
     # make affinity field ground truth
@@ -150,16 +152,16 @@ dtime = time.time()-start
 print("Time: ",float(dtime)/float(nrun)," sec/event")
 
 tmp.cd()
+lmc.finalize()
 kpana.writeAnaTree()
 kpana.writeHists()
 ssnet.writeAnaTree()
 kpflow.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
-lmc.finalize()
 
-del kpana
-del ssnet
-del kpflow
+#del kpana
+#del ssnet
+#del kpflow
 
 print("=== FIN ==")
