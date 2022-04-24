@@ -19,6 +19,8 @@
 #pragma link C++ namespace std;
 
 #pragma link C++ class std::vector< std::vector<int> >+;
+#pragma link C++ class std::pair<int,int>+;
+#pragma link C++ class std::map< std::pair<int,int>, int >+;
 #pragma link C++ class larflow::prep::WireOverlap+;
 #pragma link C++ class larflow::prep::FlowTriples+;
 #pragma link C++ class larflow::prep::PrepMatchTriplets+;

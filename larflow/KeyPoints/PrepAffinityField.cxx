@@ -9,11 +9,12 @@ namespace keypoints {
 
   /** @brief default constructor */
   PrepAffinityField::PrepAffinityField()
-    : larcv::larcv_base("PrepAffinityField")
+    : larcv::larcv_base("PrepAffinityField"),
+      _label_tree(nullptr)
   {
     psce = new larutil::SpaceChargeMicroBooNE;
   }
-
+  
   /** @brief default destructor */  
   PrepAffinityField::~PrepAffinityField()
   {

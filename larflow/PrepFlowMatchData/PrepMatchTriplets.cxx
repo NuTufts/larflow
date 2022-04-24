@@ -222,13 +222,22 @@ namespace prep {
       int srcplane = triplet_data.get_source_plane_index();
       int tarplane = triplet_data.get_target_plane_index();
       int othplane = triplet_data.get_other_plane_index();
+      if ( srcplane==tarplane && tarplane==othplane )
+	throw std::runtime_error("[PrepMatchTriplets] all the planes are the same. error");
+      if ( srcplane<0 || srcplane>=3
+	   || tarplane<0 || tarplane>=3
+	   || othplane<0 || othplane>=3 ) {
+	throw std::runtime_error("[PrepMatchTriplets] invalid planes");
+      }
 
       std::cout << "[PrepMatchTriplets] combine matches from flow "
                 << larflow::LArFlowConstants::getFlowName(flowdir)
                 << " planes={" << srcplane << " -> " << tarplane << ", " << othplane << "}"
                 << std::endl;            
-      
-      for ( auto& trip : triplet_data.getTriples() ) {
+
+      const std::vector< std::vector<int> >& the_triples = triplet_data.getTriples();
+      for ( size_t itrip=0; itrip<the_triples.size(); itrip++) {
+	auto const& trip = the_triples.at(itrip);
 
         std::vector<FlowTriples::PixData_t> pix_v(3);
         pix_v[ srcplane ] = FlowTriples::PixData_t( trip[3], trip[0], 0.0 );
@@ -268,7 +277,7 @@ namespace prep {
         }
              
 
-        std::vector<int> imgcoord_v(4);
+        std::vector<int> imgcoord_v(4,0);
         imgcoord_v[ srcplane ] = trip[0];
         imgcoord_v[ tarplane ] = trip[1];
         imgcoord_v[ othplane ] = trip[2];
@@ -301,7 +310,7 @@ namespace prep {
         if ( it_trip==triplet_set.end() ) {
           triplet_set.insert( imgcoord_v );
 
-          std::vector<int> imgindex_v(4);
+          std::vector<int> imgindex_v(4,0);
           imgindex_v[ srcplane ] = it_src - _sparseimg_vv[srcplane].begin();
           imgindex_v[ tarplane ] = it_tar - _sparseimg_vv[tarplane].begin();
           imgindex_v[ othplane ] = it_oth - _sparseimg_vv[othplane].begin();
