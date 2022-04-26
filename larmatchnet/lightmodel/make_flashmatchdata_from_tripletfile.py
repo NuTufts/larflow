@@ -19,7 +19,7 @@ import torch
 from larvoxel_dataset import larvoxelDataset
 
 import ROOT as rt
-from ROOT import std
+from ROOT import std, TFile, TTree
 from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
@@ -62,6 +62,7 @@ fmutil = ublarcvapp.mctools.FlashMatcher()
 print("Loaded %d larmatch triplet files to process"%(len(input_triplet_v)))
 
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+iomc = larlite.storage_manager( larlite.storage_manager.kWRITE ) # for saving mctracks
 #ioll.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 #ioll.set_data_to_read( larlite.data.kMCShower, "mcreco" )
 #ioll.set_data_to_read( larlite.data.kMCTruth,  "generator" )
@@ -69,12 +70,15 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
+iomc.set_out_filename( "filtered_MCTracks.root" )
+iomc.open()
+
 # for creating filtered mctrack tree
-f = TFile(input_mcinfo_v[0],"READ")
-t = f.Get('mctrack_mcreco_tree')
-newF = TFile("mctracks.root","recreate")
-newT = TTree("mctrack_mcreco_tree", "mctrack_mcreco_tree")
-newT = t.CloneTree(0)
+#f = TFile(input_mcinfo_v[0],"READ")
+#t = f.Get('mctrack_mcreco_tree')
+#newF = TFile("mctracks.root","recreate")
+#newT = TTree("mctrack_mcreco_tree", "mctrack_mcreco_tree")
+#newT = t.CloneTree(0)
 
 opio = larlite.storage_manager( larlite.storage_manager.kREAD )
 for f in input_opreco_v:
@@ -176,6 +180,7 @@ listy = []
 
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
+#iomc.next_event()
 for ientry in range(2):
 
     data = next(iter(loader))[0]
@@ -185,6 +190,9 @@ for ientry in range(2):
     print("===[ EVENT ",ientry," ]===")
     labeler.load_entry(ientry)
     ioll.go_to(ientry)
+
+    ev_mctrack = ioll.get_data(larlite.data.kMCTrack,"mcreco")
+
     opio.go_to(ientry)
 
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
@@ -370,9 +378,15 @@ for ientry in range(2):
             #ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
             #ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
 
+            out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
+            out_mctrack.push_back( ev_mctrack.at(i) )
+
+            iomc.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
+            iomc.next_event()
 
             outtree.Fill()
-            newT.Fill()
+            #newT.Fill()
+
 
             #voxelizer.make_voxeldata( labeler.triplet_v[0] )
             #voxdata = voxelizer.get_full_voxel_labelset_dict( labeler )
@@ -397,8 +411,10 @@ for ientry in range(2):
 print("list: ", listy)
 fmutil.finalize()
 
+iomc.close()
+
 outfile.Write()
-newF.Write()
+#newF.Write()
 
 #for name,f in outfiles.items():
 #    print("Writing file for ",name)

@@ -56,7 +56,7 @@ ientry = 1
 
 io_ll.go_to(ientry)
 ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
-mctrack = ev_mctrack.at(1) #seems like only odd numbers contain mctrack points? evens are just meta/setup/type info
+mctrack = ev_mctrack.at(0) #seems like only odd numbers contain mctrack points? evens are just meta/setup/type info
 
 traces3d = []
 
