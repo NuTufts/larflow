@@ -15,6 +15,7 @@ namespace keypoints {
    */
   LoaderKeypointData::LoaderKeypointData( std::vector<std::string>& input_v )
     : larcv::larcv_base("LoaderKeypointData"),
+      _exclude_neg_examples(false),	      
       ttriplet(nullptr),
       tkeypoint(nullptr),
       tssnet(nullptr),
@@ -122,9 +123,9 @@ namespace keypoints {
       bytes += tlarbysmc->GetEntry(entry);
 
     LARCV_INFO() << "Loaded trees (ttriplet,tssnet,tkeypoint)" << std::endl;
-    // for (int n=0; n<6; n++) {
-    //   std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
-    // }
+    for (int n=0; n<6; n++) {
+      std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
+    }
     
     return bytes;
   }
@@ -339,14 +340,19 @@ namespace keypoints {
 
     std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
     LARCV_DEBUG() << "make class labels and topological weight arrays. nelems=" << ssnet_label_dims1[0] << std::endl;
+    if (_exclude_neg_examples)
+      LARCV_DEBUG() << "EXCLUDING NEG EXAMPLES" << std::endl;
+    
     int nbad_labels = 0;
     for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
 
       // get the sample index
       int idx = (_exclude_neg_examples ) ? pos_match_index[i] : i;
 
-      //LARCV_DEBUG() << " i=" << i << " idx=" << idx << std::endl;
+      //LARCV_DEBUG() << " i=" << i << " idx=" << idx << " " << _exclude_neg_examples << std::endl;
 
+      //if ( idx<0 || idx>=match
+      
       // get the triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
 
@@ -359,6 +365,7 @@ namespace keypoints {
 	    << " idx=" << idx
 	    << " exclude=" << _exclude_neg_examples
 	    << std::endl;
+	LARCV_CRITICAL() << msg.str() << std::endl;
 	throw std::runtime_error( msg.str() );
       }
       

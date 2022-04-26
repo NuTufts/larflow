@@ -164,7 +164,7 @@ namespace keypoints {
       throw std::runtime_error("error running mcpg");
     }
     LARCV_DEBUG() << "finished graph" << std::endl;        
-    //mcpg.printGraph();
+    mcpg.printGraph();
 
     // build key-points
     _kpd_v.clear();
@@ -358,7 +358,11 @@ namespace keypoints {
         continue;
 
       auto const& shower = mcshower_v.at( pnode.vidx );
-      LARCV_DEBUG() << "shower process: " << shower.Process() << std::endl;
+      LARCV_DEBUG() << "shower(tid=" << pnode.tid << ","
+		    << "mtid=" << pnode.mtid << ","
+		    << "aid=" << pnode.aid << ") "
+		    << "process: " << shower.Process()
+		    << std::endl;
       std::string process = shower.Process();
       
       // start: pnode.start; //should be in apparent position already
@@ -369,15 +373,29 @@ namespace keypoints {
       kpd.vid     = pnode.vidx;
       kpd.origin  = pnode.origin;
       kpd.is_shower = 1;
-      if ( process=="Decay" ) {
-        kpd.kptype = larflow::kShowerMichel;
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+	
+      // priveledge showers from muons
+      if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
+	// mother is a muon or ancestor is a muon
+	if ( process=="Decay" || process=="muMinusCaptureAtRest")
+	  kpd.kptype = larflow::kShowerMichel;
+	else
+	  kpd.kptype = larflow::kShowerDelta;
       }
-      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" ) {
+      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" || process=="eBrem" || process=="muBrem") {
         kpd.kptype = larflow::kShowerDelta;
       }
       else {
-        kpd.kptype = larflow::kShowerStart;
+	// everything else
+	kpd.kptype = larflow::kShowerStart;
       }
+      // }
+      // else {
+      // 	std::string msg = "PrepKeypointData::getShowerStarts - unrecognized process! "+process;
+      // 	throw std::runtime_error(msg);
+      // }
 
       kpd.keypt.resize(3,0);
       for (int i=0; i<3; i++)
