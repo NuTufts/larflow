@@ -44,13 +44,13 @@ namespace keypoints {
 
     LoaderKeypointData()
       : larcv::larcv_base("LoaderKeypointData"),
+	_exclude_neg_examples(false),	
 	ttriplet(nullptr),
 	tkeypoint(nullptr),
 	tssnet(nullptr),
 	_run(0),
 	_subrun(0),
-	_event(0),
-	_exclude_neg_examples(true)
+	_event(0)
     {};
     
     LoaderKeypointData( std::vector<std::string>& input_v );
@@ -58,6 +58,7 @@ namespace keypoints {
 
 
     std::vector<std::string> input_files; ///< list of input ROOT files to load
+    bool _exclude_neg_examples;  ///< if flag set to true, only true (i.e. non-ghost) spacepoints are loaded for training ssnet and keypoint labels    
 
     /** @brief add an individual ROOT file to be loaded */
     void add_input_file( std::string input ) { input_files.push_back(input); };
@@ -131,7 +132,7 @@ namespace keypoints {
 
     
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)
-    bool _exclude_neg_examples;  ///< if flag set to true, only true (i.e. non-ghost) spacepoints are loaded for training ssnet and keypoint labels
+
     
   };
   

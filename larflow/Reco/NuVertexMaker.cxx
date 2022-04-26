@@ -97,7 +97,7 @@ namespace reco {
       
     }
 
-    _createCandidates();
+    _createCandidates(iolcv);
     _merge_candidates();
     if ( _apply_cosmic_veto ) {
       _cosmic_veto_candidates( ioll );
@@ -180,13 +180,18 @@ namespace reco {
    * @endverbatim
    * 
    */
-  void NuVertexMaker::_createCandidates()
+  void NuVertexMaker::_createCandidates(larcv::IOManager& iolcv)
   {
 
     LARCV_DEBUG() << "Associate clusters to vertices via impact par and gap distance" << std::endl;
     
     // loop over vertices, calculate impact parameters to all clusters, keep if close enough.
     // limit pairings by gap distance (different for shower and track)
+
+    // need to get a meta
+    larcv::EventImage2D* adc
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
+    auto const& meta = adc->as_vector().front().meta();
 
     // make vertex objects
     std::vector<NuVertexCandidate> seed_v;
@@ -205,6 +210,8 @@ namespace reco {
         for (int i=0; i<3; i++)
           vertex.pos[i] = lf_vertex[i];
         vertex.tick  = lf_vertex.tick;
+	if ( vertex.tick>meta.min_y() && vertex.tick<meta.max_y() )
+	  vertex.row = meta.row( vertex.tick, __FILE__, __LINE__ );
         vertex.col_v = lf_vertex.targetwire;
         vertex.score = 0.0;
         vertex.maxScore = 0.0;

@@ -15,6 +15,7 @@ namespace keypoints {
    */
   LoaderKeypointData::LoaderKeypointData( std::vector<std::string>& input_v )
     : larcv::larcv_base("LoaderKeypointData"),
+      _exclude_neg_examples(false),	      
       ttriplet(nullptr),
       tkeypoint(nullptr),
       tssnet(nullptr),
@@ -38,7 +39,7 @@ namespace keypoints {
    *
    */
   void LoaderKeypointData::load_tree() {
-    std::cout << "[LoaderKeypointData::load_tree()]" << std::endl;
+    LARCV_INFO() << "start" << std::endl;
     
     ttriplet  = new TChain("larmatchtriplet");
     tkeypoint = new TChain("keypointlabels");
@@ -51,7 +52,7 @@ namespace keypoints {
       tssnet->Add(infile.c_str());
       tlarbysmc->Add(infile.c_str());
     }
-    std::cout << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
+    LARCV_INFO() << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
     
     triplet_v = 0;
     for (int i=0; i<6; i++) {
@@ -122,9 +123,9 @@ namespace keypoints {
       bytes += tlarbysmc->GetEntry(entry);
 
     LARCV_INFO() << "Loaded trees (ttriplet,tssnet,tkeypoint)" << std::endl;
-    // for (int n=0; n<6; n++) {
-    //   std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
-    // }
+    for (int n=0; n<6; n++) {
+      std::cout << " [" << n << "] num=" << kppos_v[n]->size() << std::endl;
+    }
     
     return bytes;
   }
@@ -317,7 +318,8 @@ namespace keypoints {
 
     int index_col = (withtruth) ? 4 : 3;
 
-    LARCV_DEBUG() << "pos_match_index=" << pos_match_index.size() << " wittruth=" << withtruth << " num_max_samples=" << num_max_samples << std::endl;
+    LARCV_DEBUG() << "pos_match_index=" << pos_match_index.size() << " withtruth=" << withtruth << " num_max_samples=" << num_max_samples << std::endl;
+    //std::cout << "pos_match_index=" << pos_match_index.size() << " withtruth=" << withtruth << " num_max_samples=" << num_max_samples << std::endl;    
     
     // make ssnet label array
     int ssnet_label_nd = 1;
@@ -338,17 +340,23 @@ namespace keypoints {
 
     std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
     LARCV_DEBUG() << "make class labels and topological weight arrays. nelems=" << ssnet_label_dims1[0] << std::endl;
+    if (_exclude_neg_examples)
+      LARCV_DEBUG() << "EXCLUDING NEG EXAMPLES" << std::endl;
+    
+    int nbad_labels = 0;
     for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
 
       // get the sample index
       int idx = (_exclude_neg_examples ) ? pos_match_index[i] : i;
 
-      //LARCV_DEBUG() << " i=" << i << " idx=" << idx << std::endl;
+      //LARCV_DEBUG() << " i=" << i << " idx=" << idx << " " << _exclude_neg_examples << std::endl;
 
+      //if ( idx<0 || idx>=match
+      
       // get the triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
 
-      // get ssnet label
+      // get ssnet index
       if (index<0 || index>=(int)ssnet_label_v->size()) {
 	std::stringstream msg;
 	msg << "invalid index for ssnet_label_v. index=" << index
@@ -357,6 +365,7 @@ namespace keypoints {
 	    << " idx=" << idx
 	    << " exclude=" << _exclude_neg_examples
 	    << std::endl;
+	LARCV_CRITICAL() << msg.str() << std::endl;
 	throw std::runtime_error( msg.str() );
       }
       
@@ -364,7 +373,10 @@ namespace keypoints {
       if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
 	std::stringstream msg;
 	msg << "invalid class label=" << label << " from the Tree" << std::endl;
-	throw std::runtime_error( msg.str() );
+	//throw std::runtime_error( msg.str() );
+	label = 0;
+	nbad_labels++;
+	//std::cout << msg.str() << std::endl;
       }
       nclass[label]++;
 
@@ -394,6 +406,8 @@ namespace keypoints {
       }      
       *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_class[label];
     }
+
+    LARCV_DEBUG() << "Num bad labels: " << nbad_labels << std::endl;
     
     return 0;
   }
@@ -420,7 +434,7 @@ namespace keypoints {
   {
 
     int index_col = (withtruth) ? 4 : 3;
-    float sigma = 10.0; // cm
+    float sigma = 2.0; // cm
 
     int kplabel_nd = 2;
     int nclasses = 6; //number of keypoint classes
@@ -442,27 +456,37 @@ namespace keypoints {
 
       // triplet index
       long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-      
+
       for (int c=0; c<nclasses; c++) {
-        // hard label
-        long label = kplabel_v[c]->at( index )[0]; // [0] indicates if within some radius of keypoint
-        if (label==1) {
-          // make soft label
-          float dist = 0.;
-          for (int j=0; j<3; j++) {
-            float dx = kplabel_v[c]->at( index )[1+j]; // [1+j] is distance to closest keypoint in j-coordinate
-            dist += dx*dx;
-          }
-	  // reassign hard label with value based on distance from closest keypoint
-          *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = exp( -dist/(sigma*sigma) );
-	  // increment number of positive keypoint labels
-          npos[c]++;
-        }
-        else {
+	
+	//std::cout << "[" << i << "," << c << "] index=" << index << " size=" << kplabel_v[c]->at( index ).size() << std::endl;
+	
+	if ( kplabel_v[c]->at( index ).size()==0 ) {
           // zero label
           *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = 0.0;
           nneg[c]++;
-        }
+	}
+	else {
+	  // hard label	  
+	  long label = kplabel_v[c]->at( index )[0]; // [0] indicates if within some radius of keypoint
+	  if (label==1) {
+	    // make soft label
+	    float dist = 0.;
+	    for (int j=0; j<3; j++) {
+	      float dx = kplabel_v[c]->at( index )[1+j]; // [1+j] is distance to closest keypoint in j-coordinate
+	      dist += dx*dx;
+	    }
+	    // reassign hard label with value based on distance from closest keypoint
+	    *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = exp( -dist/(sigma*sigma) );
+	    // increment number of positive keypoint labels
+	    npos[c]++;
+	  }
+	  else {
+	    // zero label
+	    *((float*)PyArray_GETPTR2(kplabel_label,i,c)) = 0.0;
+	    nneg[c]++;
+	  }
+	}//has labels
       }
     }
 
@@ -485,11 +509,16 @@ namespace keypoints {
         int idx = (_exclude_neg_examples) ? pos_match_index[i] : i;
         // triplet index
         long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
-        // hard label
-        long label = kplabel_v[c]->at( index )[0];
-        if (label==1) {
-          *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
-        }
+
+	long label = 0;
+	if ( kplabel_v[c]->at( index ).size()>0 ) {
+	  // hard label	
+	  label = kplabel_v[c]->at( index )[0];
+	}
+	
+	if (label==1) {
+	  *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
+	}
         else {
           *((float*)PyArray_GETPTR2(kplabel_weight,i,c))  = w_neg/w_norm;
         }
@@ -528,7 +557,8 @@ namespace keypoints {
     for (int i=0; i<num_max_samples; i++ ) {
       long index = *((long*)PyArray_GETPTR2(match_array,i,index_col));
       for (int c=0; c<nclasses; c++ ) {
-        if ( i<nfilled ) {
+	
+        if ( i<nfilled && kplabel_v[c]->at( index ).size()>0 ) {
           for (int j=0; j<3; j++ )
             *((float*)PyArray_GETPTR3(kpshift_label,i,c,j)) = kplabel_v[c]->at( index )[1+j];
         }

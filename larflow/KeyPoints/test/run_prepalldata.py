@@ -9,6 +9,7 @@ parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree w
 parser.add_argument("-tb",  "--tick-backward",action='store_true',default=False,help="Input LArCV data is tick-backward [default: false]")
 parser.add_argument("-tri", "--save-triplets",action='store_true',default=False,help="Save triplet data [default: false]")
 parser.add_argument("-n",   "--nentries",type=int,default=-1,help="Number of entries to run [default: -1 (all)]")
+parser.add_argument("-e",   "--start-entry",type=int,default=0,help="Entry to start [default: 0]")
 args = parser.parse_args()
 
 import ROOT as rt
@@ -37,13 +38,23 @@ iolcv.reverse_all_products()
 iolcv.initialize()
 
 nentries = iolcv.get_n_entries()
-print("Number of entries: ",nentries)
-if args.nentries>=0 and args.nentries<nentries:
-    nentries = args.nentries
+print("Number of entries in file: ",nentries)
+start_entry = args.start_entry
+if start_entry>=nentries:
+    print("Asking to start after last entry in file")
+    sys.exit(0)
+
+if args.nentries>0:
+    end_entry = start_entry + args.nentries
+else:
+    end_entry = start_entry + nentries
+if end_entry>=nentries:
+    end_entry = nentries
 
 print("Start loop.")
 tmp = rt.TFile(args.output,"recreate")
 lmc = ublarcvapp.mctools.LArbysMC()
+tmp.cd()
 lmc.initialize()
 
 # ALGOS
@@ -80,11 +91,13 @@ if args.save_triplets:
 start = time.time()
 
 nrun = 0
-for ientry in range( nentries ):
+for ientry in range(start_entry,end_entry,1):
 
     print(" ") 
     print("==========================")
     print("===[ EVENT ",ientry," ]===")
+    sys.stdout.flush()
+    
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
@@ -98,7 +111,8 @@ for ientry in range( nentries ):
     adc_v = ev_adc.Image2DArray()
     for p in range(adc_v.size()):
         print(" image[",p,"] ",adc_v[p].meta().dump())
-
+    sys.stdout.flush()
+        
     ev_chstatus = iolcv.get_data( larcv.kProductChStatus, args.adc )
     ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
     larflow_v  = ev_larflow.Image2DArray()
@@ -107,7 +121,8 @@ for ientry in range( nentries ):
                                               4, 3, 2400, 1008*6, 3456, 6, 1,
                                               1.0, 100, -1.0 );
     print("made badch_v, size=",badch_v.size())
-
+    sys.stdout.flush()
+    
     # make triplet proposals
     tripmaker.process( adc_v, badch_v, 10.0, True )
 
@@ -129,6 +144,7 @@ for ientry in range( nentries ):
 
     # make ssnet ground truth
     ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    
     # fill happens automatically (ugh so ugly)
 
     # make affinity field ground truth
@@ -150,16 +166,16 @@ dtime = time.time()-start
 print("Time: ",float(dtime)/float(nrun)," sec/event")
 
 tmp.cd()
+lmc.finalize()
 kpana.writeAnaTree()
 kpana.writeHists()
 ssnet.writeAnaTree()
 kpflow.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
-lmc.finalize()
 
-del kpana
-del ssnet
-del kpflow
+#del kpana
+#del ssnet
+#del kpflow
 
 print("=== FIN ==")

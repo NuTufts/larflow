@@ -39,7 +39,8 @@ namespace prep {
     // build wire overlap data
     for ( int flowdir=0; flowdir<(int)larflow::kNumFlows; flowdir++ ) {
 
-      int srcplane, tarplane;
+      int srcplane = 0;
+      int tarplane = 0;
       larflow::LArFlowConstants::getFlowPlanes((larflow::FlowDir_t)flowdir,srcplane,tarplane);
       int otherplane = larflow::LArFlowConstants::getOtherPlane(srcplane,tarplane);
 
@@ -53,8 +54,8 @@ namespace prep {
         
       for (int isrc=0; isrc<(int)geo->Nwires(srcplane); isrc++) {
 
-        Double_t xyzstart[3];
-        Double_t xyzend[3];
+        Double_t xyzstart[3] = {0,0,0};
+        Double_t xyzend[3] = {0,0,0};
         geo->WireEndPoints( (UChar_t)srcplane, (UInt_t)isrc, xyzstart, xyzend );
 
         float u1 = geo->WireCoordinate( xyzstart, (UInt_t)tarplane );
@@ -82,7 +83,7 @@ namespace prep {
           UInt_t tar_ch = geo->PlaneWireToChannel( (UInt_t)tarplane, (UInt_t)tarwire );
           
           
-          Double_t y,z;
+          Double_t y(0),z(0);
           //std::clock_t xs_start = std::clock();
           bool crosses  = geo->ChannelsIntersect( src_ch, tar_ch, y, z );
           //dt_intersect += float(std::clock()-xs_start)/float(CLOCKS_PER_SEC);

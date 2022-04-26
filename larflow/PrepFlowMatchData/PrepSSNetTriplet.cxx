@@ -106,7 +106,8 @@ namespace prep {
       int larcv_pid = tripletmaker._pdg_v[itrip]; // particle label using larcv class enum
       int net_label = larcv2class( larcv_pid );
       if ( tripletmaker._truth_v[itrip]==0 )
-	net_label = kBG;
+	net_label = 0;
+      //std::cout << larcv_pid << "  " << net_label << std::endl;
       _ssnet_label_v[itrip] = net_label;
       _ssnet_num_v[net_label] += 1;
       _ssnet_weight_v[itrip] = 1.;
@@ -188,6 +189,8 @@ namespace prep {
   {
     switch (larcv_label){
     case larcv::kROIUnknown:
+    case larcv::kROIBNB:
+    case larcv::kROICosmic:            
       return kBG;
       break;      
     case larcv::kROIEminus:

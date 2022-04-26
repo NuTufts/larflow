@@ -164,7 +164,7 @@ namespace keypoints {
       throw std::runtime_error("error running mcpg");
     }
     LARCV_DEBUG() << "finished graph" << std::endl;        
-    //mcpg.printGraph();
+    mcpg.printGraph();
 
     // build key-points
     _kpd_v.clear();
@@ -358,7 +358,11 @@ namespace keypoints {
         continue;
 
       auto const& shower = mcshower_v.at( pnode.vidx );
-      LARCV_DEBUG() << "shower process: " << shower.Process() << std::endl;
+      LARCV_DEBUG() << "shower(tid=" << pnode.tid << ","
+		    << "mtid=" << pnode.mtid << ","
+		    << "aid=" << pnode.aid << ") "
+		    << "process: " << shower.Process()
+		    << std::endl;
       std::string process = shower.Process();
       
       // start: pnode.start; //should be in apparent position already
@@ -369,15 +373,29 @@ namespace keypoints {
       kpd.vid     = pnode.vidx;
       kpd.origin  = pnode.origin;
       kpd.is_shower = 1;
-      if ( process=="Decay" ) {
-        kpd.kptype = larflow::kShowerMichel;
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
+      ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+	
+      // priveledge showers from muons
+      if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
+	// mother is a muon or ancestor is a muon
+	if ( process=="Decay" || process=="muMinusCaptureAtRest")
+	  kpd.kptype = larflow::kShowerMichel;
+	else
+	  kpd.kptype = larflow::kShowerDelta;
       }
-      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" ) {
+      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" || process=="eBrem" || process=="muBrem") {
         kpd.kptype = larflow::kShowerDelta;
       }
       else {
-        kpd.kptype = larflow::kShowerStart;
+	// everything else
+	kpd.kptype = larflow::kShowerStart;
       }
+      // }
+      // else {
+      // 	std::string msg = "PrepKeypointData::getShowerStarts - unrecognized process! "+process;
+      // 	throw std::runtime_error(msg);
+      // }
 
       kpd.keypt.resize(3,0);
       for (int i=0; i<3; i++)
@@ -637,6 +655,8 @@ namespace keypoints {
   void PrepKeypointData::make_proposal_labels( const larflow::prep::PrepMatchTriplets& match_proposals )
   {
 
+    const float max_dist_to_label = 10.0;
+    
     for (int i=0; i<6; i++) {
       _match_proposal_labels_v[i].clear();
       _match_proposal_labels_v[i].reserve(match_proposals._triplet_v.size());
@@ -690,7 +710,9 @@ namespace keypoints {
         // make label vector
 
         // within 50 pixels/15 cm
-        if ( dist<0.3*50 ) {
+	bool is_close = false;
+        if ( dist<max_dist_to_label ) {
+	  is_close = true;
           label_v[0] = 1.0;
           _nclose++;
         }
@@ -699,8 +721,8 @@ namespace keypoints {
           _nfar++;
         }
 
-        // make shift in 3D label
-        if ( dist<0.3*50 ) {
+	if ( is_close ) {	
+	  // make shift in 3D label
           for (int i=0; i<3; i++ ) {
             label_v[1+i] = leafpos[i]-pos[i];
             if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
@@ -716,7 +738,11 @@ namespace keypoints {
             label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
             if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
           }
-        }
+	}
+	else {
+	  // empy label to save space
+	  //label_v.clear(); // this messes up file
+	}
         _match_proposal_labels_v[ikpclass].push_back(label_v);
       }//end of keypoint class loop
     }//end of match proposal loop

@@ -162,9 +162,11 @@ namespace reco {
 
     // make selection variables
     //makeNuCandidateSelectionVariables( iolcv, ioll );
-
+    if ( _save_event_mc_info ) {
+      _event_mcinfo_maker.process( ioll );      
+    }
     if ( _save_event_mc_info && _run_perfect_mcreco ) {
-      _event_mcinfo_maker.process( ioll );
+
       LARCV_DEBUG() << "Run perfect reco." << std::endl;
       //_perfect_reco.set_verbosity( larcv::msg::kDEBUG );
       NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
@@ -493,8 +495,8 @@ namespace reco {
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
-    _projsplitter.set_verbosity( larcv::msg::kDEBUG );
-    //_projsplitter.set_verbosity( larcv::msg::kINFO );    
+    //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
+    _projsplitter.set_verbosity( larcv::msg::kINFO );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.doClusterVetoHits(false);
     _projsplitter.set_fit_line_segments_to_clusters( true );
@@ -506,8 +508,8 @@ namespace reco {
 
     // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
-    //_projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
-    _projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
+    _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
+    //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_dbscan_pars( 5.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
     _projsplitter_cosmic.doClusterVetoHits(false);
     _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
@@ -622,7 +624,7 @@ namespace reco {
     _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_output_candidates() );
     
     // - repair shower trunks by absorbing tracks or creating hits
-    _nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
     int ivtx = 0;
     //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
     for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
@@ -634,19 +636,19 @@ namespace reco {
 
     // post-neutrino-candidate processing:
     // - remove tracks from neutrino candidates that significantly overlap with showers
-    _nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
     //_nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
     _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
 
     // - add hits vetod around keypoints to the ends of track prongs
-    _nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
     LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
     for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
       _nuvertex_cluster_vetohits.process( ioll, vtx );
     }
 
     // - add dq/dx information
-    _nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
     LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
     for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {        
       _nuvertex_trackdqdx.process_nuvertex_tracks( iolcv, vtx );

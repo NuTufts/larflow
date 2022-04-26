@@ -109,7 +109,7 @@ namespace reco {
     
   protected:
 
-    void _createCandidates();
+    void _createCandidates(larcv::IOManager& iolcv);
     void _set_defaults();
     void _score_vertex( NuVertexCandidate& vtx ); 
     void _merge_candidates();
