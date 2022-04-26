@@ -53,9 +53,9 @@ if end_entry>=nentries:
 
 print("Start loop.")
 tmp = rt.TFile(args.output,"recreate")
-#lmc = ublarcvapp.mctools.LArbysMC()
-#tmp.cd()
-#lmc.initialize()
+lmc = ublarcvapp.mctools.LArbysMC()
+tmp.cd()
+lmc.initialize()
 
 # ALGOS
 # -----------------------
@@ -101,7 +101,7 @@ for ientry in range(start_entry,end_entry,1):
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
 
-    #lmc.process(ioll)
+    lmc.process(ioll)
 
     tripmaker = ev_triplet[0]
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
@@ -166,7 +166,7 @@ dtime = time.time()-start
 print("Time: ",float(dtime)/float(nrun)," sec/event")
 
 tmp.cd()
-#lmc.finalize()
+lmc.finalize()
 kpana.writeAnaTree()
 kpana.writeHists()
 ssnet.writeAnaTree()
