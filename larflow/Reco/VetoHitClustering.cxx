@@ -2,12 +2,14 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/larflowcluster.h"
 #include "larlite/DataFormat/track.h"
+#include "NuVertexFitter.h"
 #include "geofuncs.h"
 
 namespace larflow {
 namespace reco {
 
   void VetoHitClustering::process( larlite::storage_manager& io,
+				   larcv::IOManager& iolcv,
 				   larflow::reco::NuVertexCandidate& nuvtx )
   {
 
@@ -40,7 +42,18 @@ namespace reco {
     if ( close_hit_indices_v.size()<min_veto_hits )
       return;
 
-    _merge_hits_into_prongs( *evout_veto, close_hit_indices_v, nuvtx );
+    std::vector<larflow::reco::NuVertexCandidate> prefit_v;
+    prefit_v.push_back( nuvtx ); // copy constructor!!! hope its worth it
+    std::vector<int> copy_close_hit_indices_v = close_hit_indices_v;    
+    _merge_hits_into_prongs( *evout_veto, copy_close_hit_indices_v, prefit_v.at(0) );
+
+    NuVertexFitter vtxfitter;
+    vtxfitter.process( iolcv, io, prefit_v );
+
+    // update the vertex location
+    for (int v=0; v<3; v++)
+      nuvtx.pos[v] = vtxfitter.get_fitted_pos()[0][v];
+    _merge_hits_into_prongs( *evout_veto, close_hit_indices_v, nuvtx );    
 
     std::vector<larflow::reco::cluster_t> output_cluster_v;
     _findVetoClusters( *evout_veto, close_hit_indices_v, nuvtx, output_cluster_v );
@@ -144,8 +157,17 @@ namespace reco {
 	float r = larflow::reco::pointLineDistance3f( nuvtx.pos, prong_start_v[itrack], pt );
 	float r_orig = larflow::reco::pointLineDistance3f( nuvtx.pos, prong_start_v[itrack], pt_orig );	
 	// calculate projection of hit onto line-segment
-	float s = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt );
-	float s_orig = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt_orig );	
+	float s = 0.0;
+	float s_orig = 0.0;
+
+	try {
+	  s = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt );
+	  s_orig = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt_orig );
+	}
+	catch (...) {
+	  s = -1.0;
+	  s_orig = -1.0;
+	}
 	// std::cout << "ihit=" << ihit << " itrack=" << itrack
 	// 	  << " r=" << r << " s=" << s
 	// 	  << " ro=" << r_orig << " so=" << s_orig
@@ -193,12 +215,20 @@ namespace reco {
 
 	auto const& hit = inputhits[ origidx ];	
 	std::vector<float> pt = { hit[0], hit[1], hit[2] };
-	float s = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[modprong], pt );
-	
-	ProngAddition_t addme( s, min_prong_dist[ihit], origidx );
-	added_hits_v[modprong].push_back( addme );
-	prong_modified[modprong] = 1;
-	close_hits_v[ihit] = -1;
+	float s = -1;
+	try {
+	  s = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[modprong], pt );
+	}
+	catch (...) {
+	  s = -1;
+	}
+
+	if ( s>0 ) {
+	  ProngAddition_t addme( s, min_prong_dist[ihit], origidx );
+	  added_hits_v[modprong].push_back( addme );
+	  prong_modified[modprong] = 1;
+	  close_hits_v[ihit] = -1;
+	}
       }
     }
     

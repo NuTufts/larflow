@@ -644,7 +644,7 @@ namespace reco {
     //_nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
     LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
     for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
-      _nuvertex_cluster_vetohits.process( ioll, vtx );
+      _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
     }
 
     // - add dq/dx information
