@@ -52,20 +52,20 @@ nentries = len(dataset)
 
 print("NENTRIES: ",nentries)
 
-ientry = 1
+#ientry = 0
 
-io_ll.go_to(ientry)
-ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
-mctrack = ev_mctrack.at(0) #seems like only odd numbers contain mctrack points? evens are just meta/setup/type info
+#io_ll.go_to(ientry)
+#ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
+#mctrack = ev_mctrack.at(0)
 
-traces3d = []
+#traces3d = []
 
 # MCTRACK
-if args.larlite!="":
-    print("VISUALIZE MCTRACKS")
-    mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack )
-    print("mcytrack_v:",mctrack_v)
-    traces3d.append( mctrack_v )
+#if args.larlite!="":
+#    print("VISUALIZE MCTRACKS")
+#    mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack )
+#    print("mcytrack_v:",mctrack_v)
+#    traces3d.append( mctrack_v )
 
 #for i in enumerate(dataset):
 #    print(i)
@@ -83,12 +83,6 @@ niter = 1
 #pos3d[:,1] -= 117.0
 #print(pos3d.shape)
 
-app = dash.Dash(
-    __name__,
-    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
-)
-
-server = app.server
 
 def make_figures(ientry,loader,minprob=0.0):
 
@@ -96,7 +90,28 @@ def make_figures(ientry,loader,minprob=0.0):
     print("making figures for ientry={}".format(ientry))
     global larvoxeltrainingdata
 
+
     batch = next(iter(loader))
+
+
+
+    # MCTRACK
+    if args.larlite!="":
+
+        global io_ll
+
+        io_ll.go_to(ientry)
+        ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
+        mctrack = ev_mctrack.at(0)
+
+        print("First mcstep X:", mctrack.at(0).X() )
+
+        traces3d = []
+
+        print("VISUALIZE MCTRACKS")
+        mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack )
+        print("mcytrack_v:",mctrack_v)
+        traces3d.append( mctrack_v )
 
     print("voxel entries: ",batch["voxcoord"].shape)
 
@@ -116,13 +131,22 @@ def make_figures(ientry,loader,minprob=0.0):
                   "size":10,
                   "opacity":1}}
     traces_v.append(voxtrace)
-    traces_v.append(mctrack_v)
+
+    if args.larlite!="":
+        traces_v.append(mctrack_v)
     #traces_v.append( detdata.getlines() )
     traces_v += detdata.getlines()
 
     voxtrace["marker"]["colorscale"]="Viridis"
 
     return traces_v
+
+app = dash.Dash(
+    __name__,
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
+)
+
+server = app.server
 
 axis_template = {
     "showbackground": True,
@@ -210,8 +234,8 @@ def cb_render(*vals):
         print("Plot-by option is None")
         raise PreventUpdate
 
-    cluster_traces_v = make_figures(ientry,loader,minprob=0.0)
-    #cluster_traces_v = make_figures(int(vals[1]),loader,minprob=0.0)
+    #cluster_traces_v = make_figures(ientry,loader,minprob=0.0)
+    cluster_traces_v = make_figures(int(vals[1]),loader,minprob=0.0)
 #    cluster_traces_v = make_figures(int(vals[1]),plotby=vals[2],minprob=0.0)
     vals[-1]["data"] = cluster_traces_v
     return vals[-1],"event requested: {} {}".format(vals[1],vals[2])
