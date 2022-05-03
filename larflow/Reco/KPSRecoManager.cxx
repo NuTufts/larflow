@@ -639,8 +639,17 @@ namespace reco {
     _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
     //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
-    _nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_output_candidates() );
-    
+    _nuvertex_shower_reco.process( iolcv, ioll,
+				   _nuvertexmaker.get_mutable_output_candidates(),
+				   _nuvertexmaker.get_candidate_cluster_book() );
+
+    LARCV_NORMAL() << "Cluster-book summary after NuVertexShowerReco" << std::endl;
+    for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
+      LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
+		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
+		     << std::endl;
+    }    
+
     // - repair shower trunks by absorbing tracks or creating hits
     //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
     int ivtx = 0;

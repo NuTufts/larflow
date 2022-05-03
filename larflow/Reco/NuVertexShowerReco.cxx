@@ -16,7 +16,8 @@ namespace reco {
    */
   void NuVertexShowerReco::process( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll,
-                                    std::vector<NuVertexCandidate>& nu_candidate_v )
+                                    std::vector<NuVertexCandidate>& nu_candidate_v,
+				    std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
     // load up the clusters
@@ -32,10 +33,12 @@ namespace reco {
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
     }
-    
-    for ( auto& nuvtx : nu_candidate_v ) {
+
+    for ( size_t ivtx=0; ivtx<nu_candidate_v.size(); ivtx++) {
+      auto& nuvtx = nu_candidate_v.at(ivtx);
+      auto& book  = nu_cluster_book_v.at(ivtx);
       LARCV_DEBUG() << "Build Vertex Showers: (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
-      _build_vertex_showers( nuvtx, iolcv, ioll );
+      _build_vertex_showers( nuvtx, book, iolcv, ioll );
     }
     
   }
@@ -53,6 +56,7 @@ namespace reco {
    *
    */
   void NuVertexShowerReco::_build_vertex_showers( NuVertexCandidate& nuvtx,
+						  ClusterBookKeeper& nuclusterbook,
                                                   larcv::IOManager& iolcv, 
                                                   larlite::storage_manager& ioll ) 
   {
@@ -227,7 +231,7 @@ namespace reco {
                     << " npts=" << lfcluster.size()
                     << std::endl;
       
-      
+      // absorb hits into shower_hit_v
       larlite::larflowcluster shower_hit_v;
       for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
         shower_hit_v.push_back( lfcluster[ihit] );
@@ -371,7 +375,25 @@ namespace reco {
       nuvtx.shower_trunk_v.emplace_back( std::move(shower_trunk) );
       nuvtx.shower_pcaxis_v.emplace_back( std::move(shower_hit_pca) );
 
-    }//end of seed prong loop      
+    }//end of seed prong loop
+
+    // book the clusters we used
+    // loop over pairs of (producer, used vector)
+    for ( auto itc=cluster_used_v.begin(); itc!=cluster_used_v.end(); itc++ ) {
+      for (size_t idx=0; idx<itc->second.size(); idx++) {
+	if ( itc->second[idx]>0 ) {
+	  // this cluster was used by this vertex
+	  const larlite::larflowcluster& lfcluster =
+	    ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, itc->first))->at( idx );
+	  if ( lfcluster.matchedflash_idx>=0 && lfcluster.matchedflash_idx<nuclusterbook.cluster_status_v.size() ) {
+	    nuclusterbook.cluster_status_v[ lfcluster.matchedflash_idx ] = 1; // book it!
+	  }
+	  else {
+	    LARCV_WARNING() << "Used cluster index outside the cluster book range!" << std::endl;
+	  }
+	}
+      }
+    }
     
   }
 
@@ -555,7 +577,7 @@ namespace reco {
     shower_start = rank_v.front().start;
     shower_dir   = rank_v.front().dir;
     shower_ll    = rank_v.front().llscore;
-    
+
   }
 
   

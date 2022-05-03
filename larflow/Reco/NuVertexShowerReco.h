@@ -8,6 +8,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "NuVertexCandidate.h"
 #include "cluster_functions.h"
+#include "ClusterBookKeeper.h"
 
 namespace larflow {
 namespace reco {
@@ -33,7 +34,8 @@ namespace reco {
 
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
-                  std::vector<NuVertexCandidate>& nu_candidate_v );
+                  std::vector<NuVertexCandidate>& nu_candidate_v,
+		  std::vector<ClusterBookKeeper>& nu_cluster_book_v );
 
   protected:
 
@@ -53,6 +55,7 @@ namespace reco {
   protected:
 
     void _build_vertex_showers( NuVertexCandidate& nuvtx,
+				ClusterBookKeeper& nuclusterbook,
                                 larcv::IOManager& iolcv, 
                                 larlite::storage_manager& ioll );
     

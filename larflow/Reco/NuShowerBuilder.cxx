@@ -20,7 +20,8 @@ namespace reco {
    */
   void NuShowerBuilder::process( larcv::IOManager& iolcv,
                                  larlite::storage_manager& ioll,
-                                 std::vector<NuVertexCandidate>& nu_candidate_v )
+                                 std::vector<NuVertexCandidate>& nu_candidate_v,
+				 std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
     LARCV_DEBUG() << "start" << std::endl;
