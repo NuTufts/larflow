@@ -593,6 +593,14 @@ namespace reco {
     _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
     _nuvertexmaker.process( iolcv, ioll );
 
+    LARCV_NORMAL() << "Cluster-book summary after NuVertexMaker" << std::endl;
+    for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
+      LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
+		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
+		     << std::endl;
+    }
+
+    
     // NuTrackBuilder class
     _nu_track_builder.clear();
     if ( _stop_after_nutracker )
@@ -600,7 +608,17 @@ namespace reco {
     else 
       _nu_track_builder.set_verbosity( larcv::msg::kINFO );
     //_nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
-    _nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_output_candidates() );
+    _nu_track_builder.process( iolcv, ioll,
+			       _nuvertexmaker.get_mutable_output_candidates(),
+			       _nuvertexmaker.get_candidate_cluster_book() );
+
+    LARCV_NORMAL() << "Cluster-book summary after NuTrackBuilder" << std::endl;    
+    for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
+      LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
+		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
+		     << std::endl;
+    }
+    
     // larflow::reco::TrackFindBadConnection track_splitter;
     // track_splitter.set_verbosity( larcv::msg::kINFO );
     // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )

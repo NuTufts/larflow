@@ -20,7 +20,8 @@ namespace reco {
    */
   void NuTrackBuilder::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
-                                std::vector<NuVertexCandidate>& nu_candidate_v )
+                                std::vector<NuVertexCandidate>& nu_candidate_v,
+				std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
     std::clock_t t_start = std::clock();
@@ -44,7 +45,7 @@ namespace reco {
       //   "trackprojsplit_wcfilter",
       //   "hip" };
       { "trackprojsplit_wcfilter", "cosmicproton" };
-    
+
     for ( auto const& producer : cluster_producers ) {
 
       LARCV_INFO() << "Adding clusters from '" << producer << "' producer/tree" << std::endl;
@@ -55,7 +56,7 @@ namespace reco {
       larlite::event_track* ev_track
         = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);      
       loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
-      
+
     }
 
     buildNodeConnections( &adc_v, &badch_v );
@@ -68,8 +69,10 @@ namespace reco {
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack");
     larlite::event_track* evout_track_fitted
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "nutrack_fitted");
-    
-    for (auto& nuvtx : nu_candidate_v ) {
+
+    for (size_t inuvertex=0; inuvertex<nu_candidate_v.size(); inuvertex++) {
+      auto& nuvtx = nu_candidate_v.at(inuvertex);
+      auto& vtx_cluster_book = nu_cluster_book_v.at(inuvertex);
 
       nuvtx.track_v.clear();
       _track_proposal_v.clear(); // clear out track proposals
@@ -163,6 +166,9 @@ namespace reco {
         // reset the veto flags for the segment nodes
         TrackClusterBuilder::resetVetoFlags();
 
+	// veto used clusters
+	_veto_assigned_clusters( vtx_cluster_book );
+
         // veto nodes connected to the segment end closest to the vertexer
         int min_segidx = segment_near_cluster_start[ivtx];
 
@@ -190,6 +196,9 @@ namespace reco {
         buildTracksFromPoint( vtxnode->pos );
         
         int nafter = (int)_track_proposal_v.size();
+
+	_book_used_clusters( vtx_cluster_book );
+	
         LARCV_DEBUG() << "After path search, number of proposals: " << nafter-nbefore << std::endl;
         LARCV_DEBUG() << "==============================================" << std::endl;
         
@@ -265,6 +274,47 @@ namespace reco {
     LARCV_INFO() << "end; elapsed=" << elapsed << " secs" << std::endl;
     
   }
-  
+
+  void NuTrackBuilder::_veto_assigned_clusters( ClusterBookKeeper& nuvtx_cluster_book )
+  {
+    // we loop through the segments and associated nodes
+    // the segment has a pointer to the cluster it represents
+    // the cluster has its book-keeping index (in matchedflash_idx),
+    // then we veto the segment's nodes
+    //std::cout << "Start. Num of clusters in book: " << nuvtx_cluster_book.cluster_status_v.size() << std::endl;
+    for ( auto& node : _nodepos_v ) {
+      auto& seg = _segment_v.at(node.segidx);
+      if ( seg.cluster ) {
+	if ( seg.cluster->matchedflash_idx>=0
+	     && seg.cluster->matchedflash_idx<(int)nuvtx_cluster_book.cluster_status_v.size() ) {
+	  int status = nuvtx_cluster_book.cluster_status_v.at( seg.cluster->matchedflash_idx );
+	  if ( status!=0 ) {
+	    // used or marked
+	    node.veto = true;
+	  }
+	}	  
+      }
+    }
+    
+  }
+
+  void NuTrackBuilder::_book_used_clusters( ClusterBookKeeper& nuvtx_cluster_book )
+  {
+    int itrack = 0;
+    for (auto const& track_proposal : _track_proposal_v ) {
+      //std::cout << "itrack[" << itrack << "] ------" << std::endl;
+      int nbooked = 0;
+      for (  auto const& node : track_proposal ) {
+	int clusterid = _segment_v.at( node->segidx ).cluster->matchedflash_idx;
+	//std::cout << " node clusterid=" << clusterid << std::endl;
+	if ( clusterid>=0 && clusterid<nuvtx_cluster_book.cluster_status_v.size() ) {
+	  nuvtx_cluster_book.cluster_status_v.at(clusterid) = 1;
+	  nbooked++;
+	}
+      }
+      //std::cout << "num of clusters booked: " << nbooked << std::endl;
+      itrack++;
+    }
+  }
 }
 }

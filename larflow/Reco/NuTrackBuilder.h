@@ -3,6 +3,7 @@
 
 #include "TrackClusterBuilder.h"
 #include "NuVertexMaker.h"
+#include "ClusterBookKeeper.h"
 
 namespace larflow {
 namespace reco {
@@ -26,10 +27,15 @@ namespace reco {
 
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
-                  std::vector<NuVertexCandidate>& nu_candidate_v );
+                  std::vector<NuVertexCandidate>& nu_candidate_v,
+		  std::vector<ClusterBookKeeper>& nu_cluster_book_v );
 
     void set_verbosity( larcv::msg::Level_t v ) { TrackClusterBuilder::set_verbosity(v); };
 
+
+    void _veto_assigned_clusters( ClusterBookKeeper& nuvtx_cluster_book );
+    void _book_used_clusters( ClusterBookKeeper& nuvtx_cluster_book );
+    
   };
 
 }

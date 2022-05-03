@@ -14,6 +14,7 @@
 #include "larlite/DataFormat/larflowcluster.h"
 
 #include "NuVertexCandidate.h"
+#include "ClusterBookKeeper.h"
 
 namespace larflow {
 namespace reco {
@@ -48,6 +49,9 @@ namespace reco {
     std::vector<NuVertexCandidate> _merged_v; ///< after merging nearby vertices
     std::vector<NuVertexCandidate> _vetoed_v; ///< after filtering out candidates based on proximity to uncontained cosmic tracks
     std::vector<NuVertexCandidate> _fitted_v; ///< after prong fitting
+
+    int _num_input_clusters; ///< number of clusters that has been given to build interactions
+    std::vector<ClusterBookKeeper> _cluster_book_v; ///< tracks which clusters have been added to each vertex
 
   protected:
 
@@ -104,6 +108,9 @@ namespace reco {
 
     /** @brief get mutable candidates specified by _output_stage flag */
     std::vector<NuVertexCandidate>& get_mutable_output_candidates();
+
+    /** @brief get cluster book keeping for output candidates */
+    std::vector<ClusterBookKeeper>& get_candidate_cluster_book() { return _cluster_book_v; };
     
     void clear();
     
@@ -123,6 +130,7 @@ namespace reco {
     void _cosmic_veto_candidates( larlite::storage_manager& ioll );
     void _refine_position( larcv::IOManager& iolcv,
                            larlite::storage_manager& ioll );
+    void _buildClusterBook();
     
   protected:
 

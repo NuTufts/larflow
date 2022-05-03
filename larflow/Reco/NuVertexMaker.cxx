@@ -22,6 +22,7 @@ namespace reco {
   NuVertexMaker::NuVertexMaker()
     : larcv::larcv_base("NuVertexMaker"),
       _output_stage( kMerged ),
+      _num_input_clusters(0),
       _ana_tree(nullptr)
   {
     _set_defaults();
@@ -77,6 +78,7 @@ namespace reco {
     }
 
     // load clusters
+    int cluster_index = 0;    
     LARCV_INFO() << "Number of cluster producers: " << _cluster_producers.size() << std::endl;
     for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
       LARCV_INFO() << "Load cluster data with tree name[" << it->first << "]" << std::endl;
@@ -94,8 +96,15 @@ namespace reco {
 	it_track->second = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, it->first );
 	LARCV_INFO() << "clusters from [" << it->first << "]: " << it_track->second->size() << " tracks" << std::endl;
       }
-      
+
+      // we provide a cluster index label. this is to help downstream algorithms
+      // an easy way to identify the same cluster
+      for (auto& c : *it->second ) {
+	c.matchedflash_idx = cluster_index;
+	cluster_index++;
+      }
     }
+    _num_input_clusters = cluster_index;
 
     _createCandidates(iolcv);
     _merge_candidates();
@@ -133,6 +142,9 @@ namespace reco {
     }//end of vertex loop
         
     _refine_position( iolcv, ioll );
+
+    // make cluster book
+    _buildClusterBook();
     
   }
 
@@ -317,7 +329,7 @@ namespace reco {
     _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
 
     _apply_cosmic_veto = false;
-    
+    _num_input_clusters = 0;
   }
 
   /**
@@ -882,6 +894,26 @@ namespace reco {
       
     }
     
+  }
+
+  void NuVertexMaker::_buildClusterBook()
+  {
+    _cluster_book_v.clear();
+    _cluster_book_v.reserve( get_mutable_output_candidates().size() );
+
+    for (int ivtx=0; ivtx<(int)get_mutable_output_candidates().size(); ivtx++) {
+      ClusterBookKeeper book;
+      book.cluster_status_v.clear();
+      book.cluster_status_v.resize(_num_input_clusters,0);
+      auto& nuvtx = get_mutable_output_candidates().at(ivtx);
+      for (size_t ic=0; ic<nuvtx.cluster_v.size(); ic++) {
+	std::string producer = nuvtx.cluster_v[ic].producer;
+	int idx = nuvtx.cluster_v[ic].index;
+	int cindex = _cluster_producers[producer]->at(idx).matchedflash_idx;
+	book.cluster_status_v.at(cindex) = 1; // has been assigned
+      }
+      _cluster_book_v.emplace_back( std::move(book) );
+    }
   }
   
 }
