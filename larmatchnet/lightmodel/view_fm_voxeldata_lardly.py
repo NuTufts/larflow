@@ -105,6 +105,8 @@ def make_figures(ientry,loader,minprob=0.0):
         mctrack = ev_mctrack.at(0)
 
         print("First mcstep X:", mctrack.at(0).X() )
+        print("First mcstep Y:", mctrack.at(0).Y() )
+        print("First mcstep Z:", mctrack.at(0).Z() )
 
         traces3d = []
 
