@@ -91,8 +91,8 @@ def make_figures(ientry,loader,minprob=0.0):
     global larvoxeltrainingdata
 
 
-    batch = next(iter(loader))
-
+    #batch = next(iter(loader))
+    batch = list(iter(loader))[ientry]
 
 
     # MCTRACK
