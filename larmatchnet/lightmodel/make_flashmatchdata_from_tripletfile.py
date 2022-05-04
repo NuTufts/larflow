@@ -201,6 +201,8 @@ for ientry in range(2):
 
     numTracks = fmutil.numTracks( ioll )
 
+    counter = 0
+
     for i in range( 0, 20, 1 ):
 
         print("NOW IN THE TRACK LOOP!")
@@ -381,7 +383,11 @@ for ientry in range(2):
             out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
             out_mctrack.push_back( ev_mctrack.at(i) )
 
-            iomc.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
+            counter = counter + 1
+
+            # need to increment event id so final filtered tree entries don't all have same eventid  
+            # (assumes <100 clusters in an event)
+            iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter ) 
             iomc.next_event()
 
             outtree.Fill()
