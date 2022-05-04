@@ -48,6 +48,21 @@ namespace reco {
     _track_proposal_v.clear();
   }
 
+  /** @brief Clears internal event data containers */
+  void TrackClusterBuilder::clear_cluster_data()
+  {
+    _segment_v.clear();
+    _segedge_m.clear();
+    _connect_m.clear();
+    _nodepos_v.clear();
+  }
+
+  /** @brief Clears internal event data containers */  
+  void TrackClusterBuilder::clear_track_proposals()
+  {
+    _track_proposal_v.clear();
+  }
+  
   /**
    * @brief store given clusters and associated principle component info as Segment_t and NodePos_t
    *

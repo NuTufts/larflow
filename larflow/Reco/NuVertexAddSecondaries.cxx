@@ -1,12 +1,13 @@
 #include "NuVertexAddSecondaries.h"
-
 #include "geofuncs.h"
+#include "NuTrackBuilder.h"
 
 namespace larflow {
 namespace reco {
 
   void NuVertexAddSecondaries::process( larflow::reco::NuVertexCandidate& nuvtx,
 					larflow::reco::ClusterBookKeeper& nuclusterbook,
+					larcv::IOManager& iolcv,
 					larlite::storage_manager& ioll )
   {
     // core loop
@@ -36,6 +37,11 @@ namespace reco {
       float dist;
       int attached;
       int trackorshower;
+      std::string producername;
+      int clusteridx;
+      std::vector<float> attach_pos;
+      std::vector<float> attach_dir;
+      std::vector<float> seedpos;            
       SecondaryCandidate_t( larlite::larflowcluster* pc, int ts )
 	: pcluster(pc),
 	  dist(999.0),
@@ -72,13 +78,23 @@ namespace reco {
 	    // LARCV_DEBUG() << "Test cluster(" << producername << "," << icluster << "," << cluster.matchedflash_idx << ")"
 	    // 		  << " with nutrack[" << itrack << "]" << std::endl;
 	    auto& track = nuvtx.track_v.at(itrack);
-	    float mindist = testTrackTrackIntersection( track, clusterpca, 2.0 );
+	    std::vector<float> attach_pos(3,0);
+	    std::vector<float> attach_dir(3,0);
+	    std::vector<float> seedpos(3,0);
+	    float mindist = testTrackTrackIntersection( track, clusterpca, 2.0,
+							attach_pos, attach_dir, seedpos );
 	    //LARCV_DEBUG() << "  mindist=" << mindist << std::endl;
 	    if (mindist<2.0) {
 	      // register as potential new seed point
 	      SecondaryCandidate_t cand( &cluster, shower_or_track[ iproducer ] );
 	      cand.dist = mindist;
-	      candidates_v.emplace_back( std::move(cand) );
+	      cand.producername = producername;
+	      cand.clusteridx = icluster;
+	      //cand.attach_pos = attach_pos;
+	      cand.attach_pos = seedpos;
+	      cand.attach_dir = attach_dir;
+	      cand.seedpos = seedpos;
+	      candidates_v.emplace_back( std::move(cand) );	      
 	    }
 	  }
 	}
@@ -90,16 +106,58 @@ namespace reco {
     
     LARCV_DEBUG() << "Number of candidate additions: " << candidates_v.size() << std::endl;
     
+    LARCV_DEBUG() << "Now extend tracks using NuTrackBuilder" << std::endl;
+    NuTrackBuilder _nu_track_builder;
+    _nu_track_builder.loadClustersAndConnections( iolcv, ioll );
+    _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    
+    for ( auto& candidate : candidates_v ) {
+      if ( candidate.trackorshower==0 ) {
+	// track
+	// make a fake nuvtx candididate for the secondary attach point
+	NuVertexCandidate nuvtx2;
+	nuvtx2.pos = candidate.attach_pos;
+
+	// must provide the seed cluster
+	NuVertexCandidate::VtxCluster_t vtxcluster;
+	vtxcluster.producer = candidate.producername;
+	vtxcluster.type = NuVertexCandidate::kTrack;
+	vtxcluster.index = candidate.clusteridx;
+	vtxcluster.pos = candidate.seedpos;
+	nuvtx2.cluster_v.push_back( vtxcluster );
+	
+	std::vector< NuVertexCandidate > nuvtx2_v;
+	std::vector< ClusterBookKeeper > book_v;
+	nuvtx2_v.push_back( nuvtx2 );
+	book_v.push_back( nuclusterbook );	
+	_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+	_nu_track_builder.clear_track_proposals();
+	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
+	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
+	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
+	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
+	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );      
+	}
+      }
+    }
+    
   }
 
   float NuVertexAddSecondaries::testTrackTrackIntersection( larlite::track& track,
 							    larlite::pcaxis& cluster_pca,
-							    const float _max_line_dist )
+							    const float _max_line_dist,
+							    std::vector<float>& attach_pos,
+							    std::vector<float>& attach_dir,
+							    std::vector<float>& seedpos )
   {
     
     std::vector< float > cluster_start(3,0);
     std::vector< float > cluster_end(3,0);
     std::vector< float > cluster_dir(3,0);
+
+    seedpos.resize(3,0);
+    attach_dir.resize(3,0);
+    attach_pos.resize(3,0);
 
     float len = 0;
     for (int i=0; i<3; i++) {
@@ -179,18 +237,26 @@ namespace reco {
 
       // candidate intersection point on this track      
       if ( ptdist1<ptdist2 && ptdist1<_max_line_dist && ptdist1<min_seg_dist) {
-	for (int i=0; i<3; i++)
+	for (int i=0; i<3; i++) {
 	  min_seg_pos[i] = pt1[i] + segdir[i]*s1;
+	  attach_dir[i] = cluster_dir[i];
+	  seedpos[i] = cluster_start[i];
+	}
 	min_seg_dist = ptdist1;
       }
       else if ( ptdist2<ptdist1 && ptdist2<_max_line_dist && ptdist2<min_seg_dist ) {
-	for (int i=0; i<3; i++)
+	for (int i=0; i<3; i++) {
 	  min_seg_pos[i] = pt1[i] + segdir[i]*s2;
+	  attach_dir[i] = -cluster_dir[i];
+	  seedpos[i] = cluster_end[i];	  
+	}
 	min_seg_dist = ptdist2;
       }
       
     }//end of loop over points along the track line
 
+    attach_pos = min_seg_pos;
+    
     return min_seg_dist;
   }
 

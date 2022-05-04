@@ -179,6 +179,8 @@ namespace reco {
     void buildTracksFromPoint( const std::vector<float>& startpoint );
 
     void clear();
+    void clear_cluster_data();
+    void clear_track_proposals();
 
     /** @brief clear track proposal container _track_proposal_v */
     void clearProposals() { _track_proposal_v.clear(); };

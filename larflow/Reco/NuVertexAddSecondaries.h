@@ -3,6 +3,7 @@
 
 #include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
+#include "larcv/core/DataFormat/IOManager.h"
 #include "NuVertexCandidate.h"
 #include "ClusterBookKeeper.h"
 
@@ -23,13 +24,17 @@ namespace reco {
     virtual ~NuVertexAddSecondaries() {};
 
     void process( larflow::reco::NuVertexCandidate& nuvtx,
-		  larflow::reco::ClusterBookKeeper& nuclusterbook,		  
+		  larflow::reco::ClusterBookKeeper& nuclusterbook,
+		  larcv::IOManager& iolcv,
 		  larlite::storage_manager& ioll );
     
 
     float testTrackTrackIntersection( larlite::track& track,
 				      larlite::pcaxis& cluster_pca,
-				      const float _min_line_dist );
+				      const float _min_line_dist,
+				      std::vector<float>& attach_pos,
+				      std::vector<float>& attach_dir,
+				      std::vector<float>& seed_pos );
     
   };
   

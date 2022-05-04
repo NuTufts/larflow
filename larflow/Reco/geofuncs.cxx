@@ -150,6 +150,52 @@ namespace reco {
     return pointRayProjection<double>( start, dir, testpt );
   }
   
+  /**
+   * @brief smallest distance between skew lines
+   *
+   * https://mathworld.wolfram.com/Line-LineDistance.html
+   * 
+   * @param[in] line1_x1 point on line 1
+   * @param[in] line1_x2 point on line 1
+   * @param[in] line2_x3 point on line 2
+   * @param[in] line2_x4 point on line 2
+   * @return projected distance
+   */      
+  float lineLineDistance3f( const std::vector<float>& line1_x1,
+			    const std::vector<float>& line1_x2,
+			    const std::vector<float>& line2_x3,
+			    const std::vector<float>& line2_x4 )
+  {
+    std::vector<float> a(3,0);
+    std::vector<float> b(3,0);
+    std::vector<float> c(3,0);
+    for (int i=0; i<3; i++) {
+      a[i] = line1_x2[i] - line1_x1[i];
+      b[i] = line2_x4[i] - line2_x3[i];
+      c[i] = line2_x3[i] - line1_x1[i];
+    }
+
+    std::vector<float> axb(3,0);
+    axb[0] = a[1]*b[2]-a[2]*b[1];
+    axb[1] = a[2]*b[0]-a[0]*b[2];
+    axb[2] = a[0]*b[1]-a[1]*b[0];
+
+    float lenaxb = 0.;
+    for (int i=0; i<3; i++)
+      lenaxb += axb[i]*axb[i];
+    lenaxb = sqrt(lenaxb);
+    if ( lenaxb<1.0e-3 )
+      return -1.0;
+    
+    float lentripprod = 0.;
+    for (int i=0; i<3; i++) {
+      float tripprod = c[i]*axb[i];
+      lentripprod += tripprod;
+    }
+    lentripprod = fabs(lentripprod);
+
+    return lentripprod/lenaxb;
+  }
   
 }
 }
