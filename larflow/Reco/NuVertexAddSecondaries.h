@@ -31,10 +31,17 @@ namespace reco {
 
     float testTrackTrackIntersection( larlite::track& track,
 				      larlite::pcaxis& cluster_pca,
-				      const float _min_line_dist,
+				      const float _max_line_dist,
 				      std::vector<float>& attach_pos,
 				      std::vector<float>& attach_dir,
 				      std::vector<float>& seed_pos );
+
+    float testShowerTrackIntersection( larlite::track& track,
+				       larlite::pcaxis& shower_trunk,
+				       const float _max_line_dist,
+				       std::vector<float>& attach_pos,
+				       std::vector<float>& attach_dir,
+				       std::vector<float>& seedpos );
     
   };
   

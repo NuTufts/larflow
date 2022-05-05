@@ -36,6 +36,7 @@ namespace reco {
                   larlite::storage_manager& ioll,
                   std::vector<NuVertexCandidate>& nu_candidate_v,
 		  std::vector<ClusterBookKeeper>& nu_cluster_book_v );
+    void loadClusters( larlite::storage_manager& ioll );
 
   protected:
 
@@ -51,13 +52,14 @@ namespace reco {
       _cluster_pca_producers[name] = nullptr;
       _cluster_type[name] = ctype;      
     };
+
+    void build_vertex_showers( NuVertexCandidate& nuvtx,
+			       ClusterBookKeeper& nuclusterbook,
+			       larcv::IOManager& iolcv, 
+			       larlite::storage_manager& ioll );
     
   protected:
 
-    void _build_vertex_showers( NuVertexCandidate& nuvtx,
-				ClusterBookKeeper& nuclusterbook,
-                                larcv::IOManager& iolcv, 
-                                larlite::storage_manager& ioll );
     
     void _make_trunk_cand( const std::vector<float>& pos,
                            const larlite::larflowcluster& lfcluster,
