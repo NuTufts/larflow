@@ -3,13 +3,15 @@ from array import array
 from ROOT import TCanvas, TGraph2D, TH1D
 from larlite import larlite
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     msg  = '\n'
-    msg += "Usage 1: %s $INPUT_ROOT_FILE(s)\n" % sys.argv[0]
+    msg += "Usage 1: %s $INPUT_ROOT_FILE(s) $ENTRY\n" % sys.argv[0]
     msg += '\n'
     sys.stderr.write(msg)
     sys.exit(1)
 
+entry = int(sys.argv[2])
+    
 c1 = TCanvas( 'c1', 'Canvas', 200, 10, 700, 500 )
  
 c1.SetFillColor( 42 )
@@ -22,7 +24,7 @@ ioll.open()
 
 ll_nentries = ioll.get_entries()
 print("ll_nentries: ",ll_nentries)
-ioll.go_to(0)
+ioll.go_to( entry )
 
 ev_mctrack = ioll.get_data(larlite.data.kMCTrack,"mcreco");
 print("Number of tracks in event: ", ev_mctrack.size() )
