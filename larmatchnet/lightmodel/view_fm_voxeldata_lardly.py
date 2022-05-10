@@ -94,7 +94,6 @@ def make_figures(ientry,loader,minprob=0.0):
     #batch = next(iter(loader))
     batch = list(iter(loader))[ientry]
 
-
     # MCTRACK
     if args.larlite!="":
 
@@ -104,9 +103,10 @@ def make_figures(ientry,loader,minprob=0.0):
         ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
         mctrack = ev_mctrack.at(0)
 
-        print("First mcstep X:", mctrack.at(0).X() )
         print("First mcstep Y:", mctrack.at(0).Y() )
         print("First mcstep Z:", mctrack.at(0).Z() )
+
+        print("Drift velocity is: ",dv)
 
         traces3d = []
 
@@ -124,8 +124,8 @@ def make_figures(ientry,loader,minprob=0.0):
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":batch["voxcoord"][:,1]*0.3,
-        "y":batch["voxcoord"][:,2]*0.3,
+        "x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv,
+        "y":batch["voxcoord"][:,2]*0.3-120.0,
         "z":batch["voxcoord"][:,3]*0.3,
         "mode":"markers",
         "name":"voxels",
