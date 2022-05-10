@@ -32,6 +32,11 @@ namespace reco {
   double pointRayProjection3d( const std::vector<double>& start,
                                const std::vector<double>& dir,
                                const std::vector<double>& testpt );
+
+  float lineLineDistance3f( const std::vector<float>& line1_x1,
+			    const std::vector<float>& line1_x2,
+			    const std::vector<float>& line2_x3,
+			    const std::vector<float>& line2_x4 );
   
 }
 }

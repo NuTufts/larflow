@@ -20,6 +20,23 @@ namespace reco {
 				    std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
+    loadClusters(ioll);
+    
+    for ( size_t ivtx=0; ivtx<nu_candidate_v.size(); ivtx++) {
+      auto& nuvtx = nu_candidate_v.at(ivtx);
+      auto& book  = nu_cluster_book_v.at(ivtx);
+      LARCV_DEBUG() << "Build Vertex Showers: (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
+      build_vertex_showers( nuvtx, book, iolcv, ioll );
+    }
+    
+  }
+
+  /**
+   * @brief collect the clusters to be used
+   *
+   */
+  void NuVertexShowerReco::loadClusters( larlite::storage_manager& ioll )
+  {
     // load up the clusters
     LARCV_INFO() << "Number of cluster producers: " << _cluster_producers.size() << std::endl;
     for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
@@ -33,15 +50,7 @@ namespace reco {
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
     }
-
-    for ( size_t ivtx=0; ivtx<nu_candidate_v.size(); ivtx++) {
-      auto& nuvtx = nu_candidate_v.at(ivtx);
-      auto& book  = nu_cluster_book_v.at(ivtx);
-      LARCV_DEBUG() << "Build Vertex Showers: (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
-      _build_vertex_showers( nuvtx, book, iolcv, ioll );
-    }
-    
-  }
+  }    
 
   /**
    * @brief [internal] build showers for given neutrino candidate vertex
@@ -55,10 +64,10 @@ namespace reco {
    * @param[in] ioll  larlite event data
    *
    */
-  void NuVertexShowerReco::_build_vertex_showers( NuVertexCandidate& nuvtx,
-						  ClusterBookKeeper& nuclusterbook,
-                                                  larcv::IOManager& iolcv, 
-                                                  larlite::storage_manager& ioll ) 
+  void NuVertexShowerReco::build_vertex_showers( NuVertexCandidate& nuvtx,
+						 ClusterBookKeeper& nuclusterbook,
+						 larcv::IOManager& iolcv, 
+						 larlite::storage_manager& ioll ) 
   {
 
     // we want to sort seeding priority

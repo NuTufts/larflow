@@ -21,48 +21,24 @@ namespace reco {
   void NuTrackBuilder::process( larcv::IOManager& iolcv,
                                 larlite::storage_manager& ioll,
                                 std::vector<NuVertexCandidate>& nu_candidate_v,
-				std::vector<ClusterBookKeeper>& nu_cluster_book_v )
+				std::vector<ClusterBookKeeper>& nu_cluster_book_v,
+				bool load_clusters )
   {
 
     std::clock_t t_start = std::clock();
     
     // clear segments, connections, proposals
-    clear();
-
-    // wire plane images for getting dqdx later
-    larcv::EventImage2D* ev_adc =
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
-    auto const& adc_v = ev_adc->Image2DArray();
-
-    // bad channel images for helping to determine proper gaps to jump
-    larcv::EventImage2D* ev_badch =
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "badch" );
-    auto const& badch_v = ev_badch->as_vector();
-
-    // get clusters, pca-axis
-    std::vector< std::string > cluster_producers =
-      // { "trackprojsplit_full",
-      //   "trackprojsplit_wcfilter",
-      //   "hip" };
-      { "trackprojsplit_wcfilter", "cosmicproton" };
-
-    for ( auto const& producer : cluster_producers ) {
-
-      LARCV_INFO() << "Adding clusters from '" << producer << "' producer/tree" << std::endl;
-      larlite::event_larflowcluster* ev_cluster
-        = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
-      larlite::event_pcaxis* ev_pcaxis
-        = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);      
-      larlite::event_track* ev_track
-        = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);      
-      loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
-
+    if ( load_clusters ) {
+      clear_cluster_data();
+      loadClustersAndConnections( iolcv, ioll );
     }
-
-    buildNodeConnections( &adc_v, &badch_v );
+    clear_track_proposals();
     
     set_output_one_track_per_startpoint( true );
 
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();    
 
     // output containers
     larlite::event_track* evout_track
@@ -272,6 +248,53 @@ namespace reco {
     std::clock_t t_end = std::clock();
     float elapsed = float( t_end-t_start )/CLOCKS_PER_SEC;
     LARCV_INFO() << "end; elapsed=" << elapsed << " secs" << std::endl;
+    
+  }
+
+  void NuTrackBuilder::loadClustersAndConnections( larcv::IOManager& iolcv,
+						   larlite::storage_manager& ioll )
+  {
+
+    std::clock_t t_start = std::clock();
+    
+    // clear segments, connections, proposals
+    clear();
+
+    // wire plane images for getting dqdx later
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();
+
+    // bad channel images for helping to determine proper gaps to jump
+    larcv::EventImage2D* ev_badch =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "badch" );
+    auto const& badch_v = ev_badch->as_vector();
+
+    // get clusters, pca-axis
+    std::vector< std::string > cluster_producers =
+      // { "trackprojsplit_full",
+      //   "trackprojsplit_wcfilter",
+      //   "hip" };
+      { "trackprojsplit_wcfilter", "cosmicproton" };
+
+    for ( auto const& producer : cluster_producers ) {
+
+      LARCV_INFO() << "Adding clusters from '" << producer << "' producer/tree" << std::endl;
+      larlite::event_larflowcluster* ev_cluster
+        = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
+      larlite::event_pcaxis* ev_pcaxis
+        = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);      
+      larlite::event_track* ev_track
+        = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);      
+      loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
+
+    }
+
+    buildNodeConnections( &adc_v, &badch_v );
+
+    std::clock_t t_end = std::clock();
+    float elapsed = float( t_end-t_start )/CLOCKS_PER_SEC;
+    LARCV_INFO() << "elapsed=" << elapsed << " secs" << std::endl;
     
   }
 

@@ -674,6 +674,15 @@ namespace reco {
       _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
     }
 
+    // - add secondaries
+    _nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
+    for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
+      LARCV_NORMAL() << "Try to add secondaries to VTX[" << ivtx << "]" << std::endl;
+      auto& nuvtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
+      auto& book  = _nuvertexmaker.get_candidate_cluster_book().at(ivtx);
+      _nuvertex_add_secondaries.process( nuvtx, book, iolcv, ioll );
+    }    
+
     // - add dq/dx information
     //_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
     LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
@@ -683,6 +692,8 @@ namespace reco {
 
     //_cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
     //_cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    
     
   }
 

@@ -28,8 +28,12 @@ namespace reco {
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
                   std::vector<NuVertexCandidate>& nu_candidate_v,
-		  std::vector<ClusterBookKeeper>& nu_cluster_book_v );
+		  std::vector<ClusterBookKeeper>& nu_cluster_book_v,
+		  bool load_clusters=true );
 
+    void loadClustersAndConnections( larcv::IOManager& iolcv,
+				     larlite::storage_manager& ioll );
+    
     void set_verbosity( larcv::msg::Level_t v ) { TrackClusterBuilder::set_verbosity(v); };
 
 
