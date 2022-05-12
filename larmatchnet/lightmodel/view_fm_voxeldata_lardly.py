@@ -3,7 +3,8 @@ import os,sys,argparse
 
 parser = argparse.ArgumentParser("flashmatched voxel data lardly viewer")
 #parser.add_argument("-ll","--larlite",required=True,type=str,help="larlite file with dltagger_allreco tracks")
-parser.add_argument("-ll","--larlite",type=str,default="",help="larlite mcinfo file") # optional
+parser.add_argument("-ll","--larlite",type=str,default="",help="larlite filtered mc file containing mctrack/shower and opflash info") # optional mctrack
+#parser.add_argument("-fl","--flash",type=str,default="",help="larlite filtered mc file containing mctrack/shower and opflash info") # optional mctrack
 #parser.add_argument("-e","--entry",required=True,type=int,help="Entry to load")
 
 args = parser.parse_args(sys.argv[1:])
@@ -100,7 +101,11 @@ def make_figures(ientry,loader,minprob=0.0):
         global io_ll
 
         io_ll.go_to(ientry)
+
         ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
+        ev_opflash_cosmic = io_ll.get_data(larlite.data.kOpFlash, "simpleFlashCosmic")
+        ev_opflash_beam = io_ll.get_data(larlite.data.kOpFlash, "simpleFlashBeam")
+
         mctrack = ev_mctrack.at(0)
 
         print("First mcstep Y:", mctrack.at(0).Y() )
@@ -109,9 +114,11 @@ def make_figures(ientry,loader,minprob=0.0):
         print("Drift velocity is: ",dv)
 
         traces3d = []
+        flash = { "flash":[] }
 
         print("VISUALIZE MCTRACKS")
-        mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack )
+        mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack, do_sce_correction=True )
+        opflash_v = lardly.data.visualize_larlite_opflash_3d( ev_opflash_cosmic.at(0) )
         print("mcytrack_v:",mctrack_v)
         traces3d.append( mctrack_v )
 
@@ -124,7 +131,7 @@ def make_figures(ientry,loader,minprob=0.0):
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv,
+        "x":batch["voxcoord"][:,1]*0.3+(2399)*0.5*dv, #subtract 3200 from 2399 for shift
         "y":batch["voxcoord"][:,2]*0.3-120.0,
         "z":batch["voxcoord"][:,3]*0.3,
         "mode":"markers",
@@ -136,6 +143,7 @@ def make_figures(ientry,loader,minprob=0.0):
 
     if args.larlite!="":
         traces_v.append(mctrack_v)
+        traces_v += opflash_v
     #traces_v.append( detdata.getlines() )
     traces_v += detdata.getlines()
 
