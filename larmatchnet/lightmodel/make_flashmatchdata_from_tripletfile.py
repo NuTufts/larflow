@@ -62,7 +62,8 @@ fmutil = ublarcvapp.mctools.FlashMatcher()
 print("Loaded %d larmatch triplet files to process"%(len(input_triplet_v)))
 
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
-iomc = larlite.storage_manager( larlite.storage_manager.kWRITE ) # for saving mctracks
+iomc = larlite.storage_manager( larlite.storage_manager.kWRITE ) # for saving mctracks amd opflash
+#ioop = larlite.storage_manager( larlite.storage_manager.kWRITE ) # for saving opflash
 #ioll.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 #ioll.set_data_to_read( larlite.data.kMCShower, "mcreco" )
 #ioll.set_data_to_read( larlite.data.kMCTruth,  "generator" )
@@ -70,8 +71,11 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( "filtered_MCTracks.root" )
+iomc.set_out_filename( "filtered_MCTracks_opflash.root" )
 iomc.open()
+
+#ioop.set_out_filename( "filtered_opflashes.root" )
+#ioop.open()
 
 # for creating filtered mctrack tree
 #f = TFile(input_mcinfo_v[0],"READ")
@@ -176,7 +180,7 @@ outtree.Branch("instance2trackid_v",instance_map_v)
 outtree.Branch("ancestor_truth_v",ancestor_truth_v)
 outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 
-listy = []
+#listy = []
 
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
@@ -192,17 +196,23 @@ for ientry in range(2):
     ioll.go_to(ientry)
 
     ev_mctrack = ioll.get_data(larlite.data.kMCTrack,"mcreco")
+    ev_mcshower = ioll.get_data(larlite.data.kMCShower,"mcreco")
 
     opio.go_to(ientry)
 
-    mcpg = ublarcvapp.mctools.MCPixelPGraph()
-    mcpg.buildgraphonly( ioll  )
-    mcpg.printGraph(0,False)
+    ev_opflash_cosmic = opio.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
+    ev_opflash_beam = opio.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+
+    #mcpg = ublarcvapp.mctools.MCPixelPGraph()
+    #mcpg.buildgraphonly( ioll  )
+    #mcpg.printGraph(0,False)
 
     numTracks = fmutil.numTracks( ioll )
+    numShowers = fmutil.numShowers( ioll )
 
     counter = 0
 
+    # loop thru tracks in event
     for i in range( 0, 20, 1 ):
 
         print("NOW IN THE TRACK LOOP!")
@@ -383,12 +393,20 @@ for ientry in range(2):
             out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
             out_mctrack.push_back( ev_mctrack.at(i) )
 
+            
+            out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
+            if (fmutil.isCosmic == 1):
+                out_opflash.push_back( ev_opflash_cosmic.at(i) )
+            else:
+                out_opflash.push_back( ev_opflash_beam.at(i) )
+
             counter = counter + 1
 
-            # need to increment event id so final filtered tree entries don't all have same eventid  
+            # need to increment event id so final filtered tree entries don't all have same eventid
             # (assumes <100 clusters in an event)
-            iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter ) 
+            iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
             iomc.next_event()
+#            ioop.next_event()
 
             outtree.Fill()
             #newT.Fill()
@@ -398,9 +416,9 @@ for ientry in range(2):
             #voxdata = voxelizer.get_full_voxel_labelset_dict( labeler )
             #print("voxdata keys: ",voxdata.keys())
 
-        if isCosmic == 1 and match != -999.999 and track_tick != -999.997:
+        #if isCosmic == 1 and match != -999.999 and track_tick != -999.997:
             #listy.append( match - track_tick )
-            listy.append( track_tick )
+            #listy.append( track_tick )
 
 
 
@@ -414,10 +432,11 @@ for ientry in range(2):
     #llentry = rse_map[trip_rse]
     #ioll.go_to(llentry)
 
-print("list: ", listy)
+#print("list: ", listy)
 fmutil.finalize()
 
 iomc.close()
+#ioop.close()
 
 outfile.Write()
 #newF.Write()
