@@ -203,6 +203,11 @@ for ientry in range(2):
     ev_opflash_cosmic = opio.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
     ev_opflash_beam = opio.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
 
+    print("ev_mctrack.size() is:", ev_mctrack.size() )
+    print("ev_mcshower.size() is:", ev_mcshower.size() )
+    print("ev_opflash_cosmic.size() is:", ev_opflash_cosmic.size() )
+    print("ev_opflash_beam.size() is:", ev_opflash_beam.size() )
+
     #mcpg = ublarcvapp.mctools.MCPixelPGraph()
     #mcpg.buildgraphonly( ioll  )
     #mcpg.printGraph(0,False)
@@ -213,9 +218,10 @@ for ientry in range(2):
     counter = 0
 
     # loop thru tracks in event
-    for i in range( 0, 20, 1 ):
+    for i in range( 0, numTracks, 1 ):
 
         print("NOW IN THE TRACK LOOP!")
+        print("There are ",numTracks," in this event")
 
         track_tick = fmutil.grabTickFromMCTrack( ioll, i )
 
@@ -225,7 +231,10 @@ for ientry in range(2):
         producer = fmutil.producer
         isCosmic = fmutil.isCosmic
 
-        print("Now isCosmic has been set to: ",fmutil.isCosmic)
+        print("Now isCosmic has been set to: ",isCosmic)
+        #if (isCosmic == 1):
+    #        continue
+
         print(producer)
 
         op_tick = fmutil.grabTickFromOpflash( opio )
@@ -237,7 +246,7 @@ for ientry in range(2):
         print("Found match: ", match )
 
         # Found a flash match! Now fill the tree
-        if match != -999.999 and match != 999.999 and track_tick != -999.997:
+        if match[0] != -999.999 and match[0] != 999.999 and track_tick != -999.997:
 
             for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
                      ssnet_truth_v, ssnet_weight_v,
@@ -265,7 +274,7 @@ for ientry in range(2):
             #ancestorID[0] = fmutil.trackAncestorID(ioll,i)
             ancestorID[0] = fmutil.trackAncestorID()
             clusterTick[0] = track_tick
-            flashTick[0] = match
+            flashTick[0] = match[0]
             origin[0] = fmutil.trackOrigin()
 
             iid_v = [] # list of instance ids to collect
@@ -393,12 +402,14 @@ for ientry in range(2):
             out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
             out_mctrack.push_back( ev_mctrack.at(i) )
 
-            
+
             out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
             if (fmutil.isCosmic == 1):
-                out_opflash.push_back( ev_opflash_cosmic.at(i) )
+                print("ev_opflash_cosmic: ",ev_opflash_cosmic)
+                out_opflash.push_back( ev_opflash_cosmic.at( match[1] ) )
             else:
-                out_opflash.push_back( ev_opflash_beam.at(i) )
+                print("ev_opflash_beam: ",ev_opflash_beam)
+                out_opflash.push_back( ev_opflash_beam.at( match[1] ) )
 
             counter = counter + 1
 
