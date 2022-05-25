@@ -101,7 +101,10 @@ namespace prep {
     //const std::vector<int>& getTruthVectorFromSourcePixel( int col, int row ) const;
 
     static std::vector< std::vector<FlowTriples::PixData_t> >
-      make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v, float threshold );
+    make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v, float threshold );
+
+    static std::vector< std::vector<FlowTriples::PixData_t> >
+    make_initial_sparse_image( const std::vector<const larcv::Image2D*>& adc_v, float threshold );
 
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };

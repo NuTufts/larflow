@@ -32,7 +32,7 @@ namespace prep {
    
     std::clock_t start = std::clock();
     
-    const larutil::Geometry* geo = larutil::Geometry::GetME();
+    const larlite::larutil::Geometry* geo = larlite::larutil::Geometry::GetME();
 
     float dt_intersect = 0.;
     
@@ -56,10 +56,10 @@ namespace prep {
 
         Double_t xyzstart[3] = {0,0,0};
         Double_t xyzend[3] = {0,0,0};
-        geo->WireEndPoints( (UChar_t)srcplane, (UInt_t)isrc, xyzstart, xyzend );
+        //geo->WireEndPoints( (UChar_t)srcplane, (UInt_t)isrc, xyzstart, xyzend );
 
-        float u1 = geo->WireCoordinate( xyzstart, (UInt_t)tarplane );
-        float u2 = geo->WireCoordinate( xyzend,   (UInt_t)tarplane );
+        float u1 = 0; //geo->WireCoordinate( xyzstart, (UInt_t)tarplane );
+        float u2 = 0; //geo->WireCoordinate( xyzend,   (UInt_t)tarplane );
 
         float umin = (u1<u2) ? u1 : u2;
         float umax = (u1>u2) ? u1 : u2;
@@ -85,7 +85,7 @@ namespace prep {
           
           Double_t y(0),z(0);
           //std::clock_t xs_start = std::clock();
-          bool crosses  = geo->ChannelsIntersect( src_ch, tar_ch, y, z );
+          bool crosses  = false; //geo->ChannelsIntersect( src_ch, tar_ch, y, z );
           //dt_intersect += float(std::clock()-xs_start)/float(CLOCKS_PER_SEC);
           
           if ( crosses ) {

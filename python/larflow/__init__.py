@@ -2,7 +2,8 @@ from __future__ import print_function
 import ROOT,os
 
 # check important environment variables
-for basedir in ['LARLITE_BASEDIR','LAROPENCV_BASEDIR','LARCV_BASEDIR','UBLARCVAPP_BASEDIR','LARFLOW_BASEDIR']:
+#for basedir in ['LARLITE_BASEDIR','LAROPENCV_BASEDIR','LARCV_BASEDIR','UBLARCVAPP_BASEDIR','LARFLOW_BASEDIR']:
+for basedir in ['LARLITE_BASEDIR','LARCV_BASEDIR','UBLARCVAPP_BASEDIR','LARFLOW_BASEDIR']:
     if not basedir in os.environ:
         print(basedir+' shell env. var. not found (run configure.sh for {})'.format(basedir.split("_")[0]))
         raise ImportError
@@ -12,8 +13,8 @@ for basedir in ['LARLITE_BASEDIR','LAROPENCV_BASEDIR','LARCV_BASEDIR','UBLARCVAP
 
 if 'LARLITE_BASEDIR' in os.environ:
     from larlite import larlite
-if 'LAROPENCV_BASEDIR' in os.environ:
-    from larocv import larocv
+#if 'LAROPENCV_BASEDIR' in os.environ:
+#    from larocv import larocv
 if 'LARCV_BASEDIR' in os.environ:
     from larcv import larcv
 if 'UBLARCVAPP_BASEDIR' in os.environ:

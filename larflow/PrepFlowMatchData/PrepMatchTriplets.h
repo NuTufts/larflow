@@ -16,7 +16,9 @@
 #include "larcv/core/Processor/ProcessBase.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "FlowTriples.h"
+#include "MatchTriplets.h"
 #include "TH2D.h"
+#include "TMatrixD.h"
 
 namespace larflow {
 namespace prep {
@@ -36,23 +38,26 @@ namespace prep {
    * 
    *
    */  
-  class PrepMatchTriplets  {
+  class PrepMatchTriplets : public larcv::larcv_base {
 
   public:
 
     PrepMatchTriplets()
-      : _kStopAtTripletMax(false),
-	_kTripletLimit(1000000),
-	_kshuffle_indices_when_sampling(true),
-	_do_deadch_bug(false)
+      : larcv::larcv_base("PrepMatchTriplets"),
+	// _kStopAtTripletMax(false),
+	// _kTripletLimit(1000000),
+	// _kshuffle_indices_when_sampling(true),
+	// _do_deadch_bug(false),
+	_input_overlap_filepath("output_icarus_wireoverlap_matrices.root"),
+	_overlap_matrices_loaded(false)
     {};
     virtual ~PrepMatchTriplets() {};
-
     
-    void process( const std::vector<larcv::Image2D>& adc_v,
-                  const std::vector<larcv::Image2D>& badch_v,
-                  const float adc_threshold,
-                  const bool check_wire_interection = false );
+    void process_tpc_v2( const std::vector<const larcv::Image2D*>& adc_v,
+			 const std::vector<const larcv::Image2D*>& badch_v,
+			 const float adc_threshold,
+			 const int tpcid, const int cryoid );
+
     
     void process( larcv::IOManager& iolcv,
                   std::string wire_producer,
@@ -60,107 +65,58 @@ namespace prep {
                   const float adc_threshold=10.0,
                   const bool check_wire_intersection=false );
 
-    void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
-    void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
-    void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
-    void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
-                                const std::vector<larcv::Image2D>& adc_v );
-    void make_origin_vector_frommcreco( larlite::storage_manager& ioll );    
-    void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
-    void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
-    void setShuffleWhenSampling( bool shuffle ) { _kshuffle_indices_when_sampling = shuffle; };
-    void setDoDeadChannelBug( bool doit ) { _do_deadch_bug = doit; };
+    // void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
+    // void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
+    // void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
+    // void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
+    //                             const std::vector<larcv::Image2D>& adc_v );
+    // void make_origin_vector_frommcreco( larlite::storage_manager& ioll );    
+    // void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
+    // void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
+    // void setShuffleWhenSampling( bool shuffle ) { _kshuffle_indices_when_sampling = shuffle; };
+    // void setDoDeadChannelBug( bool doit ) { _do_deadch_bug = doit; };
 
-    std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
+    // std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     
-    std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
+    // std::vector<TH2D> plot_sparse_images( std::string hist_stem_name );
                                           
-    std::vector<TH2D> plot_truth_images( std::string hist_stem_name );
+    // std::vector<TH2D> plot_truth_images( std::string hist_stem_name );
 
-    std::vector< larcv::ImageMeta >                       _imgmeta_v;      ///< image metas for the most recently processed event
-    std::vector< std::vector< FlowTriples::PixData_t > >  _sparseimg_vv;   ///< sparse representation of image
-    std::vector< std::vector<int> >                       _triplet_v;      ///< set of sparseimage indices indicating candidate 3-plane match (U-index,V-index,Y-index,tick)
-    std::vector< int >                                    _truth_v;        ///< indicates if index set in _triple_v is true match (1) or not (0)
-    std::vector< std::vector<int> >                       _truth_2plane_v; ///< truth vectors for 2 plane flows. inner vector is 1/0 for all 2-plane flow dirs
-    std::vector< float >                                  _weight_v;       ///< assigned weight for triplet
-    std::vector< larflow::FlowDir_t >                     _flowdir_v;      ///< flow direction te triplet comes from
-    std::vector< float >                                  _triarea_v;      ///< area of triangle formed by the intersection of the 3 wires. measure of 3D consistency.
-    std::vector< std::vector<float> >                     _pos_v;          ///< approx. 3d position of triplet
-    std::vector< int >                                    _instance_id_v;  ///< instance ID label for each space point
-    std::vector< int >                                    _ancestor_id_v;  ///< ancestor ID label for each space point
-    std::vector< int >                                    _pdg_v;          ///< PDG label for each space point
-    std::vector< int >                                    _origin_v;       ///< 0: unknown, 1:neutrino, 2:cosmic
-    std::vector< int >                                    _match_span_v;   ///< distance from projection intersection to true intersection in wires
+    std::vector< MatchTriplets > _match_triplet_v; ///< data objects produced by this code    
     void clear();
 
-    // python/numpy functions, to help network interface
-    PyObject* make_sparse_image( int plane );
-
-    // 2 plane preparation
-    PyObject* make_2plane_match_array( larflow::FlowDir_t kdir,
-                                       const int max_num_samples,
-                                       const std::vector<int>& idx_v,
-                                       const int start_idx,
-                                       const bool withtruth,
-                                       int& nsamples );
-
-    PyObject* sample_2plane_matches( larflow::FlowDir_t kdir,
-                                     const int& nsamples,
-                                     int& nfilled,
-                                     bool withtruth );
-
-    PyObject* get_chunk_2plane_matches( larflow::FlowDir_t kdir,
-                                        const int& start_index,
-                                        const int& max_num_pairs,
-                                        int& last_index,
-                                        int& num_pairs_filled,
-                                        bool with_truth );
-
-    // Triplet preparation
-    PyObject* make_triplet_array( const int max_num_samples,
-                                  const std::vector<int>& idx_v,
-                                  const int start_idx,
-                                  const bool withtruth,
-                                  int& nsamples );
-    
-    PyObject* sample_triplet_matches( const int& num_max_samples, int& nfilled, bool withtruth );
-
-    PyObject* get_chunk_triplet_matches( const int& start_index,
-                                         const int& max_num_pairs,
-                                         int& last_index,
-                                         int& num_pairs_filled,
-                                         bool with_truth );
-
-    PyObject* sample_hard_example_matches( const int& nsamples,
-                                           const int& nhard_samples,
-                                           PyObject* triplet_scores,                                                            
-                                           int& nfilled,
-                                           bool withtruth );
-
-    PyObject* get_all_triplet_data( const bool withtruth );
-
-    PyObject* make_spacepoint_charge_array();
-
-    // Truth Info
-    PyObject* make_triplet_ndarray( bool true_pt_only );
-
-    //std::vector<TH2D> plot_triplet_index_array( PyObject* np_index, PyObject* np_sparseimg, std::string hist_stem_name );
 
   protected:
 
-    bool _kStopAtTripletMax;
-    int  _kTripletLimit;
-    bool _kshuffle_indices_when_sampling;
-    bool _do_deadch_bug;
+    // bool _kStopAtTripletMax;
+    // int  _kTripletLimit;
+    // bool _kshuffle_indices_when_sampling;
+    // bool _do_deadch_bug;
 
-    // map from shower daughter IDs to mother IDs
-    std::map<unsigned long, unsigned long> _shower_daughter2mother;
-    void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
+    // // map from shower daughter IDs to mother IDs
+    // std::map<unsigned long, unsigned long> _shower_daughter2mother;
+    // void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
 
-    std::map<unsigned long, int> _instance2class_map;
-    void fill_class_map( const std::vector<larlite::mctrack>&  track_v,
-                         const std::vector<larlite::mcshower>& shower_v );
+    // std::map<unsigned long, int> _instance2class_map;
+    // void fill_class_map( const std::vector<larlite::mctrack>&  track_v,
+    //                      const std::vector<larlite::mcshower>& shower_v );
+
+    // wire overlap matrices
+    std::vector< TMatrixD >           _matrix_list_v;
+    std::map< std::vector<int>, int > _m_planeid_to_tree_entry;
+    std::string                       _input_overlap_filepath;
+    bool                              _overlap_matrices_loaded;
+    void _load_overlap_matrices( bool force_reload=false );
+
+  public:
     
+    void clear_wireoverlap_matrices() {
+      _matrix_list_v.clear();
+      _m_planeid_to_tree_entry.clear();
+      _overlap_matrices_loaded=false;
+    };
+    void set_wireoverlap_filepath( std::string fpath ) { _input_overlap_filepath=fpath; };
+
   private:
     
     static bool _setup_numpy; ///< true if numpy has been setup

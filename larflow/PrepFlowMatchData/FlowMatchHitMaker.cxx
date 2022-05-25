@@ -130,14 +130,14 @@ namespace prep {
 
       // get the other plane wire
       // convert row to tick
-      double y, z;
-      larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
+      double y(0), z(0);
+      //larutil::Geometry::GetME()->IntersectionPoint( srccol, tarcol, (UChar_t)source_plane, (UChar_t)target_plane, y, z );
       float tick = source_meta.pos_y( srcrow );
 
       if ( y<-117 || y>117 || z<0 || z>1036 ) continue;
 
       Double_t pos[3] = { 0, y, z };
-      float other_wire = larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
+      float other_wire = larlite::larutil::Geometry::GetME()->WireCoordinate( pos, other_plane );
       float other_adc  = 0;
       try {
         img_v[other_plane].pixel( srcrow, (int)other_wire, __FILE__, __LINE__ );
@@ -726,8 +726,8 @@ namespace prep {
         
         // get the other plane wire
         // convert row to tick
-        double y, z;
-        larutil::Geometry::GetME()->IntersectionPoint( triple[2], triple[0], (UChar_t)2, (UChar_t)0, y, z );
+        double y(0), z(0);
+	//larlite::larutil::Geometry::GetME()->IntersectionPoint( triple[2], triple[0], (UChar_t)2, (UChar_t)0, y, z );
 
         pos[0] = (triple[3]-3200.0)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
         pos[1] = y;

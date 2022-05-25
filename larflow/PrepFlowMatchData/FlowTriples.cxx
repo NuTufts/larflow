@@ -368,7 +368,6 @@ namespace prep {
     return out_v;
   }
 
-  
   /**
    * @brief convert the wire image data into a sparse represntation
    *
@@ -380,17 +379,39 @@ namespace prep {
    */        
   std::vector< std::vector<FlowTriples::PixData_t> >
   FlowTriples::make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v,
-                                          float threshold ) {
+                                          float threshold )
+  {
+    std::vector< const larcv::Image2D* > padc_v;
+    for ( auto const& adc : adc_v ) {
+      padc_v.push_back( &adc );
+    }
+
+    return make_initial_sparse_image( padc_v, threshold );
+  }
+  
+  /**
+   * @brief convert the wire image data into a sparse represntation
+   *
+   * we convert the image into a vector of PixData_t objects.
+   *
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] threshold Keep only pixels with value above this threshold
+   * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
+   */        
+  std::vector< std::vector<FlowTriples::PixData_t> >
+  FlowTriples::make_initial_sparse_image( const std::vector<const larcv::Image2D*>& adc_v,
+                                          float threshold )
+  {
 
     // sparsify planes: pixels must be above threshold
     std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv(adc_v.size());
     
     for ( size_t p=0; p<adc_v.size(); p++ ) {
-      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p]->as_vector().size() ) );
 
-      for ( size_t r=0; r<adc_v[p].meta().rows(); r++ ) {
-        for ( size_t c=0; c<adc_v[p].meta().cols(); c++ ) {
-          float val = adc_v[p].pixel(r,c);
+      for ( size_t r=0; r<adc_v[p]->meta().rows(); r++ ) {
+        for ( size_t c=0; c<adc_v[p]->meta().cols(); c++ ) {
+          float val = adc_v[p]->pixel(r,c);
           if ( val>=threshold ) {
             sparseimg_vv[p].push_back( PixData_t((int)r,(int)c, val) );
           }
