@@ -3,7 +3,6 @@
 #include "cluster_functions.h"
 
 #include "nlohmann/json.hpp"
-#include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
 #include "ublarcvapp/dbscan/DBScan.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 

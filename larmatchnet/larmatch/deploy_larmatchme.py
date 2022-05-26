@@ -19,6 +19,7 @@ parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of AD
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument("--use-skip-limit",default=None,type=int,help="Specify a max triplet let. If surpassed, skip network eval.")
+parser.add_argument("--run-kpreco",default=False,action='store_true',help="If flag is given, will run KeypointReco from larflow/Reco")
 args = parser.parse_args( sys.argv[1:] )
 
 if args.detector not in ["uboone","sbnd","icarus"]:
@@ -80,6 +81,11 @@ if args.use_skip_limit is not None:
     print("Set Triplet Max where we will skip event: ",args.use_skip_limit)
     preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
 preplarmatch.set_wireoverlap_filepath( os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root" )
+
+if args.run_kpreco:
+    kprecoalgo = larflow.reco.EventKeypointReco()
+    kprecoalgo.kpalgo.set_min_cluster_size( 5,  0 )
+    kprecoalgo.kpalgo.set_min_cluster_size( 10, 1 )    
 
 #model_dict["larmatch"].eval()
 
@@ -324,6 +330,9 @@ for ientry in range(NENTRIES):
         #                                      sparse_np_v[2],
         #                                      adc_v.front().meta(),
         #                                      paf_np[:int(npairs.value)] )
+        if False:
+            # early stopping on first filled tpc data for debugging
+            break
         
     # end of tpc loop
         
@@ -343,6 +352,9 @@ for ientry in range(NENTRIES):
     print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
     print("try to store 2D ssnet data")
     #hitmaker.store_2dssnet_score( io, evout_lfhits )
+
+    if args.run_kpreco:
+        kprecoalgo.process_larmatch_v2( out, "larmatch" )
 
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )

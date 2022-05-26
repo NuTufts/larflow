@@ -20,14 +20,16 @@ namespace reco {
 
     KPCluster()
       : center_pt_v({0,0,0}),
-      pca_max_r(-1.0),
-      pca_ave_r2(-1.0),
-      pca_len(-1.0),
-      max_idx(-1),
-      max_score(-1.0),
-      max_pt_v( {0,0,0} ),
-      _cluster_idx(-1),
-      _cluster_type(-1)
+	pca_max_r(-1.0),
+	pca_ave_r2(-1.0),
+	pca_len(-1.0),
+	max_idx(-1),
+	max_score(-1.0),
+	max_pt_v( {0,0,0} ),
+	tpcid(-1),
+	cryoid(-1),
+	_cluster_idx(-1),
+	_cluster_type(-1)
       {};
     virtual ~KPCluster() {};
     
@@ -49,6 +51,9 @@ namespace reco {
     int                               max_idx;         ///< hit in cluster with maximum score
     float                             max_score;       ///< maximum score of hit in cluster
     std::vector<float>                max_pt_v;        ///< position of maximum point
+
+    int                               tpcid;           ///< TPC ID
+    int                               cryoid;          ///< Cryo ID
 
     int _cluster_idx;                                  ///< associated cluster_t in KeypointReco::_cluster_v (internal use only)
     //cluster_t cluster;

@@ -5,7 +5,7 @@
 //#include "TVector.h"
 #include "ublarcvapp/dbscan/DBScan.h"  ///< hand-written
 #include "ublarcvapp/dbscan/sDBScan.h" ///< external
-#include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
+//#include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
 #include <cilantro/principal_component_analysis.hpp>
 
 namespace larflow {
@@ -571,39 +571,39 @@ namespace reco {
    * @brief clust2d_images_v Wire plane images for which we will find 2D contours.
    *
    */
-  void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v ) {
-    ublarcvapp::ContourClusterAlgo contour_algo;
-    contour_algo.analyzeImages( clust2d_images_v, 10.0, 2, 5, 10, 10, 2 );
+  // void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v ) {
+  //   ublarcvapp::ContourClusterAlgo contour_algo;
+  //   contour_algo.analyzeImages( clust2d_images_v, 10.0, 2, 5, 10, 10, 2 );
 
-    // contours made. now what.
-    for ( size_t p=0; p<3; p++ ) {
-      int ncontours = contour_algo.m_plane_atomics_v[p].size();
-      std::cout << "[cluster_getcontours] ncontours plane[" << p << "] = " << ncontours << std::endl;
-      for (int ictr=0; ictr<ncontours; ictr++ ) {
+  //   // contours made. now what.
+  //   for ( size_t p=0; p<3; p++ ) {
+  //     int ncontours = contour_algo.m_plane_atomics_v[p].size();
+  //     std::cout << "[cluster_getcontours] ncontours plane[" << p << "] = " << ncontours << std::endl;
+  //     for (int ictr=0; ictr<ncontours; ictr++ ) {
 
-        if ( !contour_algo.m_plane_atomicmeta_v[p][ictr].hasValidPCA() ) {
-          std::cout << "  icontour[" << ictr << "] pca not valid" << std::endl;
-          continue;
-        }
+  //       if ( !contour_algo.m_plane_atomicmeta_v[p][ictr].hasValidPCA() ) {
+  //         std::cout << "  icontour[" << ictr << "] pca not valid" << std::endl;
+  //         continue;
+  //       }
         
-        // dist from start-end of pca-axis
-        float pca_dist = 0;
-        float dx = 0;
-        for ( size_t i=0; i<2; i++ ) {
-          dx = ( contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAEndPos()[i] -
-                 contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAStartPos()[i] );
-          pca_dist += dx*dx;
-        }
-        pca_dist = sqrt(pca_dist);
-        std::cout << "  icontour[" << ictr << "] "
-                  << " pca-dist=" << pca_dist
-                  << " eigenvals [0]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(0)
-                  << " [1]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(1)
-                  << std::endl;
-      }
-    }
+  //       // dist from start-end of pca-axis
+  //       float pca_dist = 0;
+  //       float dx = 0;
+  //       for ( size_t i=0; i<2; i++ ) {
+  //         dx = ( contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAEndPos()[i] -
+  //                contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAStartPos()[i] );
+  //         pca_dist += dx*dx;
+  //       }
+  //       pca_dist = sqrt(pca_dist);
+  //       std::cout << "  icontour[" << ictr << "] "
+  //                 << " pca-dist=" << pca_dist
+  //                 << " eigenvals [0]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(0)
+  //                 << " [1]=" << contour_algo.m_plane_atomicmeta_v[p][ictr].getPCAeigenvalue(1)
+  //                 << std::endl;
+  //     }
+  //   }
     
-  }
+  // }
 
   /**
    * @brief calculate closest distance from cluster pca end points

@@ -4,6 +4,7 @@
 #include <iostream>
 #include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
+#include "larflow/Reco/KeypointReco.h"
 
 namespace larflow {
 namespace reco {
@@ -15,15 +16,14 @@ namespace reco {
   class EventKeypointReco : public larcv::larcv_base {
 
   public:
-    EventKeypointReco()
-      : larcv::larcv_base("EventKeypointReco")
-      {};
+    EventKeypointReco();
     virtual ~EventKeypointReco() {};
 
     void process_larmatch_v2( larlite::storage_manager& ioll,
 			      std::string hittree );
     
-
+    KeypointReco kpalgo;
+    
   };
 
   

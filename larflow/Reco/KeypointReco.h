@@ -12,8 +12,9 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/storage_manager.h"
 
-#include "cluster_functions.h"
-#include "KPCluster.h"
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
+#include "larflow/Reco/cluster_functions.h"
+#include "larflow/Reco/KPCluster.h"
 
 namespace larflow {
 namespace reco {
@@ -57,6 +58,7 @@ namespace reco {
     int   _keypoint_type;                           ///< label of keypoint type we're making
     int   _lfhit_score_index;                       ///< index of column in larflow3d hit info vector with keypoint score
     float _threshold_cluster_max_score;             ///< the threshold max keypoint score in a keypoint cluster
+    int   _min_kpcluster_size;                      ///< min size of keypoint cluster
     
   public:
     
@@ -101,6 +103,7 @@ namespace reco {
     
 
     void process( larlite::storage_manager& io_ll );
+    void process_all_keypoint_types( larlite::storage_manager& io_ll );    
     void process( const std::vector<larlite::larflow3dhit>& input_lfhits );
     void dump2json( std::string outfilename="dump_keypointreco.json" );    
 
@@ -113,9 +116,10 @@ namespace reco {
     
     void _make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
                                 const float keypoint_score_threshold,
-                                const float larmatch_score_threshold );
+                                const float larmatch_score_threshold,
+				const int tpcid, const int cryoid );
 
-    void _make_kpclusters( float round_score_threshold, int min_cluster_size );
+    void _make_kpclusters( float round_score_threshold, int min_cluster_size, const int tpcid, const int cryoid );
     
     // algorithm steps
     void _skim_remaining_points( float score_threshold,

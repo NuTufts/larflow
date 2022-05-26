@@ -10,8 +10,8 @@
 
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/pcaxis.h"
-#include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 
 #include "cluster_functions.h"
 
@@ -36,6 +36,7 @@ namespace reco {
     _output_tree_name = "keypoint";
     _keypoint_type = -1;
     _threshold_cluster_max_score = 0.75;
+    _min_kpcluster_size = 4;
   }
   
   /**
@@ -57,6 +58,9 @@ namespace reco {
     larlite::event_pcaxis* evout_pcaxis =
       (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, _output_tree_name );
 
+    auto const geom = larlite::larutil::Geometry::GetME();
+    auto const detp = larutil::DetectorProperties::GetME();
+    
     int cidx=0;
     for ( auto const& kpc : output_pt_v ) {
       larlite::larflow3dhit hit;
@@ -69,10 +73,14 @@ namespace reco {
       hit[3] = kpc._cluster_type;
       hit[4] = kpc.max_score;
 
-      hit.targetwire.resize( 3, 0 );
-      for  (int p=0; p<3; p++) 
-        hit.targetwire[p] = larutil::Geometry::GetME()->WireCoordinate( vtxpos, p );
-      hit.tick = vtxpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+      hit.targetwire.resize( 5, 0 );
+      hit.targetwire[4] = kpc.tpcid;
+      hit.targetwire[5] = kpc.cryoid;
+      TVector3 vtxpos_v3( vtxpos[0], vtxpos[1], vtxpos[2] );
+      for  (int p=0; p<3; p++) {
+        hit.targetwire[p] = geom->WireCoordinate( vtxpos_v3, p, kpc.tpcid, kpc.cryoid );
+      }
+      hit.tick = detp->ConvertXToTicks(vtxpos[0],0,kpc.tpcid,kpc.cryoid);
       
 
       // pca-axis
@@ -108,25 +116,32 @@ namespace reco {
   {
 
     output_pt_v.clear();
-    
-    _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 
-    for (int i=0; i<_num_passes; i++ ) {
-      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << std::endl;
-      _make_kpclusters( _keypoint_score_threshold_v[i], _min_cluster_size_v[i] );
-      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
-      int nabove=0;
-      for (auto& posv : _initial_pt_pos_v ) {
-        if (posv[3]>_keypoint_score_threshold_v[i]) nabove++;
+    auto const geom = larlite::larutil::Geometry::GetME();
+    for (int icryo=0; icryo<geom->Ncryostats(); icryo++) {
+      for (int itpc=0; itpc<geom->NTPCs(icryo); itpc++) {
+	
+	_make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(),
+			       _larmatch_score_threshold, itpc, icryo );
+
+	for (int i=0; i<_num_passes; i++ ) {
+	  LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << std::endl;
+	  _make_kpclusters( _keypoint_score_threshold_v[i], _min_cluster_size_v[i], itpc, icryo );
+	  LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
+	  int nabove=0;
+	  for (auto& posv : _initial_pt_pos_v ) {
+	    if (posv[3]>_keypoint_score_threshold_v[i]) nabove++;
+	  }
+	  LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
+	}
+	
+	if ( logger().level()<=larcv::msg::kINFO )
+	  printAllKPClusterInfo();
+	LARCV_NORMAL() << "type=" << _keypoint_type << " hitindex=" << _lfhit_score_index << " "
+		       << "num kpclusters = " << output_pt_v.size()
+		       << std::endl;
       }
-      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
     }
-
-    if ( logger().level()<=larcv::msg::kINFO )
-      printAllKPClusterInfo();
-    LARCV_NORMAL() << "[ KeypointReco::process (type=" << _keypoint_type << ", hitindex=" << _lfhit_score_index << ") ] "
-		   << "num kpclusters = " << output_pt_v.size()
-		   << std::endl;
   }
   
   /**
@@ -146,7 +161,8 @@ namespace reco {
    */
   void KeypointReco::_make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
                                             const float keypoint_score_threshold,
-                                            const float larmatch_score_threshold )
+                                            const float larmatch_score_threshold,
+					    const int tpcid, const int cryoid )
   {
 
     _initial_pt_pos_v.clear();
@@ -155,10 +171,10 @@ namespace reco {
     for (auto const& lfhit : lfhits ) {
       const float& kp_score = lfhit[_lfhit_score_index];
       const float& lm_score = lfhit[9];
-      if ( kp_score>keypoint_score_threshold && lm_score>larmatch_score_threshold ) {
+      if ( kp_score>keypoint_score_threshold && lm_score>larmatch_score_threshold
+	   && tpcid==lfhit[3] && cryoid==lfhit[4] ) {
         std::vector<float> pos3d(5,0);
         for (int i=0; i<3; i++) pos3d[i] = lfhit[i];
-        //pos3d[3] = (kp_score<1.0) ? kp_score : 1.0;
         pos3d[3] = kp_score;
         pos3d[4] = lm_score;
         _initial_pt_pos_v.push_back( pos3d );
@@ -167,7 +183,8 @@ namespace reco {
 
     _initial_pt_used_v.resize( _initial_pt_pos_v.size(), 0 );
 
-    LARCV_INFO() << "[larflow::reco::KeypointReco::_make_initial_pt_data] number of points stored for keypoint reco: "
+    LARCV_INFO() << "number of points stored for keypoint reco "
+		 << "[tpcid=" << tpcid << ",cryoid=" << cryoid << "] "
                  << _initial_pt_pos_v.size()
                  << "/"
                  << lfhits.size()
@@ -189,7 +206,8 @@ namespace reco {
    * @param[in] min_cluster_size Minimum size of keypoint hit cluster
    *
    */
-  void KeypointReco::_make_kpclusters( float keypoint_score_threshold, int min_cluster_size )
+  void KeypointReco::_make_kpclusters( float keypoint_score_threshold, int min_cluster_size,
+				       const int tpcid, const int cryoid )
   {
 
     std::vector< std::vector<float> > skimmed_pt_v;
@@ -218,7 +236,7 @@ namespace reco {
 
     for ( auto& cluster : cluster_v ) {
 
-      if ( cluster.points_v.size()<4 )
+      if ( cluster.points_v.size()<_min_kpcluster_size)
 	continue;
       
       // make kpcluster
@@ -227,6 +245,9 @@ namespace reco {
       kpc.center_pt_v = kpc_fit.center_pt_v;
       if ( kpc.max_score < _threshold_cluster_max_score )
 	continue;
+
+      kpc.tpcid  = tpcid;
+      kpc.cryoid = cryoid;
       
       // insert cluster into class continer
       _cluster_v.emplace_back( std::move(cluster) );
@@ -423,7 +444,7 @@ namespace reco {
     //cluster_pca( cluster );
     
     KPCluster kpc;
-    kpc.center_pt_v = { mean[0], mean[1], mean[2] };
+    kpc.center_pt_v = { (float)mean[0], (float)mean[1], (float)mean[2] };
     
     return kpc;
   }
@@ -509,8 +530,51 @@ namespace reco {
   }
 
   /**
-   * @brief parse the output of v2 larmatch keypoint output and produce keypoints
+   * @brief process all keypoint types
    */
+  void KeypointReco::process_all_keypoint_types( larlite::storage_manager& ioll )
+  {
+
+    set_output_tree_name( "keypoint" );
+
+    // set parameters
+    set_sigma( 10.0 );
+    set_min_cluster_size(   50.0, 0 );
+    set_keypoint_threshold( 0.5, 0 );
+    set_min_cluster_size(   20.0, 1 );    
+    set_keypoint_threshold( 0.5, 1 );    
+    set_larmatch_threshold( 0.5 );
+
+    // neutrinos
+    set_keypoint_type( (int)larflow::kNuVertex );
+    set_lfhit_score_index( 17 ); // (v2 larmatch-minkowski network neutrino-score index in hit)
+    process( ioll );
+
+    // track start
+    set_keypoint_type( (int)larflow::kTrackStart );
+    set_lfhit_score_index( 18 ); // (v2 larmatch-minkowski network track-start-score index in hit)
+    process( ioll );
+
+    // track end
+    set_keypoint_type( (int)larflow::kTrackEnd );
+    set_lfhit_score_index( 19 ); // (v2 larmatch-minkowski network track-end-score index in hit)
+    process( ioll );
+
+    // interactio showers
+    set_keypoint_type( (int)larflow::kShowerStart );
+    set_lfhit_score_index( 20 ); // (v2 larmatch-minkowski network nu-shower-score index in hit)
+    process( ioll );
+    
+    // neutrino+cosmic interaction michel
+    set_keypoint_type( (int)larflow::kShowerMichel );
+    set_lfhit_score_index( 21 ); // (v2 larmatch-minkowski network michel-shower-score index in hit)
+    process( ioll );
+    // neutrino+cosmic interaction delta
+    set_keypoint_type( (int)larflow::kShowerDelta );
+    set_lfhit_score_index( 22 ); // (v2 larmatch-minkowski network delta-shower-score index in hit)
+    process( ioll );
+    
+  }
 
   
 }

@@ -95,7 +95,7 @@ namespace reco {
 
   void cluster_imageprojection( const cluster_t& cluster, std::vector<larcv::Image2D>& clust2d_images_v );
 
-  void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v );
+  //void cluster_getcontours( std::vector<larcv::Image2D>& clust2d_images_v );
 
   float cluster_closest_endpt_dist( const cluster_t& clusta, const cluster_t& clust_b,
                                     std::vector< std::vector<float> >& endpts );

@@ -1,6 +1,6 @@
 #include "KeypointFilterByWCTagger.h"
 
-#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 #include "larlite/DataFormat/pcaxis.h"
 
@@ -268,6 +268,9 @@ namespace reco {
                                                                      std::vector<int>& kept_v )
   {
 
+    auto const geom = larlite::larutil::Geometry::GetME();
+    auto const detp = larutil::DetectorProperties::GetME();
+    
     kept_v.clear();
     kept_v.resize( keypoint_v.size(), 0 );
     
@@ -275,30 +278,40 @@ namespace reco {
 
       auto const& hit = keypoint_v[ihit];
 
-      int tick = hit[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200;
-      if ( tick<=adc_v[0].meta().min_y() || tick>=adc_v[0].meta().max_y() )
+      int tpcid  = hit[3];
+      int cryoid = hit[4];
+      int nplanes = geom->Nplanes( tpcid, cryoid );
+
+      int planeindex = geom->GetSimplePlaneIndexFromCTP( cryoid, tpcid, 0 );
+      auto const& zerometa = adc_v[planeindex].meta();
+
+      int tick = detp->ConvertXToTicks( hit[0], 0, tpcid, cryoid );
+      if ( tick<=zerometa.min_y() || tick>=zerometa.max_y() )
         continue;
       
-      int row = adc_v[0].meta().row( tick, __FILE__, __LINE__ );
+      int row = zerometa.row( tick, __FILE__, __LINE__ );
       
       std::vector<double> dpos = { hit[0], hit[1], hit[2] };
+      TVector3 vpos( hit[0], hit[1], hit[2] );
 
       int nplanes_tagged = 0;
-      for ( size_t p=0; p<adc_v.size(); p++ ) {
+      for ( int p=planeindex; p<planeindex+nplanes; p++ ) {
 
-        int wire = larutil::Geometry::GetME()->NearestWire( dpos, p );
+	auto const& meta = adc_v[p].meta();
+	
+        int wire = geom->NearestWire( vpos, p, tpcid, cryoid );
         
-        int col = adc_v[p].meta().col( wire );
+        int col = meta.col( wire );
 
         int nshower = 0;
         int ntagged = 0;
 
         for (int dr=-5; dr<=5; dr++) {
           int r = row+dr;
-          if ( r<0 || r>=(int)adc_v[p].meta().rows() ) continue;
+          if ( r<0 || r>=(int)meta.rows() ) continue;
           for (int dc=-5; dc<=5; dc++) {
             int c = col+dc;
-            if ( c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
+            if ( c<0 || c>=(int)meta.cols() ) continue;
 
             int tagged = tagged_v[p].pixel( r, c );
             if ( tagged>5 ) {

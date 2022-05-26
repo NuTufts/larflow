@@ -15,48 +15,49 @@ set( HEADERS cluster_functions.h
   KPCluster.h KeypointReco.h EventKeypointReco.h
   KeypointFilterByClusterSize.h
   KeypointFilterByWCTagger.h
-  TrackClusterBuilder.h
-  CosmicTrackBuilder.h
-  ShowerRecoKeypoint.h
-  ShowerBilineardEdx.h
-  ShowerdQdx.h  
-  NuVertexCandidate.h
-  TrackOTFit.h
-  ProjPixFitter.h
-  ClusterBookKeeper.h
-  NuVertexMaker.h
-  NuVertexFitter.h
-  CosmicVertexBuilder.h  
-  NuTrackBuilder.h
-  NuShowerBuilder.h
-  NuVertexShowerReco.h
-  NuVertexShowerTrunkCheck.h
-  NuVertexActivityReco.h
-  NuVertexAddSecondaries.h
-  VetoHitClustering.h
-  PerfectTruthNuReco.h
-  TrackdQdx.h
-  NuTrackdQdx.h
-  ClusterImageMask.h
-  NuSelectionVariables.h
-  LikelihoodProtonMuon.h
-  CosmicProtonFinder.h
-  TrackForwardBackwardLL.h
-  TrackFindBadConnection.h  
-  NuTrackKinematics.h
-  NuShowerKinematics.h
-  PostNuCheckShowerTrunkOverlap.h
-  NuSelProngVars.h
-  NuSelVertexVars.h
-  NuSelWCTaggerOverlap.h  
-  NuSelShowerTrunkAna.h
-  NuSelTruthOnNuPixel.h
-  NuSelShowerGapAna2D.h
-  NuSelUnrecoCharge.h
-  NuSelCosmicTagger.h
-  NuSel1e1pEventSelection.h
-  TruthRecoMatching.h
-  KPSRecoManager.h )
+  # TrackClusterBuilder.h
+  # CosmicTrackBuilder.h
+  # ShowerRecoKeypoint.h
+  # ShowerBilineardEdx.h
+  # ShowerdQdx.h  
+  # NuVertexCandidate.h
+  # TrackOTFit.h
+  # ProjPixFitter.h
+  # ClusterBookKeeper.h
+  # NuVertexMaker.h
+  # NuVertexFitter.h
+  # CosmicVertexBuilder.h  
+  # NuTrackBuilder.h
+  # NuShowerBuilder.h
+  # NuVertexShowerReco.h
+  # NuVertexShowerTrunkCheck.h
+  # NuVertexActivityReco.h
+  # NuVertexAddSecondaries.h
+  # VetoHitClustering.h
+  # PerfectTruthNuReco.h
+  # TrackdQdx.h
+  # NuTrackdQdx.h
+  # ClusterImageMask.h
+  # NuSelectionVariables.h
+  # LikelihoodProtonMuon.h
+  # CosmicProtonFinder.h
+  # TrackForwardBackwardLL.h
+  # TrackFindBadConnection.h  
+  # NuTrackKinematics.h
+  # NuShowerKinematics.h
+  # PostNuCheckShowerTrunkOverlap.h
+  # NuSelProngVars.h
+  # NuSelVertexVars.h
+  # NuSelWCTaggerOverlap.h  
+  # NuSelShowerTrunkAna.h
+  # NuSelTruthOnNuPixel.h
+  # NuSelShowerGapAna2D.h
+  # NuSelUnrecoCharge.h
+  # NuSelCosmicTagger.h
+  # NuSel1e1pEventSelection.h
+  # TruthRecoMatching.h
+  # KPSRecoManager.h )
+  )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
@@ -71,48 +72,49 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KeypointReco.cxx EventKeypointReco.cxx
   KeypointFilterByClusterSize.cxx
   KeypointFilterByWCTagger.cxx
-  ShowerRecoKeypoint.cxx
-  ShowerBilineardEdx.cxx
-  ShowerdQdx.cxx  
-  TrackClusterBuilder.cxx
-  CosmicTrackBuilder.cxx
-  NuVertexCandidate.cxx
-  ProjPixFitter.cxx      
-  TrackOTFit.cxx
-  ClusterBookKeeper.cxx
-  NuVertexMaker.cxx
-  NuVertexFitter.cxx
-  CosmicVertexBuilder.cxx
-  NuTrackBuilder.cxx
-  NuShowerBuilder.cxx
-  NuVertexShowerReco.cxx
-  NuVertexShowerTrunkCheck.cxx  
-  NuVertexActivityReco.cxx
-  NuVertexAddSecondaries.cxx  
-  VetoHitClustering.cxx  
-  PostNuCheckShowerTrunkOverlap.cxx  
-  PerfectTruthNuReco.cxx  
-  TrackdQdx.cxx
-  NuTrackdQdx.cxx  
-  ClusterImageMask.cxx  
-  NuSelectionVariables.cxx
-  LikelihoodProtonMuon.cxx
-  CosmicProtonFinder.cxx
-  TrackForwardBackwardLL.cxx
-  TrackFindBadConnection.cxx  
-  NuTrackKinematics.cxx
-  NuShowerKinematics.cxx  
-  NuSelProngVars.cxx
-  NuSelVertexVars.cxx
-  NuSelShowerTrunkAna.cxx
-  NuSelWCTaggerOverlap.cxx
-  NuSelTruthOnNuPixel.cxx
-  NuSelShowerGapAna2D.cxx
-  NuSelUnrecoCharge.cxx
-  NuSelCosmicTagger.cxx  
-  NuSel1e1pEventSelection.cxx
-  TruthRecoMatching.cxx
-  KPSRecoManager.cxx )
+  # ShowerRecoKeypoint.cxx
+  # ShowerBilineardEdx.cxx
+  # ShowerdQdx.cxx  
+  # TrackClusterBuilder.cxx
+  # CosmicTrackBuilder.cxx
+  # NuVertexCandidate.cxx
+  # ProjPixFitter.cxx      
+  # TrackOTFit.cxx
+  # ClusterBookKeeper.cxx
+  # NuVertexMaker.cxx
+  # NuVertexFitter.cxx
+  # CosmicVertexBuilder.cxx
+  # NuTrackBuilder.cxx
+  # NuShowerBuilder.cxx
+  # NuVertexShowerReco.cxx
+  # NuVertexShowerTrunkCheck.cxx  
+  # NuVertexActivityReco.cxx
+  # NuVertexAddSecondaries.cxx  
+  # VetoHitClustering.cxx  
+  # PostNuCheckShowerTrunkOverlap.cxx  
+  # PerfectTruthNuReco.cxx  
+  # TrackdQdx.cxx
+  # NuTrackdQdx.cxx  
+  # ClusterImageMask.cxx  
+  # NuSelectionVariables.cxx
+  # LikelihoodProtonMuon.cxx
+  # CosmicProtonFinder.cxx
+  # TrackForwardBackwardLL.cxx
+  # TrackFindBadConnection.cxx  
+  # NuTrackKinematics.cxx
+  # NuShowerKinematics.cxx  
+  # NuSelProngVars.cxx
+  # NuSelVertexVars.cxx
+  # NuSelShowerTrunkAna.cxx
+  # NuSelWCTaggerOverlap.cxx
+  # NuSelTruthOnNuPixel.cxx
+  # NuSelShowerGapAna2D.cxx
+  # NuSelUnrecoCharge.cxx
+  # NuSelCosmicTagger.cxx  
+  # NuSel1e1pEventSelection.cxx
+  # TruthRecoMatching.cxx
+  # KPSRecoManager.cxx )
+  )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

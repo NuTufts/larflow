@@ -248,8 +248,8 @@ namespace prep {
    * spacepoint proposals below _match_score_threshold will be skipped.
    *
    * larflow3dhit inherits from vector<float>. The values in the vector are as follows:
-   * [0-2]:   x,y,z
-   * [3-9]:   7 flow direction scores + 1 max score (deprecated based on 2-flow paradigm. for triplet, [9] is the only score stored 
+   * [0-4]:   x,y,z,tpcid,cryoid
+   * [5-9]:   5 flow direction scores (deprecated) + 1 max score (deprecated based on 2-flow paradigm. for triplet, [9] is the only score stored 
    * [10-16]: 7 ssnet scores, (bg,track,shower), from larmatch (not 2D sparse ssnet)
    * [17-22]: 6 keypoint label score [nu,track-start,track-end,nu-shower,delta,michel]
    * [23-25]: reserved for plane charge
@@ -316,6 +316,8 @@ namespace prep {
       hit[0] = x;
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
+      hit[3] = m.tpcid;
+      hit[4] = m.cryoid;
       
       // store larmatch score
       hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;

@@ -31,6 +31,8 @@ namespace reco {
                                                          float avedQdx,
                                                          std::vector<float>& grad ) {
 
+    auto const geom = larlite::larutil::Geometry::GetME();
+    
     const int plane = (int)img.meta().plane();
     auto const& meta = img.meta();
     
