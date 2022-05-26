@@ -132,7 +132,7 @@ namespace prep {
     int npix = 0;
     for ( auto const& padc : adc_v ) {
       for ( auto const& pix : padc->as_vector() ) {
-	if (pix>adc_threshold)
+	if (pix>=adc_threshold)
 	  npix++;
 
 	if ( npix>=10 )
@@ -157,6 +157,19 @@ namespace prep {
     // first we make a common sparse image
     std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv =
       larflow::prep::FlowTriples::make_initial_sparse_image( adc_v, adc_threshold );
+
+    // we index the pixels for each plane
+    std::vector< std::map< std::pair<int,int>, int > > map_sparseimg_pix2index_v( sparseimg_vv.size() );
+    
+    for ( size_t p=0; p<sparseimg_vv.size(); p++) {
+      auto const& pix_v = sparseimg_vv[p];
+      std::map< std::pair<int,int>, int >& pix2index = map_sparseimg_pix2index_v[p];
+      pix2index.clear();
+      for (size_t ipix=0; ipix<pix_v.size(); ipix++) {
+	pix2index[ std::pair<int,int>( pix_v[ipix].row, pix_v[ipix].col ) ] = (int)ipix;
+	//std::cout << "plane[" << p << "] (" << pix_v[ipix].row << "," << pix_v[ipix].col << ")" << std::endl;
+      }
+    }
     
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       auto const& padc = adc_v[p];
@@ -198,7 +211,9 @@ namespace prep {
     }
 
     size_t ntriplets_made = 0;
-
+    std::map< std::vector<int>,int > triplet_map;
+    size_t nrepeated = 0;
+    
     for (int irow=0; irow<nrows; irow++) {
       float tick = meta.pos_y(irow);      
       // loop through the plane colums and get columns above thresh
@@ -209,7 +224,7 @@ namespace prep {
      	auto const& pimg = adc_v.at(splaneid);
 	//std::cout << "iplane[" << iplane << "] icryo=" << icryo << " itpc=" << itpc << " iplaneid=" << planeid << std::endl;
      	for (int icol=0; icol<(int)pimg->meta().cols(); icol++) {
-     	  if ( pimg->pixel(irow,icol)>adc_threshold )
+     	  if ( pimg->pixel(irow,icol)>=adc_threshold )
      	    plane_cols[iplane].push_back(icol);
      	}
       }
@@ -230,29 +245,53 @@ namespace prep {
 
 	      // other plane wire
 	      int otherwire = intersect[idx1][idx2]-1;
-	      if ( adc_v[start_plane+ipl3]->pixel(irow,otherwire)>0 ) {
+	      if ( adc_v[start_plane+ipl3]->pixel(irow,otherwire)>=adc_threshold ) {
 
+		std::vector<int> wirecoord(4,0);
+		wirecoord[ipl1] = idx1;
+		wirecoord[ipl2] = idx2;
+		wirecoord[ipl3] = otherwire;
+		wirecoord[3]    = (int)tick;
+
+		// get triplet index
 		std::vector<int> triplet(4,0);
-		triplet[ipl1] = idx1;
-		triplet[ipl2] = idx2;
-		triplet[ipl3] = otherwire;
+		for (size_t p=0; p<3; p++) {
+		  auto it_img = map_sparseimg_pix2index_v[p].find( std::pair<int,int>(irow,wirecoord[p]) );
+		  if ( it_img==map_sparseimg_pix2index_v[p].end() ) {
+		    LARCV_CRITICAL() << "Could not find pixel in sparse-image[" << p << "]."
+				     << "pix (row,col)=(" << irow << "," << wirecoord[p] << ")"
+				     << std::endl;
+		    throw std::runtime_error("PrapMatchTriplets has issue mapping index to sparse pixel image");
+		  }
+		  triplet[p] = it_img->second;
+		}
 		triplet[3] = irow;
-		matchdata._triplet_v.push_back( triplet );
+
+		auto it_map = triplet_map.find( triplet );
+		if ( it_map==triplet_map.end() ) {
+		  // new triplet
+		  matchdata._triplet_v.push_back( triplet );
+		  matchdata._wirecoord_v.push_back( wirecoord );
 		
-		TVector3 pos(0,0,0);
-		std::vector<float> fpos(3,0);
-		int ch1 = geom->PlaneWireToChannel( idx1, ipl1, tpcid, cryoid );
-		int ch2 = geom->PlaneWireToChannel( idx2, ipl2, tpcid, cryoid );
-		bool crosses = geom->ChannelsIntersect( ch1, ch2, pos );
-		for (int i=0; i<3; i++)
-		  fpos[i] = pos[i];
-		fpos[0] = detprop->ConvertTicksToX(tick,0,tpcid,cryoid);
-		matchdata._pos_v.push_back( fpos );
-
-		std::vector<int> trip_cryo_tpc = { cryoid, tpcid };
-		matchdata._trip_cryo_tpc_v.push_back( trip_cryo_tpc );
-
-		ntriplets_made++;
+		  TVector3 pos(0,0,0);
+		  std::vector<float> fpos(3,0);
+		  int ch1 = geom->PlaneWireToChannel( idx1, ipl1, tpcid, cryoid );
+		  int ch2 = geom->PlaneWireToChannel( idx2, ipl2, tpcid, cryoid );
+		  bool crosses = geom->ChannelsIntersect( ch1, ch2, pos );
+		  for (int i=0; i<3; i++)
+		    fpos[i] = pos[i];
+		  fpos[0] = detprop->ConvertTicksToX(tick,0,tpcid,cryoid);
+		  matchdata._pos_v.push_back( fpos );
+		  
+		  std::vector<int> trip_cryo_tpc = { cryoid, tpcid };
+		  matchdata._trip_cryo_tpc_v.push_back( trip_cryo_tpc );
+		  
+		  ntriplets_made++;
+		  triplet_map[triplet] = 1;
+		}
+		else {
+		  nrepeated++;
+		}
 		
 	      }// if otherwire has charge
 	    }//if intersects
@@ -268,7 +307,7 @@ namespace prep {
     }// end of row loop
 
     std::clock_t end = std::clock();
-    LARCV_NORMAL() << "made total of " << matchdata._triplet_v.size()
+    LARCV_NORMAL() << "made total of " << matchdata._triplet_v.size() << " nrepeated=" << nrepeated
 		   << " unique index triplets. time elapsed=" << float(end-start)/float(CLOCKS_PER_SEC)
 		   << std::endl;
     // LARCV_NORMAL() << "number removed for not intersecting: " << n_not_crosses << std::endl;

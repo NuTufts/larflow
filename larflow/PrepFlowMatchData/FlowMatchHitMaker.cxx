@@ -8,6 +8,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 #include "PrepSSNetTriplet.h"
 #include <stdexcept>
 
@@ -191,12 +192,12 @@ namespace prep {
       }
 
       // now look for the wire-triple in the match data list
-      std::vector<int> triple(4,0);
+      std::vector<int> triple(6,0);
       triple[ source_plane ] = srccol;
       triple[ target_plane ] = tarcol;
       triple[ other_plane  ] = int(other_wire);
       triple[ 3 ] = (int)tick;
-
+      
       //std::cout << "    triple=" << triple[0] << "," << triple[1] << "," << triple[2] << std::endl;
 
       auto it = _match_map.find( triple );
@@ -218,7 +219,7 @@ namespace prep {
       auto& m = _matches_v.at( it->second );
       // set the score given here
       //if ( indead ) prob *= 0.5;
-      m.set_score( source_plane, target_plane, prob );
+      m.set_score( prob );
 
     }//end of score loop
 
@@ -262,7 +263,7 @@ namespace prep {
                                      const std::vector<larcv::Image2D>& img_v,
                                      std::vector<larlite::larflow3dhit>& hit_v ) const {
 
-    const float cm_per_tick = larutil::LArProperties::GetME()->DriftVelocity()*0.5;
+    auto const detp = larutil::DetectorProperties::GetME();
     int ncolumns = 3;
     ncolumns += 7; // flow scores
     ncolumns += 7; // ssnet classes
@@ -271,7 +272,7 @@ namespace prep {
     ncolumns += 3; // flow directions    
     // = 29 columns
 
-    auto const& meta = img_v.front().meta();
+    //auto const& meta = img_v.front().meta();
     
     int idx = 0;
     unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
@@ -279,7 +280,7 @@ namespace prep {
     for ( auto const& m : _matches_v ) {
 
       // find the highest match score
-      std::vector<float> scores = m.get_scores();
+      const std::vector<float>& scores = m.get_scores();
       float maxscore = 0;
       int maxdir = -1;
       for ( int i=0; i<scores.size(); i++ ) {
@@ -295,6 +296,8 @@ namespace prep {
       larlite::larflow3dhit hit;
       hit.tick = m.tyz[0];
 
+      auto const& meta = img_v.at( m.img_indices_v.front() ).meta();
+
       if ( hit.tick<=meta.min_y() || hit.tick>=meta.max_y() )
         continue;
       
@@ -307,13 +310,12 @@ namespace prep {
       hit.idxhit = idx;
       if(m.istruth==0) hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kNoTruthMatch;
       else{ hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kOnTrack;}
-      float x = (m.tyz[0]-3200.0)*cm_per_tick;
+      //float x = (m.tyz[0]-3200.0)*cm_per_tick;
+      float x = detp->ConvertTicksToX(hit.tick,0,m.tpcid,m.cryoid);
       hit.resize(ncolumns,0);
       hit[0] = x;
       hit[1] = m.tyz[1];
       hit[2] = m.tyz[2];
-
-      
       
       // store larmatch score
       hit.flowdir = (larlite::larflow3dhit::FlowDirection_t)maxdir;
@@ -352,8 +354,8 @@ namespace prep {
       
       hit_v.emplace_back( std::move(hit) );
     }
-    std::cout << "[FlowMatchHitMaker::make_hits] saved " << hit_v.size() << " hits "
-              << " from "  << _matches_v.size() << " matches" << std::endl;
+    LARCV_NORMAL() << " saved " << hit_v.size() << " hits "
+		   << " from "  << _matches_v.size() << " matches" << std::endl;
     
   };
 
@@ -635,8 +637,15 @@ namespace prep {
                                                  PyObject* imgv_sparseimg,
                                                  PyObject* imgy_sparseimg,
                                                  const std::vector< std::vector<float> >& pos_vv,
-                                                 const std::vector<larcv::Image2D>& adc_v ) {
+                                                 const std::vector<larcv::Image2D>& adc_v,
+						 const std::vector<int>& img_indices_v,
+						 const int tpcid, const int cryoid )
+  {
 
+    if ( img_indices_v.size()!=3 ) {
+      LARCV_CRITICAL() << "Unexpected number of image indices = " << img_indices_v.size() << ". Expected 3" << std::endl;
+    }
+    
     // enable numpy environment (if not already set)
     std::cout << "setting pyutils ... ";
     import_array1(0);    
@@ -666,8 +675,8 @@ namespace prep {
     npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
     std::cout << "[FlowMatchHitMaker] pair prob dims=(" << pair_dims[0] << ")" << std::endl;
 
-    // // triplet indicies for each match
-    // npy_intp index_dims[2];
+    // triplet indicies for each match
+    // npy_intp* index_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
     // std::cout << "[FlowMatchHitMaker] index array dims=(" << index_dims[0] << "," << index_dims[1] << ")" << std::endl;
     
     // // sparse images
@@ -696,13 +705,15 @@ namespace prep {
 			*(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
 
       
-      std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
+      std::vector<int> triple(7,0); // (col,col,col,tick,istruth,tpcid,cryoid)
       triple[ 0 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
       triple[ 1 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
       triple[ 2 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
       int row = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)adc_v[2].meta().pos_y( row );
       triple[ 4 ] = (int)index[3]; //truth
+      triple[ 5 ] = (int)tpcid;
+      triple[ 6 ] = (int)cryoid;
 
       if ( triple[0]==0 && triple[1]==0 && triple[2]==0 && triple[3]==2400 ) {	
 	std::cout << "zero triple: "
@@ -739,23 +750,35 @@ namespace prep {
       if ( it==_match_map.end() ) {
         // if not in match map, we create a new entry
         match_t m;
+	m.cryoid = cryoid;
+	m.tpcid  = tpcid;
 	m.set_istruth(triple[4]);
         for ( size_t p=0; p<3; p++ )
           m.set_wire( p, triple[p] );
         m.tyz = { (float)triple[3], (float)pos[1], (float)pos[2] };
+	m.img_indices_v = img_indices_v;
         _matches_v.emplace_back( std::move(m) );
         _match_map[ triple ] = int(_matches_v.size())-1;
         it = _match_map.find( triple );
       }
       else {
-        std::cout << "repeated triple: (" << triple[0] << "," << triple[1] << "," << triple[2] << "," << triple[3] << "." << triple[4] <<")" << std::endl;
+        std::cout << "repeated triple: (" << triple[0] << "," << triple[1] << "," << triple[2] << "," << triple[3] << "," << triple[4] <<")"
+		  << " tpcid=" << triple[5]
+		  << " cryoid=" << triple[6]
+		  << std::endl;
+	auto const& orig = it->first;
+	std::cout << " orig triplet(" << orig[0] << "," << orig[1] << "," << orig[2] << "," << orig[3] << "," << orig[4] <<") "
+		  << " tpcid=" << orig[5]
+		  << " cryoid=" << orig[6]
+		  << std::endl;
+	std::cin.get();
         nrepeated++;
       }
 
       auto& m = _matches_v.at( it->second );
       // set the score given here
       //if ( indead ) prob *= 0.5;
-      m.set_score( 2, 0, prob );
+      m.set_score( prob );
 
     }//end of score loop
     
@@ -879,7 +902,8 @@ namespace prep {
                                                       PyObject* imgv_sparseimg,
                                                       PyObject* imgy_sparseimg,
                                                       const larcv::ImageMeta& meta,                                                      
-                                                      PyObject* kplabel_scores ) {
+                                                      PyObject* kplabel_scores,
+						      const int tpcid, const int cryoid ) {
 
     has_kplabel_scores = true;
 
@@ -920,13 +944,15 @@ namespace prep {
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ),
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
       
-      std::vector<int> triple(5,0); // (col,col,col,tick,istruth)
+      std::vector<int> triple(7,0); // (col,col,col,tick,istruth)
       triple[ 0 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
       triple[ 1 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
       triple[ 2 ] = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
       int row = (int)*(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
       triple[ 3 ] = (int)meta.pos_y( row );
       triple[ 4 ] = (int)index[3];
+      triple[ 5 ] = (int)tpcid;
+      triple[ 6 ] = (int)cryoid;
     
       // look for the triplet in the map
       auto it = _match_map.find( triple );
@@ -966,6 +992,8 @@ namespace prep {
                   << triple[2] << ","
                   << triple[3] << ","
                   << triple[4] << ")"
+		  << " tpcid=" << tpcid
+		  << " cryoid=" << cryoid
                   << std::endl;
       }
     }

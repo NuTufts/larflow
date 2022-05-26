@@ -7,7 +7,7 @@ set( HEADERS #WireOverlap.h
   FlowTriples.h
   MatchTriplets.h
   PrepMatchTriplets.h
-  #FlowMatchHitMaker.h
+  FlowMatchHitMaker.h
   #FlowMatchMap.hh  
   #PrepFlowMatchData.hh
   #MatchTripletProcessor.h
@@ -22,7 +22,7 @@ add_library( ${LIBNAME} SHARED
   FlowTriples.cxx
   MatchTriplets.cxx
   PrepMatchTriplets.cxx
-  #FlowMatchHitMaker.cxx  
+  FlowMatchHitMaker.cxx  
   #MatchTripletProcessor.cxx  
   #FlowMatchMap.cxx
   #PrepFlowMatchData.cxx

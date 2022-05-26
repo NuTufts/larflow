@@ -85,7 +85,6 @@ namespace prep {
     std::vector< MatchTriplets > _match_triplet_v; ///< data objects produced by this code    
     void clear();
 
-
   protected:
 
     // bool _kStopAtTripletMax;
