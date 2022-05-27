@@ -71,7 +71,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( "filtered_MCTracks_opflash.root" )
+iomc.set_out_filename( "filtered_MCTracks_opflash_beamONLY_MODTEST.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -124,7 +124,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("test.root","recreate")
+outfile = rt.TFile("test_beamONLY_MODTEST.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -182,6 +182,72 @@ outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 
 #listy = []
 
+def createIntrxn(iid_v):
+    print("This is iid_v: ",iid_v)
+
+    # create array with T/F boolean
+    indexmatch_v = [ data["voxinstance"]==iid for iid in iid_v ]
+    #print("indexmatch_v: ",indexmatch_v)
+
+    # filter for matching instances only
+    iicoord_v = [ data["voxcoord"][indexmatch[:],:] for indexmatch in indexmatch_v ]
+    iifeat_v = [ data["voxfeat"][indexmatch[:],:] for indexmatch in indexmatch_v ]
+
+    iilm_truth_v = [ data["voxlabel"][indexmatch[:]] for indexmatch in indexmatch_v ]
+    iissnet_truth_v = [ data["ssnet_labels"][indexmatch[:]] for indexmatch in indexmatch_v ]
+    iikp_truth_v = [ data["kplabel"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
+    iilm_weight_v = [ data["voxlmweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
+    iissnet_weight_v = [ data["ssnet_weights"][indexmatch[:]] for indexmatch in indexmatch_v ]
+    iikp_weight_v = [ data["kpweight"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
+    #iiinstance_truth_v = [ data["voxinstance"][indexmatch[:],:] for indexmatch in indexmatch_v ]
+    iiorigin_truth_v = [ data["voxorigin"][indexmatch[:]] for indexmatch in indexmatch_v ]
+    iiorigin_weight_v = [ data["voxoriginweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
+
+    print("data[voxcoord]",data["voxcoord"])
+    print("data[voxlabel]",data["voxlabel"])
+    #print("iicoord_v",iicoord_v)
+    #print("iicoord_v array",np.array(iicoord_v)) # do NOT do this! use concatenate (below)
+
+    iicoord = np.concatenate( iicoord_v )
+    iifeat = np.concatenate( iifeat_v )
+    iilm_truth = np.concatenate( iilm_truth_v )
+    iissnet_truth = np.concatenate( iissnet_truth_v )
+    iikp_truth = np.concatenate( iikp_truth_v )
+    iilm_weight = np.concatenate( iilm_weight_v )
+    iissnet_weight = np.concatenate( iissnet_weight_v )
+    iikp_weight = np.concatenate( iikp_weight_v )
+    #iiinstance_truth = np.concatenate( iiinstance_truth_v )
+    iiorigin_truth = np.concatenate( iiorigin_truth_v )
+    iiorigin_weight = np.concatenate( iiorigin_weight_v )
+
+    print("iicoord",iicoord)
+    print("iicoord.shape",iicoord.shape)
+    print("iifeat",iifeat)
+    print("iifeat.shape",iifeat.shape)
+    print("iilm_truth",iilm_truth)
+    print("iilm_truth.shape",iilm_truth.shape)
+
+    coord_v.push_back( larcv.NumpyArrayInt(iicoord.astype(np.int32)))
+    feat_v.push_back( larcv.NumpyArrayFloat(iifeat))
+
+    lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.astype(np.int32) ) )
+    #lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.squeeze().astype(np.int32) ) )
+
+
+    ssnet_truth_v.push_back( larcv.NumpyArrayInt( iissnet_truth.astype(np.int32) ) )
+    kp_truth_v.push_back( larcv.NumpyArrayFloat( iikp_truth ) )
+
+    lm_weight_v.push_back( larcv.NumpyArrayFloat( iilm_weight ) )
+    ssnet_weight_v.push_back( larcv.NumpyArrayFloat( iissnet_weight ) )
+    kp_weight_v.push_back( larcv.NumpyArrayFloat( iikp_weight ) )
+
+    #instance_truth_v.push_back(  larcv.NumpyArrayInt( iiinstance_truth.astype(np.int32) ) )
+
+    ancestor_truth_v.push_back(  larcv.NumpyArrayInt( iiorigin_truth.astype(np.int32) ) )
+    ancestor_weight_v.push_back( larcv.NumpyArrayFloat( iiorigin_weight.astype(np.float32) ) )
+
+    instance_truth_v.push_back(  larcv.NumpyArrayInt( data["voxinstance"].squeeze().astype(np.int32) ) )
+
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
@@ -232,18 +298,18 @@ for ientry in range(2):
         isCosmic = fmutil.isCosmic
 
         print("Now isCosmic has been set to: ",isCosmic)
-        #if (isCosmic == 1):
-    #        continue
+        if (isCosmic == 1):
+            continue
 
         print(producer)
 
         op_tick = fmutil.grabTickFromOpflash( opio )
         #    fmtrack_tick = vtxutil.getImageCoords( ioll )
         print("track_tick",track_tick)
-        print("op_tick",op_tick)
+        print("op_tick",op_tick) #should be a vector of pairs of tick and index
         #    iolcv.read_entry(ientry)
         match = fmutil.matchTicks( track_tick, op_tick )
-        print("Found match: ", match )
+        print("Found match: ", match ) #should be a pair of tick and index
 
         # Found a flash match! Now fill the tree
         if match[0] != -999.999 and match[0] != 999.999 and track_tick != -999.997:
@@ -303,101 +369,7 @@ for ientry in range(2):
                 print("List is empty")
                 continue
 
-            #print("This is voxinstance: ", *data["voxinstance"])
-
-            #save the mctrack using fmutil
-
-            # create array with T/F boolean
-            indexmatch_v = [ data["voxinstance"]==iid for iid in iid_v ]
-            #print("indexmatch_v: ",indexmatch_v)
-
-            # filter for matching instances only
-            iicoord_v = [ data["voxcoord"][indexmatch[:],:] for indexmatch in indexmatch_v ]
-            iifeat_v = [ data["voxfeat"][indexmatch[:],:] for indexmatch in indexmatch_v ]
-
-            iilm_truth_v = [ data["voxlabel"][indexmatch[:]] for indexmatch in indexmatch_v ]
-            iissnet_truth_v = [ data["ssnet_labels"][indexmatch[:]] for indexmatch in indexmatch_v ]
-            iikp_truth_v = [ data["kplabel"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
-            iilm_weight_v = [ data["voxlmweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
-            iissnet_weight_v = [ data["ssnet_weights"][indexmatch[:]] for indexmatch in indexmatch_v ]
-            iikp_weight_v = [ data["kpweight"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
-            #iiinstance_truth_v = [ data["voxinstance"][indexmatch[:],:] for indexmatch in indexmatch_v ]
-            iiorigin_truth_v = [ data["voxorigin"][indexmatch[:]] for indexmatch in indexmatch_v ]
-            iiorigin_weight_v = [ data["voxoriginweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
-
-            print("data[voxcoord]",data["voxcoord"])
-            print("data[voxlabel]",data["voxlabel"])
-            #print("iicoord_v",iicoord_v)
-            #print("iicoord_v array",np.array(iicoord_v)) # do NOT do this! use concatenate (below)
-
-            iicoord = np.concatenate( iicoord_v )
-            iifeat = np.concatenate( iifeat_v )
-            iilm_truth = np.concatenate( iilm_truth_v )
-            iissnet_truth = np.concatenate( iissnet_truth_v )
-            iikp_truth = np.concatenate( iikp_truth_v )
-            iilm_weight = np.concatenate( iilm_weight_v )
-            iissnet_weight = np.concatenate( iissnet_weight_v )
-            iikp_weight = np.concatenate( iikp_weight_v )
-            #iiinstance_truth = np.concatenate( iiinstance_truth_v )
-            iiorigin_truth = np.concatenate( iiorigin_truth_v )
-            iiorigin_weight = np.concatenate( iiorigin_weight_v )
-
-            print("iicoord",iicoord)
-            print("iicoord.shape",iicoord.shape)
-            print("iifeat",iifeat)
-            print("iifeat.shape",iifeat.shape)
-            print("iilm_truth",iilm_truth)
-            print("iilm_truth.shape",iilm_truth.shape)
-
-            coord_v.push_back( larcv.NumpyArrayInt(iicoord.astype(np.int32)))
-            feat_v.push_back( larcv.NumpyArrayFloat(iifeat))
-
-            lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.astype(np.int32) ) )
-            #lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.squeeze().astype(np.int32) ) )
-
-
-            ssnet_truth_v.push_back( larcv.NumpyArrayInt( iissnet_truth.astype(np.int32) ) )
-            kp_truth_v.push_back( larcv.NumpyArrayFloat( iikp_truth ) )
-
-            lm_weight_v.push_back( larcv.NumpyArrayFloat( iilm_weight ) )
-            ssnet_weight_v.push_back( larcv.NumpyArrayFloat( iissnet_weight ) )
-            kp_weight_v.push_back( larcv.NumpyArrayFloat( iikp_weight ) )
-
-            #instance_truth_v.push_back(  larcv.NumpyArrayInt( iiinstance_truth.astype(np.int32) ) )
-
-            ancestor_truth_v.push_back(  larcv.NumpyArrayInt( iiorigin_truth.astype(np.int32) ) )
-            ancestor_weight_v.push_back( larcv.NumpyArrayFloat( iiorigin_weight.astype(np.float32) ) )
-
-
-
-            # FULL EVENT
-            #coord_v.push_back( larcv.NumpyArrayInt( data["voxcoord"].astype(np.int32) ) )
-            #feat_v.push_back( larcv.NumpyArrayFloat( data["voxfeat"] ) )
-
-            #lm_truth_v.push_back( larcv.NumpyArrayInt( data["voxlabel"].squeeze().astype(np.int32) ) )
-            '''
-            ssnet_truth_v.push_back( larcv.NumpyArrayInt( data["ssnet_labels"].squeeze().astype(np.int32) ) )
-            kp_truth_v.push_back( larcv.NumpyArrayFloat( data["kplabel"].squeeze() ) )
-
-            lm_weight_v.push_back( larcv.NumpyArrayFloat( data["voxlmweight"].squeeze() ) )
-            ssnet_weight_v.push_back( larcv.NumpyArrayFloat( data["ssnet_weights"].squeeze() ) )
-            kp_weight_v.push_back( larcv.NumpyArrayFloat( data["kpweight"].squeeze() ) )
-            '''
-
-            instance_truth_v.push_back(  larcv.NumpyArrayInt( data["voxinstance"].squeeze().astype(np.int32) ) )
-
-            '''
-            for ii in data["voxinstance2id"]:
-                k = ii
-                v = data["voxinstance2id"][k]
-                pair = std.vector("int")(2,0)
-                pair[0] = int(k)
-                pair[1] = int(v)
-                instance_map_v.push_back(pair)
-            '''
-
-            #ancestor_truth_v.push_back(  larcv.NumpyArrayInt( data["voxorigin"].squeeze().astype(np.int32) ) )
-            #ancestor_weight_v.push_back( larcv.NumpyArrayFloat( data["voxoriginweight"].squeeze().astype(np.float32) ) )
+            createIntrxn(iid_v)
 
             out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
             out_mctrack.push_back( ev_mctrack.at(i) )
@@ -418,6 +390,8 @@ for ientry in range(2):
             iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
             iomc.next_event()
 #            ioop.next_event()
+
+            print("CHOSEN TICK ACTUAL TIME WAS: ", ((match[0]-3200.0)*0.5) )
 
             outtree.Fill()
             #newT.Fill()
