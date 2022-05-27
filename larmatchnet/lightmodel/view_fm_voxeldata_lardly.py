@@ -48,7 +48,7 @@ for opt in color_by_options:
 
 # DATA LOADER
 batch_size = 1
-dataset = LMDataset( filelist=["test.root"], is_voxeldata=True, random_access=False )
+dataset = LMDataset( filelist=["test_beamONLY_showers.root"], is_voxeldata=True, random_access=False )
 nentries = len(dataset)
 
 print("NENTRIES: ",nentries)
@@ -102,29 +102,43 @@ def make_figures(ientry,loader,minprob=0.0):
 
         io_ll.go_to(ientry)
 
-        ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
-        ev_opflash_cosmic = io_ll.get_data(larlite.data.kOpFlash, "simpleFlashCosmic")
+        #ev_mctrack = io_ll.get_data(larlite.data.kMCTrack, "mcreco")
+        ev_mcshower = io_ll.get_data(larlite.data.kMCShower, "mcreco")
+        #ev_opflash_cosmic = io_ll.get_data(larlite.data.kOpFlash, "simpleFlashCosmic")
         ev_opflash_beam = io_ll.get_data(larlite.data.kOpFlash, "simpleFlashBeam")
 
-        mctrack = ev_mctrack.at(0)
+        #mctrack = ev_mctrack.at(0)
+        mcshower = ev_mcshower.at(0)
 
-        print("First mcstep Y:", mctrack.at(0).Y() )
-        print("First mcstep Z:", mctrack.at(0).Z() )
+        print("shower INFO X: ", mcshower.Start().X())
+        #print("mcshower.at(0).X() ", mcshower.at(0).X())
+        #print("First mcstep Y:", mctrack.at(0).Y() )
+        #print("First mcstep Z:", mctrack.at(0).Z() )
 
         print("Drift velocity is: ",dv)
 
         traces3d = []
         flash = { "flash":[] }
 
+        traces_v = []
+
         print("VISUALIZE MCTRACKS")
-        mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack, do_sce_correction=True )
-        opflash_v = lardly.data.visualize_larlite_opflash_3d( ev_opflash_cosmic.at(0) )
-        print("mcytrack_v:",mctrack_v)
-        traces3d.append( mctrack_v )
+        #mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack, do_sce_correction=False )
+        #mcshower_v = lardly.data.visualize_larlite_event_mcshower( ev_mcshower )
+        mcshower_lardly = lardly.data.visualize3d_larlite_mcshower( mcshower ) # returns an array of objects
+        for x in mcshower_lardly:
+            if x is not None:
+                traces_v.append(x)
+        #opflash_v = lardly.data.visualize_larlite_opflash_3d( ev_opflash_cosmic.at(0) )
+        opflash_v = lardly.data.visualize_larlite_opflash_3d( ev_opflash_beam.at(0) )
+        #print("mcytrack_v:",mctrack_v)
+        #print("opflash_v:",opflash_v)
+        #traces3d.append( mctrack_v )
+        #traces3d.append( mcshower_v )
 
     print("voxel entries: ",batch["voxcoord"].shape)
 
-    traces_v = []
+    #traces_v = []
 
     color = batch["voxfeat"][:,0]
 
@@ -142,7 +156,8 @@ def make_figures(ientry,loader,minprob=0.0):
     traces_v.append(voxtrace)
 
     if args.larlite!="":
-        traces_v.append(mctrack_v)
+        #traces_v.append(mctrack_v)
+        #traces_v += mcshower_v
         traces_v += opflash_v
     #traces_v.append( detdata.getlines() )
     traces_v += detdata.getlines()
