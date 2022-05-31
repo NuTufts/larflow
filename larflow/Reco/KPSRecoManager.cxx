@@ -241,49 +241,49 @@ namespace reco {
     
     // // PREP: ALTER THRUMU IMAGE TO INCLUDE SSNET CLUSTERS OF A CERTAIN SIZE
     
-    // // PREP WC-FILTERED HITS
-    // // filters raw larmatch hits using wire cell thrumu tagger image
-    // // input:
-    // //  larflow3dhit_larmatch_tree: raw larmatch deploy output
-    // // output(s):
-    // //  larflow3dhit_taggerfilterhit_tree: in-time hits
-    // //  larflow3dhit_taggerrejecthit_tree: out-of-time/cosmic-tagged hits
-    // _wcfilter.set_verbosity( larcv::msg::kINFO );
-    // _wcfilter.set_input_larmatch_tree_name( "larmatch" );
-    // _wcfilter.set_output_filteredhits_tree_name( "taggerfilterhit" );
-    // _wcfilter.set_save_rejected_hits( true );
-    // _wcfilter.process_hits( iolcv, ioll );
+    // PREP WC-FILTERED HITS
+    // filters raw larmatch hits using wire cell thrumu tagger image
+    // input:
+    //  larflow3dhit_larmatch_tree: raw larmatch deploy output
+    // output(s):
+    //  larflow3dhit_taggerfilterhit_tree: in-time hits
+    //  larflow3dhit_taggerrejecthit_tree: out-of-time/cosmic-tagged hits
+    _wcfilter.set_verbosity( larcv::msg::kINFO );
+    _wcfilter.set_input_larmatch_tree_name( "larmatch" );
+    _wcfilter.set_output_filteredhits_tree_name( "taggerfilterhit" );
+    _wcfilter.set_save_rejected_hits( true );
+    _wcfilter.process_hits( iolcv, ioll );
 
-    // // PREP: SPLIT WC-FILTERED HITS INTO TRACK/SHOWER
-    // // input:
-    // //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
-    // //  * larflow3dhit_taggerfilterhit_tree: WC in-time space points
-    // // output:
-    // //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
-    // //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
-    // _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit" );
-    // _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );    
-    // _splithits_wcfilter.process_splitonly( iolcv, ioll );    
+    // PREP: SPLIT WC-FILTERED HITS INTO TRACK/SHOWER
+    // input:
+    //  * image2d_ubspurn_planeX: ssnet (track,shower) scores
+    //  * larflow3dhit_taggerfilterhit_tree: WC in-time space points
+    // output:
+    //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
+    //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
+    _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit" );
+    _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );    
+    _splithits_wcfilter.process_splitonly( iolcv, ioll );    
 
-    // // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
-    // // a method to downsample hits: for hits that land on the same plane,
-    // //  choose the highest score hit. Return the union of hits on all planes.
-    // // input:
-    // //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree: in-time track hits
-    // // output:
-    // //  * larflow3dhit_maxtrackhit_wcfilter_tree: in-time track hits after filter
-    // _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_trackhit" );
-    // _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_wcfilter" );
-    // _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    // _choosemaxhit.process( iolcv, ioll );
-    // // input:
-    // //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
-    // // output:
-    // //  * larflow3dhit_maxshowerhit_tree: in-time shower hits after filter
-    // _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_showerhit" );
-    // _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
-    // _choosemaxhit.set_verbosity( larcv::msg::kINFO );
-    // _choosemaxhit.process( iolcv, ioll );
+    // PREP: ENFORCE UNIQUE PIXEL PREDICTION USING MAX SCORE FOR TRACK HITS
+    // a method to downsample hits: for hits that land on the same plane,
+    //  choose the highest score hit. Return the union of hits on all planes.
+    // input:
+    //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree: in-time track hits
+    // output:
+    //  * larflow3dhit_maxtrackhit_wcfilter_tree: in-time track hits after filter
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_wcfilter" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
+    // input:
+    //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
+    // output:
+    //  * larflow3dhit_maxshowerhit_tree: in-time shower hits after filter
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_showerhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
+    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.process( iolcv, ioll );
 
     // // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
     // // input:

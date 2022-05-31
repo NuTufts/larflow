@@ -60,6 +60,8 @@ namespace reco {
       int row;   ///< row in 2D image
       int col;   ///< col in 2D image
       int plane; ///< plane index of image
+      int tpc;
+      int cryo;
 
       /**
        * @brief comparator ordering by (plane,row,col)
@@ -75,8 +77,10 @@ namespace reco {
   protected:
     
     void _make_pixelmap( const larlite::event_larflow3dhit& hit_v,
-                         const std::vector<larcv::Image2D>& img_v,
+                         const larcv::Image2D& img,
                          const int source_plane,
+			 const int tpcid,
+			 const int cryoid,
                          std::vector<int>& idx_used_v );
     
     std::map< Pixel_t, std::vector<int> > _srcpixel_to_spacepoint_m; ///< map source image pixel to space point triplet

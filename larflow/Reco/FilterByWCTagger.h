@@ -1,5 +1,5 @@
-#ifndef __KEYPOINT_FILTER_BY_WC_TAGGER_H__
-#define __KEYPOINT_FILTER_BY_WC_TAGGER_H__
+#ifndef ___FILTER_BY_WC_TAGGER_H__
+#define ___FILTER_BY_WC_TAGGER_H__
 
 #include <vector>
 #include <string>
@@ -16,20 +16,20 @@ namespace reco {
 
   /**
    * @ingroup Reco
-   * @class KeypointFilterByWCTagger
-   * @brief Filter out keypoints based on proximity to wire cell-tagged pixels
+   * @class FilterByWCTagger
+   * @brief Filter out hits and keypoints based on proximity to wire cell-tagged pixels
    *
-   * For each keypoint, project the 3D position into the image.
+   * For each hit or keypoint, project the 3D position into the image.
    * Look for wire cell pixels tagged as cosmic.
    * For those near wire cell tagged pixels, remove them as cosmic.
    *
    */
-  class KeypointFilterByWCTagger : public larcv::larcv_base {
+  class FilterByWCTagger : public larcv::larcv_base {
 
   public:
     
-    KeypointFilterByWCTagger();
-    virtual ~KeypointFilterByWCTagger() {};
+    FilterByWCTagger();
+    virtual ~FilterByWCTagger() {};
 
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
@@ -68,7 +68,7 @@ namespace reco {
       _input_larmatch_tree_name = "larmatch";      
       _input_adc_tree_name = "wire";
       _input_taggerimg_tree_name = "thrumu";
-      _ssnet_stem_name = "ubspurn_plane";
+      _ssnet_stem_name = "showerssnet";
       _output_keypoint_tree_name = "taggerfilterkeypoint";
       _output_filteredhits_tree_name = "taggerfilterhit";
       _output_rejectedhits_tree_name = "taggerrejecthit";

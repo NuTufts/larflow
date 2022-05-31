@@ -22,12 +22,12 @@
 #include "larflow/Reco/NuVertexCandidate.h"
 #include "larflow/Reco/KeypointReco.h"
 // #include "KeypointFilterByClusterSize.h"
-// #include "KeypointFilterByWCTagger.h"
+#include "FilterByWCTagger.h"
 #include "SplitHitsBySSNet.h"
 // #include "ShowerRecoKeypoint.h"
 // #include "ProjectionDefectSplitter.h"
 // #include "ShortProtonClusterReco.h"
-// #include "ChooseMaxLArFlowHit.h"
+#include "ChooseMaxLArFlowHit.h"
 // #include "NuVertexMaker.h"
 // #include "CosmicVertexBuilder.h"
 // #include "CosmicTrackBuilder.h"
@@ -90,10 +90,10 @@ namespace reco {
     // KeypointReco     _kpreco_shower; ///< reconstruct keypoints from network scores for shower class
     // KeypointReco     _kpreco_track_cosmic; ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
     // KeypointFilterByClusterSize _kpfilter; ///< filter out reconstructed keypoints on small clusters
-    // KeypointFilterByWCTagger _wcfilter; ///< filter out keypoints on wirecell cosmic-tagged pixes
+    FilterByWCTagger _wcfilter; ///< filter out keypoints on wirecell cosmic-tagged pixes
 
     // // larflow hit classification
-    // ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score    
+    ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score    
     // SplitHitsBySSNet _splithits_full; ///< splits shower space points from track spacepoints
     SplitHitsBySSNet _splithits_wcfilter; ///< splits shower spacepoints from track spacepoints for wc filtered hits
 

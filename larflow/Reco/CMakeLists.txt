@@ -14,7 +14,7 @@ set( HEADERS cluster_functions.h
   PyLArFlow.h
   KPCluster.h KeypointReco.h EventKeypointReco.h
   KeypointFilterByClusterSize.h
-  KeypointFilterByWCTagger.h
+  FilterByWCTagger.h
   # TrackClusterBuilder.h
   # CosmicTrackBuilder.h
   # ShowerRecoKeypoint.h
@@ -70,7 +70,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   KPCluster.cxx
   KeypointReco.cxx EventKeypointReco.cxx
   KeypointFilterByClusterSize.cxx
-  KeypointFilterByWCTagger.cxx
+  FilterByWCTagger.cxx
   # ShowerRecoKeypoint.cxx
   # ShowerBilineardEdx.cxx
   # ShowerdQdx.cxx  
