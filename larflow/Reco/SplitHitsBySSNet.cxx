@@ -164,16 +164,21 @@ namespace reco {
       meta_v[p] = &(ssnet_score_v[p].meta());
 
     int below_threshold = 0;
-    
+    int n_w_labels = 0;
+    int n_in_tpc = 0;
     for ( auto & hit : larmatch_hit_v ) {
 
-      if ( hit[5]!=tpcid || hit[6]!=cryoid )
+      if ( hit[3]!=tpcid || hit[4]!=cryoid ) {
+	//std::cout << "not right tpc: tpcid=" << hit[3] << " cryoid=" << hit[4] << std::endl;	
 	continue;
+      }
+
+      n_in_tpc++;
       
       std::vector<float> scores(3,0);
-      scores[0] = ssnet_score_v[0].pixel( meta_v[0]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[0], __FILE__, __LINE__ );
-      scores[1] = ssnet_score_v[1].pixel( meta_v[1]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[1], __FILE__, __LINE__ );
-      scores[2] = ssnet_score_v[2].pixel( meta_v[2]->row( hit.tick, __FILE__, __LINE__ ), hit.srcwire,       __FILE__, __LINE__ );
+      scores[0] = ssnet_score_v[0].pixel( hit.targetwire[3], hit.targetwire[0], __FILE__, __LINE__ );
+      scores[1] = ssnet_score_v[1].pixel( hit.targetwire[3], hit.targetwire[1], __FILE__, __LINE__ );
+      scores[2] = ssnet_score_v[2].pixel( hit.targetwire[3], hit.targetwire[2], __FILE__, __LINE__ );
 
       // condition ... gather metrics
       int n_w_score = 0;
@@ -191,8 +196,10 @@ namespace reco {
       // we form a weighted average of the score
 
       float weighted_score = tot_score/float(n_w_score);
-      if ( n_w_score>0 )
+      if ( n_w_score>0 ) {
         hit.renormed_shower_score = weighted_score;
+	n_w_labels++;
+      }
       else
         hit.renormed_shower_score = 0.;
     }//end of hit loop
@@ -200,7 +207,7 @@ namespace reco {
     clock_t end = clock();
     double elapsed = double(end-begin)/CLOCKS_PER_SEC;
     
-    LARCV_INFO() << " elasped=" << elapsed << " secs" << std::endl;
+    LARCV_NORMAL() << " elasped=" << elapsed << " secs. num w labels=" << n_w_labels << " num in tpc=" << n_in_tpc << std::endl;
     
   }
   
@@ -304,10 +311,13 @@ namespace reco {
       auto const geom = larlite::larutil::Geometry::GetME();
       larcv::EventSparseImage* ev_sparsessnet =
 	(larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage, "sparsessnet" );
+      larcv::EventImage2D* ev_ssnet2d =
+	(larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "ssnetshower" );
       larcv::EventImage2D* ev_image2d = 
 	(larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
       auto const& adc_v = ev_image2d->as_vector();
-      
+
+      int nlabeled = 0;
       for ( int icryo=0; icryo<(int)geom->Ncryostats(); icryo++) {
 	for (int itpc=0; itpc<(int)geom->NTPCs(icryo); itpc++) {
 
@@ -341,7 +351,8 @@ namespace reco {
 	      
 	      if ( spimg_planeid==isimpleplaneid ) {
 
-		auto const& spimg = ev_sparsessnet->at(ii);       	
+		auto const& spimg = ev_sparsessnet->at(ii);
+		auto const& spmeta = ev_sparsessnet->at(ii).meta_v()[0];
 		// make the image
 		larcv::Image2D ssnet( *meta );
 		ssnet.paint(0.0);
@@ -356,7 +367,26 @@ namespace reco {
 		  }
 		  int irow = int(spimg.pixellist().at( ipix*stride ));
 		  int icol = int(spimg.pixellist().at( ipix*stride+1));
-		  ssnet.set_pixel(irow,icol,1);
+
+		  if ( meta->pixel_height()<spmeta.pixel_height() ) {		  
+		    float ssnet_tick = spmeta.pos_y(irow);
+		    if ( ssnet_tick>meta->min_y() && ssnet_tick<meta->max_y() ) {
+		      int meta_row = meta->row(ssnet_tick);
+		      int upscale_factor = (int)spmeta.pixel_height()/meta->pixel_height();
+		      for (int uppix=0; uppix<upscale_factor; uppix++) {
+			ssnet.set_pixel(meta_row+uppix,icol,showerscore);
+		      }
+		      nlabeled++;		      
+		    }
+		  }
+		  else if ( meta->pixel_height()==spmeta.pixel_height() ) {  
+		    ssnet.set_pixel(irow,icol,showerscore);
+		    nlabeled++;		      
+		  }
+		  else {
+		    LARCV_CRITICAL() << "downsampling ssnet image not supported yet" << std::endl;
+		    throw std::runtime_error("downsampling ssnet image not supported yet");
+		  }
 		}
 		found_plane = true;
 		ssnet_showerimg_v.emplace_back( std::move(ssnet) );
@@ -385,11 +415,15 @@ namespace reco {
 	  // do the labeling for this tpc and cryostat
 	  larlite::event_larflow3dhit* ev_lfhit
 	    = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _input_larmatch_hit_tree_name );
-	  label( ssnet_showerimg_v, *ev_lfhit, itpc, icryo  );	 
+	  label( ssnet_showerimg_v, *ev_lfhit, itpc, icryo  );
+
+	  for ( auto showerimg : ssnet_showerimg_v )
+	    ev_ssnet2d->Emplace( std::move(showerimg) );
 	  
 	}//end of tpc loop
       }// end of cryo loop
-      
+
+      LARCV_INFO() << "number pixels labeled: " << nlabeled << std::endl;
     }//end of if detector is not MicroBooNE
     
   }

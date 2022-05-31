@@ -127,7 +127,8 @@ if args.products in ["rerun"]:
     #larcv
     iolcv.addto_storeonly_list( larcv.kProductImage2D,  "wire" )
     iolcv.addto_storeonly_list( larcv.kProductImage2D,  "thrumu" )
-    iolcv.addto_storeonly_list( larcv.kProductChStatus, "wire" )          
+    iolcv.addto_storeonly_list( larcv.kProductChStatus, "wire" )
+    iolcv.addto_storeonly_list( larcv.kProductImage2D,  "ssnetshower" )              
     for p in range(3):
         iolcv.addto_storeonly_list( larcv.kProductImage2D, "ubspurn_plane%d"%(p) )
     iolcv.addto_storeonly_list( larcv.kProductSparseImage, "sparseuresnetout" )
