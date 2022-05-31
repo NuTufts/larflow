@@ -194,21 +194,19 @@ for ientry in range(NENTRIES):
         img_indices_v = std.vector("int")(3,0)
         print("Run larmatch for (TPCID,CRYOID)=(%d,%d)"%(tpcid,cryoid))
 
-        iplane = 0
-        for icryo in range(geom.Ncryostats()):
-            for itpc in range(geom.NTPCs(icryo)):
-                nplanes = geom.Nplanes(itpc,icryo)
-                if cryoid==icryo and tpcid==itpc:
-                    img_indices_v.resize( nplanes, 0 )
-                    for p in range(nplanes):
-                        img_indices_v[p] = iplane
-                        iplane += 1
-                else:
-                    iplane += nplanes
+        nplanes = geom.Nplanes(tpcid,cryoid)
+        start_plane_index = geom.GetSimplePlaneIndexFromCTP(cryoid,tpcid,0)
+        for iplane in range( adc_v.size() ):
+            planeidx = adc_v.at(iplane).meta().id()
+            if planeidx==start_plane_index:
+                img_indices_v.resize( nplanes, 0 )
+                for p in range(nplanes):
+                    img_indices_v[p] = iplane+p
+
         strplane = ""
         for ip in range( img_indices_v.size() ):
             strplane += " %d "%(img_indices_v[ip])
-        print("  plane indices: ",strplane)
+        print("  plane indices (i.e. positions in adc_v): ",strplane)
             
         # get input data: 2d images
         sparse_np_v = []

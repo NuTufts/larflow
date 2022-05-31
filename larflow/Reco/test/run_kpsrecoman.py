@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser("Run larflow3dhit clustering algorith")
 parser.add_argument('-i','--input-dlmerged',type=str,required=True,help="Input file containing ADC, ssnet, badch images/info")
 parser.add_argument('-l','--input-larflow',type=str,required=True,help="Input file containing larlite::larflow3dhit objects")
 parser.add_argument('-o','--output',type=str,required=True,help="Name of output file. Will not overwrite")
+parser.add_argument("--detector","-geo",required=True,type=str,help="Detector geometry to apply. Options [uboone,sbnd,icarus]")    
 # optional
 parser.add_argument('-n','--num-entries',type=int,default=None,help="Number of entries to run")
 parser.add_argument('-e','--start-entry',type=int,default=0,help="Starting entry")
@@ -26,21 +27,37 @@ parser.add_argument('--stop-after-subclustering',default=False,action='store_tru
 parser.add_argument('--stop-after-nutracker',default=False,action='store_true',help="If true, stop at subcluster reco")
 parser.add_argument("--run-perfect-mcreco",default=False,action='store_true',help="If true, and --ismc also provided, then perfecto reco module is run")
 
+# CHECK ARGUMENTS
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
     raise ValueError("--product argument must either be {rerun,min,debug}")
+if args.detector not in ["uboone","sbnd","icarus"]:
+    raise ValueError("Invalid detector [%s]. options are {\"uboone\",\"sbnd\",\"icarus\"}")
 
 import ROOT as rt
 from ROOT import std
 from larlite import larlite
+from ROOT import larutil
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
 
+# SET GEOMETRY
+if args.detector == "icarus":
+    detid = larlite.geo.kICARUS
+elif args.detector == "uboone":
+    detid = larlite.geo.kMicroBooNE
+elif args.detector == "sbnd":
+    detid = larlite.geo.kSBND    
+larutil.LArUtilConfig.SetDetector(detid)
 
+# OPEN IO MANAGERS
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
-iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
-
+if args.tickbackwards:
+    iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
+else:
+    iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickForward )
+    
 print("[INPUT: DL MERGED] ",args.input_dlmerged)
 print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
 print("[OUTPUT]    ",args.output)
@@ -95,7 +112,8 @@ iolcv.specify_data_read( larcv.kProductChStatus, "wire" );
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane0" )
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane1" )
 iolcv.specify_data_read( larcv.kProductImage2D, "ubspurn_plane2" )
-iolcv.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" ) 
+iolcv.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
+iolcv.specify_data_read( larcv.kProductSparseImage, "sparsessnet" ) 
 #iolcv.addto_storeonly_list( ... )
 iolcv.reverse_all_products()
 

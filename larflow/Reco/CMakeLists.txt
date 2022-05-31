@@ -20,7 +20,7 @@ set( HEADERS cluster_functions.h
   # ShowerRecoKeypoint.h
   # ShowerBilineardEdx.h
   # ShowerdQdx.h  
-  # NuVertexCandidate.h
+  NuVertexCandidate.h
   # TrackOTFit.h
   # ProjPixFitter.h
   # ClusterBookKeeper.h
@@ -56,8 +56,7 @@ set( HEADERS cluster_functions.h
   # NuSelCosmicTagger.h
   # NuSel1e1pEventSelection.h
   # TruthRecoMatching.h
-  # KPSRecoManager.h )
-  )
+  KPSRecoManager.h )
 
 add_library( ${LIBNAME} SHARED cluster_functions.cxx
   geofuncs.cxx
@@ -77,7 +76,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   # ShowerdQdx.cxx  
   # TrackClusterBuilder.cxx
   # CosmicTrackBuilder.cxx
-  # NuVertexCandidate.cxx
+  NuVertexCandidate.cxx
   # ProjPixFitter.cxx      
   # TrackOTFit.cxx
   # ClusterBookKeeper.cxx
@@ -113,8 +112,7 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   # NuSelCosmicTagger.cxx  
   # NuSel1e1pEventSelection.cxx
   # TruthRecoMatching.cxx
-  # KPSRecoManager.cxx )
-  )
+  KPSRecoManager.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

@@ -1,6 +1,9 @@
 #include "SplitHitsBySSNet.h"
 
+#include "larlite/LArUtil/LArUtilConfig.h"
+#include "larlite/LArUtil/Geometry.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larcv/core/DataFormat/EventSparseImage.h"
 
 #include <ctime>
 
@@ -26,7 +29,7 @@ namespace reco {
   {
     
     larlite::event_larflow3dhit hitcopy_v = larmatch_hit_v;
-    label( ssnet_score_v, hitcopy_v );
+    label( ssnet_score_v, hitcopy_v, 0, 0 );
     split( hitcopy_v, ssnet_score_threshold, larmatch_score_threshold,
            accept_v, reject_v );
     
@@ -149,10 +152,12 @@ namespace reco {
    * @param[inout] larmatch_hit_v        LArMatch hits, modified
    */
   void SplitHitsBySSNet::label( const std::vector<larcv::Image2D>& ssnet_score_v,
-                                larlite::event_larflow3dhit& larmatch_hit_v )
+                                larlite::event_larflow3dhit& larmatch_hit_v,
+				const int tpcid, const int cryoid )
   {
-    
+
     clock_t begin = clock();
+    LARCV_INFO() << "Label hits coming from TPCID=" << tpcid << " CryoID=" << cryoid << std::endl;
     
     std::vector< const larcv::ImageMeta* > meta_v( ssnet_score_v.size(),0);
     for ( size_t p=0; p<ssnet_score_v.size(); p++ )
@@ -161,6 +166,9 @@ namespace reco {
     int below_threshold = 0;
     
     for ( auto & hit : larmatch_hit_v ) {
+
+      if ( hit[5]!=tpcid || hit[6]!=cryoid )
+	continue;
       
       std::vector<float> scores(3,0);
       scores[0] = ssnet_score_v[0].pixel( meta_v[0]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[0], __FILE__, __LINE__ );
@@ -233,7 +241,7 @@ namespace reco {
 
     _shower_hit_v.clear();
     _track_hit_v.clear();
-    label( ssnet_showerimg_v, *ev_lfhit );
+    label( ssnet_showerimg_v, *ev_lfhit, 0, 0 );
     split_constinput( *ev_lfhit, _score_threshold, _larmatch_threshold, _shower_hit_v, _track_hit_v );
 
     larlite::event_larflow3dhit* evout_shower_hit
@@ -261,31 +269,128 @@ namespace reco {
   void SplitHitsBySSNet::process_labelonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 
-    larcv::EventImage2D* ev_ssnet_v[3] = {nullptr};
-    for ( size_t p=0; p<3; p++ ) {
-      char prodname[20];
-      sprintf( prodname, "%s%d", _ssnet_stem_name.c_str(), (int)p );
-      ev_ssnet_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
-    }
+    if ( larutil::LArUtilConfig::Detector()==larlite::geo::kMicroBooNE ) {
+      // MICROBOONE LABELING: HAS DATA MODEL FOR SHOWER IMAGES THATS NOT EASILY EXTENDABLE
+      larcv::EventImage2D* ev_ssnet_v[3] = {nullptr};
+      for ( size_t p=0; p<3; p++ ) {
+	char prodname[20];
+	sprintf( prodname, "%s%d", _ssnet_stem_name.c_str(), (int)p );
+	ev_ssnet_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
+      }
+      
+      larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_name );
+      const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
+      
+      // collect track images
+      std::vector<larcv::Image2D> ssnet_trackimg_v;
+      for ( size_t p=0; p<3; p++ )
+	ssnet_trackimg_v.push_back(ev_ssnet_v[p]->Image2DArray()[1]);
+      
+      // collect shower images
+      std::vector<larcv::Image2D> ssnet_showerimg_v;
+      for ( size_t p=0; p<3; p++ )
+	ssnet_showerimg_v.push_back(ev_ssnet_v[p]->Image2DArray()[0]);
     
-    larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_name );
-    const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
+    
+      // larflow hits
+      larlite::event_larflow3dhit* ev_lfhit
+	= (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _input_larmatch_hit_tree_name );
+      label( ssnet_showerimg_v, *ev_lfhit, 0, 0  );
 
-    // collect track images
-    std::vector<larcv::Image2D> ssnet_trackimg_v;
-    for ( size_t p=0; p<3; p++ )
-      ssnet_trackimg_v.push_back(ev_ssnet_v[p]->Image2DArray()[1]);
-    
-    // collect shower images
-    std::vector<larcv::Image2D> ssnet_showerimg_v;
-    for ( size_t p=0; p<3; p++ )
-      ssnet_showerimg_v.push_back(ev_ssnet_v[p]->Image2DArray()[0]);
-    
-    
-    // larflow hits
-    larlite::event_larflow3dhit* ev_lfhit
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _input_larmatch_hit_tree_name );
-    label( ssnet_showerimg_v, *ev_lfhit );
+    }
+    else {
+      // we use sparsessnet SparseImage instead
+      // we use it to create a shower image
+      auto const geom = larlite::larutil::Geometry::GetME();
+      larcv::EventSparseImage* ev_sparsessnet =
+	(larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage, "sparsessnet" );
+      larcv::EventImage2D* ev_image2d = 
+	(larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+      auto const& adc_v = ev_image2d->as_vector();
+      
+      for ( int icryo=0; icryo<(int)geom->Ncryostats(); icryo++) {
+	for (int itpc=0; itpc<(int)geom->NTPCs(icryo); itpc++) {
+
+	  // the first index number of cryo and tpc IDs
+	  std::vector<larcv::Image2D> ssnet_showerimg_v;
+
+	  for (int iplane=0; iplane<(int)geom->Nplanes(itpc,icryo); iplane++) {
+	    int isimpleplaneid = geom->GetSimplePlaneIndexFromCTP( icryo, itpc, iplane );
+
+	    // need a meta for this plane
+	    const larcv::ImageMeta* meta = nullptr;
+	    for (int i=0; i<(int)adc_v.size(); i++) {
+	      if ( adc_v.at(i).meta().id()==isimpleplaneid )
+		meta = &adc_v.at(i).meta();
+	    }
+	    if ( !meta ) {
+	      LARCV_DEBUG() << "No image for (cryo,tpc,plane)=(" << icryo << "," << itpc << "," << iplane << ")" << std::endl;
+	      continue;
+	    }
+	    else {
+	      LARCV_DEBUG() << "Process image for (cryo,tpc,plane)=(" << icryo << "," << itpc << "," << iplane << ")" << std::endl;
+	      LARCV_DEBUG() << "Input ADC image meta: " << meta->dump() << std::endl;
+	    }
+	    
+	    // find the plane data
+	    bool found_plane = false;
+	    LARCV_DEBUG() << "search " << ev_sparsessnet->SparseImageArray().size() << " images" << std::endl;
+	    for (int ii=0; ii<(int)ev_sparsessnet->SparseImageArray().size(); ii++) {
+	      int spimg_planeid = ev_sparsessnet->at(ii).meta_v()[0].id();
+	      LARCV_DEBUG() << "sparse image index: " << spimg_planeid << std::endl;
+	      
+	      if ( spimg_planeid==isimpleplaneid ) {
+
+		auto const& spimg = ev_sparsessnet->at(ii);       	
+		// make the image
+		larcv::Image2D ssnet( *meta );
+		ssnet.paint(0.0);
+
+		int stride = spimg.stride();
+		for (size_t ipix=0; ipix<spimg.len(); ipix++) {
+		  float showerscore = 0;
+		  for (size_t iclass=0; iclass<spimg.nfeatures(); iclass++) {
+		    float pixscore = spimg.pixellist().at( ipix*stride + 2 + iclass );
+		    if (iclass>1)
+		      showerscore += pixscore;
+		  }
+		  int irow = int(spimg.pixellist().at( ipix*stride ));
+		  int icol = int(spimg.pixellist().at( ipix*stride+1));
+		  ssnet.set_pixel(irow,icol,1);
+		}
+		found_plane = true;
+		ssnet_showerimg_v.emplace_back( std::move(ssnet) );
+		break;
+	      }//if plane has the id we're looking for
+	    }//end of loop over sparsessnet vector
+
+	    if ( !found_plane ) {
+	      LARCV_CRITICAL() << "Could not find sparseimage for (simple) planeid=" << isimpleplaneid << std::endl;
+	      throw std::runtime_error("Could not find sparseimage for (simple) planeid");
+	    }
+	  }//end of plane in TPC loop
+
+	  if ( ssnet_showerimg_v.size()>0 && ssnet_showerimg_v.size()!=(int)geom->Nplanes(itpc,icryo) ) {
+	    LARCV_CRITICAL() << "The number of shower images (" << ssnet_showerimg_v.size() << ") "
+			     << "does not match the number of planes in the TPC (" << geom->Nplanes(itpc,icryo)  << ")"
+			     << std::endl;
+	    throw std::runtime_error("The number of shower images does not match the number of planes in the TPC");
+	  }
+
+	  if ( ssnet_showerimg_v.size()==0 ) {
+	    // no info for this TPC
+	    continue;
+	  }
+	  
+	  // do the labeling for this tpc and cryostat
+	  larlite::event_larflow3dhit* ev_lfhit
+	    = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, _input_larmatch_hit_tree_name );
+	  label( ssnet_showerimg_v, *ev_lfhit, itpc, icryo  );	 
+	  
+	}//end of tpc loop
+      }// end of cryo loop
+      
+    }//end of if detector is not MicroBooNE
     
   }
 

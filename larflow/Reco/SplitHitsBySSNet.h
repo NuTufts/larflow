@@ -40,7 +40,8 @@ namespace reco {
                           std::vector<larlite::larflow3dhit>& reject_v );
 
     void label( const std::vector<larcv::Image2D>& ssnet_score_v,
-                larlite::event_larflow3dhit& larmatch_hit_v );
+                larlite::event_larflow3dhit& larmatch_hit_v,
+		const int tpcid, const int cryoid );
 
     void split( larlite::event_larflow3dhit& lfhit_v,
                 const float ssnet_score_threshold,

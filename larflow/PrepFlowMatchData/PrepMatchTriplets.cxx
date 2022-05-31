@@ -80,7 +80,7 @@ namespace prep {
     
     // we loop over tpcs
     auto const geom = larlite::larutil::Geometry::GetME();
-    int iplane=0;
+
     for ( int icryo=0; icryo<(int)geom->Ncryostats(); icryo++ ) {
       for (int itpc=0; itpc<geom->NTPCs(icryo); itpc++) {	
 	std::vector< const larcv::Image2D*  > tpc_adc_v;
@@ -88,12 +88,18 @@ namespace prep {
 
 	int nplanes = geom->Nplanes( itpc, icryo );
 	for (int p=0; p<nplanes; p++) {
-	  LARCV_NORMAL() << "Store adc_v image[" << iplane << "] for (plane,tpc,cryo)=(" << p << "," << itpc << "," << icryo << ")" << std::endl;
-	  tpc_adc_v.push_back( &adc_v.at(iplane) );
-	  tpc_badch_v.push_back( &badch_v.at(iplane) );
-	  iplane++;
-	}
 
+	  int planeindex = geom->GetSimplePlaneIndexFromCTP( icryo, itpc, p );
+	  for ( int iplane=0; iplane<(int)adc_v.size(); iplane++ ) {
+	    auto& img = adc_v[iplane];
+	    if ( img.meta().id()==planeindex ) {
+	      tpc_adc_v.push_back( &adc_v.at(iplane) );
+	      tpc_badch_v.push_back( &badch_v.at(iplane) );
+	      LARCV_NORMAL() << "Store adc_v image[" << iplane << "] for (plane,tpc,cryo)=(" << p << "," << itpc << "," << icryo << ")" << std::endl;
+	    }	      
+	  }
+	}
+	
 	process_tpc_v2( tpc_adc_v, tpc_badch_v, 10.0, itpc, icryo );
 	
       }
