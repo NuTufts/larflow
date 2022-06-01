@@ -66,7 +66,7 @@ namespace reco {
 	for (int iplane=0; iplane<nplanes; iplane++ ) {
       
 	  _make_pixelmap( *ev_hit, *padc_v.at(iplane), iplane, itpc, icryo, used_v );
-	  LARCV_INFO() << "Source (cryo,tpc,plane)=(" << icryo << "," << itpc << "," << itpc << ") "
+	  LARCV_INFO() << "Source (cryo,tpc,plane)=(" << icryo << "," << itpc << "," << iplane << ") "
 		       << " size of map: " << _srcpixel_to_spacepoint_m.size() << std::endl;
     
 	  // select hits

@@ -285,40 +285,41 @@ namespace reco {
     _choosemaxhit.set_verbosity( larcv::msg::kINFO );
     _choosemaxhit.process( iolcv, ioll );
 
-    // // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
-    // // input:
-    // //  * larflow3dhit_taggerrejecthit_tree: out-of-time hits
-    // // output:
-    // //  * larflow3dhit_ssnetsplit_full_showerhit_tree: out-of-time shower hits
-    // //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
-    // _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
-    // _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
-    // _splithits_full.process_splitonly( iolcv, ioll );
+    // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
+    // input:
+    //  * larflow3dhit_taggerrejecthit_tree: out-of-time hits
+    // output:
+    //  * larflow3dhit_ssnetsplit_full_showerhit_tree: out-of-time shower hits
+    //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
+    _splithits_full.set_verbosity( larcv::msg::kINFO );
+    _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
+    _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
+    _splithits_full.process_splitonly( iolcv, ioll );
 
-    // // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
-    // // input:
-    // //  * larflow3dhit_ssnetsplit_full_trackhit_tree: out-of-time track hits
-    // // output:
-    // //  *  larflow3dhit_full_maxtrackhit_tree: reduced out-of-time track hits
-    // _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
-    // _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
-    // _choosemaxhit.process( iolcv, ioll );
+    // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
+    // input:
+    //  * larflow3dhit_ssnetsplit_full_trackhit_tree: out-of-time track hits
+    // output:
+    //  *  larflow3dhit_full_maxtrackhit_tree: reduced out-of-time track hits
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
+    _choosemaxhit.process( iolcv, ioll );
 
-    // // if we're stopping at this stage for debugging/plotting,
-    // // we force the saving of all the intermediate hit containers
-    // if ( _stop_after_prepspacepoints ) {
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "larmatch" ); ///< save all original hits (now ssnet-labeled)
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxtrackhit_wcfilter" ); ///< final set of in-time track hits
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxshowerhit" );         ///< final set of in-time shower hits      
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "full_maxtrackhit" );     ///< final set of out-of-time track hits
+    // if we're stopping at this stage for debugging/plotting,
+    // we force the saving of all the intermediate hit containers
+    if ( _stop_after_prepspacepoints ) {
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "larmatch" ); ///< save all original hits (now ssnet-labeled)
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxtrackhit_wcfilter" ); ///< final set of in-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxshowerhit" );         ///< final set of in-time shower hits      
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "full_maxtrackhit" );     ///< final set of out-of-time track hits
 
-    //   // intermediate hits
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_trackhit" );      //< pre-max out-of-time track hits
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_showerhit" );     //< pre-max out-of-time shower hits
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_trackhit" );  //< pre-max in-time track hits
-    //   ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_showerhit" ); //< pre-max in-time track hits
+      // intermediate hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_trackhit" );      //< pre-max out-of-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_showerhit" );     //< pre-max out-of-time shower hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_trackhit" );  //< pre-max in-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_showerhit" ); //< pre-max in-time track hits
       
-    // }
+    }
     
   }
   

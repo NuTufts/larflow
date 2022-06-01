@@ -94,7 +94,7 @@ namespace reco {
 
     // // larflow hit classification
     ChooseMaxLArFlowHit _choosemaxhit; ///< reduce cosmic-track hits using max larmatch score    
-    // SplitHitsBySSNet _splithits_full; ///< splits shower space points from track spacepoints
+    SplitHitsBySSNet _splithits_full; ///< splits shower space points from track spacepoints
     SplitHitsBySSNet _splithits_wcfilter; ///< splits shower spacepoints from track spacepoints for wc filtered hits
 
     // // clustering
