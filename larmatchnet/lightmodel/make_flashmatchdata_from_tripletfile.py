@@ -163,10 +163,10 @@ kp_weight_v = std.vector("larcv::NumpyArrayFloat")()
 outtree.Branch("run", run, "run/I")
 outtree.Branch("subrun", subrun, "subrun/I")
 outtree.Branch("event",  event,  "event/I")
-outtree.Branch("ancestorID",  ancestorID,  "ancestorID/I")
-outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
-outtree.Branch("flashTick",  flashTick,  "flashTick/D")
-outtree.Branch("origin",  origin,  "origin/I")
+##outtree.Branch("ancestorID",  ancestorID,  "ancestorID/I")
+##outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
+##outtree.Branch("flashTick",  flashTick,  "flashTick/D")
+##outtree.Branch("origin",  origin,  "origin/I")
 outtree.Branch("coord_v",  coord_v)
 outtree.Branch("feat_v",   feat_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
@@ -182,7 +182,7 @@ outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 
 #listy = []
 
-def createIntrxn(iid_v):
+def voxelizeIntrxn(iid_v):
     print("This is iid_v: ",iid_v)
 
     # create array with T/F boolean
@@ -253,6 +253,9 @@ def createIntrxn(iid_v):
 #iomc.next_event()
 for ientry in range(2):
 
+    ancestorList = [] # keep track of intrxn ancestor IDs in the event
+    trackList = []
+
     data = next(iter(loader))[0]
 
     print()
@@ -283,6 +286,8 @@ for ientry in range(2):
 
     counter = 0
 
+    iidList = [] # push back each iid_v list into here
+
     # loop thru tracks in event
     for i in range( 0, numTracks, 1 ):
 
@@ -291,15 +296,26 @@ for ientry in range(2):
 
         track_tick = fmutil.grabTickFromMCTrack( ioll, i )
 
-        print("TrackID here is: ", fmutil.getTrackID())
-        print("AncestorID here is: ", fmutil.trackAncestorID())
-
         producer = fmutil.producer
         isCosmic = fmutil.isCosmic
 
         print("Now isCosmic has been set to: ",isCosmic)
         if (isCosmic == 1):
             continue
+
+        ancestor = fmutil.trackAncestorID()
+        trackid = fmutil.getTrackID()
+
+        print("TrackID here is: ", trackid)
+        print("AncestorID here is: ", ancestor)
+
+        trackList.append(trackid)
+
+        if ancestor in ancestorList:
+            continue # this is a secondary; skip for now
+
+        ancestorList.append( ancestor )
+        print("ancestorList: ",ancestorList)
 
         print(producer)
 
@@ -314,12 +330,12 @@ for ientry in range(2):
         # Found a flash match! Now fill the tree
         if match[0] != -999.999 and match[0] != 999.999 and track_tick != -999.997:
 
-            for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
-                     ssnet_truth_v, ssnet_weight_v,
-                     kp_truth_v, kp_weight_v,
-                     instance_truth_v, instance_map_v,
-                     ancestor_truth_v, ancestor_weight_v ]:
-                     vec.clear()
+            ##for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
+            ##         ssnet_truth_v, ssnet_weight_v,
+            ##         kp_truth_v, kp_weight_v,
+            ##         instance_truth_v, instance_map_v,
+            ##         ancestor_truth_v, ancestor_weight_v ]:
+            ##         vec.clear()
 
             #data = next(iter(loader))[0]
 
@@ -333,19 +349,19 @@ for ientry in range(2):
 
             print("wtf: ",data["voxcoord"].shape)
 
-            fmutil.process( ioll )
-            run[0] = ioll.run_id()
-            subrun[0] = ioll.subrun_id()
-            event[0] = ioll.event_id()
+            #fmutil.process( ioll )
+            ##run[0] = ioll.run_id()
+            ##subrun[0] = ioll.subrun_id()
+            ##event[0] = ioll.event_id()
             #ancestorID[0] = fmutil.trackAncestorID(ioll,i)
-            ancestorID[0] = fmutil.trackAncestorID()
-            clusterTick[0] = track_tick
-            flashTick[0] = match[0]
-            origin[0] = fmutil.trackOrigin()
+            ##ancestorID[0] = fmutil.trackAncestorID()
+            ##clusterTick[0] = track_tick
+            ##flashTick[0] = match[0]
+            ##origin[0] = fmutil.trackOrigin()
 
             iid_v = [] # list of instance ids to collect
 
-            print("ancestorID: ",ancestorID[0])
+            ##print("ancestorID: ",ancestorID[0])
 
             #print("voxinstance2id",data["voxinstance2id"])
 
@@ -358,7 +374,7 @@ for ientry in range(2):
                 #print("trackID and instance: ", pair[0], " ", pair[1])
                 instance_map_v.push_back(pair)
                 #print("instance_map_v: ",instance_map_v)
-                if (k == ancestorID[0]):
+                if (k == ancestor):
                     print("FOUND a track that matches ancestorID!")
                     print("It is track ID: ",k)
                     print("For instance: ",v)
@@ -369,31 +385,55 @@ for ientry in range(2):
                 print("List is empty")
                 continue
 
-            createIntrxn(iid_v)
+            iidList.append(iid_v)
 
-            out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
-            out_mctrack.push_back( ev_mctrack.at(i) )
+    # should be in event loop
+
+    print("This is event NO: ", ientry)
+    print("IIDLOST: ",iidList)
+    print("ancestorList: ", ancestorList)
+    print("trackList: ", trackList)
+
+    run[0] = ioll.run_id()
+    subrun[0] = ioll.subrun_id()
+    event[0] = ioll.event_id()
+
+    for i in range(len( iidList )):
+        print("size of the iidList at the END: ",len( iidList ))
+        print("i, iidList[i]: ",i, iidList[i])
+
+        for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
+                 ssnet_truth_v, ssnet_weight_v,
+                 kp_truth_v, kp_weight_v,
+                 instance_truth_v, instance_map_v,
+                 ancestor_truth_v, ancestor_weight_v ]:
+                 vec.clear()
+
+        voxelizeIntrxn(iidList[i])
+
+            ##out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
+            ##out_mctrack.push_back( ev_mctrack.at(i) )
 
 
-            out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
-            if (fmutil.isCosmic == 1):
-                print("ev_opflash_cosmic: ",ev_opflash_cosmic)
-                out_opflash.push_back( ev_opflash_cosmic.at( match[1] ) )
-            else:
-                print("ev_opflash_beam: ",ev_opflash_beam)
-                out_opflash.push_back( ev_opflash_beam.at( match[1] ) )
+            ##out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
+            ##if (fmutil.isCosmic == 1):
+            ##    print("ev_opflash_cosmic: ",ev_opflash_cosmic)
+            ##    out_opflash.push_back( ev_opflash_cosmic.at( match[1] ) )
+            ##else:
+            ##    print("ev_opflash_beam: ",ev_opflash_beam)
+            ##    out_opflash.push_back( ev_opflash_beam.at( match[1] ) )
 
-            counter = counter + 1
+            ##counter = counter + 1
 
             # need to increment event id so final filtered tree entries don't all have same eventid
             # (assumes <100 clusters in an event)
-            iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
-            iomc.next_event()
+            ##iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
+            ##iomc.next_event()
 #            ioop.next_event()
 
-            print("CHOSEN TICK ACTUAL TIME WAS: ", ((match[0]-3200.0)*0.5) )
+            ##print("CHOSEN TICK ACTUAL TIME WAS: ", ((match[0]-3200.0)*0.5) )
 
-            outtree.Fill()
+        outtree.Fill()
             #newT.Fill()
 
 
