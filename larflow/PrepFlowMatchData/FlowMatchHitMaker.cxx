@@ -302,11 +302,13 @@ namespace prep {
         continue;
       
       hit.srcwire = m.Y;
-      hit.targetwire.resize(4);
+      hit.targetwire.resize(6);
       hit.targetwire[0] = m.U;
       hit.targetwire[1] = m.V;
       hit.targetwire[2] = m.Y;
       hit.targetwire[3] = meta.row(hit.tick);
+      hit.targetwire[4] = m.tpcid;
+      hit.targetwire[5] = m.cryoid;
       hit.idxhit = idx;
       if(m.istruth==0) hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kNoTruthMatch;
       else{ hit.truthflag = larlite::larflow3dhit::TruthFlag_t::kOnTrack;}

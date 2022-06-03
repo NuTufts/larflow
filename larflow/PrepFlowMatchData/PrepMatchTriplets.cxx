@@ -100,7 +100,7 @@ namespace prep {
 	  }
 	}
 	
-	process_tpc_v2( tpc_adc_v, tpc_badch_v, 10.0, itpc, icryo );
+	process_tpc_v2( tpc_adc_v, tpc_badch_v, adc_threshold, itpc, icryo );
 	
       }
     }
@@ -194,7 +194,8 @@ namespace prep {
     int ncols = meta.cols();
     std::vector< std::vector<int> > plane_combos_v;
     plane_combos_v.push_back( std::vector<int>( {0,1,2} ) );
-    plane_combos_v.push_back( std::vector<int>( {0,2,1} ) );
+    plane_combos_v.push_back( std::vector<int>( {1,2,0} ) );
+    plane_combos_v.push_back( std::vector<int>( {0,2,1} ) );    
 
     auto const geom    = larlite::larutil::Geometry::GetME();
     auto const detprop = larutil::DetectorProperties::GetME();    
@@ -224,15 +225,19 @@ namespace prep {
       float tick = meta.pos_y(irow);      
       // loop through the plane colums and get columns above thresh
       //std::cout << "irow[" << irow << "] -----------------------" << std::endl;
-      std::vector< std::vector<int> > plane_cols(3);
+      std::vector< std::vector<int> > plane_cols(nplanes);
       for (int iplane=0; iplane<nplanes; iplane++) {
+	plane_cols[iplane].clear();
      	int splaneid = start_plane+iplane;
      	auto const& pimg = adc_v.at(splaneid);
-	//std::cout << "iplane[" << iplane << "] icryo=" << icryo << " itpc=" << itpc << " iplaneid=" << planeid << std::endl;
+	//std::cout << "  plane[" << iplane << " ]: ";
      	for (int icol=0; icol<(int)pimg->meta().cols(); icol++) {
-     	  if ( pimg->pixel(irow,icol)>=adc_threshold )
+     	  if ( pimg->pixel(irow,icol)>=adc_threshold ) {
      	    plane_cols[iplane].push_back(icol);
+	    //std::cout << " " << icol;
+	  }
      	}
+	//std::cout << " :: ncols=" << plane_cols[iplane].size() << std::endl;
       }
       
       for (int ii=0; ii<(int)plane_combos_v.size(); ii++) {
@@ -251,14 +256,55 @@ namespace prep {
 
 	      // other plane wire
 	      int otherwire = intersect[idx1][idx2]-1;
-	      if ( adc_v[start_plane+ipl3]->pixel(irow,otherwire)>=adc_threshold ) {
+	      float pixvalue = adc_v[start_plane+ipl3]->pixel(irow,otherwire);
 
+	      // one condition of accepting spacepoint proposal
+	      bool abovethresh = pixvalue>=adc_threshold;
+
+	      // handle dead channels (microboone)
+	      bool deadch_pass = false;
+
+	      // missing induction plane
+	      bool induction_pass = false;
+	      if ( ipl3==0 ) { //fabs(pixvalue)>2.0 ) {
+		induction_pass = true;
+	      }
+	      
+	      if ( abovethresh || deadch_pass || induction_pass  ) {
+		// * to do: how to forgive induction plane
+		
 		std::vector<int> wirecoord(4,0);
 		wirecoord[ipl1] = idx1;
 		wirecoord[ipl2] = idx2;
 		wirecoord[ipl3] = otherwire;
 		wirecoord[3]    = (int)tick;
 
+		// we need to insert the dead or induction pixel into the sparsemap
+		if ( induction_pass ) {
+		  auto& pl3map = map_sparseimg_pix2index_v[ipl3];
+		  auto it_img = pl3map.find( std::pair<int,int>(irow,otherwire) );
+		  if ( it_img==pl3map.end() ) {
+		    auto& pl3sparseimg = matchdata._sparseimg_vv.at(ipl3);
+		    int newindex = pl3sparseimg.size();
+		    pl3sparseimg.push_back( FlowTriples::PixData_t( irow, otherwire, fabs(pixvalue), newindex ) );
+		    pl3map[ std::pair<int,int>(irow,otherwire) ] = newindex;
+		    // std::cout << "  IND pass CTP=(" << cryoid << "," << tpcid << "," << ipl3 << "): "
+		    // 	      << " row=" << irow << " tick=" << (int)tick
+		    // 	      << " wires=(" << wirecoord[0] << "," << wirecoord[1] << "," << wirecoord[2] << ") "
+		    // 	      << "adding pix(row,col)=(" << irow << "," << wirecoord[2] << ") "
+		    // 	      << "pixval=" << pixvalue
+		    // 	      << std::endl;
+		  }
+		}
+		else if ( abovethresh ) {
+		  // std::cout << "  3-PLANE CTP=(" << cryoid << "," << tpcid << "," << ipl3 << "): "
+		  // 	    << " row=" << irow << " tick=" << (int)tick
+		  // 	    << " wires=(" << wirecoord[0] << "," << wirecoord[1] << "," << wirecoord[2] << ") "
+		  // 	    << "adding pix(row,col)=(" << irow << "," << wirecoord[2] << ") "
+		  // 	    << "pixval=" << pixvalue
+		  // 	    << std::endl;
+		}
+		
 		// get triplet index
 		std::vector<int> triplet(4,0);
 		for (size_t p=0; p<3; p++) {

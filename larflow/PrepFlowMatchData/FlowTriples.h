@@ -50,8 +50,8 @@ namespace prep {
        *  @param[in] c col of pixel
        *  @param[in] v value of pixel
        */      
-      PixData_t( int r, int c, float v)
-      : row(r),col(c),val(v),idx(0) {};
+      PixData_t( int r, int c, float v, int index=0)
+      : row(r),col(c),val(v),idx(index) {};
 
       /** @brief comparator based on row then col then value */
       bool operator<( const PixData_t& rhs ) const {
