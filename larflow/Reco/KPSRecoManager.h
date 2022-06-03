@@ -21,13 +21,15 @@
 // larflow
 #include "larflow/Reco/NuVertexCandidate.h"
 #include "larflow/Reco/KeypointReco.h"
+#include "larflow/Reco/EventKeypointReco.h"
 // #include "KeypointFilterByClusterSize.h"
 #include "FilterByWCTagger.h"
 #include "SplitHitsBySSNet.h"
-// #include "ShowerRecoKeypoint.h"
-// #include "ProjectionDefectSplitter.h"
-// #include "ShortProtonClusterReco.h"
 #include "ChooseMaxLArFlowHit.h"
+#include "ProjectionDefectSplitter.h"
+#include "ShowerRecoKeypoint.h"
+
+// #include "ShortProtonClusterReco.h"
 // #include "NuVertexMaker.h"
 // #include "CosmicVertexBuilder.h"
 // #include "CosmicTrackBuilder.h"
@@ -85,10 +87,11 @@ namespace reco {
     ublarcvapp::EmptyChannelAlgo _badchmaker; ///< bad channel image maker. also finds empty channels.
 
     // keypoint reconstruction
-    // KeypointReco     _kpreco_nu; ///< reconstruct keypoints from network scores for neutrino class
-    // KeypointReco     _kpreco_track; ///< reconstruct keypoints from network scores for track class
-    // KeypointReco     _kpreco_shower; ///< reconstruct keypoints from network scores for shower class
-    // KeypointReco     _kpreco_track_cosmic; ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
+    KeypointReco     _kpreco_nu; ///< reconstruct keypoints from network scores for neutrino class
+    KeypointReco     _kpreco_track; ///< reconstruct keypoints from network scores for track class
+    KeypointReco     _kpreco_shower; ///< reconstruct keypoints from network scores for shower class
+    KeypointReco     _kpreco_track_cosmic; ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
+    EventKeypointReco   _kpreco_event_v2; ///< reconstruct all the different keypoint types
     // KeypointFilterByClusterSize _kpfilter; ///< filter out reconstructed keypoints on small clusters
     FilterByWCTagger _wcfilter; ///< filter out keypoints on wirecell cosmic-tagged pixes
 
@@ -98,10 +101,10 @@ namespace reco {
     SplitHitsBySSNet _splithits_wcfilter; ///< splits shower spacepoints from track spacepoints for wc filtered hits
 
     // // clustering
-    // ProjectionDefectSplitter _projsplitter; ///< split wirecell filtered track clusters into straight clusters
-    // ProjectionDefectSplitter _projsplitter_cosmic; ///< split cosmic-track clusters into straight clusters
+    ProjectionDefectSplitter _projsplitter; ///< split wirecell filtered track clusters into straight clusters
+    ProjectionDefectSplitter _projsplitter_cosmic; ///< split cosmic-track clusters into straight clusters
+    ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints    
     // ShortProtonClusterReco   _short_proton_reco;   ///< short proton reco using HIP space points only    
-    // ShowerRecoKeypoint _showerkp; ///< reconstruct shower prongs using shower hits and shower keypoints
 
     // // mc-based reco
     // PerfectTruthNuReco _perfect_reco; ///< make nuvertexcandidate using true trajectories and showers
@@ -153,8 +156,8 @@ namespace reco {
 
     // Stages
     void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    // void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    // void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

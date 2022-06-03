@@ -60,20 +60,21 @@ namespace reco {
   protected:
 
     larlite::larflowcluster
-      _makeLArFlowCluster( cluster_t& cluster,
-                           const larlite::event_larflow3dhit& source_lfhit_v );
+    _makeLArFlowCluster( cluster_t& cluster,
+			 const std::vector< const larlite::larflow3dhit* >& source_lfhit_v );
     
     cluster_t _absorb_nearby_hits( cluster_t& cluster,
-                                   const std::vector<larlite::larflow3dhit>& hit_v,
+                                   const std::vector<const larlite::larflow3dhit*>& hit_v,
                                    std::vector<int>& used_hits_v,
                                    std::vector<larlite::larflow3dhit>& downsample_hit_v,
                                    std::vector<int>& orig_idx_v,                       
                                    float max_dist2line );
     
-    void _runSplitter( const larlite::event_larflow3dhit& inputhits,
-                       const std::vector<larcv::Image2D>& adc_v,
+    void _runSplitter( const std::vector<const larlite::larflow3dhit*>& inputhits,
+                       const std::vector<const larcv::Image2D*>& adc_v,
                        std::vector<int>& used_hits_v,
-                       std::vector<cluster_t>& output_cluster_v );
+                       std::vector<cluster_t>& output_cluster_v,
+		       const int tpcid, const int cryoid );
 
     void _findVetoClusters( const larlite::event_larflow3dhit& inputhits,
 			    const std::vector<larcv::Image2D>& adc_v,
@@ -148,8 +149,9 @@ namespace reco {
     std::vector< const larlite::larflow3dhit* > _keypoints_for_veto_v;
     std::map<int,int>  _hitidx_to_kpidx;  ///< for vetoed hits, the keypoint index it was vetoed by
     std::vector<float> _hitidx_to_kpdist; ///< distance to keypoint
-    int _veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
-                                    std::vector<int>& used_hits_v );
+    int _veto_hits_using_keypoints( const std::vector<const larlite::larflow3dhit*>& inputhits,
+                                    std::vector<int>& used_hits_v,
+				    const int tpcid, const int cryoid );
     int _veto_hits_using_keypoint_scores( const larlite::event_larflow3dhit& inputhits,
 					  std::vector<int>& used_hits_v,
 					  float kp_score_threshold );
@@ -159,13 +161,13 @@ namespace reco {
   public:
     
     static void fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
-                                           const larlite::event_larflow3dhit& lfhit_v,
-                                           const std::vector<larcv::Image2D>& adc_v,
+					   const std::vector<const larlite::larflow3dhit*>& lfhit_v,
+					   const std::vector<const larcv::Image2D*>& adc_v,
                                            larlite::event_track& evout_track );
     
     static larlite::track fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
-                                                   const larlite::event_larflow3dhit& lfhit_v,
-                                                   const std::vector<larcv::Image2D>& adc_v,
+                                                   const std::vector<const larlite::larflow3dhit*>& lfhit_v,
+                                                   const std::vector<const larcv::Image2D*>& adc_v,
                                                    const float max_line_seg_cm=5.0);
   public:
 

@@ -9,6 +9,7 @@
 
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/larflowcluster.h"
+#include "larlite/LArUtil/Geometry.h"
 
 #include "TRandom3.h"
 
@@ -44,12 +45,29 @@ namespace reco {
    */
   void ProjectionDefectSplitter::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) {
 
+    // INPUTS
+    // ----------------------------------------
     // get hits
     larlite::event_larflow3dhit* ev_lfhits
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _input_lfhit_tree_name );
 
     larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
+
+    // OUTPUTS
+    // ---------------------------------------
+    // form clusters of larflow hits for saving
+    larlite::event_larflowcluster* evout_lfcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, _output_cluster_tree_name );
+    larlite::event_pcaxis*         evout_pcaxis
+      = (larlite::event_pcaxis*)        ioll.get_data( larlite::data::kPCAxis, _output_cluster_tree_name );
+    larlite::event_track* evout_track
+      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _output_cluster_tree_name );
+    larlite::event_larflow3dhit* evout_noise
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitnoise" );
+    larlite::event_larflow3dhit* evout_veto
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitvetoed" );    
+    // ----------------------------------------------------------------
 
     // get keypoint event containers to veto hits (if any trees were specified)
     _event_keypoint_for_veto_v.clear();
@@ -67,67 +85,105 @@ namespace reco {
     }
 
 
-    // cluster track hits
-    std::vector<int> used_hits_v( ev_lfhits->size(), 0 );
-    std::vector<cluster_t> cluster_track_v;
-    _runSplitter( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
+    auto const geom = larlite::larutil::Geometry::GetME();
+    for (int icryo=0; icryo<(int)geom->Ncryostats(); icryo++) {
+      for (int itpc=0; itpc<(int)geom->NTPCs(icryo); itpc++) {
 
-    // look for short proton clusters in left over veto hits
-    // if (_cluster_veto_hits)
-    //   _findVetoClusters( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
+	int startplaneindex = geom->GetSimplePlaneIndexFromCTP( icryo, itpc, 0 );
 
-    // Fit linesegments to clusters
-    larlite::event_track* evout_track
-      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, _output_cluster_tree_name );
-    if ( _fit_line_segments_to_clusters ) {
-      std::clock_t t_fit_start = std::clock();
-      LARCV_INFO() << "fit the clusters"  << std::endl;
-      fitLineSegmentsToClusters( cluster_track_v, *ev_lfhits, adc_v, *evout_track );
-      std::clock_t t_fit_end = std::clock();
-      float fit_elapsed = ( t_fit_end-t_fit_start )/CLOCKS_PER_SEC;
-      LARCV_INFO() << "fit end; elapsed=" << fit_elapsed << " secs" << std::endl;      
-    }
-    else {
-      // make tracks using pca instead
-      
-    }
-    
+	// look for it in the adc_v list
+	bool found = false;
+	for ( auto const& img : adc_v ) {
+	  if ( img.meta().id()==startplaneindex ) {
+	    found = true;
+	    break;
+	  }
+	}
+	
+	if ( !found )
+	  continue; // to next tpc
 
-    // FORM OUTPUTS
-    // =============
-    
-    // form clusters of larflow hits for saving
-    larlite::event_larflowcluster* evout_lfcluster
-      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, _output_cluster_tree_name );
-    larlite::event_pcaxis*         evout_pcaxis
-      = (larlite::event_pcaxis*)        ioll.get_data( larlite::data::kPCAxis, _output_cluster_tree_name );
-    
-    int cidx = 0;
-    for ( auto& c : cluster_track_v ) {
-      // cluster of hits
-      larlite::larflowcluster lfcluster = _makeLArFlowCluster( c, *ev_lfhits );
-      evout_lfcluster->emplace_back( std::move(lfcluster) );
-      // pca-axis
-      larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
-      evout_pcaxis->push_back( llpca );
-      cidx++;
-    }
+	// ok, we have images for this tpc
+	// we get the tagger images and ssnet images for the tpc
+	std::vector< const larcv::Image2D* > padc_v;
+	const int nplanes = geom->Nplanes( itpc, icryo );
+	for (int iplane=0; iplane<nplanes; iplane++) {
+	  int simpleindex = geom->GetSimplePlaneIndexFromCTP( icryo, itpc, iplane );
+	  for ( auto const& adc : adc_v ) {
+	    if (adc.meta().id()==simpleindex) {
+	      padc_v.push_back( &adc );
+	      break;
+	    }
+	  }
+	}
+	
+	if ( padc_v.size()!=nplanes ) {
+	  LARCV_CRITICAL() << "Wrong number of wire signal images (" << padc_v.size() << ") versus number of TPC planes (" << geom->Nplanes(itpc,icryo) << ")"  << std::endl;
+	}
 
-    // make noise cluster
-    larlite::event_larflow3dhit* evout_noise = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitnoise" );    
-    for ( size_t i=0; i<ev_lfhits->size(); i++ ) {
-      if ( used_hits_v[i]==0 ) {
-        evout_noise->push_back( ev_lfhits->at(i) );
-      }
-    }
-    // store veto'd hits
-    larlite::event_larflow3dhit* evout_veto = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitvetoed" );    
-    for ( size_t i=0; i<ev_lfhits->size(); i++ ) {
-      if ( used_hits_v[i]==2 )
-        evout_veto->push_back( ev_lfhits->at(i) );
-    }
-    
-  }
+	std::vector< const larlite::larflow3dhit* > tpc_hit_v;
+	for (auto const& hit : *ev_lfhits ) {
+	  int hit_tpcid  = hit.targetwire[4];
+	  int hit_cryoid = hit.targetwire[5];
+	  if ( hit_tpcid!=itpc || hit_cryoid!=icryo )
+	    continue;
+	  tpc_hit_v.push_back( &hit );
+	}
+
+	// cluster track hits
+	std::vector<int> used_hits_v( tpc_hit_v.size(), 0 );
+	std::vector<cluster_t> cluster_track_v;
+	_runSplitter( tpc_hit_v, padc_v, used_hits_v, cluster_track_v, itpc, icryo );
+
+	// look for short proton clusters in left over veto hits
+	// if (_cluster_veto_hits)
+	//   _findVetoClusters( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
+	
+	// Fit linesegments to clusters
+	if ( _fit_line_segments_to_clusters ) {
+	  std::clock_t t_fit_start = std::clock();
+	  LARCV_INFO() << "fit the clusters"  << std::endl;
+	  fitLineSegmentsToClusters( cluster_track_v, tpc_hit_v, padc_v, *evout_track );
+	  std::clock_t t_fit_end = std::clock();
+	  float fit_elapsed = ( t_fit_end-t_fit_start )/CLOCKS_PER_SEC;
+	  LARCV_INFO() << "fit end; elapsed=" << fit_elapsed << " secs" << std::endl;      
+	}
+	else {
+	  // make tracks using pca instead
+	  
+	}
+
+	LARCV_INFO() << "Number of clusters in (cryo,tpc)=(" << icryo << "," << itpc << "): "
+		     << cluster_track_v.size()
+		     << std::endl;
+	
+	int cidx = 0;
+	for ( auto& c : cluster_track_v ) {
+	  // cluster of hits
+	  larlite::larflowcluster lfcluster = _makeLArFlowCluster( c, tpc_hit_v );
+	  evout_lfcluster->emplace_back( std::move(lfcluster) );
+	  // pca-axis
+	  larlite::pcaxis llpca = cluster_make_pcaxis( c, cidx );
+	  evout_pcaxis->push_back( llpca );
+	  cidx++;
+	}
+
+	// make noise cluster
+	for ( size_t i=0; i<tpc_hit_v.size(); i++ ) {
+	  if ( used_hits_v[i]==0 ) {
+	    evout_noise->push_back( *tpc_hit_v.at(i) );
+	  }
+	}
+	// store veto'd hits
+	for ( size_t i=0; i<tpc_hit_v.size(); i++ ) {
+	  if ( used_hits_v[i]==2 )
+	    evout_veto->push_back( *tpc_hit_v.at(i) );
+	}
+      } // tpc loop
+    } // cryo loop
+
+    LARCV_INFO() << "Num total clusters: " << evout_lfcluster->size() << std::endl;
+  }//end of process
 
   /**
    * @brief split clusters using 2D contours.
@@ -452,7 +508,7 @@ namespace reco {
    */
   larlite::larflowcluster
   ProjectionDefectSplitter::_makeLArFlowCluster( cluster_t& cluster,
-                                                 const larlite::event_larflow3dhit& source_lfhit_v ) {
+                                                 const std::vector< const larlite::larflow3dhit* >& source_lfhit_v ) {
     
     larlite::larflowcluster lfcluster;
     lfcluster.reserve( cluster.points_v.size() );
@@ -465,7 +521,7 @@ namespace reco {
         throw std::runtime_error("Could not retrieve hit index");
       }
       
-      auto const& srchit = source_lfhit_v[hitidx];
+      auto const& srchit = *source_lfhit_v[hitidx];
       lfcluster.push_back( srchit );        
 
     }//end of hit loop
@@ -491,7 +547,7 @@ namespace reco {
    * @return A new cluster with additional hits added to the given cluster
    */
   cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( cluster_t& cluster,
-                                                           const std::vector<larlite::larflow3dhit>& hit_v,
+                                                           const std::vector<const larlite::larflow3dhit*>& hit_v,
                                                            std::vector<int>& used_hits_v,
                                                            std::vector<larlite::larflow3dhit>& downsample_hit_v,
                                                            std::vector<int>& orig_idx_v,
@@ -503,7 +559,7 @@ namespace reco {
     
     for ( size_t ihit=0; ihit<hit_v.size(); ihit++ ) {
 
-      auto const& hit = hit_v[ihit];
+      auto const& hit = *hit_v[ihit];
 
       if ( used_hits_v[ ihit ]!=0 ) continue;
       
@@ -585,10 +641,11 @@ namespace reco {
    *                        has been assigned to a cluster. This function updates this vector.
    * @param[in] output_cluster_v Vector of output clusters
    */
-  void ProjectionDefectSplitter::_runSplitter( const larlite::event_larflow3dhit& inputhits,
-                                               const std::vector<larcv::Image2D>& adc_v,
+  void ProjectionDefectSplitter::_runSplitter( const std::vector<const larlite::larflow3dhit*>& inputhits,
+                                               const std::vector<const larcv::Image2D*>& adc_v,
                                                std::vector<int>& used_hits_v,
-                                               std::vector<cluster_t>& output_cluster_v )
+                                               std::vector<cluster_t>& output_cluster_v,
+					       const int tpcid, const int cryoid )
   {
 
     const int max_pts_to_cluster = 30000;
@@ -599,7 +656,7 @@ namespace reco {
     output_cluster_v.clear();
 
     // veto hits using keypoints
-    int nvetoed_kp = _veto_hits_using_keypoints( inputhits, used_hits_v );
+    int nvetoed_kp = _veto_hits_using_keypoints( inputhits, used_hits_v, tpcid, cryoid );
     int nvetoed_kpscore = 0;//_veto_hits_using_keypoint_scores( inputhits, used_hits_v, _kp_veto_score_threshold );
     
     // downsample points, if needed
@@ -626,7 +683,7 @@ namespace reco {
 
       nremaining++;
 
-      auto& hit = inputhits[ihit];
+      auto const& hit = *inputhits[ihit];
       std::vector<float> pt = { hit[0], hit[1], hit[2] };
 
       if ( used_hits_v[ihit]==2 ) {
@@ -663,7 +720,7 @@ namespace reco {
       }
       
       if ( !sample || rand.Uniform()<downsample_fraction ) {
-        downsample_hit_v.push_back( inputhits[ihit] );
+        downsample_hit_v.push_back( *inputhits[ihit] );
 	downsample_pt_v.push_back( pt ); ///< 3d position (if near keypoint, it's pushed away)
         orig_idx_v.push_back( ihit ); ///< map from downsample index to original index
       }
@@ -684,10 +741,11 @@ namespace reco {
       for (int ichit=0; ichit<(int)cluster.points_v.size(); ichit++ ) {
 	int downsample_index = cluster.hitidx_v[ichit];
 	int orig_index = orig_idx_v[downsample_index];
-	auto const& hit = inputhits.at(orig_index);
+	auto const& hit = *inputhits.at(orig_index);
 	for (int v=0; v<3; v++) {
 	  cluster.points_v[ichit][v] = hit[v];
 	}
+	//cluster.hitidx_v[ichit] = orig_index;
       }
     }
 
@@ -729,134 +787,134 @@ namespace reco {
       nused_final = (int)inputhits.size();      
     }
 
-    // if we vetod hits, we assign those veto hits near the ends of found clusters
-    // we recalc the pca for these clusters
-    //if ( nvetoed_kp>0 || nvetoed_kpscore>0 ) {
-    if ( false ) {
-      // track which clusters we modified
-      std::vector<int> modded_cluster( dense_cluster_v.size(), 0 );
-      int nclaimed = 0;
+    // // if we vetod hits, we assign those veto hits near the ends of found clusters
+    // // we recalc the pca for these clusters
+    // //if ( nvetoed_kp>0 || nvetoed_kpscore>0 ) {
+    // if ( false ) {
+    //   // track which clusters we modified
+    //   std::vector<int> modded_cluster( dense_cluster_v.size(), 0 );
+    //   int nclaimed = 0;
 
-      std::map<int,float> claimed_hitidx_mindist; //map from hitindex to min distance to cluster
-      std::map<int,int>   claimed_hitidx_clusteridx; //map from hitindex to best claiming cluster
+    //   std::map<int,float> claimed_hitidx_mindist; //map from hitindex to min distance to cluster
+    //   std::map<int,int>   claimed_hitidx_clusteridx; //map from hitindex to best claiming cluster
       
-      // loop over clusters and check if keypoint is close to ends
-      // if so, absorb points along line
-      for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
-	auto& cluster = dense_cluster_v[ic];
+    //   // loop over clusters and check if keypoint is close to ends
+    //   // if so, absorb points along line
+    //   for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
+    // 	auto& cluster = dense_cluster_v[ic];
 
-	// find close keypoints
-	bool veto_hit = false;
-	for ( auto const& pev_keypoint : _event_keypoint_for_veto_v ) {
-	  for ( auto const& kphit : *pev_keypoint ) {
+    // 	// find close keypoints
+    // 	bool veto_hit = false;
+    // 	for ( auto const& pev_keypoint : _event_keypoint_for_veto_v ) {
+    // 	  for ( auto const& kphit : *pev_keypoint ) {
 
-	    // check the distance to the ends
-	    for (int iend=0; iend<2; iend++) {
-	      float dist = 0.;
-	      for (int v=0; v<3; v++) {
-		dist += (cluster.pca_ends_v[iend][v]-kphit[v])*(cluster.pca_ends_v[iend][v]-kphit[v]);
-	      }
-	      dist = sqrt(dist);
+    // 	    // check the distance to the ends
+    // 	    for (int iend=0; iend<2; iend++) {
+    // 	      float dist = 0.;
+    // 	      for (int v=0; v<3; v++) {
+    // 		dist += (cluster.pca_ends_v[iend][v]-kphit[v])*(cluster.pca_ends_v[iend][v]-kphit[v]);
+    // 	      }
+    // 	      dist = sqrt(dist);
 
-	      if ( dist>0.0 && dist<10.0 ) {
+    // 	      if ( dist>0.0 && dist<10.0 ) {
 
-		// this keypoint is close enough to the end.
-		// we absorb hits along the line
-		std::vector<float> fkphit = { kphit[0], kphit[1], kphit[2] };
+    // 		// this keypoint is close enough to the end.
+    // 		// we absorb hits along the line
+    // 		std::vector<float> fkphit = { kphit[0], kphit[1], kphit[2] };
 	    
-		for ( int ihit=0; ihit<total_pts; ihit++) {
-		  if ( used_hits_v[ihit]!=2 )
-		    continue;
+    // 		for ( int ihit=0; ihit<total_pts; ihit++) {
+    // 		  if ( used_hits_v[ihit]!=2 )
+    // 		    continue;
 
-		  auto const& hit = inputhits[ihit];
-		  std::vector<float> hitpt = { hit[0], hit[1], hit[2] };
+    // 		  auto const& hit = *inputhits[ihit];
+    // 		  std::vector<float> hitpt = { hit[0], hit[1], hit[2] };
         
-		  // check to add to clusters
-		  bool claimed = false;
-		  float closest_dist = _kp_veto_radius+1.0;
-		  int closest_cluster_idx = -1;
+    // 		  // check to add to clusters
+    // 		  bool claimed = false;
+    // 		  float closest_dist = _kp_veto_radius+1.0;
+    // 		  int closest_cluster_idx = -1;
 
-		  float dist_to_pca_line =
-		    larflow::reco::pointLineDistance3f( cluster.pca_ends_v[iend],fkphit, hitpt );
+    // 		  float dist_to_pca_line =
+    // 		    larflow::reco::pointLineDistance3f( cluster.pca_ends_v[iend],fkphit, hitpt );
 
-		  float ptproj = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[iend], fkphit, hitpt );
+    // 		  float ptproj = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[iend], fkphit, hitpt );
 
-		  if ( dist_to_pca_line<1.5 && ptproj>0.0 ) {
+    // 		  if ( dist_to_pca_line<1.5 && ptproj>0.0 ) {
 
-		    float enddist = 0.;
-		    for (int v=0; v<3; v++) {
-		      enddist += (cluster.pca_ends_v[iend][v]-hitpt[v])*(cluster.pca_ends_v[iend][v]-hitpt[v]);
-		    }
-		    enddist   = sqrt(enddist);
+    // 		    float enddist = 0.;
+    // 		    for (int v=0; v<3; v++) {
+    // 		      enddist += (cluster.pca_ends_v[iend][v]-hitpt[v])*(cluster.pca_ends_v[iend][v]-hitpt[v]);
+    // 		    }
+    // 		    enddist   = sqrt(enddist);
 
-		    if ( enddist<5.0 ) {
-		      claimed = true;
+    // 		    if ( enddist<5.0 ) {
+    // 		      claimed = true;
 
-		      auto itclaimed = claimed_hitidx_mindist.find( ihit );
-		      if (itclaimed!=claimed_hitidx_mindist.end()) {
-			if ( dist_to_pca_line < itclaimed->second ) {
-			  // better than previous claim
-			  claimed_hitidx_mindist[ihit] = dist_to_pca_line;
-			  claimed_hitidx_clusteridx[ihit] = ic;
-			}
-		      }
-		      else {
-			// new claim
-			claimed_hitidx_mindist[ihit] = dist_to_pca_line;
-			claimed_hitidx_clusteridx[ihit] = ic;
-		      }
+    // 		      auto itclaimed = claimed_hitidx_mindist.find( ihit );
+    // 		      if (itclaimed!=claimed_hitidx_mindist.end()) {
+    // 			if ( dist_to_pca_line < itclaimed->second ) {
+    // 			  // better than previous claim
+    // 			  claimed_hitidx_mindist[ihit] = dist_to_pca_line;
+    // 			  claimed_hitidx_clusteridx[ihit] = ic;
+    // 			}
+    // 		      }
+    // 		      else {
+    // 			// new claim
+    // 			claimed_hitidx_mindist[ihit] = dist_to_pca_line;
+    // 			claimed_hitidx_clusteridx[ihit] = ic;
+    // 		      }
 
-		      // std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
-		      // int downsample_index = orig_idx_v.size();
-		      // orig_idx_v.push_back( ihit );
-		      // downsample_hit_v.push_back( hit );              
-		      // cluster.points_v.push_back( hitpt );
-		      // cluster.imgcoord_v.push_back( imgcoord );
-		      // cluster.hitidx_v.push_back( downsample_index );
+    // 		      // std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+    // 		      // int downsample_index = orig_idx_v.size();
+    // 		      // orig_idx_v.push_back( ihit );
+    // 		      // downsample_hit_v.push_back( hit );              
+    // 		      // cluster.points_v.push_back( hitpt );
+    // 		      // cluster.imgcoord_v.push_back( imgcoord );
+    // 		      // cluster.hitidx_v.push_back( downsample_index );
 
-		      // used_hits_v[ihit] = 1;
-		      // modded_cluster[ic] = 1;
-		      // nclaimed++;
+    // 		      // used_hits_v[ihit] = 1;
+    // 		      // modded_cluster[ic] = 1;
+    // 		      // nclaimed++;
 		      
-		    }//end of enddist
-		  }//end of pca distance
+    // 		    }//end of enddist
+    // 		  }//end of pca distance
 		  
-		}//end of hit	    
-	      }//end of if close to keypoint
-	    }//end of loop end
-	  }//end of keypoint loop
-	}//end of keypoint event
-      }//end of dense cluster
+    // 		}//end of hit	    
+    // 	      }//end of if close to keypoint
+    // 	    }//end of loop end
+    // 	  }//end of keypoint loop
+    // 	}//end of keypoint event
+    //   }//end of dense cluster
 
-      // add claimed hits to clusters
-      for ( auto itclaimed=claimed_hitidx_clusteridx.begin(); itclaimed!=claimed_hitidx_clusteridx.end(); itclaimed++ ) {
-	auto const& hit = inputhits.at(itclaimed->first);
-	auto& cluster = dense_cluster_v.at(itclaimed->second);
-	std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
-	std::vector<float> hitpt    = { hit[0], hit[1], hit[2] };
-	int downsample_index = orig_idx_v.size();
-	orig_idx_v.push_back( itclaimed->first );
-	downsample_hit_v.push_back( hit );              
-	cluster.points_v.push_back( hitpt );
-	cluster.imgcoord_v.push_back( imgcoord );
-	cluster.hitidx_v.push_back( downsample_index );
+    //   // add claimed hits to clusters
+    //   for ( auto itclaimed=claimed_hitidx_clusteridx.begin(); itclaimed!=claimed_hitidx_clusteridx.end(); itclaimed++ ) {
+    // 	auto const& hit = *inputhits.at(itclaimed->first);
+    // 	auto& cluster = dense_cluster_v.at(itclaimed->second);
+    // 	std::vector<int>   imgcoord = { hit.targetwire[0], hit.targetwire[1], hit.targetwire[2], hit.tick };
+    // 	std::vector<float> hitpt    = { hit[0], hit[1], hit[2] };
+    // 	int downsample_index = orig_idx_v.size();
+    // 	orig_idx_v.push_back( itclaimed->first );
+    // 	downsample_hit_v.push_back( hit );              
+    // 	cluster.points_v.push_back( hitpt );
+    // 	cluster.imgcoord_v.push_back( imgcoord );
+    // 	cluster.hitidx_v.push_back( downsample_index );
 
-	used_hits_v[itclaimed->first] = 1;
-	modded_cluster[itclaimed->second] = 1;
-	nclaimed++;	
-      }
+    // 	used_hits_v[itclaimed->first] = 1;
+    // 	modded_cluster[itclaimed->second] = 1;
+    // 	nclaimed++;	
+    //   }
       
-      // if we modded any clusters, recalc the pca
-      int nmodded = 0;
-      for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
-        if ( modded_cluster[ic]==1 ) {
-          auto& cluster = dense_cluster_v[ic];
-          larflow::reco::cluster_pca(cluster);
-          nmodded++;
-        }
-      }
-      LARCV_INFO() << "Absorbed " << nclaimed << " hits and moddified " << nmodded << " clusters"  << std::endl;
-    }//end of if we ha veto'd hits, absorb those hits and veto
+    //   // if we modded any clusters, recalc the pca
+    //   int nmodded = 0;
+    //   for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
+    //     if ( modded_cluster[ic]==1 ) {
+    //       auto& cluster = dense_cluster_v[ic];
+    //       larflow::reco::cluster_pca(cluster);
+    //       nmodded++;
+    //     }
+    //   }
+    //   LARCV_INFO() << "Absorbed " << nclaimed << " hits and moddified " << nmodded << " clusters"  << std::endl;
+    // }//end of if we ha veto'd hits, absorb those hits and veto
     
     // we perform split functions on the clusters
     int nsplit = 0;
@@ -866,10 +924,10 @@ namespace reco {
       if (nsplit==0 ) break;
     }
       
-    LARCV_DEBUG() << "Defrag clusters" << std::endl;
+    //LARCV_DEBUG() << "Defrag clusters" << std::endl;
     //_defragment_clusters( dense_cluster_v, 10.0 );
     
-    // now split and merge with pass clusters
+    LARCV_DEBUG() << "remove downsampled index" << std::endl;
     for ( auto& dense : dense_cluster_v ) {
 
       // translate indexing back to original clusters
@@ -888,7 +946,7 @@ namespace reco {
           ss << __FILE__ << ":L" << __LINE__ << " Bad Index=" << orig_idx << std::endl;
           throw std::runtime_error(ss.str());
         }	
-        dense.hitidx_v[ii] = orig_idx;
+        dense.hitidx_v[ii] = orig_idx; // we've removed the DS index
       }
       
       output_cluster_v.emplace_back( std::move(dense) );
@@ -899,7 +957,7 @@ namespace reco {
     
     LARCV_DEBUG() << "nclusters=" << output_cluster_v.size() << " nused=" << nused_final << std::endl;
     
-  }
+  }// end of _runSplitter
 
   /**
    * @brief Add tree name to get keypoints for vetoing hits
@@ -926,10 +984,11 @@ namespace reco {
    * @param[in]  inputhits   Container of input hits
    * @param[out] used_hits_v Vector used to flag/veto hits
    */
-  int ProjectionDefectSplitter::_veto_hits_using_keypoints( const larlite::event_larflow3dhit& inputhits,
-                                                             std::vector<int>& used_hits_v )
+  int ProjectionDefectSplitter::_veto_hits_using_keypoints( const std::vector< const larlite::larflow3dhit*>& inputhits,
+							    std::vector<int>& used_hits_v,
+							    const int tpcid, const int cryoid )
   {
-
+    
     _hitidx_to_kpidx.clear();
     _hitidx_to_kpdist.clear();
     _hitidx_to_kpdist.resize( inputhits.size(), 999.0 );
@@ -941,7 +1000,14 @@ namespace reco {
       if ( used_hits_v[ihit]!=0 )
         continue;
       
-      auto const& lfhit = inputhits.at(ihit);
+      auto const& lfhit = *inputhits.at(ihit);
+
+      int hit_tpcid  = 0;
+      int hit_cryoid = 0;
+      if ( lfhit.targetwire.size()>=6 ) {
+	hit_tpcid  = lfhit.targetwire[4];
+	hit_cryoid = lfhit.targetwire[5];
+      }
       
       bool veto_hit = false;
       int min_vertex = -1;
@@ -951,6 +1017,17 @@ namespace reco {
       for (int ivertex=0; ivertex<(int)_keypoints_for_veto_v.size(); ivertex++) {
 	auto const& kphit = *_keypoints_for_veto_v.at(ivertex);
 
+	// make sure keypoint is in the same TPC
+	int kp_tpcid  = 0;
+	int kp_cryoid = 0;
+	if ( kphit.targetwire.size()>=6 ) {
+	  kp_tpcid  = kphit.targetwire[4];
+	  kp_cryoid = kphit.targetwire[5];
+	}
+	if ( hit_tpcid!=kp_tpcid || hit_cryoid!=kp_cryoid ) {
+	  continue;
+	}
+	
 	float dist = 0.;
 	for (int i=0; i<3; i++) {
 	  dist += (lfhit[i]-kphit[i])*(lfhit[i]-kphit[i]);
@@ -986,7 +1063,7 @@ namespace reco {
       
       if ( veto_hit ) {
         nhits_vetoed += 1;
-        used_hits_v[ihit] = 2;
+        used_hits_v[ihit] = 2; // 2 is the veto flag
 	_hitidx_to_kpidx[ihit] = min_vertex;
       }
       
@@ -1045,9 +1122,9 @@ namespace reco {
    *                         Should be same length as cluster_v.
    */
   void ProjectionDefectSplitter::fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
-                                                             const larlite::event_larflow3dhit& lfhit_v,
-                                                             const std::vector<larcv::Image2D>& adc_v,
-                                                             larlite::event_track& evout_track )
+							    const std::vector<const larlite::larflow3dhit*>& lfhit_v,
+							    const std::vector<const larcv::Image2D*>& adc_v,
+							    larlite::event_track& evout_track )
   {
     for (int icluster=0; icluster<(int)cluster_v.size(); icluster++) {
 
@@ -1085,8 +1162,8 @@ namespace reco {
    * @return Line segments fitted to cluster in the form of a larlite track object
    */
   larlite::track ProjectionDefectSplitter::fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
-                                                                    const larlite::event_larflow3dhit& lfhit_v,
-                                                                    const std::vector<larcv::Image2D>& adc_v,
+                                                                    const std::vector< const larlite::larflow3dhit* >& lfhit_v,
+                                                                    const std::vector< const larcv::Image2D* >& adc_v,
                                                                     const float max_line_seg_cm )
   {
 
@@ -1132,7 +1209,7 @@ namespace reco {
 
     int nhits = cluster.points_v.size();
 
-    const int nrows = adc_v.front().meta().rows();
+    const int nrows = adc_v.front()->meta().rows();
     const int nplanes = adc_v.size();
     
     // get the charge of the point
@@ -1140,11 +1217,11 @@ namespace reco {
     std::vector<int> qplane_v( nhits, -1);
     
     for (int ihit=0; ihit<nhits; ihit++) {
-      std::vector<int> imgcoord = { lfhit_v[ihit].targetwire[0],
-                                    lfhit_v[ihit].targetwire[1],
-                                    lfhit_v[ihit].targetwire[2],
+      std::vector<int> imgcoord = { lfhit_v[ihit]->targetwire[0],
+                                    lfhit_v[ihit]->targetwire[1],
+                                    lfhit_v[ihit]->targetwire[2],
                                     0 };
-      imgcoord[3] = adc_v.front().meta().row( lfhit_v[ihit].tick );
+      imgcoord[3] = adc_v.front()->meta().row( lfhit_v[ihit]->tick );
       std::vector<float> qpix( nplanes, 0 );
       std::vector<int>   npix( nplanes, 0 );
       for (int dr=-2; dr<=2; dr++) {
@@ -1152,7 +1229,7 @@ namespace reco {
         if ( r<0 || r>=nrows )
           continue;      
         for (int p=0; p<(int)nplanes; p++) {
-          const larcv::Image2D& img = adc_v[p];
+          const larcv::Image2D& img = *adc_v[p];
 	  if ( imgcoord[p]<0 || imgcoord[p]>=(int)img.meta().cols() )
 	    continue;
           qpix[p] += img.pixel( r, imgcoord[p], __FILE__, __LINE__ );
@@ -1182,7 +1259,7 @@ namespace reco {
     // get the larmatch score (stored in weird place i know...)
     std::vector<float> lm_v( nhits, 0 );
     for (int ihit=0; ihit<nhits; ihit++) {
-      lm_v[ihit] = lfhit_v[ihit].track_score;
+      lm_v[ihit] = lfhit_v[ihit]->track_score;
     }
     
     // get projection s relative to the start point
