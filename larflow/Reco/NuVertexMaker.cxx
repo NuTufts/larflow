@@ -2,12 +2,12 @@
 
 #include "geofuncs.h"
 #include "larlite/DataFormat/track.h"
-#include "larcv/core/DataFormat/EventImage2D.h"
-#include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/DetectorProperties.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
-#include "NuVertexFitter.h"
+#include "larflow/Reco/NuVertexFitter.h"
 
 namespace larflow {
 namespace reco {
@@ -62,7 +62,7 @@ namespace reco {
   void NuVertexMaker::process( larcv::IOManager& iolcv,
                                larlite::storage_manager& ioll )
   {
-    
+
     // load keypoints
     LARCV_INFO() << "Number of keypoint producers: " << _keypoint_producers.size() << std::endl;
     for ( auto it=_keypoint_producers.begin(); it!=_keypoint_producers.end(); it++ ) {
@@ -106,42 +106,68 @@ namespace reco {
     }
     _num_input_clusters = cluster_index;
 
-    _createCandidates(iolcv);
-    _merge_candidates();
-    if ( _apply_cosmic_veto ) {
-      _cosmic_veto_candidates( ioll );
-    }    
+    // larcv
+    larcv::EventImage2D* ev_img2d =
+      (larcv::EventImage2D*) iolcv.get_data( larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_img2d->as_vector();
 
+    // cryo, tpc loop: we create neutrino vertex candidates, TPC-by-TPC
+    auto const geom = larlite::larutil::Geometry::GetME();
+    for (int icryo=0; icryo<(int)geom->Ncryostats(); icryo++) {
+      for (int itpc=0; itpc<(int)geom->NTPCs(icryo); itpc++) {
+	
+	int startplaneindex = geom->GetSimplePlaneIndexFromCTP( icryo, itpc, 0 );
+
+	// look for it in the adc_v list
+	bool found = false;
+	for ( auto const& img : adc_v ) {
+	  if ( img.meta().id()==startplaneindex ) {
+	    found = true;
+	    break;
+	  }
+	}
+	
+	if ( !found )
+	  continue; // to next tpc
     
-    LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size()
-                 << "  after-merging=" << _merged_v.size()
-                 << "  after-veto=" << _vetoed_v.size()
-                 << std::endl;
+	_createCandidates( iolcv, itpc, icryo );
+	_merge_candidates( itpc, icryo );
+	if ( _apply_cosmic_veto ) {
+	  _cosmic_veto_candidates( ioll );
+	}
 
-    for ( auto& vertex : _vetoed_v ) {
-      
-      if ( vertex.cluster_v.size()>0 ) {
-        _vertex_v.emplace_back( std::move(vertex) );
-        if ( logger().debug() ) {
-          LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", " << vertex.keypoint_index << "] " << std::endl;
-          LARCV_DEBUG() << "  number of clusters: " << vertex.cluster_v.size() << std::endl;
-          LARCV_DEBUG() << "  producer: " << vertex.keypoint_producer << std::endl;
-          LARCV_DEBUG() << "  pos: (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ")" << std::endl;
-          LARCV_DEBUG() << "  score: " << vertex.score << std::endl;
-          for (size_t ic=0; ic<vertex.cluster_v.size(); ic++) {
-            LARCV_DEBUG() << "  cluster[" << ic << "] "
-                          << " prod=" << vertex.cluster_v[ic].producer
-                          << " idx=" << vertex.cluster_v[ic].index 
-                          << " impact=" << vertex.cluster_v[ic].impact << " cm"
-                          << " gap=" << vertex.cluster_v[ic].gap << " cm"
+	LARCV_INFO() << "Num NuVertexCandidates: created=" << _vertex_v.size()
+		     << "  after-merging=" << _merged_v.size()
+		     << "  after-veto=" << _vetoed_v.size()
+		     << std::endl;
+	
+	for ( auto& vertex : _vetoed_v ) {
+	  
+	  if ( vertex.cluster_v.size()>0 ) {
+	    _vertex_v.emplace_back( std::move(vertex) );
+	    if ( logger().debug() ) {
+	      LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", " << vertex.keypoint_index << "] " << std::endl;
+	      LARCV_DEBUG() << "  number of clusters: " << vertex.cluster_v.size() << std::endl;
+	      LARCV_DEBUG() << "  producer: " << vertex.keypoint_producer << std::endl;
+	      LARCV_DEBUG() << "  pos: (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ")" << std::endl;
+	      LARCV_DEBUG() << "  score: " << vertex.score << std::endl;
+	      for (size_t ic=0; ic<vertex.cluster_v.size(); ic++) {
+		LARCV_DEBUG() << "  cluster[" << ic << "] "
+			      << " prod=" << vertex.cluster_v[ic].producer
+			      << " idx=" << vertex.cluster_v[ic].index 
+			      << " impact=" << vertex.cluster_v[ic].impact << " cm"
+			      << " gap=" << vertex.cluster_v[ic].gap << " cm"
                           << " npts=" << vertex.cluster_v[ic].npts
-                          << std::endl;
-          }
-        }//end of if debug
-      }//end of if has clusters
-    }//end of vertex loop
+			      << std::endl;
+	      }
+	    }//end of if debug
+	  }//end of if has clusters
+	}//end of vertex loop
         
-    _refine_position( iolcv, ioll );
+	_refine_position( iolcv, ioll );
+
+      }//end of TPC loop
+    }//end of CRYO LOOP
 
     // make cluster book
     _buildClusterBook();
@@ -192,10 +218,13 @@ namespace reco {
    * @endverbatim
    * 
    */
-  void NuVertexMaker::_createCandidates(larcv::IOManager& iolcv)
+  void NuVertexMaker::_createCandidates(larcv::IOManager& iolcv,
+					const int tpcid, const int cryoid )
   {
 
-    LARCV_DEBUG() << "Associate clusters to vertices via impact par and gap distance" << std::endl;
+    LARCV_DEBUG() << "Associate clusters to vertices via impact par and gap distance. "
+		  << "(Cryo,TPC)=(" << cryoid << "," << tpcid << ")"
+		  << std::endl;
     
     // loop over vertices, calculate impact parameters to all clusters, keep if close enough.
     // limit pairings by gap distance (different for shower and track)
@@ -205,7 +234,7 @@ namespace reco {
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
     auto const& meta = adc->as_vector().front().meta();
 
-    // make vertex objects
+    // make initial vertex objects
     std::vector<NuVertexCandidate> seed_v;
     for ( auto it=_keypoint_producers.begin(); it!=_keypoint_producers.end(); it++ ) {
       if ( it->second==nullptr ) continue;
@@ -213,6 +242,11 @@ namespace reco {
       for ( size_t vtxid=0; vtxid<it->second->size(); vtxid++ ) {
 
         auto const& lf_vertex = it->second->at(vtxid);
+
+	if ( lf_vertex.targetwire[4]!=tpcid || lf_vertex.targetwire[5]!=cryoid ) {
+	  // not the TPC, CRYO
+	  continue;
+	}
         
         NuVertexCandidate vertex;
         vertex.keypoint_producer = it->first;
@@ -224,6 +258,8 @@ namespace reco {
         vertex.tick  = lf_vertex.tick;
 	if ( vertex.tick>meta.min_y() && vertex.tick<meta.max_y() )
 	  vertex.row = meta.row( vertex.tick, __FILE__, __LINE__ );
+	vertex.tpcid  = tpcid;
+	vertex.cryoid = cryoid;
         vertex.col_v = lf_vertex.targetwire;
         vertex.score = 0.0;
         vertex.maxScore = 0.0;
@@ -240,7 +276,7 @@ namespace reco {
     for ( size_t vtxid=0; vtxid<seed_v.size(); vtxid++ ) {
       auto& vertex = seed_v[vtxid];
 
-      LARCV_DEBUG() << "=== ATTACH TO (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ") ===" << std::endl;
+      LARCV_DEBUG() << "=== ATTACHING TO (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ") ===" << std::endl;
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
         if ( it->second==nullptr ) continue;
 
@@ -248,8 +284,14 @@ namespace reco {
           
           auto const& lfcluster = it->second->at(icluster);
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
-          NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
 
+	  int cluster_tpcid  = lfcluster.at(0).targetwire[4];
+	  int cluster_cryoid = lfcluster.at(0).targetwire[5];
+	  if ( cluster_tpcid!=tpcid || cluster_cryoid!=cryoid )
+	    continue;
+	  
+          NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
+	  LARCV_DEBUG() << "  testing cluster[" << icluster << "] (cryo,tpc)=(" << cluster_cryoid << "," <<  cluster_tpcid << ")" << std::endl;
           bool attached = _attachClusterToCandidate( vertex, lfcluster, lfpca,
                                                      ctype, it->first, icluster, true );
 
@@ -421,10 +463,10 @@ namespace reco {
    * we fill the _merged_v vector using _vertex_v candidates.
    *
    */
-  void NuVertexMaker::_merge_candidates()
+  void NuVertexMaker::_merge_candidates( const int tpcid, const int cryoid )
   {
 
-    LARCV_DEBUG() << "START MERGER ====================" << std::endl;
+    LARCV_DEBUG() << "START MERGER (CRYO,TPC)=(" << cryoid << "," << tpcid << ") ====================" << std::endl;
     
     // sort by score
     // start with best score, absorb others, (so N^2 algorithm)
@@ -479,6 +521,10 @@ namespace reco {
 
         // test vertex
         auto const& test_vtx = *nu_v[i].nu;
+
+	// vertices need to be in the same TPC
+	if ( cand.tpcid!=test_vtx.tpcid || cand.cryoid!=test_vtx.cryoid )
+	  continue;
         
         // test vertex distance
         float dist = 0.;
@@ -855,6 +901,9 @@ namespace reco {
                                         larlite::storage_manager& ioll )                                        
   {
 
+    auto const geom = larlite::larutil::Geometry::GetME();
+    auto const detp = larutil::DetectorProperties::GetME();
+    
     // need to get a meta
     larcv::EventImage2D* adc
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
@@ -878,12 +927,16 @@ namespace reco {
         fitcand.pos = fitted_pos_v[ivtx];
 
         Double_t dpos[3] = {  fitcand.pos[0], fitcand.pos[1], fitcand.pos[2] };
+
+	int tpcid  = fitcand.tpcid;
+	int cryoid = fitcand.cryoid;
+	int nplanes = geom->Nplanes( tpcid, cryoid );
         
         // update row, tick, col
-        fitcand.col_v.resize(3);
-        for  (int p=0; p<3; p++) 
-          fitcand.col_v[p] = larutil::Geometry::GetME()->WireCoordinate( dpos, p );
-        fitcand.tick = fitcand.pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+        fitcand.col_v.resize(nplanes);
+        for  (int p=0; p<nplanes; p++) 
+          fitcand.col_v[p] = geom->WireCoordinate( dpos, p, tpcid, cryoid );
+        fitcand.tick = detp->ConvertXToTicks( fitcand.pos[0], 0, tpcid, cryoid );
 
 	if ( fitcand.tick>meta.min_y() && fitcand.tick<meta.max_y() )  {
 	  fitcand.row = meta.row( fitcand.tick, __FILE__, __LINE__ );
@@ -896,6 +949,10 @@ namespace reco {
     
   }
 
+  /**
+   * @brief create a class to keep track of clusters attached to this vertex
+   *
+   */
   void NuVertexMaker::_buildClusterBook()
   {
     _cluster_book_v.clear();

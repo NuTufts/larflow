@@ -32,7 +32,9 @@ namespace reco {
 		  bool load_clusters=true );
 
     void loadClustersAndConnections( larcv::IOManager& iolcv,
-				     larlite::storage_manager& ioll );
+				     larlite::storage_manager& ioll,
+				     const int tpc,
+				     const int cryoid );
     
     void set_verbosity( larcv::msg::Level_t v ) { TrackClusterBuilder::set_verbosity(v); };
 

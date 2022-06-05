@@ -36,10 +36,10 @@ namespace reco {
     _run_perfect_mcreco(false)
   {
     make_ana_file();
-    //_nuvertexmaker.add_nuvertex_branch( _ana_tree );
+    _nuvertexmaker.add_nuvertex_branch( _ana_tree );
     //_ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
     _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
-    _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
+    //_ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -148,17 +148,17 @@ namespace reco {
     // // COSMIC RECO
     // cosmicTrackReco( iolcv, ioll );
     
-    // // MULTI-PRONG INTERNAL RECO
-    // multiProngReco( iolcv, ioll );
-    // // if ( _stop_after_nutracker ) {
-    // //   _ana_tree->Fill();
-    // //   return;
-    // // }
+    // MULTI-PRONG INTERNAL RECO
+    multiProngReco( iolcv, ioll );
+    if ( _stop_after_nutracker ) {
+      _ana_tree->Fill();
+      return;
+    }
 
-    // // if ( _stop_after_prongreco ) {
-    // //   _ana_tree->Fill();
-    // //   return;      
-    // // }
+    // if ( _stop_after_prongreco ) {
+    //   _ana_tree->Fill();
+    //   return;      
+    // }
 
     // // kinematics
     // runBasicKinematics( iolcv, ioll );
@@ -578,156 +578,157 @@ namespace reco {
     }
   }
 
-  // /**
-  //  * @brief reconstruct tracks and showers attached to vertices
-  //  * 
-  //  * @param[in] iolcv LArCV IO manager
-  //  * @param[in] ioll  larlite IO manager
-  //  */  
-  // void KPSRecoManager::multiProngReco( larcv::IOManager& iolcv,
-  //                                      larlite::storage_manager& ioll )
-  // {
+  /**
+   * @brief reconstruct tracks and showers attached to vertices
+   * 
+   * @param[in] iolcv LArCV IO manager
+   * @param[in] ioll  larlite IO manager
+   */  
+  void KPSRecoManager::multiProngReco( larcv::IOManager& iolcv,
+                                       larlite::storage_manager& ioll )
+  {
 
 
-  //   _nuvertexactivity.set_verbosity( larcv::msg::kINFO );
-  //   //_nuvertexactivity.set_verbosity( larcv::msg::kDEBUG );    
+    //_nuvertexactivity.set_verbosity( larcv::msg::kINFO );
+    //_nuvertexactivity.set_verbosity( larcv::msg::kDEBUG );    
 
-  //   // configure to use shower and in-time hits
-  //   std::vector<std::string> input_hit_list
-  //     = {"taggerfilterhit",            // all in-time hits
-  //        "ssnetsplit_full_showerhit"}; // out-of-time shower hits
-  //   std::vector<std::string> input_cluster_list
-  //     = { "trackprojsplit_full"}; // in-time track clusters
+    // configure to use shower and in-time hits
+    std::vector<std::string> input_hit_list
+      = {"taggerfilterhit",            // all in-time hits
+         "ssnetsplit_full_showerhit"}; // out-of-time shower hits
+    std::vector<std::string> input_cluster_list
+      = { "trackprojsplit_full"}; // in-time track clusters
 
-  //   _nuvertexactivity.set_input_hit_list( input_hit_list );    
-  //   //_nuvertexactivity.set_input_cluster_list( input_cluster_list );
-  //   _nuvertexactivity.set_output_treename( "keypoint" );
-  //   //_nuvertexactivity.process( iolcv, ioll );
+    //_nuvertexactivity.set_input_hit_list( input_hit_list );    
+    //_nuvertexactivity.set_input_cluster_list( input_cluster_list );
+    //_nuvertexactivity.set_output_treename( "keypoint" );
+    //_nuvertexactivity.process( iolcv, ioll );
     
-  //   //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
-  //   _nuvertexmaker.set_verbosity( larcv::msg::kINFO );
-  //   _nuvertexmaker.clear();
-  //   _nuvertexmaker.add_keypoint_producer( "keypoint" );
-  //   _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-  //   _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
-  //   //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
-  //   _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-  //   _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    _nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertexmaker.set_verbosity( larcv::msg::kINFO );
+    _nuvertexmaker.clear();
+    _nuvertexmaker.add_keypoint_producer( "keypoint" );
+    _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+    _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
+    //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
+    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    //_nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     
-  //   _nuvertexmaker.apply_cosmic_veto( true );
-  //   _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
-  //   _nuvertexmaker.process( iolcv, ioll );
+    _nuvertexmaker.apply_cosmic_veto( true );
+    _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
+    _nuvertexmaker.process( iolcv, ioll );
 
-  //   LARCV_NORMAL() << "Cluster-book summary after NuVertexMaker" << std::endl;
-  //   for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
-  //     LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
-  // 		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
-  // 		     << std::endl;
-  //   }
-
-    
-  //   // NuTrackBuilder class
-  //   _nu_track_builder.clear();
-  //   if ( _stop_after_nutracker )
-  //     _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );    
-  //   else 
-  //     _nu_track_builder.set_verbosity( larcv::msg::kINFO );
-  //   //_nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
-  //   _nu_track_builder.process( iolcv, ioll,
-  // 			       _nuvertexmaker.get_mutable_output_candidates(),
-  // 			       _nuvertexmaker.get_candidate_cluster_book() );
-
-  //   LARCV_NORMAL() << "Cluster-book summary after NuTrackBuilder" << std::endl;    
-  //   for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
-  //     LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
-  // 		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
-  // 		     << std::endl;
-  //   }
-    
-  //   // larflow::reco::TrackFindBadConnection track_splitter;
-  //   // track_splitter.set_verbosity( larcv::msg::kINFO );
-  //   // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )
-  //   //   int nsplit = track_splitter.processNuVertexTracks( nuvtx, iolcv );
-  //   if ( _stop_after_nutracker ) {
-  //     _nu_track_builder.saveConnections( ioll, "tcb_connections" );
-  //     ioll.set_data_to_write( larlite::data::kTrack, "tcb_connections" );
-  //   }
-
-  //   // first attempt
-  //   // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
-  //   // _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
-
-  //   // simpler, cone-based reco
-  //   //_nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
-  //   _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
-  //   _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-  //   _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-  //   _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
-  //   //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
-  //   _nuvertex_shower_reco.process( iolcv, ioll,
-  // 				   _nuvertexmaker.get_mutable_output_candidates(),
-  // 				   _nuvertexmaker.get_candidate_cluster_book() );
-
-  //   LARCV_NORMAL() << "Cluster-book summary after NuVertexShowerReco" << std::endl;
-  //   for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
-  //     LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
-  // 		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
-  // 		     << std::endl;
-  //   }    
-
-  //   // - repair shower trunks by absorbing tracks or creating hits
-  //   //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
-  //   int ivtx = 0;
-  //   //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
-  //   for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
-  //     LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
-  //     _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
-  //     //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
-  //     ivtx++;
-  //   }
-
-  //   // post-neutrino-candidate processing:
-  //   // - remove tracks from neutrino candidates that significantly overlap with showers
-  //   //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
-  //   //_nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
-  //   _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
-
-  //   // - add hits vetod around keypoints to the ends of track prongs
-  //   //_nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
-  //   LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
-  //   for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
-  //     _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
-  //   }
-
-  //   // - add secondaries
-  //   _nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
-  //   for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
-  //     LARCV_NORMAL() << "Try to add secondaries to VTX[" << ivtx << "]" << std::endl;
-  //     auto& nuvtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
-  //     auto& book  = _nuvertexmaker.get_candidate_cluster_book().at(ivtx);
-  //     _nuvertex_add_secondaries.process( nuvtx, book, iolcv, ioll );
-  //   }    
-
-  //   // - add dq/dx information
-  //   //_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
-  //   LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
-  //   for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {        
-  //     _nuvertex_trackdqdx.process_nuvertex_tracks( iolcv, vtx );
-  //   }
-
-  //   //_cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
-  //   //_cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    LARCV_NORMAL() << "Cluster-book summary after NuVertexMaker" << std::endl;
+    for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
+      LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
+		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
+		     << std::endl;
+    }
 
     
-    
-  // }
+    // NuTrackBuilder class
+    _nu_track_builder.clear();
+    if ( _stop_after_nutracker )
+      _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );    
+    else 
+      _nu_track_builder.set_verbosity( larcv::msg::kINFO );
+    //_nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    _nu_track_builder.process( iolcv, ioll,
+			       _nuvertexmaker.get_mutable_output_candidates(),
+			       _nuvertexmaker.get_candidate_cluster_book() );
 
-  // /**
-  //  * @brief Perform cosmic ray reconstruction
-  //  *
-  //  * At some point, execute Mask-RCNN here
-  //  *
-  //  */
+    LARCV_NORMAL() << "Cluster-book summary after NuTrackBuilder" << std::endl;    
+    for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
+      auto const& nuvtx = _nuvertexmaker.get_mutable_output_candidates()[ivtx];
+      LARCV_NORMAL() << "vertex[" << ivtx << "] ntracks=" << nuvtx.track_v.size() << " nclusters used: "
+		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
+		     << std::endl;
+    }
+    
+    // // larflow::reco::TrackFindBadConnection track_splitter;
+    // // track_splitter.set_verbosity( larcv::msg::kINFO );
+    // // for (auto& nuvtx : _nuvertexmaker.get_mutable_fitted_candidates() )
+    // //   int nsplit = track_splitter.processNuVertexTracks( nuvtx, iolcv );
+    // if ( _stop_after_nutracker ) {
+    //   _nu_track_builder.saveConnections( ioll, "tcb_connections" );
+    //   ioll.set_data_to_write( larlite::data::kTrack, "tcb_connections" );
+    // }
+
+    // // first attempt
+    // // _nu_shower_builder.set_verbosity( larcv::msg::kDEBUG );
+    // // _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    // // simpler, cone-based reco
+    // //_nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
+    // _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
+    // _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+    // _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    // _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+    // //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+    // _nuvertex_shower_reco.process( iolcv, ioll,
+    // 				   _nuvertexmaker.get_mutable_output_candidates(),
+    // 				   _nuvertexmaker.get_candidate_cluster_book() );
+
+    // LARCV_NORMAL() << "Cluster-book summary after NuVertexShowerReco" << std::endl;
+    // for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
+    //   LARCV_NORMAL() << "vertex[" << ivtx << "] nclusters used: "
+    // 		     << _nuvertexmaker.get_candidate_cluster_book().at(ivtx).numUsed()
+    // 		     << std::endl;
+    // }    
+
+    // // - repair shower trunks by absorbing tracks or creating hits
+    // //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
+    // int ivtx = 0;
+    // //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
+    //   LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
+    //   _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
+    //   //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+    //   ivtx++;
+    // }
+
+    // // post-neutrino-candidate processing:
+    // // - remove tracks from neutrino candidates that significantly overlap with showers
+    // //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
+    // //_nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
+    // _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
+
+    // // - add hits vetod around keypoints to the ends of track prongs
+    // //_nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
+    // LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
+    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
+    //   _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
+    // }
+
+    // // - add secondaries
+    // _nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
+    // for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
+    //   LARCV_NORMAL() << "Try to add secondaries to VTX[" << ivtx << "]" << std::endl;
+    //   auto& nuvtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
+    //   auto& book  = _nuvertexmaker.get_candidate_cluster_book().at(ivtx);
+    //   _nuvertex_add_secondaries.process( nuvtx, book, iolcv, ioll );
+    // }    
+
+    // // - add dq/dx information
+    // //_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
+    // LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
+    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {        
+    //   _nuvertex_trackdqdx.process_nuvertex_tracks( iolcv, vtx );
+    // }
+
+    //_cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
+    //_cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
+
+    
+    
+  }
+
+  /**
+   * @brief Perform cosmic ray reconstruction
+   *
+   * At some point, execute Mask-RCNN here
+   *
+   */
   // void KPSRecoManager::cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   // {
 

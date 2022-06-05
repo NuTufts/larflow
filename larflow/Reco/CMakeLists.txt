@@ -17,19 +17,17 @@ set( HEADERS cluster_functions.h
   FilterByWCTagger.h
   TrackOTFit.h
   ShowerRecoKeypoint.h  
-  # TrackClusterBuilder.h
   # CosmicTrackBuilder.h
-
   # ShowerBilineardEdx.h
   # ShowerdQdx.h  
   NuVertexCandidate.h
-
+  ClusterBookKeeper.h
+  NuVertexMaker.h  
   # ProjPixFitter.h
-  # ClusterBookKeeper.h
-  # NuVertexMaker.h
-  # NuVertexFitter.h
-  # CosmicVertexBuilder.h  
-  # NuTrackBuilder.h
+  NuVertexFitter.h
+  # CosmicVertexBuilder.h
+  TrackClusterBuilder.h  
+  NuTrackBuilder.h
   # NuShowerBuilder.h
   # NuVertexShowerReco.h
   # NuVertexShowerTrunkCheck.h
@@ -77,15 +75,15 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   ShowerRecoKeypoint.cxx
   # ShowerBilineardEdx.cxx
   # ShowerdQdx.cxx  
-  # TrackClusterBuilder.cxx
   # CosmicTrackBuilder.cxx
   NuVertexCandidate.cxx
+  ClusterBookKeeper.cxx  
+  NuVertexMaker.cxx  
   # ProjPixFitter.cxx      
-  # ClusterBookKeeper.cxx
-  # NuVertexMaker.cxx
-  # NuVertexFitter.cxx
+  NuVertexFitter.cxx
   # CosmicVertexBuilder.cxx
-  # NuTrackBuilder.cxx
+  TrackClusterBuilder.cxx  
+  NuTrackBuilder.cxx
   # NuShowerBuilder.cxx
   # NuVertexShowerReco.cxx
   # NuVertexShowerTrunkCheck.cxx  

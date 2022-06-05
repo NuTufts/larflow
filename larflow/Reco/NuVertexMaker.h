@@ -13,8 +13,8 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/larflowcluster.h"
 
-#include "NuVertexCandidate.h"
-#include "ClusterBookKeeper.h"
+#include "larflow/Reco/NuVertexCandidate.h"
+#include "larflow/Reco/ClusterBookKeeper.h"
 
 namespace larflow {
 namespace reco {
@@ -116,10 +116,10 @@ namespace reco {
     
   protected:
 
-    void _createCandidates(larcv::IOManager& iolcv);
+    void _createCandidates(larcv::IOManager& iolcv, const int tpcid, const int cryoid );
     void _set_defaults();
     void _score_vertex( NuVertexCandidate& vtx ); 
-    void _merge_candidates();
+    void _merge_candidates( const int tpcid, const int cryoid );
     bool _attachClusterToCandidate( NuVertexCandidate& vertex,
                                     const larlite::larflowcluster& lfcluster,
                                     const larlite::pcaxis& lfpca,

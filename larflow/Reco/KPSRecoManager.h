@@ -29,11 +29,12 @@
 #include "ProjectionDefectSplitter.h"
 #include "ShowerRecoKeypoint.h"
 
+#include "NuVertexMaker.h"
+#include "NuTrackBuilder.h"
 // #include "ShortProtonClusterReco.h"
-// #include "NuVertexMaker.h"
 // #include "CosmicVertexBuilder.h"
 // #include "CosmicTrackBuilder.h"
-// #include "NuTrackBuilder.h"
+
 // #include "NuShowerBuilder.h"
 // #include "NuVertexShowerReco.h"
 // #include "NuVertexShowerTrunkCheck.h"
@@ -110,7 +111,9 @@ namespace reco {
     // PerfectTruthNuReco _perfect_reco; ///< make nuvertexcandidate using true trajectories and showers
 
     // // Nu Vertex Seeds
-    // NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
+    NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
+    NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
+    
     // NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
     // NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
     // NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
@@ -121,7 +124,7 @@ namespace reco {
     
     // CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     // CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
-    // NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
+
     // NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
     // // Prong kinematics
@@ -159,7 +162,7 @@ namespace reco {
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    // void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

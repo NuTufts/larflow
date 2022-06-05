@@ -6,6 +6,7 @@
 
 #include "larcv/core/DataFormat/Image2D.h"
 #include "ublarcvapp/ubdllee/dwall.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 #include "ublarcvapp/UBImageMod/TrackImageMask.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
 #include "larflow/Reco/cluster_functions.h"
@@ -34,7 +35,7 @@ namespace reco {
     larlite::event_track* ev_track_segments
       = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
 
-    loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track_segments );
+    loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track_segments, -1, -1 );
 
   }
 
@@ -76,7 +77,8 @@ namespace reco {
    */
   void TrackClusterBuilder::loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
                                                 const larlite::event_pcaxis& pcaxis_v,
-                                                const larlite::event_track& trackseg_v )
+                                                const larlite::event_track& trackseg_v,
+						const int tpcid, const int cryoid )
   {
 
     if ( trackseg_v.size()>0 && cluster_v.size()!=trackseg_v.size() ) {
@@ -90,10 +92,18 @@ namespace reco {
       sserr << "Number of PC axes (" << pcaxis_v.size() << ") does not match number of clusters (" << cluster_v.size() << ")" << std::endl;
       throw std::runtime_error( sserr.str() );
     }
-    
+
+    int n_rejected = 0;
     for (int i=0; i<cluster_v.size(); i++) {
       
       const larlite::larflowcluster& cluster = cluster_v.at(i);
+      
+      if ( ( tpcid>=0 && cryoid>=0 ) &&
+	   (cluster.size()==0 || cluster[0].targetwire[4]!=tpcid || cluster[0].targetwire[5]!=cryoid) ) {
+	n_rejected++;
+	continue; // ignore clusters in the wrong TPC
+      }
+      
       const larlite::pcaxis& pca = pcaxis_v.at(i);
 
       const larlite::track* trackseg = nullptr;
@@ -123,11 +133,15 @@ namespace reco {
       node1.segidx  = _segment_v.back().idx;
       node1.nodeidx = (int)_nodepos_v.size();
       node1.pos     = start;
+      node1.tpcid   = tpcid;
+      node1.cryoid  = cryoid;
 
       NodePos_t node2;
       node2.segidx  = _segment_v.back().idx;
       node2.nodeidx = (int)_nodepos_v.size()+1;
       node2.pos     = end;
+      node2.tpcid   = tpcid;
+      node2.cryoid  = cryoid;
 
       _nodepos_v.push_back( node1 );
       _nodepos_v.push_back( node2 );
@@ -160,6 +174,8 @@ namespace reco {
 
     LARCV_INFO() << "Stored " << _segment_v.size() << " track segments" << std::endl;
     LARCV_INFO() << "Stored " << _nodepos_v.size() << " segment endpoints as nodes" << std::endl;
+    LARCV_INFO() << "Rejected " << n_rejected << " clusters (based on TPC+CRYO ID)" << std::endl;
+    
   }
 
   /**
@@ -1082,6 +1098,8 @@ namespace reco {
    * We must convert a track defined as a sequence of NodePos_t instances into
    * a larlite track for storage into the output larlite ROOT file.
    *
+   * The tracks we use to build are in the class memeber: _track_proposal_v.
+   *
    * This builds a track using the fitted line-segment paths.
    * This will also calculate the average dQ/dx of the larmatch hits
    * per track segment.
@@ -1113,6 +1131,12 @@ namespace reco {
       if ( path.size()<=1 )
         continue;
 
+      int tpcid  = path[0]->tpcid;
+      int cryoid = path[1]->cryoid;
+
+      // we need the images for this (TPC,CRYO)
+      std::vector< const larcv::Image2D* > padc_v = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );
+
       // check that we have the track objects we need
       for ( auto const& node : path ) {
         auto const& seg = _segment_v[node->segidx];
@@ -1123,7 +1147,7 @@ namespace reco {
         }
       }
 
-      // first step, collect track points, resort 
+      // first step, collect track points, re-sort 
       std::vector< TrackSeg_t > seg_v;
 
       // also collect larflow3dhits
@@ -1232,7 +1256,8 @@ namespace reco {
 
             larflow::reco::cluster_t gapcluster;
             const larlite::larflowcluster* lfclusters[2] = { _segment_v[last_segidx].cluster, _segment_v[segidx].cluster };
-            larlite::event_larflow3dhit gap_lfhit;
+            //larlite::event_larflow3dhit gap_lfhit;
+	    std::vector< const larlite::larflow3dhit* > gap_lfhit;
             for (int ic=0; ic<2; ic++) {
               for (auto const& lfhit : *(lfclusters[ic]) ) {
                 std::vector<float> hit = { lfhit[0], lfhit[1], lfhit[2] };
@@ -1240,7 +1265,7 @@ namespace reco {
                 //float r = larflow::reco::pointLineDistance<float>( gap_start, gap_end, hit );
                 if ( s>=0 && s<=gaplen) {
                   gapcluster.points_v.push_back( hit );
-                  gap_lfhit.push_back( lfhit );
+                  gap_lfhit.push_back( &lfhit );
                   gapcluster.hitidx_v.push_back( (int)gap_lfhit.size()-1 );
                 }
               }//end of hit loop
@@ -1250,7 +1275,7 @@ namespace reco {
             larlite::track gaptrack;
             if ( gapcluster.points_v.size()>=5 ) {
               larflow::reco::cluster_pca( gapcluster );
-              gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, adc_v );
+              gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, padc_v );
             }
             else {
               gaptrack.add_vertex( TVector3(gap_start[0],gap_start[1],gap_start[2]) );

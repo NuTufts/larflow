@@ -53,6 +53,8 @@ namespace reco {
     std::vector<float> pos;         ///< keypoint position
     int row;                        ///< vertex row
     int tick;                       ///< vertex tick
+    int tpcid;                      ///< TPC ID
+    int cryoid;                     ///< CRYO ID
     std::vector<int> col_v;         ///< image columns
     std::vector< VtxCluster_t >    cluster_v; ///< clusters assigned to vertex
     std::vector< larlite::pcaxis > cluster_pca_v; ///< cluster pca assigned to vertex

@@ -81,13 +81,17 @@ namespace reco {
       int segidx;             ///< segment index
       bool inpath;            ///< flag indicating it is currently part of a path
       bool veto;              ///< flag that if true, we skip this node when connecting paths
+      int tpcid;              ///< TPC ID of cluster 
+      int cryoid;             ///< Cryo ID of cluster
       std::vector<float> pos; ///< position of the node (segment end)
       NodePos_t()
       : nodeidx(-1),
         segidx(-1),
         inpath(false),
         veto(false),
-        pos( {0,0,0} )
+        pos( {0,0,0} ),
+	tpcid(-1),
+	cryoid(-1)
       {};
     };
     
@@ -171,7 +175,8 @@ namespace reco {
     
     void loadClusterLibrary( const larlite::event_larflowcluster& cluster_v,
                              const larlite::event_pcaxis& pcaxis_v,
-                             const larlite::event_track& trackseg_v );                             
+                             const larlite::event_track& trackseg_v,
+			     const int tpcid, const int cryoid );                             
 
     void buildNodeConnections( const std::vector<larcv::Image2D>* padc_v=nullptr,
                                const std::vector<larcv::Image2D>* pbadch_v=nullptr);
@@ -181,6 +186,8 @@ namespace reco {
     void clear();
     void clear_cluster_data();
     void clear_track_proposals();
+
+    int num_loaded_clusters() { return _segment_v.size(); };
 
     /** @brief clear track proposal container _track_proposal_v */
     void clearProposals() { _track_proposal_v.clear(); };
