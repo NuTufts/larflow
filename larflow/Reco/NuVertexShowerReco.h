@@ -56,7 +56,8 @@ namespace reco {
     void build_vertex_showers( NuVertexCandidate& nuvtx,
 			       ClusterBookKeeper& nuclusterbook,
 			       larcv::IOManager& iolcv, 
-			       larlite::storage_manager& ioll );
+			       larlite::storage_manager& ioll,
+			       const int tpcid, const int cryoid );
     
   protected:
 

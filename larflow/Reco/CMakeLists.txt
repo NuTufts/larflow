@@ -28,8 +28,8 @@ set( HEADERS cluster_functions.h
   # CosmicVertexBuilder.h
   TrackClusterBuilder.h  
   NuTrackBuilder.h
+  NuVertexShowerReco.h  
   # NuShowerBuilder.h
-  # NuVertexShowerReco.h
   # NuVertexShowerTrunkCheck.h
   # NuVertexActivityReco.h
   # NuVertexAddSecondaries.h
@@ -84,8 +84,8 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   # CosmicVertexBuilder.cxx
   TrackClusterBuilder.cxx  
   NuTrackBuilder.cxx
+  NuVertexShowerReco.cxx  
   # NuShowerBuilder.cxx
-  # NuVertexShowerReco.cxx
   # NuVertexShowerTrunkCheck.cxx  
   # NuVertexActivityReco.cxx
   # NuVertexAddSecondaries.cxx  

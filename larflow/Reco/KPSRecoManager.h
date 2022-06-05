@@ -31,12 +31,14 @@
 
 #include "NuVertexMaker.h"
 #include "NuTrackBuilder.h"
+#include "NuVertexShowerReco.h"
+
 // #include "ShortProtonClusterReco.h"
 // #include "CosmicVertexBuilder.h"
 // #include "CosmicTrackBuilder.h"
 
 // #include "NuShowerBuilder.h"
-// #include "NuVertexShowerReco.h"
+
 // #include "NuVertexShowerTrunkCheck.h"
 // #include "NuVertexActivityReco.h"
 // #include "VetoHitClustering.h"
@@ -112,10 +114,11 @@ namespace reco {
 
     // // Nu Vertex Seeds
     NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
-    NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
+    NuTrackBuilder       _nu_track_builder;  ///< build tracks for non-comic track clusters
+    NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
     
     // NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
-    // NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
+
     // NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
     // PostNuCheckShowerTrunkOverlap _nuvertex_postcheck_showertrunkoverlap; // remove track overlap
     // VetoHitClustering    _nuvertex_cluster_vetohits; ///< add veto'd hits during prong formation to reco'd-prongs

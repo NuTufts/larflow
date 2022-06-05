@@ -1,5 +1,7 @@
 #include "NuVertexShowerReco.h"
 
+#include "larlite/LArUtil/Geometry.h"
+
 #include "geofuncs.h"
 #include "cluster_functions.h"
 
@@ -20,13 +22,30 @@ namespace reco {
 				    std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
+    // loads the producers of clusters (and their pca)
     loadClusters(ioll);
+	
+    // We perform the reco one TPC at a time
+    auto const geom = larlite::larutil::Geometry::GetME();
+    for ( int icryo=0; icryo<(int)geom->Ncryostats(); icryo++) {
+      for (int itpc=0; itpc<(int)geom->NTPCs(icryo); itpc++) {
+
+	LARCV_INFO() << "Build Showers for Vertex Candidates (cryo,tpc)=(" << icryo << "," << itpc << ") ==========  " << std::endl;        
     
-    for ( size_t ivtx=0; ivtx<nu_candidate_v.size(); ivtx++) {
-      auto& nuvtx = nu_candidate_v.at(ivtx);
-      auto& book  = nu_cluster_book_v.at(ivtx);
-      LARCV_DEBUG() << "Build Vertex Showers: (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
-      build_vertex_showers( nuvtx, book, iolcv, ioll );
+	for ( size_t ivtx=0; ivtx<nu_candidate_v.size(); ivtx++) {
+	  auto& nuvtx = nu_candidate_v.at(ivtx);
+
+	  if ( nuvtx.cryoid!=icryo || nuvtx.tpcid!=itpc )
+	    continue;
+	  
+	  auto& book  = nu_cluster_book_v.at(ivtx);
+	  LARCV_DEBUG() << "==========================================================" << std::endl;
+	  LARCV_DEBUG() << "Build Vertex Showers: (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ") "
+			<< " cryoid=" << icryo << " tpcid=" << itpc
+			<< std::endl;
+	  build_vertex_showers( nuvtx, book, iolcv, ioll, itpc, icryo );
+	}
+      }
     }
     
   }
@@ -67,7 +86,8 @@ namespace reco {
   void NuVertexShowerReco::build_vertex_showers( NuVertexCandidate& nuvtx,
 						 ClusterBookKeeper& nuclusterbook,
 						 larcv::IOManager& iolcv, 
-						 larlite::storage_manager& ioll ) 
+						 larlite::storage_manager& ioll,
+						 const int tpcid, const int cryoid ) 
   {
 
     // we want to sort seeding priority
@@ -77,11 +97,13 @@ namespace reco {
       int container_idx;
       float score;
       float dist2vtx;
+      int tpcid;
+      int cryoid;
       std::vector<float> axis;
       std::vector<float> axis_start;
       std::vector<float> axis_end;
-      ProngRank_t( std::string p, int pi, int ci, float s )
-        : producer(p), prong_idx(pi), container_idx(ci), score(s)
+      ProngRank_t( std::string p, int pi, int ci, float s, int tid, int cid )
+        : producer(p), prong_idx(pi), container_idx(ci), score(s), tpcid(tid), cryoid(cid)
       {};
       bool operator<( const ProngRank_t& rhs ) {
         // threshold on hits, else rank on hits        
@@ -127,6 +149,10 @@ namespace reco {
       const larlite::larflowcluster& lfcluster =
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
 
+      int cluster_tpcid  = lfcluster.at(0).targetwire[4];
+      int cluster_cryoid = lfcluster.at(0).targetwire[5];
+      if ( cluster_tpcid!=tpcid || cluster_cryoid!=cryoid )
+	continue;
 
       // define shower start, dir, ll-score
       std::vector<float> shower_start;
@@ -189,10 +215,10 @@ namespace reco {
         score_ll = dist;
       }
       else {
-        score_ll = 100.0 + dist; // blerg
+        score_ll = 1000.0 + dist; // blerg
       }
 
-      ProngRank_t rank( vtxcluster.producer, iprong, vtxcluster.index, score_ll );
+      ProngRank_t rank( vtxcluster.producer, iprong, vtxcluster.index, score_ll, tpcid, cryoid );
       rank.dist2vtx = dist;
       rank.axis = shower_dir;
       rank.axis_start = shower_start;
@@ -239,7 +265,12 @@ namespace reco {
                     << " score=" << rankedprong.score
                     << " npts=" << lfcluster.size()
                     << std::endl;
-      
+
+      int cluster_tpcid  = lfcluster.at(0).targetwire[4];
+      int cluster_cryoid = lfcluster.at(0).targetwire[5];
+      if ( cluster_tpcid!=tpcid || cluster_cryoid!=cryoid )
+	continue;
+            
       // absorb hits into shower_hit_v
       larlite::larflowcluster shower_hit_v;
       for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
@@ -255,6 +286,12 @@ namespace reco {
         if ( _cluster_type[it->first]==NuVertexCandidate::kTrack ) {
           // loop over track cluster in this event container
           for ( auto const& track_lfcluster : *it->second ) {
+
+	    if ( track_lfcluster[0].targetwire[4]!=tpcid
+		 || track_lfcluster[0].targetwire[5]!=cryoid ) {
+	      continue;
+	    }
+	    
             // track cluster
             int nclose_to_axis = 0;
             for (auto const& trackhit : track_lfcluster ) {
@@ -319,7 +356,7 @@ namespace reco {
             if ( shower_lfcluster.size()==0 )
               continue;
             
-            // make sure its not the clsuter we are using as the seed
+            // make sure its not the cluster we are using as the seed
             int nhits_within_cone = 0;
             for ( auto const& showerhit : shower_lfcluster ) {
               std::vector<float> showerpt = { showerhit[0], showerhit[1], showerhit[2] };
