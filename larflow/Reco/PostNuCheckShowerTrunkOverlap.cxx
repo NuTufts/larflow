@@ -21,6 +21,9 @@ namespace reco {
     for (size_t inu=0; inu<nu_v.size(); inu++) {
       auto& nucand = nu_v[inu];
 
+      int cryoid = nucand.cryoid;
+      int tpcid  = nucand.tpcid;
+
       size_t ntracks = nucand.track_v.size();
       size_t nshowers = nucand.shower_v.size();
 

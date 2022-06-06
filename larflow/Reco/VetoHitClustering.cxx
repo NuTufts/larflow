@@ -15,6 +15,9 @@ namespace reco {
 
     const float veto_radius = 10.;
     const float min_veto_hits = 5;
+
+    const int cryoid = nuvtx.cryoid;
+    const int tpcid  = nuvtx.tpcid;
     
     // get veto'd hits
     larlite::event_larflow3dhit* evout_veto =
@@ -27,6 +30,11 @@ namespace reco {
     float dist = 0.;
     for ( size_t idx=0; idx<evout_veto->size(); idx++ ) {
       auto const& hit = evout_veto->at(idx);
+
+      // check that hit is in the same (cryo,tpc)
+      if ( hit.targetwire[4]!=tpcid || hit.targetwire[5]!=cryoid )
+	continue;
+      
       dist=0.;
       for (int v=0; v<3; v++)
 	dist += ( hit[v]-nuvtx.pos[v] )*( hit[v]-nuvtx.pos[v] );
@@ -313,6 +321,9 @@ namespace reco {
     std::vector< std::vector<float> > veto_pts_v;
     std::vector< int > hitidx_v;
 
+    const int cryoid = nuvtx.cryoid;
+    const int tpcid  = nuvtx.tpcid;
+
     veto_pts_v.reserve( close_hits_v.size() );
     hitidx_v.reserve( close_hits_v.size() );
     
@@ -321,8 +332,11 @@ namespace reco {
       int idx = close_hits_v[ihit];
       if ( idx<0 )
 	continue;
-      
+
       auto const& hit = inputhits[idx];
+
+      if (hit.targetwire[4]!=tpcid || hit.targetwire[5]!=cryoid )
+	continue;
       
       std::vector<float> pt = { hit[0], hit[1], hit[2] };
       std::vector<float> pt_orig = { hit[0], hit[1], hit[2] };      

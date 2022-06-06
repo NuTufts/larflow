@@ -93,8 +93,18 @@ namespace reco {
     LARCV_INFO() << "Number of badcv images made: " << gapch_v.size() << std::endl;
     larcv::EventImage2D* evout_badch =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"badch");
-    for ( auto& gap : gapch_v ) {
-      evout_badch->Emplace( std::move(gap) );
+    if ( gapch_v.size()>0 ) {
+      for ( auto& gap : gapch_v ) {
+	evout_badch->Emplace( std::move(gap) );
+      }
+    }
+    else {
+      // make blanks
+      for ( auto& adc : adc_v ) {
+	larcv::Image2D blank( adc.meta() );
+	blank.paint(0.0);
+	evout_badch->Emplace( std::move(blank) );
+      }
     }
 
     // make five particle ssnet images
@@ -155,16 +165,11 @@ namespace reco {
       return;
     }
 
-    // if ( _stop_after_prongreco ) {
-    //   _ana_tree->Fill();
-    //   return;      
-    // }
+    // kinematics
+    runBasicKinematics( iolcv, ioll );
 
-    // // kinematics
-    // runBasicKinematics( iolcv, ioll );
-
-    // // dqdx
-    // runBasicPID( iolcv, ioll );
+    // dqdx
+    runBasicPID( iolcv, ioll );
     
     // // Copy larlite contents
     // // in-time opflash
@@ -192,12 +197,12 @@ namespace reco {
     // // run selection and filter events    
     // //runNuVtxSelection();    
 
-    // if ( _kMinize_outputfile_size ) {
-    //   // save only fitted vertex candidates
-    //   _nuvertexmaker.get_mutable_nu_candidates().clear();
-    //   _nuvertexmaker.get_mutable_vetoed_candidates().clear();
-    //   _nuvertexmaker.get_mutable_merged_candidates().clear();            
-    // }
+    if ( _kMinize_outputfile_size ) {
+      // save only fitted vertex candidates
+      _nuvertexmaker.get_mutable_nu_candidates().clear();
+      _nuvertexmaker.get_mutable_vetoed_candidates().clear();
+      _nuvertexmaker.get_mutable_merged_candidates().clear();            
+    }
     
     // Fill Ana Tree
     _ana_run = ev_adc->run();
@@ -678,45 +683,35 @@ namespace reco {
 		     << std::endl;
     }    
     
-    // // - repair shower trunks by absorbing tracks or creating hits
-    // //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
-    // int ivtx = 0;
-    // //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
-    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
-    //   LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
-    //   _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
-    //   //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
-    //   ivtx++;
-    // }
+    // - repair shower trunks by absorbing tracks or creating hits
+    //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
+    for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
+      auto& vtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
+      LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
+      _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
+      //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+    }
 
-    // // post-neutrino-candidate processing:
-    // // - remove tracks from neutrino candidates that significantly overlap with showers
-    // //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
-    // //_nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
-    // _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
+    // post-neutrino-candidate processing:
+    // - remove tracks from neutrino candidates that significantly overlap with showers
+    //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
 
-    // // - add hits vetod around keypoints to the ends of track prongs
-    // //_nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
-    // LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
-    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
-    //   _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
-    // }
+    // - add hits vetod around keypoints to the ends of track prongs
+    //_nuvertex_cluster_vetohits.set_verbosity( larcv::msg::kDEBUG );
+    LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;
+    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
+      _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
+    }
 
-    // // - add secondaries
-    // _nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
-    // for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
-    //   LARCV_NORMAL() << "Try to add secondaries to VTX[" << ivtx << "]" << std::endl;
-    //   auto& nuvtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
-    //   auto& book  = _nuvertexmaker.get_candidate_cluster_book().at(ivtx);
-    //   _nuvertex_add_secondaries.process( nuvtx, book, iolcv, ioll );
-    // }    
-
-    // // - add dq/dx information
-    // //_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
-    // LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
-    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {        
-    //   _nuvertex_trackdqdx.process_nuvertex_tracks( iolcv, vtx );
-    // }
+    // - add secondaries
+    _nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
+    for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
+      LARCV_NORMAL() << "Try to add secondaries to VTX[" << ivtx << "]" << std::endl;
+      auto& nuvtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
+      auto& book  = _nuvertexmaker.get_candidate_cluster_book().at(ivtx);
+      _nuvertex_add_secondaries.process( nuvtx, book, iolcv, ioll );
+    }    
 
     //_cosmic_vertex_builder.set_verbosity( larcv::msg::kDEBUG );
     //_cosmic_vertex_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
@@ -926,113 +921,114 @@ namespace reco {
     
   // }
 
-  // /**
-  //  * @brief Produce baseline kinematics variables
-  //  *
-  //  */
-  // void KPSRecoManager::runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
-  // {
+  /**
+   * @brief Produce baseline kinematics variables
+   *
+   */
+  void KPSRecoManager::runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
     
-  //   LARCV_INFO() << "Calculate prong kinematics" << std::endl;
-  //   _nu_track_kine.set_verbosity(larcv::msg::kDEBUG);
-  //   _nu_shower_kine.set_verbosity(larcv::msg::kDEBUG);
-
-  //   _nu_track_kine.clear();
-  //   _nu_shower_kine.clear();
+    LARCV_INFO() << "Calculate prong kinematics" << std::endl;
+    _nu_track_kine.set_verbosity(larcv::msg::kDEBUG);
+    _nu_shower_kine.set_verbosity(larcv::msg::kDEBUG);
     
-  //   //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
-  //   std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
-
-  //   for (auto& nuvtx : nuvtx_v ) {
-      
-  //     larflow::reco::NuSelectionVariables nusel;
-      
-  //     // prong kinematic calculators
-  //     _nu_track_kine.clear();
-  //     _nu_track_kine.analyze( nuvtx );
-      
-  //     nuvtx.track_len_v      = _nu_track_kine._track_length_v;
-  //     nuvtx.track_kemu_v     = _nu_track_kine._track_mu_ke_v;
-  //     nuvtx.track_keproton_v = _nu_track_kine._track_p_ke_v;
-  //     nuvtx.track_pmu_v      = _nu_track_kine._track_mu_mom_v;
-  //     nuvtx.track_pproton_v  = _nu_track_kine._track_p_mom_v;
-
-  //     _nu_shower_kine.clear();
-  //     _nu_shower_kine.analyze( nuvtx, nusel, iolcv );
-  //     nuvtx.shower_plane_pixsum_vv = _nu_shower_kine._shower_plane_pixsum_v;
-  //     nuvtx.shower_plane_mom_vv    = _nu_shower_kine._shower_mom_v;
-      
-  //   }
-      
-  // }
-
-  // /**
-  //  * @brief calculate basline PID-related variables for the prongs
-  //  */
-  // void KPSRecoManager::runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
-  // {
+    _nu_track_kine.clear();
+    _nu_shower_kine.clear();
     
-  //   LARCV_INFO() << "Calculate baseline prong dq/dx-based PID metrics" << std::endl;
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
     
-  //   //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
-  //   std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
-  //   larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
-  //   auto const& adc_v = ev_adc->as_vector();
+    for (auto& nuvtx : nuvtx_v ) {
+      
+      // prong kinematic calculators
+      _nu_track_kine.clear();
+      _nu_track_kine.analyze( nuvtx );
+      
+      nuvtx.track_len_v      = _nu_track_kine._track_length_v;
+      nuvtx.track_kemu_v     = _nu_track_kine._track_mu_ke_v;
+      nuvtx.track_keproton_v = _nu_track_kine._track_p_ke_v;
+      nuvtx.track_pmu_v      = _nu_track_kine._track_mu_mom_v;
+      nuvtx.track_pproton_v  = _nu_track_kine._track_p_mom_v;
+      
+      _nu_shower_kine.clear();
+      _nu_shower_kine.analyze( nuvtx, iolcv );
+      nuvtx.shower_plane_pixsum_vv = _nu_shower_kine._shower_plane_pixsum_v;
+      nuvtx.shower_plane_mom_vv    = _nu_shower_kine._shower_mom_v;
+      
+    }
+      
+  }
+  
+  /**
+   * @brief calculate basline PID-related variables for the prongs
+   */
+  void KPSRecoManager::runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
     
-  //   for (auto& nuvtx : nuvtx_v ) {
+    LARCV_INFO() << "Calculate baseline prong dq/dx-based PID metrics" << std::endl;
+    
+    //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
+    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
+    larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->as_vector();
 
-  //     nuvtx.track_muid_v.resize( nuvtx.track_v.size(), 0 );
-  //     nuvtx.track_protonid_v.resize( nuvtx.track_v.size(), 0 );
-  //     nuvtx.track_mu_vs_proton_llratio_v.resize( nuvtx.track_v.size(), 0 );
+    
+    for (auto& nuvtx : nuvtx_v ) {
 
-  //     nuvtx.shower_plane_dqdx_vv.clear();
+      nuvtx.track_muid_v.resize( nuvtx.track_v.size(), 0 );
+      nuvtx.track_protonid_v.resize( nuvtx.track_v.size(), 0 );
+      nuvtx.track_mu_vs_proton_llratio_v.resize( nuvtx.track_v.size(), 0 );
+
+      nuvtx.shower_plane_dqdx_vv.clear();
       
-  //     larflow::reco::NuSelectionVariables nusel;
-      
-  //     // track dq/dx-based likelihoods
-  //     for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
+      // track dq/dx-based likelihoods
+      for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
 
-  //       try {        
-  //         std::vector<double> ll_results = _sel_llpmu.calculateLLseparate( nuvtx.track_v[itrack], nuvtx.pos );
-  //         nuvtx.track_muid_v[itrack] = ll_results[2];
-  //         nuvtx.track_protonid_v[itrack] = ll_results[1];
-  //         nuvtx.track_mu_vs_proton_llratio_v[itrack] = ll_results[0];
-  //       }
-  //       catch ( const std::exception& e ) {
-  //         LARCV_INFO() << "error running track likelihoood: " << e.what() << std::endl;
-  //       }
-  //     }//end of track loop
+	// calculate dqdx
+	_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
+	LARCV_NORMAL() << "calculate Track dQ/dx" << std::endl;
+	_nuvertex_trackdqdx.process_nuvertex_tracks( iolcv, nuvtx );
 
-  //     // shower dq/dx
-  //     for (size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++) {
-  //       bool dqdxok = true;
+        try {        
+          std::vector<double> ll_results = _sel_llpmu.calculateLLseparate( nuvtx.track_v[itrack], nuvtx.pos );
+          nuvtx.track_muid_v[itrack] = ll_results[2];
+          nuvtx.track_protonid_v[itrack] = ll_results[1];
+          nuvtx.track_mu_vs_proton_llratio_v[itrack] = ll_results[0];
+        }
+        catch ( const std::exception& e ) {
+          LARCV_INFO() << "error running track likelihoood: " << e.what() << std::endl;
+        }
+      }//end of track loop
 
-  //       std::vector<float> shower_plane_pixsum_v(adc_v.size(),0);
+      // shower dq/dx
+      for (size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++) {
+        bool dqdxok = true;
+
+        std::vector<float> shower_plane_pixsum_v(adc_v.size(),0);
         
-  //       try {
-  //         _sel_showerdqdx.processShower( nuvtx.shower_v[ishower],
-  //                                        nuvtx.shower_trunk_v[ishower],
-  //                                        nuvtx.shower_pcaxis_v[ishower],
-  //                                        ev_adc->as_vector(), nuvtx );
-  //       }
-  //       catch( const std::exception& e ) {
-  //         dqdxok = false;
-  //         LARCV_INFO() << "error running showerdqdx: " << e.what() << std::endl;
-  //       }
+        try {
+          _sel_showerdqdx.processShower( nuvtx.shower_v[ishower],
+                                         nuvtx.shower_trunk_v[ishower],
+                                         nuvtx.shower_pcaxis_v[ishower],
+                                         ev_adc->as_vector(), nuvtx );
+        }
+        catch( const std::exception& e ) {
+          dqdxok = false;
+          LARCV_INFO() << "error running showerdqdx: " << e.what() << std::endl;
+        }
         
-  //       // set values
-  //       if ( !dqdxok ) {
-  //         nuvtx.shower_plane_dqdx_vv.emplace_back( std::move(shower_plane_pixsum_v) );
-  //       }
-  //       else {
-  //         // good reco
-  //         nuvtx.shower_plane_dqdx_vv.push_back( _sel_showerdqdx._pixsum_dqdx_v );
-  //       }
-  //     }//end of shower loop
+        // set values
+        if ( !dqdxok ) {
+          nuvtx.shower_plane_dqdx_vv.emplace_back( std::move(shower_plane_pixsum_v) );
+        }
+        else {
+          // good reco
+          nuvtx.shower_plane_dqdx_vv.push_back( _sel_showerdqdx._pixsum_dqdx_v );
+        }
+      }//end of shower loop
       
-  //   }//end of vertex loop
+    }//end of vertex loop
       
-  // }
+  }
   
   // void KPSRecoManager::runNuVtxSelection()
   // {

@@ -61,11 +61,12 @@ namespace reco {
                                float& frac_path, float& frac_core );
 
     larlite::larflowcluster makeMissingTrunkHits( larflow::reco::NuVertexCandidate& nuvtx, 
-                                                  const std::vector<larcv::Image2D>& adc_v,
+                                                  const std::vector<const larcv::Image2D*>& padc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
                                                   larlite::pcaxis& shower_pcaxis,
-                                                  float& max_gapdist );
+                                                  float& max_gapdist,
+						  const int tpcid, const int cryoid );						  
 
   protected:
 

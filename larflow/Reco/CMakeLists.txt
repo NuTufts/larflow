@@ -30,22 +30,27 @@ set( HEADERS cluster_functions.h
   NuTrackBuilder.h
   NuVertexShowerReco.h  
   # NuShowerBuilder.h
-  # NuVertexShowerTrunkCheck.h
+  NuVertexShowerTrunkCheck.h
+  PostNuCheckShowerTrunkOverlap.h
+  VetoHitClustering.h
+  NuVertexAddSecondaries.h  
+
+  NuTrackKinematics.h
+  NuShowerKinematics.h
+
+  TrackdQdx.h  
+  NuTrackdQdx.h
+  LikelihoodProtonMuon.h
+  ClusterImageMask.h
+  ShowerdQdx.h
+  
   # NuVertexActivityReco.h
-  # NuVertexAddSecondaries.h
-  # VetoHitClustering.h
   # PerfectTruthNuReco.h
-  # TrackdQdx.h
-  # NuTrackdQdx.h
   # ClusterImageMask.h
   # NuSelectionVariables.h
-  # LikelihoodProtonMuon.h
   # CosmicProtonFinder.h
   # TrackForwardBackwardLL.h
   # TrackFindBadConnection.h  
-  # NuTrackKinematics.h
-  # NuShowerKinematics.h
-  # PostNuCheckShowerTrunkOverlap.h
   # NuSelProngVars.h
   # NuSelVertexVars.h
   # NuSelWCTaggerOverlap.h  
@@ -86,22 +91,29 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
   NuTrackBuilder.cxx
   NuVertexShowerReco.cxx  
   # NuShowerBuilder.cxx
-  # NuVertexShowerTrunkCheck.cxx  
+  NuVertexShowerTrunkCheck.cxx
+  PostNuCheckShowerTrunkOverlap.cxx
+  VetoHitClustering.cxx
+  NuVertexAddSecondaries.cxx
+  
   # NuVertexActivityReco.cxx
-  # NuVertexAddSecondaries.cxx  
-  # VetoHitClustering.cxx  
-  # PostNuCheckShowerTrunkOverlap.cxx  
+  NuTrackKinematics.cxx
+  NuShowerKinematics.cxx  
+
+  TrackdQdx.cxx    
+  NuTrackdQdx.cxx
+  LikelihoodProtonMuon.cxx
+  ClusterImageMask.cxx  
+  ShowerdQdx.cxx
+  
   # PerfectTruthNuReco.cxx  
-  # TrackdQdx.cxx
-  # NuTrackdQdx.cxx  
+
   # ClusterImageMask.cxx  
   # NuSelectionVariables.cxx
-  # LikelihoodProtonMuon.cxx
+
   # CosmicProtonFinder.cxx
   # TrackForwardBackwardLL.cxx
   # TrackFindBadConnection.cxx  
-  # NuTrackKinematics.cxx
-  # NuShowerKinematics.cxx  
   # NuSelProngVars.cxx
   # NuSelVertexVars.cxx
   # NuSelShowerTrunkAna.cxx

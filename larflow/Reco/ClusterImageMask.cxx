@@ -1,6 +1,7 @@
 #include "ClusterImageMask.h"
 
-#include "larlite/LArUtil/LArProperties.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 
 namespace larflow {
@@ -11,9 +12,12 @@ namespace reco {
                                     const std::vector<larcv::Image2D>& adc_v )
   {
 
+    std::vector<const larcv::Image2D*> padc_v
+      = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, nuvtx.tpcid, nuvtx.cryoid );
+    
     std::vector< larcv::Image2D > mask_v;
-    for (auto const& adc : adc_v ) {
-      larcv::Image2D mask(adc.meta());
+    for (auto const& adc : padc_v ) {
+      larcv::Image2D mask(adc->meta());
       mask.paint(0.0);
       mask_v.emplace_back( std::move(mask) );
     }
@@ -22,12 +26,12 @@ namespace reco {
     
     // loop over tracks
     for ( auto const& track : nuvtx.track_v ) {
-      maskTrack( track, adc_v, mask_v, 10.0, 2, 2, 0.5, 1.0 );
+      maskTrack( track, padc_v, mask_v, nuvtx.tpcid, nuvtx.cryoid, 10.0, 2, 2, 0.5, 1.0 );
     }
 
     // loop over showers
     for ( auto const& shower : nuvtx.shower_v ) {
-      maskCluster( shower, adc_v, mask_v, 10.0, 2 );
+      maskCluster( shower, padc_v, mask_v, 10.0, 2 );
     }
 
     return mask_v;
@@ -35,16 +39,16 @@ namespace reco {
 
 
   void ClusterImageMask::maskCluster( const larlite::larflowcluster& cluster,
-                                      const std::vector<larcv::Image2D>& adc_v,
+                                      const std::vector<const larcv::Image2D*>& padc_v,
                                       std::vector<larcv::Image2D>& mask_v,
                                       const float thresh,
                                       const int dpix )
   {
 
-    float tick_min = adc_v.front().meta().min_y();
-    float tick_max = adc_v.front().meta().max_y();
+    float tick_min = padc_v.front()->meta().min_y();
+    float tick_max = padc_v.front()->meta().max_y();
     int row_min = 0;
-    int row_max = (int)adc_v.front().meta().rows();
+    int row_max = (int)padc_v.front()->meta().rows();
     
     int nskipped_points = 0;
     for (auto const& sp : cluster ) {
@@ -52,9 +56,9 @@ namespace reco {
       if ( sp.tick<=tick_min || sp.tick>=tick_max )
         continue;
 
-      int row = adc_v.front().meta().row( sp.tick );
+      int row = padc_v.front()->meta().row( sp.tick );
       
-      if ( sp.targetwire.size()!=adc_v.size() ) {
+      if ( sp.targetwire.size()!=padc_v.size() ) {
         nskipped_points++;
         continue;
       }
@@ -63,12 +67,12 @@ namespace reco {
         int r = row + dr;
         if (r<row_min || r>=row_max ) continue;
 
-        for (int p=0; p<(int)adc_v.size(); p++) {
+        for (int p=0; p<(int)padc_v.size(); p++) {
           for (int dc=-(int)abs(dpix); dc<=(int)abs(dpix); dc++) {
             int c = sp.targetwire[p] + dc;
-            if ( c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
+            if ( c<0 || c>=(int)padc_v[p]->meta().cols() ) continue;
 
-            if ( adc_v[p].pixel(r,c,__FILE__,__LINE__)>thresh
+            if ( padc_v[p]->pixel(r,c,__FILE__,__LINE__)>thresh
                  && mask_v[p].pixel(r,c)==0 ) {
               mask_v[p].set_pixel(r,c,1.0);
               _npix++;
@@ -82,8 +86,9 @@ namespace reco {
   }
 
   void ClusterImageMask::maskTrack( const larlite::track& track,
-                                    const std::vector<larcv::Image2D>& adc_v,
+                                    const std::vector<const larcv::Image2D*>& padc_v,
                                     std::vector<larcv::Image2D>& mask_v,
+				    const int tpcid, const int cryoid,
                                     const float thresh,                                    
                                     const int dcol,
                                     const int drow,
@@ -98,11 +103,10 @@ namespace reco {
       return;
     }
 
-    const float driftv = larutil::LArProperties::GetME()->DriftVelocity();
-    const float usec_per_tick = 0.5;
-
-    float max_tick = adc_v.front().meta().max_y();
-    float min_tick = adc_v.front().meta().min_y();
+    auto const detp = larutil::DetectorProperties::GetME();
+    
+    float max_tick = padc_v.front()->meta().max_y();
+    float min_tick = padc_v.front()->meta().min_y();
 
     
     for (int ipt=0; ipt<npts-1; ipt++) {
@@ -126,30 +130,30 @@ namespace reco {
         // project into image
         std::vector<int> imgcoord(4,0); // (u,v,y,tick)
 
-        imgcoord[3] = pos[0]/driftv/usec_per_tick + 3200; // tick
+        imgcoord[3] = detp->ConvertXToTicks( pos[0], 0, tpcid, cryoid );
 
         if ( min_tick>=imgcoord[3] || max_tick<=imgcoord[3] )
           continue;
 
-        int row = adc_v.front().meta().row( imgcoord[3], __FILE__, __LINE__ );
+        int row = padc_v.front()->meta().row( imgcoord[3], __FILE__, __LINE__ );
         
         for (int p=0; p<3; p++) {
-          imgcoord[p] = larutil::Geometry::GetME()->WireCoordinate( pos, (UInt_t)p );
+          imgcoord[p] = larlite::larutil::Geometry::GetME()->WireCoordinate( pos, (UInt_t)p, tpcid, cryoid );
         }
 
         //mask around the projected point
         for (int dr=-abs(drow); dr<=abs(drow); dr++) {
           int r = row+dr;
-          if ( r<0 || r>=(int)adc_v.front().meta().rows() )
+          if ( r<0 || r>=(int)padc_v.front()->meta().rows() )
             continue;
 
           for (int p=0; p<3; p++) {          
             for (int dc=-abs(dcol);dc<=abs(dcol); dc++) {
               int c = imgcoord[p]+dc;
-              if (c<=0 || c>=(int)adc_v[p].meta().cols() )
+              if (c<=0 || c>=(int)padc_v[p]->meta().cols() )
                 continue;
 
-              float pixval = adc_v[p].pixel(r,c,__FILE__,__LINE__);
+              float pixval = padc_v[p]->pixel(r,c,__FILE__,__LINE__);
               if ( pixval>thresh && mask_v[p].pixel(r,c)==0) {
                 mask_v[p].set_pixel( r, c, 1.0 );
                 _npix++;
@@ -167,6 +171,22 @@ namespace reco {
     LARCV_DEBUG() << "_npix=" << _npix << std::endl;
   }
     
+  void ClusterImageMask::maskTrack( const larlite::track& track,
+                                    const std::vector<larcv::Image2D>& adc_v,
+                                    std::vector<larcv::Image2D>& mask_v,
+				    const int tpcid, const int cryoid,				    
+                                    const float thresh,                                    
+                                    const int dcol,
+                                    const int drow,
+                                    const float minstepsize,
+                                    const float maxstepsize )  
+  {
+    std::vector< const larcv::Image2D* > padc_v;
+    for ( auto const& img : adc_v )
+      padc_v.push_back( &img );
+    maskTrack( track, padc_v, mask_v, tpcid, cryoid,
+	       thresh, dcol, drow, minstepsize, maxstepsize );
+  }
 
 
 }

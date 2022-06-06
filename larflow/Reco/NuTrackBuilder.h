@@ -31,6 +31,13 @@ namespace reco {
 		  std::vector<ClusterBookKeeper>& nu_cluster_book_v,
 		  bool load_clusters=true );
 
+    void process_one_tpc( larcv::IOManager& iolcv,
+			  larlite::storage_manager& ioll,
+			  std::vector<NuVertexCandidate>& nu_candidate_v,
+			  std::vector<ClusterBookKeeper>& nu_cluster_book_v,
+			  const int tpcid, const int cryoid,
+			  bool load_clusters=true );
+    
     void loadClustersAndConnections( larcv::IOManager& iolcv,
 				     larlite::storage_manager& ioll,
 				     const int tpc,

@@ -4,10 +4,11 @@
 #include <string>
 #include <sstream>
 #include <omp.h>
-#include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 #include "ublarcvapp/MCTools/TruthShowerTrunkSCE.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 #include "geofuncs.h"
 #include "ClusterImageMask.h"
 
@@ -98,8 +99,14 @@ namespace reco {
     clear();
     trunk_tgraph_vv.clear();
     trunk_tgraph_vv.resize( adc_v.size() );
+
+    const int tpcid  = shower[0].targetwire[4];
+    const int cryoid = shower[0].targetwire[5];
+
+    std::vector< const larcv::Image2D* > padc_v
+      = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );    
     
-    auto const& meta = adc_v.front().meta();
+    auto const& meta = padc_v.front()->meta();
     
     std::vector<float> start_pos = { (float)trunk.LocationAtPoint(0)[0],
                                      (float)trunk.LocationAtPoint(0)[1],
@@ -114,19 +121,22 @@ namespace reco {
     float dist = 0.;
 
     // make sure the shower start and end are inside the image
-    bool validtrunk = checkShowerTrunk( start_pos, end_pos, fstart, fend, _shower_dir, dist, adc_v );
+    bool validtrunk = checkShowerTrunk( start_pos, end_pos,
+					fstart, fend,
+					_shower_dir, dist,
+					tpcid, cryoid, padc_v );
 
     // collect pixels that the trunk passes through in each wire plane image
-    _createDistLabels( fstart, fend, adc_v, 10.0 );
+    _createDistLabels( fstart, fend, padc_v, 10.0, tpcid, cryoid );
 
     // define line segment regions to measure dq/dx over the shower trunk
     _makeSegments( -3.0, 0.5 );
 
     // use track pixels in candidate neutrino vertex to mask pixels to zero
-    std::vector<larcv::Image2D> track_masked_v = maskTrackPixels( adc_v, trunk, nuvtx );
+    std::vector<larcv::Image2D> track_masked_v = maskTrackPixels( padc_v, trunk, nuvtx, tpcid, cryoid );
 
     // calculate dq/dx for each segment along dq/dx, using masked image
-    _sumChargeAlongSegments( fstart, fend, track_masked_v, 10.0, 1, 3 );
+    _sumChargeAlongSegments( fstart, fend, track_masked_v, 10.0, 1, 3, tpcid, cryoid );
 
     // find range along trunk that contain points with expected dq/dx for electron and photon
     // electron regions
@@ -180,38 +190,36 @@ namespace reco {
       end3cm[i] = fstart[i] + pixsum_dist*_shower_dir[i];
     }
     try {
-      _pixsum_dqdx_v = sumChargeAlongTrunk( fstart, end3cm, track_masked_v, 10.0, 1, 3 );
+      _pixsum_dqdx_v = sumChargeAlongTrunk( fstart, end3cm, track_masked_v, 10.0, 1, 3, tpcid, cryoid );
     }
     catch (std::exception& e) {
       LARCV_WARNING() << "Error calculating dq/dx: " << e.what() << std::endl;
-      _pixsum_dqdx_v.resize( adc_v.size(), 0 );
-      for (int p=0; p<(int)adc_v.size(); p++)
+      _pixsum_dqdx_v.resize( padc_v.size(), 0 );
+      for (int p=0; p<(int)padc_v.size(); p++)
         _pixsum_dqdx_v[p] = 0.;
     }
     
-    for (size_t p=0; p<adc_v.size(); p++) {
+    for (size_t p=0; p<padc_v.size(); p++) {
       LARCV_INFO() << "Plane[" << p << "] " << pixsum_dist << " cm trunk dq/dx: " << _pixsum_dqdx_v[p] << " pixsum/cm" << std::endl;
     }
 
     // heuristic to choosing best dq/dx
     // most good points?
     // start of electron shower?
-    std::vector<int> ngood_v( adc_v.size(), 0);
+    std::vector<int> ngood_v( padc_v.size(), 0);
     _best_pixsum_plane = -1;
     _best_pixsum_ortho = 0.;    
-    _pixsum_dqdx_v.resize(adc_v.size(),0);
-    for (size_t p=0; p<adc_v.size(); p++) {
+    _pixsum_dqdx_v.resize(padc_v.size(),0);
+    for (size_t p=0; p<padc_v.size(); p++) {
       float ngood_max = 0;
-
-      std::vector<double> orthovect= { 0.0,
-                                       larutil::Geometry::GetME()->GetOrthVectorsY().at(p),
-                                       larutil::Geometry::GetME()->GetOrthVectorsZ().at(p) };
+      auto const& wirepitchdir = larlite::larutil::Geometry::GetME()->GetPlane( p, tpcid, cryoid ).fWirePitchDir;
+      std::vector<double> orthovect= { 0.0, 0.0, 0.0 };
 
       float plane_ortho_cos = 0.;
       float ortholen = 0.;
       for (int i=0; i<3; i++) {
-        plane_ortho_cos += orthovect[i]*_shower_dir[i];
-        ortholen += orthovect[i]*orthovect[i];
+        plane_ortho_cos += wirepitchdir[i]*_shower_dir[i];
+        ortholen += wirepitchdir[i]*wirepitchdir[i];
       }
       if (ortholen>0) {
         ortholen = sqrt(ortholen);
@@ -247,16 +255,16 @@ namespace reco {
     // make graphs for debug plotting
     std::vector<float> cgrad;
     std::vector<float> rgrad;
-    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+    for ( int p=0; p<(int)padc_v.size(); p++ ) {
       TGraph gpath(2);      
-      float col = colcoordinate_and_grad( fstart, p, meta, cgrad );
-      float row = rowcoordinate_and_grad( fstart, meta, rgrad );
+      float col = colcoordinate_and_grad( fstart, p, tpcid, cryoid, padc_v.size(), meta, cgrad );
+      float row = rowcoordinate_and_grad( fstart, p, tpcid, cryoid, meta, rgrad );
       float ptx = col*meta.pixel_width()+meta.min_x();
       float pty = row*meta.pixel_height()+meta.min_y();
       gpath.SetPoint(0, ptx, pty );
 
-      col = colcoordinate_and_grad( fend, p, meta, cgrad );
-      row = rowcoordinate_and_grad( fend, meta, rgrad );
+      col = colcoordinate_and_grad( fend, p, tpcid, cryoid, padc_v.size(), meta, cgrad );
+      row = rowcoordinate_and_grad( fend, p, tpcid, cryoid, meta, rgrad );
       ptx = col*meta.pixel_width()+meta.min_x();
       pty = row*meta.pixel_height()+meta.min_y();
       gpath.SetPoint(1, ptx, pty );
@@ -275,14 +283,18 @@ namespace reco {
                                      std::vector<float>& modend3d,
                                      std::vector<float>& shower_dir,
                                      float& dist,
-                                     const std::vector<larcv::Image2D>& adc_v )
+				     const int tpcid,
+				     const int cryoid,
+                                     const std::vector<const larcv::Image2D*>& padc_v )
   {
 
+    auto const detp = larutil::DetectorProperties::GetME();
+    
     // set output vector size
     modstart3d.resize(3,0);
     modend3d.resize(3,0);
    
-    auto const& meta = adc_v.front().meta();
+    auto const& meta = padc_v.front()->meta();
 
     // initial length and direction
     dist = 0.;
@@ -306,13 +318,13 @@ namespace reco {
     bool modified_trunk = false;
     
     // check the starting point
-    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    float start_tick = detp->ConvertXToTicks( start_pos[0], 0, tpcid, cryoid );
     if ( start_tick<=meta.min_y() || start_tick>=meta.max_y() ) {
 
       // try to shorten trunk to stay in image
       bool fix = false;
       if ( start_tick<=meta.min_y() && shower_dir[0]!=0.0) {
-	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float mintick = detp->ConvertTicksToX( meta.pos_y( 1 ), 0, tpcid, cryoid );
 	float s = (mintick-start_pos[0])/shower_dir[0];
 	fix = true;
 	for (int i=0; i<3; i++)
@@ -320,7 +332,7 @@ namespace reco {
 	start_tick = meta.pos_y(1);        
       }
       else if ( start_tick>=meta.max_y() && shower_dir[0]!=0.0) {
-	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float maxtick = detp->ConvertTicksToX(meta.pos_y( (int)meta.rows()-1 ), 0, tpcid, cryoid );
 	float s = (maxtick-start_pos[0])/shower_dir[0];	
 	fix = true;
 	for (int i=0; i<3; i++)
@@ -345,14 +357,14 @@ namespace reco {
     // final starting row
     float start_row = (float)meta.row(start_tick);
         
-    float end_tick = end_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    float end_tick = detp->ConvertXToTicks( end_pos[0], 0, tpcid, cryoid );
     if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
 
       // try to shorten trunk to stay in image
       bool fix = false;
       float s = 0.0;
       if ( end_tick<=meta.min_y() && shower_dir[0]!=0.0) {
-	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float mintick = detp->ConvertTicksToX( meta.pos_y( 1 ), 0, tpcid, cryoid );
 	s = (mintick-start_pos[0])/shower_dir[0];
 	fix = true;
 	for (int i=0; i<3; i++)
@@ -361,7 +373,7 @@ namespace reco {
 
       }
       else if ( end_tick>=meta.max_y() && shower_dir[0]!=0.0) {
-	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float maxtick = detp->ConvertTicksToX( meta.pos_y( (int)meta.rows()-1 ), 0, tpcid, cryoid );
 	s = (maxtick-start_pos[0])/shower_dir[0];
 
 	fix = true;
@@ -408,28 +420,34 @@ namespace reco {
    */
   float ShowerdQdx::colcoordinate_and_grad( const std::vector<float>& pos,
                                             const int plane,
+					    const int tpcid,
+					    const int cryoid,
+					    const int nplanes,
                                             const larcv::ImageMeta& meta,
                                             std::vector<float>& grad )
   {
     
-    if ( plane<0 || plane>=(int)larutil::Geometry::GetME()->Nplanes() )
+    if ( plane<0 || plane>=nplanes )
       throw std::runtime_error("ProjectionTools::wirecoordinate_and_grad invalid plane number");
     
     // microboone only
-    const std::vector<Double_t>& firstwireproj = larutil::Geometry::GetME()->GetFirstWireProj(); 
-    std::vector<double> orthovect = { 0,
-                                      larutil::Geometry::GetME()->GetOrthVectorsY().at(plane),
-                                      larutil::Geometry::GetME()->GetOrthVectorsZ().at(plane) };
-
+    auto const& planegeo = larlite::larutil::Geometry::GetME()->GetPlane( plane, tpcid, cryoid );
+    const TVector3& wirepitchdir = planegeo.fWirePitchDir;
+    const TVector3& firstwirepos = planegeo.fWires_v[0].fWireStartVtx;
+    const double wirepitch       = planegeo.fWirePitchLen;
+    
     // from larlite Geometry::WireCoordinate(...)
-    float wirecoord = pos[1]*orthovect[1] + pos[2]*orthovect[2] - firstwireproj.at(plane);
+    float wirecoord = 0.;
+    for (int i=0; i<3; i++)
+      wirecoord += wirepitchdir[i]*pos[i];
 
     float colcoord = (wirecoord-meta.min_x())/meta.pixel_width();
     
     grad.resize(3,0);
-    grad[0] = 0.0;
-    grad[1] = orthovect[1]/meta.pixel_width();
-    grad[2] = orthovect[2]/meta.pixel_width();
+    for (int i=0; i<3; i++) {
+      grad[i] = wirepitchdir[i]/meta.pixel_width();
+    }
+
     return colcoord;
   }
 
@@ -438,13 +456,18 @@ namespace reco {
    *
    */
   float ShowerdQdx::rowcoordinate_and_grad( const std::vector<float>& pos,
-                                                    const larcv::ImageMeta& meta,
-                                                    std::vector<float>& grad )
+					    const int plane,
+					    const int tpcid,
+					    const int cryoid,
+					    const larcv::ImageMeta& meta,
+					    std::vector<float>& grad )
   {
-    float tick = pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    // basing on larutil::DetectorProperties::ConvertTicksToX(...)
+    
+    float tick = larutil::DetectorProperties::GetME()->ConvertXToTicks( pos[0], plane, tpcid, cryoid );
     float row = (tick-meta.min_y())/meta.pixel_height();
     grad.resize(3,0);
-    grad[0] = 1.0/larutil::LArProperties::GetME()->DriftVelocity()/0.5/meta.pixel_height();
+    grad[0] = (pos[0]*larutil::DetectorProperties::GetME()->GetXTicksCoefficient())/meta.pixel_height();
     grad[1] = 0.0;
     grad[2]=  0.0;
     return row;
@@ -457,7 +480,8 @@ namespace reco {
                                                       const std::vector<float>& end3d,
                                                       const std::vector<larcv::Image2D>& img_v,
                                                       const float threshold,
-                                                      const int dcol, const int drow )
+                                                      const int dcol, const int drow,
+						      const int tpcid, const int cryoid )
   {
     const int nplanes = img_v.size();
 
@@ -478,7 +502,10 @@ namespace reco {
     std::vector<float> planesum_v(nplanes,0);
 
     if ( _plane_trunkpix_v.size()!=nplanes ) {
-      _createDistLabels( start3d, end3d, img_v, threshold );
+      std::vector< const larcv::Image2D* > pimg_v;
+      for ( auto const& img : img_v )
+	pimg_v.push_back( &img );
+      _createDistLabels( start3d, end3d, pimg_v, threshold, tpcid, cryoid );
     }
     
     for ( int p=0; p<nplanes; p++ ) {
@@ -642,8 +669,10 @@ namespace reco {
    */
   void ShowerdQdx::_createDistLabels( const std::vector<float>& start3d,
                                       const std::vector<float>& end3d,
-                                      const std::vector<larcv::Image2D>& img_v,
-                                      const float threshold )
+                                      const std::vector<const larcv::Image2D*>& img_v,
+                                      const float threshold,
+				      const int tpcid,
+				      const int cryoid )
   {
     
     _visited_v.clear();    
@@ -671,7 +700,7 @@ namespace reco {
       TrunkPixMap_t& _visited_m = _visited_v[p];
       _visited_m.clear();
       
-      auto const& img = img_v[p];
+      auto const& img = *img_v[p];
       //larcv::Image2D blank(img.meta());
       //blank.paint(0.0);
       float pixsum = 0.;
@@ -684,8 +713,8 @@ namespace reco {
         // project into image
         std::vector<float> col_grad;
         std::vector<float> row_grad;        
-        float col = colcoordinate_and_grad( pos, p, img.meta(), col_grad );
-        float row = rowcoordinate_and_grad( pos, img.meta(), row_grad );
+        float col = colcoordinate_and_grad( pos, p, tpcid, cryoid, nplanes, img.meta(), col_grad );
+        float row = rowcoordinate_and_grad( pos, p, tpcid, cryoid, img.meta(), row_grad );
         if ( col<0 || col>=(float)img.meta().cols()
              || row<0 || row>=(float)img.meta().rows() )
           continue;
@@ -833,7 +862,8 @@ namespace reco {
                                             const std::vector<float>& end3d,
                                             const std::vector<larcv::Image2D>& img_v,
                                             const float threshold,
-                                            const int dcol, const int drow )
+                                            const int dcol, const int drow,
+					    const int tpcid, const int cryoid )
   {
 
     _plane_dqdx_seg_v.clear();
@@ -1471,15 +1501,17 @@ namespace reco {
   void ShowerdQdx::calcGoodShowerTaggingVariables( const larlite::larflowcluster& shower,
                                                    const larlite::track& trunk,
                                                    const larlite::pcaxis& pca,
-                                                   const std::vector<larcv::Image2D>& adc_v,
-                                                   const std::vector<larlite::mcshower>& mcshower_v )
+                                                   const std::vector<const larcv::Image2D*>& padc_v,
+                                                   const std::vector<larlite::mcshower>& mcshower_v,
+						   const int tpcid, const int cryoid )
   {
 
     if ( ShowerdQdx::_psce==nullptr ) {
       ShowerdQdx::_psce = new larutil::SpaceChargeMicroBooNE;
     }
     
-    auto const& meta = adc_v.front().meta();
+    auto const& meta = padc_v.front()->meta();
+    auto const detp = larutil::DetectorProperties::GetME();
 
 
     std::vector<float> start_pos = { (float)trunk.LocationAtPoint(0)[0],
@@ -1501,13 +1533,14 @@ namespace reco {
         dir[i] /= dist;
     }
     
-    float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    //float start_tick = start_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    float start_tick = detp->ConvertXToTicks( start_pos[0], 0, tpcid, cryoid );
     if ( start_tick<meta.min_y() || start_tick>meta.max_y() ) {
 
       // try to shorten trunk to stay in image
       bool fix = false;
       if ( start_tick<=meta.min_y() && dir[0]!=0.0) {
-	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float mintick = detp->ConvertTicksToX(meta.pos_y( 1 ), 0, tpcid, cryoid);
 	float s = (mintick-start_pos[0])/dir[0];
 	
 	fix = true;
@@ -1517,7 +1550,7 @@ namespace reco {
 	
       }
       else if ( start_tick>=meta.max_y() && dir[0]!=0.0) {
-	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float maxtick = detp->ConvertTicksToX(meta.pos_y( (int)meta.rows()-1 ), 0, tpcid, cryoid );
 	float s = (maxtick-start_pos[0])/dir[0];
 	
 	fix = true;
@@ -1539,14 +1572,14 @@ namespace reco {
     }    
     float start_row = (float)meta.row(start_tick);
         
-    float end_tick = end_pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+    float end_tick = detp->ConvertXToTicks( end_pos[0], 0, tpcid, cryoid );
     if ( end_tick<=meta.min_y() || end_tick>=meta.max_y() ) {
       
       // try to shorten trunk to stay in image
       bool fix = false;
       float s = 0.;
       if ( end_tick<=meta.min_y() && dir[0]!=0.0) {
-	float mintick = (meta.pos_y( 1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float mintick = detp->ConvertTicksToX( meta.pos_y( 1 ), 0, tpcid, cryoid );
 	s = (mintick-start_pos[0])/dir[0];
 
 	fix = true;
@@ -1556,7 +1589,7 @@ namespace reco {
 
       }
       else if ( end_tick>=meta.max_y() && dir[0]!=0.0) {
-	float maxtick = (meta.pos_y( (int)meta.rows()-1 )-3200)*0.5*larutil::LArProperties::GetME()->DriftVelocity();
+	float maxtick = detp->ConvertTicksToX( meta.pos_y( (int)meta.rows()-1 ), 0, tpcid, cryoid );
 	s = (maxtick-start_pos[0])/dir[0];
 
 	fix = true;
@@ -1691,17 +1724,18 @@ namespace reco {
    *
    */
   std::vector<larcv::Image2D>
-  ShowerdQdx::maskTrackPixels( const std::vector<larcv::Image2D>& adc_v,
+  ShowerdQdx::maskTrackPixels( const std::vector<const larcv::Image2D*>& padc_v,
                                const larlite::track& shower_trunk,
-                               const larflow::reco::NuVertexCandidate& nuvtx )
+                               const larflow::reco::NuVertexCandidate& nuvtx,
+			       const int tpcid, const int cryoid )
   {
 
     ClusterImageMask masker; // class contains functions to mask pixels along track object
 
     // create blank images. will add track mask to this
     std::vector<larcv::Image2D> mask_v;
-    for ( auto const& adc : adc_v ) {
-      larcv::Image2D mask( adc.meta() );
+    for ( auto const& adc : padc_v ) {
+      larcv::Image2D mask( adc->meta() );
       mask.paint(0.0);
       mask_v.emplace_back( std::move(mask) );
     }
@@ -1749,14 +1783,14 @@ namespace reco {
       LARCV_DEBUG() << "track: cosdir=" << cosdir << " dist1=" << dist1 << " dist2=" << dist2 << " dist=" << dist << std::endl;
 
       if ( fabs(cosdir)<0.95 || dist>10 ) {
-        masker.maskTrack( track, adc_v, mask_v, 1.0, 2, 4, 0.1, 0.3 );        
+        masker.maskTrack( track, padc_v, mask_v, tpcid, cryoid, 1.0, 2, 4, 0.1, 0.3 );        
       }
     }
 
     // create masked images. will add track mask to this
     std::vector<larcv::Image2D> track_removed_v;
-    for ( size_t p=0; p<adc_v.size(); p++) {
-      auto const& adc  = adc_v[p];
+    for ( size_t p=0; p<padc_v.size(); p++) {
+      auto const& adc  = *padc_v[p];
       auto const& mask = mask_v[p];
       larcv::Image2D removed( adc );
       auto const& data_v = adc.as_vector();
@@ -1793,7 +1827,8 @@ namespace reco {
     larlite::larflowcluster dummy_cluster;
     larlite::pcaxis dummy_pca;
 
-    processShower( dummy_cluster, trunk, dummy_pca, adc_v, nuvtx );
+    throw std::runtime_error("FIX ME: ShowerdQdx::processMCShower");
+    //processShower( dummy_cluster, trunk, dummy_pca, adc_v, nuvtx );
   }
 
   /**
@@ -1923,9 +1958,15 @@ namespace reco {
   {
 
     clear();
+
+    const int tpcid  = nuvtx.tpcid;
+    const int cryoid = nuvtx.cryoid;
+
+    std::vector< const larcv::Image2D* > padc_v
+      = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );        
     
     calcGoodShowerTaggingVariables( reco_shower, reco_shower_trunk, reco_pca,
-                                    adc_v, mcshower_v );
+                                    padc_v, mcshower_v, tpcid, cryoid );
 
     if ( _true_dir_cos>0.9 && fabs(_true_vertex_err_dist)<3.0 && _true_min_index>=0 ) {
       

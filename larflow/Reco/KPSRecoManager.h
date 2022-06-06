@@ -32,27 +32,29 @@
 #include "NuVertexMaker.h"
 #include "NuTrackBuilder.h"
 #include "NuVertexShowerReco.h"
+#include "NuVertexShowerTrunkCheck.h"
+#include "PostNuCheckShowerTrunkOverlap.h"
+#include "VetoHitClustering.h"
+#include "NuVertexAddSecondaries.h"
+
+// Kinematics modules
+#include "NuTrackKinematics.h"
+#include "NuShowerKinematics.h"
 
 // #include "ShortProtonClusterReco.h"
 // #include "CosmicVertexBuilder.h"
 // #include "CosmicTrackBuilder.h"
-
 // #include "NuShowerBuilder.h"
-
-// #include "NuVertexShowerTrunkCheck.h"
 // #include "NuVertexActivityReco.h"
-// #include "VetoHitClustering.h"
-// #include "NuVertexAddSecondaries.h"
-// #include "NuTrackdQdx.h"
-// #include "PerfectTruthNuReco.h"
-// #include "NuTrackKinematics.h"
-// #include "NuShowerKinematics.h"
 
+// PID Modules
+#include "NuTrackdQdx.h"
+#include "LikelihoodProtonMuon.h"
+#include "ShowerdQdx.h"
+// #include "PerfectTruthNuReco.h"
 // #include "NuSelectionVariables.h"
-// #include "LikelihoodProtonMuon.h"
+
 // #include "CosmicProtonFinder.h"
-// #include "ShowerdQdx.h"
-// #include "PostNuCheckShowerTrunkOverlap.h"
 
 // #include "NuSel1e1pEventSelection.h"
 // #include "NuSelProngVars.h"
@@ -112,36 +114,34 @@ namespace reco {
     // // mc-based reco
     // PerfectTruthNuReco _perfect_reco; ///< make nuvertexcandidate using true trajectories and showers
 
-    // // Nu Vertex Seeds
+    // Nu Vertex Seeds: Called by multiProngReco(...)
     NuVertexMaker        _nuvertexmaker; ///< make proto-vertices from prongs
     NuTrackBuilder       _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuVertexShowerReco   _nuvertex_shower_reco; ///< make showers using neutrino vertex seed
+    NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
+    PostNuCheckShowerTrunkOverlap _nuvertex_postcheck_showertrunkoverlap; // remove track overlap
+    VetoHitClustering    _nuvertex_cluster_vetohits; ///< add veto'd hits during prong formation to reco'd-prongs
+    NuVertexAddSecondaries _nuvertex_add_secondaries; ///< add secondary particles to neutrino interaction
     
-    // NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity
-
-    // NuVertexShowerTrunkCheck _nuvertex_shower_trunk_check; ///< repair shower trunk check
-    // PostNuCheckShowerTrunkOverlap _nuvertex_postcheck_showertrunkoverlap; // remove track overlap
-    // VetoHitClustering    _nuvertex_cluster_vetohits; ///< add veto'd hits during prong formation to reco'd-prongs
-    // NuTrackdQdx          _nuvertex_trackdqdx; ///< calculates dq/dx of tracks
-    // NuVertexAddSecondaries _nuvertex_add_secondaries; ///< add secondary particles to neutrino interaction
-    
+    // NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity    
     // CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     // CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
 
     // NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
 
-    // // Prong kinematics
-    // NuTrackKinematics   _nu_track_kine;  ///< calculate kinematics of tracks
-    // NuShowerKinematics  _nu_shower_kine; ///< calculate kinematics of showers
+    // Prong kinematics
+    NuTrackKinematics   _nu_track_kine;  ///< calculate kinematics of tracks
+    NuShowerKinematics  _nu_shower_kine; ///< calculate kinematics of showers
     
     // // Edge-case handlers
     // CosmicProtonFinder _cosmic_proton_finder; ///< identifies cosmic tracks that could proton-like, redirect to neutrino-pipeline
 
     // //TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
 
-    // // Selection Variable Modules
-    // LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
-    // ShowerdQdx           _sel_showerdqdx; ///< shower dq/dx calculation
+    // PID
+    NuTrackdQdx          _nuvertex_trackdqdx; ///< calculates dq/dx of tracks    
+    LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
+    ShowerdQdx           _sel_showerdqdx; ///< shower dq/dx calculation
 
     // NuSelProngVars prongvars;
     // NuSelVertexVars vertexvars;
@@ -166,9 +166,11 @@ namespace reco {
     void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    
     // void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    // void runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    // void runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+
+    void runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     // void runNuVtxSelection();
 
     // void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );

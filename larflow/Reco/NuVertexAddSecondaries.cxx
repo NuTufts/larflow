@@ -20,6 +20,9 @@ namespace reco {
     // - storing info
     // - each track/shower in nuvertexcandidate has 'level index'
     // - each track/shower in nuvertexcandidate has mother cluster
+
+    const int cryoid = nuvtx.cryoid;
+    const int tpcid  = nuvtx.tpcid;
     
     std::vector<std::string> cluster_sources =
       { "trackprojsplit_wcfilter",
@@ -123,7 +126,7 @@ namespace reco {
     LARCV_DEBUG() << "Now extend tracks using NuTrackBuilder" << std::endl;
     NuTrackBuilder _nu_track_builder;
     _nu_track_builder.set_verbosity( larcv::msg::kNORMAL );    
-    _nu_track_builder.loadClustersAndConnections( iolcv, ioll );
+    _nu_track_builder.loadClustersAndConnections( iolcv, ioll, tpcid, cryoid );
     _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
     
     for ( auto& candidate : candidates_v ) {
@@ -154,7 +157,7 @@ namespace reco {
 	book_v.push_back( nuclusterbook );	
 	_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
 	_nu_track_builder.clear_track_proposals();
-	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
+	_nu_track_builder.process_one_tpc( iolcv, ioll, nuvtx2_v, book_v, tpcid, cryoid, false ); // we don't remake the book to same time
 	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
 	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
 	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
@@ -184,7 +187,9 @@ namespace reco {
 	_nuvertex_shower_reco.build_vertex_showers( nuvtx2,
 						    nuclusterbook,
 						    iolcv, 
-						    ioll );
+						    ioll,
+						    cryoid,
+						    tpcid );
 	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2.shower_v.size() << std::endl;
 	for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
 	  nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
@@ -196,7 +201,7 @@ namespace reco {
     }
     
   }
-
+  
   float NuVertexAddSecondaries::testTrackTrackIntersection( larlite::track& track,
 							    larlite::pcaxis& cluster_pca,
 							    const float _max_line_dist,

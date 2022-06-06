@@ -19,9 +19,31 @@ namespace reco {
    */
   larlite::track TrackdQdx::calculatedQdx( const larlite::track& lltrack,
                                            const larlite::larflowcluster& lfcluster,
-                                           const std::vector<larcv::Image2D>& adc_v ) const
+                                           const std::vector<const larcv::Image2D*>& padc_v ) const
   {
 
+    auto const geom = larlite::larutil::Geometry::GetME();
+    // check the planes are right
+    int cluster_tpcid  = lfcluster[0].targetwire[4];
+    int cluster_cryoid = lfcluster[0].targetwire[5];
+    bool allfound = true;
+    for (int iplane=0; iplane<(int)geom->Nplanes(cluster_tpcid,cluster_cryoid); iplane++) {
+      int simpleindex = geom->GetSimplePlaneIndexFromCTP( cluster_cryoid, cluster_tpcid, iplane );
+      bool found = false;
+      for ( auto const& pimg : padc_v ) {
+	if ( pimg->meta().id()==simpleindex ) {
+	  found = true;
+	  break;
+	}
+      }
+      if (!found)
+	allfound = false;
+    }
+    if ( !allfound ) {
+      LARCV_CRITICAL() << "TPC images and cluster TPC do not match" << std::endl;
+      throw std::runtime_error("TPC images and cluster TPC do not match");
+    }
+    
     // store the distance from the track line for each cluster hit
     std::vector< float > hit_rad_v( lfcluster.size(), -1.0 );
 
@@ -105,15 +127,17 @@ namespace reco {
         float lm = lfcluster.at(hitidx).track_score;
 
         TrackPt_t trkpt;
-        _makeTrackPtInfo( start, end, pt, imgcoord, adc_v,
+        _makeTrackPtInfo( start, end, pt, imgcoord, padc_v,
                           hitidx,
-                          r, s, current_s, lm, trkpt );        
+                          r, s, current_s, lm,
+			  cluster_tpcid, cluster_cryoid,
+			  trkpt );        
                 
         if ( hit_rad_v[trkpt.hitidx]<0 || trkpt.r<hit_rad_v[trkpt.hitidx] )
           hit_rad_v[trkpt.hitidx] = trkpt.r;
         
         trackpt_v.push_back( trkpt );
-
+	
         used_pt_v[ii] = 1; // mark point as used
         
       }//end of point loop
@@ -167,6 +191,17 @@ namespace reco {
     
   }
 
+  larlite::track TrackdQdx::calculatedQdx( const larlite::track& lltrack,
+                                           const larlite::larflowcluster& lfcluster,
+                                           const std::vector<larcv::Image2D>& adc_v ) const
+  {
+    std::vector< const larcv::Image2D* > padc_v;
+    for ( auto& img : adc_v ) {
+      padc_v.push_back( &img );
+    }
+    return calculatedQdx( lltrack, lfcluster, padc_v );
+  }  
+
   /**
    * @brief fill out data in TrackPt_t struct using track line segment and a spacepoint
    *
@@ -185,18 +220,19 @@ namespace reco {
                                     const std::vector<float>& end,
                                     const std::vector<float>& pt,
                                     const std::vector<int>& imgcoord,
-                                    const std::vector<larcv::Image2D>& adc_v,
+                                    const std::vector<const larcv::Image2D*>& padc_v,
                                     const int hitidx, 
                                     const float r,
                                     const float local_s,
                                     const float global_s,
                                     const float lm_score,
+				    const int tpcid,
+				    const int cryoid,
                                     TrackdQdx::TrackPt_t& trkpt ) const
   {
 
     // direction component of the planes in the Y- and Z- direction
-    const std::vector<Double_t> orthy = larutil::Geometry::GetME()->GetOrthVectorsY();
-    const std::vector<Double_t> orthz = larutil::Geometry::GetME()->GetOrthVectorsZ();
+    auto const geom = larlite::larutil::Geometry::GetME();
     
     // we're going to use this struct to sort the q on the wire planes and pick the median value
     struct PtQ_t {
@@ -250,20 +286,24 @@ namespace reco {
     trkpt.dqdx_v.resize(3,0.); // (u,v,y)
 
     // get the median charge inside the image
-    int row = adc_v.front().meta().row( imgcoord[3] );
+    int row = padc_v.front()->meta().row( imgcoord[3] );
 
     std::vector< PtQ_t > pixq_v(3);
-        
-    for ( int p=0; p<3; p++) {      
+
+    for ( int p=0; p<(int)padc_v.size(); p++) {
+
+      const TVector3& wirepitchdir = geom->GetPlane( p, tpcid, cryoid ).fWirePitchDir;
+      const TVector3& plane_norm   = geom->GetPlane( p, tpcid, cryoid ).fNormToCathode;
+      
       float pixsum = 0.;
       int npix = 0;
 
-      if ( imgcoord[p]>=0 && imgcoord[p]<(int)adc_v[p].meta().cols() ) {
+      if ( imgcoord[p]>=0 && imgcoord[p]<(int)padc_v[p]->meta().cols() ) {
 	for (int dr=-2; dr<=2; dr++ ) {
 	  int r = row+dr;
-	  if ( r<0 || r>=(int)adc_v.front().meta().rows() )
+	  if ( r<0 || r>=(int)padc_v.front()->meta().rows() )
 	    continue;
-	  pixsum += adc_v[p].pixel( r, imgcoord[p], __FILE__, __LINE__ );
+	  pixsum += padc_v[p]->pixel( r, imgcoord[p], __FILE__, __LINE__ );
 	  npix++;
 	}
 	if ( npix>0 )
@@ -275,8 +315,8 @@ namespace reco {
 	pixq_v[p].q = 0.;
       }
       
-      float dcos_yz = fabs(dir[1]*orthy[p] + dir[2]*orthz[p]);
-      float dcos_x  = fabs(dir[0]);
+      float dcos_yz = fabs(dir[1]*wirepitchdir[1] + dir[2]*wirepitchdir[2]);
+      float dcos_x  = fabs(dir[0]*plane_norm[0]);
       float dx = 3.0;
       if ( dcos_yz>0.785 )
         dx = 3.0/dcos_yz;
@@ -293,7 +333,6 @@ namespace reco {
     std::sort( pixq_v.begin(), pixq_v.end() );
     trkpt.q_med    = pixq_v[1].q;
     trkpt.dqdx_med = pixq_v[1].dqdx;
-    
 
   }
 
@@ -302,7 +341,7 @@ namespace reco {
    *
    */
   std::vector< std::vector<float> > TrackdQdx::calculatedQdx2D( const larlite::track& lltrack,
-                                                                const std::vector<larcv::Image2D>& adc_v,
+                                                                const std::vector<const larcv::Image2D*>& adc_v,
                                                                 const float stepsize ) const
   {
 
@@ -316,13 +355,13 @@ namespace reco {
     std::vector< std::vector<float> > plane_dqdx_vv(adc_v.size()*2);
     
     for (int p=0; p<(int)adc_v.size(); p++) {
-      auto const& img = adc_v[p];
+      auto const& img = *adc_v[p];
       auto const& meta = img.meta();
 
       // label pixels by distance along track
       larcv::Image2D smin_img(meta);
       larcv::Image2D smax_img(meta);
-      int n_core_pixels = masker.labelTrackPath( lltrack, adc_v[p], smin_img, smax_img, 10.0, 0.05 );
+      int n_core_pixels = masker.labelTrackPath( lltrack, img, smin_img, smax_img, 10.0, 0.05 );
       LARCV_DEBUG() << " plane[" << p << "] num core pixels = " << n_core_pixels << std::endl;
 
       if ( n_core_pixels<=1 )

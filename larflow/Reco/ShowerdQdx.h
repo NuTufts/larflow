@@ -48,10 +48,16 @@ namespace reco {
 
     float colcoordinate_and_grad( const std::vector<float>& pos,
                                   const int plane,
+				  const int tpcid,
+				  const int cryoid,
+				  const int nplanes,
                                   const larcv::ImageMeta& meta,
                                   std::vector<float>& grad );
     
     float rowcoordinate_and_grad( const std::vector<float>& pos,
+				  const int plane,
+				  const int tpcid,
+				  const int cryoid,
                                   const larcv::ImageMeta& meta,
                                   std::vector<float>& grad );
     
@@ -60,7 +66,8 @@ namespace reco {
                                             const std::vector<larcv::Image2D>& img_v,
                                             const float threshold,
                                             const int dcol,
-                                            const int drow );
+                                            const int drow,
+					    const int tpcid, const int cryoid );
     
 
     void bindVariablesToTree( TTree* outtree );
@@ -69,9 +76,10 @@ namespace reco {
 
     larlite::track makeLarliteTrackdqdx(int plane);
     
-    std::vector<larcv::Image2D> maskTrackPixels( const std::vector<larcv::Image2D>& adc_v,
+    std::vector<larcv::Image2D> maskTrackPixels( const std::vector<const larcv::Image2D*>& adc_v,
                                                  const larlite::track& shower_trunk,
-                                                 const larflow::reco::NuVertexCandidate& nuvtx );
+                                                 const larflow::reco::NuVertexCandidate& nuvtx,
+						 const int tpcid, const int cryoid );
 
 
     
@@ -115,8 +123,9 @@ namespace reco {
     std::vector< TrunkPixList_t >   _plane_trunkpix_v; ///< collection of TrunkPix_t for each plane
     void _createDistLabels( const std::vector<float>& start3d,
                             const std::vector<float>& end3d,
-                            const std::vector<larcv::Image2D>& img_v,
-                            const float threshold );
+                            const std::vector<const larcv::Image2D*>& img_v,
+                            const float threshold,
+			    const int tpcid, const int cryoid );
     void maskPixels( int plane, TH2D* hist );
 
     struct Seg_t {
@@ -140,7 +149,8 @@ namespace reco {
                                   const std::vector<float>& end3d,
                                   const std::vector<larcv::Image2D>& img_v,
                                   const float threshold,
-                                  const int dcol, const int drow );
+                                  const int dcol, const int drow,
+				  const int tpcid, const int cryoid );
 
     std::vector<TH2D> _debug_crop_v;
 
@@ -201,8 +211,9 @@ namespace reco {
     void calcGoodShowerTaggingVariables( const larlite::larflowcluster& shower,
                                          const larlite::track& trunk,
                                          const larlite::pcaxis& pca,
-                                         const std::vector<larcv::Image2D>& adc_v,
-                                         const std::vector<larlite::mcshower>& mcshower_v );
+                                         const std::vector<const larcv::Image2D*>& adc_v,
+                                         const std::vector<larlite::mcshower>& mcshower_v,
+					 const int tpcid, const int cryoid );
 
     bool checkShowerTrunk( const std::vector<float>& start_pos,
                            const std::vector<float>& end_pos,
@@ -210,7 +221,9 @@ namespace reco {
                            std::vector<float>& modend3d,
                            std::vector<float>& shower_dir,
                            float& dist,
-                           const std::vector<larcv::Image2D>& adc_v );
+			   const int tpcid,
+			   const int cryoid,
+                           const std::vector<const larcv::Image2D*>& padc_v );
     
     void matchMCShowerAndProcess( const larlite::larflowcluster& reco_shower,
                                   const larlite::track& reco_shower_trunk,

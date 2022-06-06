@@ -1,4 +1,5 @@
 #include "NuShowerKinematics.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 
 namespace larflow {
 namespace reco {
@@ -10,7 +11,6 @@ namespace reco {
   }
   
   void NuShowerKinematics::analyze( larflow::reco::NuVertexCandidate& nuvtx,
-                                    larflow::reco::NuSelectionVariables& nusel,
                                     larcv::IOManager& iolcv )
   {
 
@@ -21,6 +21,13 @@ namespace reco {
 
     auto const& adc_v = ev_img->as_vector();
 
+    const int cryoid = nuvtx.cryoid;
+    const int tpcid  = nuvtx.tpcid;
+
+    // get images for this TPC and cryostat
+    std::vector< const larcv::Image2D* > padc_v
+      = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );    
+
     _shower_mom_v.resize(nuvtx.shower_v.size());
     _shower_plane_pixsum_v.resize(nuvtx.shower_v.size());
     
@@ -30,7 +37,7 @@ namespace reco {
       auto const& pca     = nuvtx.shower_pcaxis_v[ishower];
 
       std::vector<float> pixsum_v = GetADCSum( cluster,
-                                               adc_v,
+                                               padc_v,
                                                10.0 );
 
       _shower_plane_pixsum_v[ishower] = pixsum_v;
@@ -41,8 +48,8 @@ namespace reco {
 		    << "dir=(" << showerdir[0] << "," << showerdir[1] << "," << showerdir[2] <<")"
 		    << std::endl;
       
-      std::vector< TLorentzVector > mom_v(adc_v.size());
-      for (int p=0; p<(int)adc_v.size(); p++) {
+      std::vector< TLorentzVector > mom_v(padc_v.size());
+      for (int p=0; p<(int)padc_v.size(); p++) {
         float MeV = adc2mev_conversion( p, pixsum_v[p] );
         mom_v[p].SetPxPyPzE( MeV*showerdir[0], MeV*showerdir[1], MeV*showerdir[2], MeV );
       }
@@ -84,27 +91,27 @@ namespace reco {
    */  
   std::vector<float>
   NuShowerKinematics::GetADCSum(const larlite::larflowcluster& shower,
-                                const std::vector<larcv::Image2D>& wire_img,
+                                const std::vector<const larcv::Image2D*>& wire_img,
                                 const float threshold )
   {
     //initialize output
     std::vector<float> sum_v;
 
     // turn into 2d points (u,v,y,t)
-    auto const& wireu_meta = wire_img.at(0).meta();
-    auto const& wirev_meta = wire_img.at(1).meta();
-    auto const& wirey_meta = wire_img.at(2).meta();
+    auto const& wireu_meta = wire_img.at(0)->meta();
+    auto const& wirev_meta = wire_img.at(1)->meta();
+    auto const& wirey_meta = wire_img.at(2)->meta();
     // loop over planes
     for (int p =0;p<3;p++){
       
-      const larcv::ImageMeta& meta = wire_img.at(p).meta();
+      const larcv::ImageMeta& meta = wire_img.at(p)->meta();
       float sum =0;
       // make found list so we don't use the same point multiple times vector<(row,col)>
       // std::vector<std::vector<int>> foundpts;
       // loop over Hits
       float noutpix =0.0;
       // initialize already used points so we don't double count
-      larcv::Image2D usedpixels( wire_img[p].meta() );
+      larcv::Image2D usedpixels( wire_img[p]->meta() );
       usedpixels.paint(0);
 
       int npixels =0;
@@ -132,7 +139,7 @@ namespace reco {
           // for each pixel, check if in mask
           if (usedpixels.pixel(row,col)==0){
             // if (true){
-            adcval += wire_img[p].pixel(row,col);
+            adcval += wire_img[p]->pixel(row,col);
             npixels+=1;
             usedpixels.set_pixel(row,col,1);
           }
@@ -158,7 +165,7 @@ namespace reco {
    */
   std::vector<float>
   NuShowerKinematics::GetADCSumWithNeighbors(const larlite::larflowcluster& shower,
-                                             const std::vector<larcv::Image2D>& wire_img,
+                                             const std::vector<const larcv::Image2D*>& wire_img,
                                              const float threshold,
                                              const int dpix )
   {
@@ -169,12 +176,12 @@ namespace reco {
     // turn into 2d points (u,v,y,t)
     std::vector< const larcv::ImageMeta* > wire_meta_v;
     for (auto const& img : wire_img )
-      wire_meta_v.push_back( &img.meta() );
+      wire_meta_v.push_back( &img->meta() );
 
     // store image of pixels we've already counted
     std::vector<larcv::Image2D> mask_v;
     for ( auto const& img : wire_img ) {
-      larcv::Image2D mask( img.meta() );
+      larcv::Image2D mask( img->meta() );
       mask.paint(0);
       mask_v.emplace_back( std::move(mask) );
     }
@@ -182,7 +189,7 @@ namespace reco {
     // loop over planes
     for (int p =0;p<(int)wire_img.size();p++){
       
-      const larcv::ImageMeta& meta =wire_img.at(p).meta();
+      const larcv::ImageMeta& meta =wire_img.at(p)->meta();
       auto& mask = mask_v[p];
       
       float sum =0;
@@ -224,7 +231,7 @@ namespace reco {
               continue; // already counted
             
             int adcval =0;
-            adcval = wire_img[p].pixel(r,c,__FILE__,__LINE__);
+            adcval = wire_img[p]->pixel(r,c,__FILE__,__LINE__);
         
             if (adcval >threshold) {
               sum = sum+adcval;

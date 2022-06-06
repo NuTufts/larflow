@@ -9,7 +9,6 @@
 #include "larlite/DataFormat/track.h"
 #include "larlite/DataFormat/larflowcluster.h"
 #include "NuVertexCandidate.h"
-#include "NuSelectionVariables.h"
 
 namespace larflow {
 namespace reco {
@@ -33,7 +32,6 @@ namespace reco {
 
 
     void analyze( larflow::reco::NuVertexCandidate& nuvtx,
-                  larflow::reco::NuSelectionVariables& nusel,
                   larcv::IOManager& iolcv );
     void clear();
 
@@ -41,11 +39,11 @@ namespace reco {
     std::vector< std::vector<TLorentzVector> > _shower_mom_v; // outer loop is shower, inner vector is momentum calculated using different plane
     
     std::vector<float> GetADCSum(const larlite::larflowcluster& shower,
-                                 const std::vector<larcv::Image2D>& wire_img,
+                                 const std::vector<const larcv::Image2D*>& wire_img,
                                  const float threshold );
     
     std::vector<float> GetADCSumWithNeighbors(const larlite::larflowcluster& shower,
-                                              const std::vector<larcv::Image2D>& wire_img,
+                                              const std::vector<const larcv::Image2D*>& wire_img,
                                               const float threshold,
                                               const int dpix );
     

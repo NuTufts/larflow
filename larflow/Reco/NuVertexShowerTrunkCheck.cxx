@@ -1,9 +1,11 @@
 #include "NuVertexShowerTrunkCheck.h"
 
 #include "larlite/LArUtil/Geometry.h"
-#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
+
+#include "ublarcvapp/RecoTools/DetUtils.h"
 
 #include "geofuncs.h"
 #include "cluster_functions.h"
@@ -194,6 +196,11 @@ namespace reco {
     larcv::EventImage2D* ev_img
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
     const std::vector<larcv::Image2D>& adc_v = ev_img->as_vector();
+
+    int cryoid = nuvtx.cryoid;
+    int tpcid  = nuvtx.tpcid;
+    std::vector< const larcv::Image2D* > ptpc_adc_v
+      = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );    
         
     // now run missing shower trunk charge algo
     for ( size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++ ) {
@@ -204,10 +211,11 @@ namespace reco {
       LARCV_DEBUG() << "trunk length: " << (shower_trunk.LocationAtPoint(1)-shower_trunk.LocationAtPoint(0)).Mag() << " cm" << std::endl;
       float max_gapdist = 10.;
       larlite::larflowcluster add_hits_v =
-        makeMissingTrunkHits( nuvtx, adc_v,
+        makeMissingTrunkHits( nuvtx, ptpc_adc_v,
                               shower_trunk,
                               shower,
-                              shower_pca, max_gapdist );
+                              shower_pca, max_gapdist,
+			      tpcid, cryoid  );
       
       if ( add_hits_v.size()>3 && max_gapdist<10.0 ) {
         // merge the shower trunk
@@ -364,11 +372,12 @@ namespace reco {
    */
   larlite::larflowcluster
   NuVertexShowerTrunkCheck::makeMissingTrunkHits( larflow::reco::NuVertexCandidate& nuvtx,
-                                                  const std::vector<larcv::Image2D>& adc_v,
+                                                  const std::vector<const larcv::Image2D*>& padc_v,
                                                   larlite::track& shower_trunk,                                                  
                                                   larlite::larflowcluster& shower_hitcluster,
                                                   larlite::pcaxis& shower_pcaxis,
-                                                  float& max_gapdist )
+                                                  float& max_gapdist,
+						  const int tpcid, const int cryoid )
   {
 
     const std::vector<float>& vtxpos = nuvtx.pos;
@@ -431,7 +440,7 @@ namespace reco {
 
     LARCV_DEBUG() << "num steps=" << nsteps << " stepsize=" << stepsize << std::endl;
 
-    auto const& meta = adc_v.front().meta();    
+    auto const& meta = padc_v.front()->meta();    
     std::set< std::vector<int> > past_hits;
 
     // load up past hits from the current shower and track
@@ -459,11 +468,14 @@ namespace reco {
     for (int istep=0; istep<=nsteps; istep++) {
       
       std::vector<double> pos(3,0);
-      for (int i=0; i<3; i++)
+      TVector3 vpos;
+      for (int i=0; i<3; i++){
         pos[i] = (double)vtxpos[i] + (istep*stepsize)*showerdir[i];
+	vpos[i] = pos[i];
+      }
 
 
-      float tick = pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5 + 3200.0;
+      float tick = larutil::DetectorProperties::GetME()->ConvertXToTicks( pos[0], 0, tpcid, cryoid );
       if ( tick<=meta.min_y() || tick>=meta.max_y() )
         continue;
       int row = meta.row(tick,__FILE__,__LINE__);
@@ -471,15 +483,15 @@ namespace reco {
       int nplanes_w_charge = 0;
       std::vector<int> imgcoord(4,0);
       for (int p=0; p<3; p++) {
-        imgcoord[p] = (int)larutil::Geometry::GetME()->WireCoordinate( pos, p );
+        imgcoord[p] = (int)larlite::larutil::Geometry::GetME()->WireCoordinate( vpos, p, tpcid, cryoid );
         int npix = 0;
         for (int dc=-2; dc<=2; dc++) {
           if ( npix>0 )
             break;
           int col = imgcoord[p] + dc;
-          if ( col<0 || col>=(int)adc_v[p].meta().cols() )
+          if ( col<0 || col>=(int)padc_v[p]->meta().cols() )
             continue;
-          float pixval = adc_v[p].pixel( row, col, __FILE__, __LINE__ );
+          float pixval = padc_v[p]->pixel( row, col, __FILE__, __LINE__ );
           if ( pixval>10.0 )
             npix++;
         }

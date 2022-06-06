@@ -59,10 +59,14 @@ namespace reco {
     
     larlite::track calculatedQdx( const larlite::track& track,
                                   const larlite::larflowcluster& trackhits,
-                                  const std::vector<larcv::Image2D>& adc_v ) const;
+                                  const std::vector<const larcv::Image2D*>& adc_v ) const;
 
+    larlite::track calculatedQdx( const larlite::track& track,
+                                  const larlite::larflowcluster& trackhits,
+                                  const std::vector<larcv::Image2D>& adc_v ) const;
+    
     std::vector< std::vector<float> > calculatedQdx2D( const larlite::track& lltrack,
-                                                       const std::vector<larcv::Image2D>& adc_v,
+                                                       const std::vector<const larcv::Image2D*>& adc_v,
                                                        const float stepsize ) const;
     
 
@@ -72,12 +76,14 @@ namespace reco {
                            const std::vector<float>& end,
                            const std::vector<float>& pt,
                            const std::vector<int>& imgcoord,
-                           const std::vector<larcv::Image2D>& adc_v,
+                           const std::vector<const larcv::Image2D*>& adc_v,
                            const int hitidx, 
                            const float r,
                            const float local_s,
                            const float global_s,                           
                            const float lm_score,
+			   const int tpcid,
+			   const int cryoid,
                            TrackdQdx::TrackPt_t& trkpt ) const;
     
     

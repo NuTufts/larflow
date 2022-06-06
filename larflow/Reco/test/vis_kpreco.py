@@ -2,6 +2,7 @@ from __future__ import print_function
 import os,sys,argparse,json
 
 parser = argparse.ArgumentParser("Plot Keypoint output")
+parser.add_argument("-geo","--detector",required=True,type=str,help="Detector geometry to apply. Options [uboone,sbnd,icarus]")    
 parser.add_argument("-ana","--input-kpsana",required=True,type=str,help="kpsrecomanager ana output file")
 parser.add_argument("-ll","--input-larlite",type=str,default=None,help="kpsrecomanager larlite output file")
 parser.add_argument("-mc","--input-mcinfo",type=str,default=None,help="dl merged or larlite mcinfo with truth info")
@@ -9,13 +10,28 @@ parser.add_argument("--draw-flash",action='store_true',default=False,help="If tr
 parser.add_argument("--draw-perfect",action='store_true',default=False,help="If flag provided, will plot perfect reco instead")
 args = parser.parse_args()
 
+if args.detector not in ["uboone","sbnd","icarus"]:
+    raise ValueError("Invalid detector [%s]. options are {\"uboone\",\"sbnd\",\"icarus\"}")
+
+
 import numpy as np
 import ROOT as rt
 from larlite import larlite
+from ROOT import larutil
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
 #larcv.SetPyUtil()
+
+# SET GEOMETRY
+if args.detector == "icarus":
+    detid = larlite.geo.kICARUS
+elif args.detector == "uboone":
+    detid = larlite.geo.kMicroBooNE
+elif args.detector == "sbnd":
+    detid = larlite.geo.kSBND    
+larutil.LArUtilConfig.SetDetector(detid)
+
 
 import dash
 import dash_core_components as dcc
@@ -24,6 +40,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 import lardly
+from lardly.detectors.getdetectoroutlines import DetectorOutlineFromLarlite
 
 color_by_options = ["larmatch","keypoint"]
 colorscale = "Viridis"
@@ -63,7 +80,7 @@ print("NENTRIES: ",nentries)
 def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     from larcv import larcv
     larcv.load_pyutil()
-    detdata = lardly.DetectorOutline()
+    detoutline = DetectorOutlineFromLarlite(detid)
     
     from larflow import larflow
     larcv.SetPyUtil()    
@@ -229,12 +246,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             trktrace["line"]["opacity"] = 1.0
             traces_v.append( trktrace )
 
-            kemu = nuvtx.track_kemu_v.at(itrack)
-            kep  = nuvtx.track_keproton_v.at(itrack)
-            llmu = nuvtx.track_muid_v.at(itrack)
-            llp  = nuvtx.track_protonid_v.at(itrack)
-            llr  = nuvtx.track_mu_vs_proton_llratio_v.at(itrack)
-            print("  TRACK[%d] KE(mu)=%.2f KE(p)=%.2f -log(L)_mu=%.2f -log(L)_p=%.2f LLratio=%.2f"%(itrack,kemu,kep,llmu,llp,llr))
+            if True:
+                kemu = nuvtx.track_kemu_v.at(itrack)
+                kep  = nuvtx.track_keproton_v.at(itrack)
+                llmu = nuvtx.track_muid_v.at(itrack)
+                llp  = nuvtx.track_protonid_v.at(itrack)
+                llr  = nuvtx.track_mu_vs_proton_llratio_v.at(itrack)
+                print("  TRACK[%d] KE(mu)=%.2f KE(p)=%.2f -log(L)_mu=%.2f -log(L)_p=%.2f LLratio=%.2f"%(itrack,kemu,kep,llmu,llp,llr))
 
         # PLOT SHOWER FOR VERTEX
         for ishower in range(nuvtx.shower_v.size()):
@@ -269,17 +287,18 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pcatrace["line"]["opacity"] = 1.0
             traces_v.append( pcatrace )
 
-            shower_mom_v = nuvtx.shower_plane_mom_vv.at(ishower)
-            sh_p0 = shower_mom_v[0].E()
-            sh_p1 = shower_mom_v[1].E()
-            sh_p2 = shower_mom_v[2].E()            
-
-            shower_dqdx_v = nuvtx.shower_plane_dqdx_vv.at(ishower)
-            dqdx_p0 = shower_dqdx_v[0]
-            dqdx_p1 = shower_dqdx_v[1]
-            dqdx_p2 = shower_dqdx_v[2]
-            
-            print("  SHOWER[%d] KE=(%.2f,%.2f,%.2f) dq/dx=(%.2f,%.2f,%.2f)"%(ishower,sh_p0,sh_p1,sh_p2,dqdx_p0,dqdx_p1,dqdx_p2))
+            if True:
+                shower_mom_v = nuvtx.shower_plane_mom_vv.at(ishower)
+                sh_p0 = shower_mom_v[0].E()
+                sh_p1 = shower_mom_v[1].E()
+                sh_p2 = shower_mom_v[2].E()            
+                
+                shower_dqdx_v = nuvtx.shower_plane_dqdx_vv.at(ishower)
+                dqdx_p0 = shower_dqdx_v[0]
+                dqdx_p1 = shower_dqdx_v[1]
+                dqdx_p2 = shower_dqdx_v[2]
+                
+                print("  SHOWER[%d] KE=(%.2f,%.2f,%.2f) dq/dx=(%.2f,%.2f,%.2f)"%(ishower,sh_p0,sh_p1,sh_p2,dqdx_p0,dqdx_p1,dqdx_p2))
 
             
     # TRACK RECO
@@ -381,7 +400,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         
     
     # add detector outline
-    traces_v += detdata.getlines(color=(10,10,10))
+    traces_v += detoutline.getlines(color=(10,10,10))
     
     return traces_v,vtxinfo
 

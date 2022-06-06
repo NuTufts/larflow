@@ -1,6 +1,7 @@
 #include "NuTrackdQdx.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 
 #include "TrackdQdx.h"
 
@@ -11,6 +12,12 @@ namespace reco {
 					    larflow::reco::NuVertexCandidate& nuvtx )
   {
 
+    if ( nuvtx.track_v.size()==0 )
+      return 0;
+    
+    const int tpcid  = nuvtx.tpcid;
+    const int cryoid = nuvtx.cryoid;
+    
     std::vector< larlite::track > track_dqdx_v;
     track_dqdx_v.reserve( nuvtx.track_v.size() );
 
@@ -18,6 +25,9 @@ namespace reco {
     larcv::EventImage2D* ev_adc =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
     auto const& adc_v = ev_adc->Image2DArray();
+    
+    std::vector< const larcv::Image2D* > ptpc_adc_v
+      = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );    
     
     for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
       auto& fitted = nuvtx.track_v.at(itrack);
@@ -28,7 +38,7 @@ namespace reco {
       larlite::track track_dqdx;
       bool success = false;
       try {
-	track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
+	track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, ptpc_adc_v );
 	success = true;
       }
       catch (...) {
