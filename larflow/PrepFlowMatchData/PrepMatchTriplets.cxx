@@ -17,6 +17,7 @@
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "ublarcvapp/UBWireTool/UBWireTool.h"
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 
 #include "TRandom3.h"
 
@@ -145,6 +146,8 @@ namespace prep {
 
     // The data object we're filling
     MatchTriplets matchdata;
+    matchdata._tpcid  = tpcid;
+    matchdata._cryoid = cryoid;
       
     // do we have any data?
     int npix = 0;
@@ -356,6 +359,8 @@ namespace prep {
 		  
 		  std::vector<int> trip_cryo_tpc = { cryoid, tpcid };
 		  matchdata._trip_cryo_tpc_v.push_back( trip_cryo_tpc );
+
+		  matchdata._flowdir_v.push_back( larflow::LArFlowConstants::getFlowDirection( ipl1, ipl2  ) );
 		  
 		  ntriplets_made++;
 		  triplet_map[triplet] = 1;
@@ -428,6 +433,534 @@ namespace prep {
 
     LARCV_INFO() << "LOADED MATRICES" << std::endl;
     _overlap_matrices_loaded = true;
+  }
+
+  /**
+   * @brief make all the initial truth labels
+   *
+   * runs all the truth label making functions. 
+   *
+   * @param[in] iolcv larcv IO manager containing event data
+   */
+  void PrepMatchTriplets::process_truth_labels( larcv::IOManager& iolcv,
+                                                larlite::storage_manager& ioll,
+                                                std::string wire_producer )
+  {
+    
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,wire_producer);
+    larcv::EventImage2D* ev_larflow =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");
+    larcv::EventImage2D* ev_instance =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
+    larcv::EventImage2D* ev_ancestor =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
+    larcv::EventImage2D* ev_segment =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
+
+
+    larlite::event_mctrack* ev_mctrack
+      = (larlite::event_mctrack*)ioll.get_data(larlite::data::kMCTrack, "mcreco" );
+    larlite::event_mcshower* ev_mcshower
+      = (larlite::event_mcshower*)ioll.get_data(larlite::data::kMCShower, "mcreco" );
+    fill_daughter2mother_map( *ev_mcshower );
+    fill_class_map( *ev_mctrack, *ev_mcshower );
+    
+    make_truth_vector( ev_larflow->as_vector() );
+    make_instanceid_vector( ev_instance->as_vector() );
+    make_ancestorid_vector( ev_ancestor->as_vector() );
+    make_segmentid_vector( ev_segment->as_vector(), ev_adc->as_vector() ); // segment image only labels neutrino pixels
+    make_origin_vector_frommcreco( ioll );
+  }
+
+
+  /**
+   * @brief use larflow truth images to assign good versus bad match for triplets
+   *
+   * this method populates the values for:
+   * _truth_v: 1 or 0 if triplet is a correct match
+   * _truth_2plane_v: value for all 6 flows, 1 or 0 if correct flow
+   *
+   * There should be a value of either (1) for correct triplet
+   *  and (2) for false triplet
+   *
+   * @param[in] larflow_v Vector of Image2D which contain true flow information between planes.
+   *
+   */
+  void PrepMatchTriplets::make_truth_vector( const std::vector<larcv::Image2D>& larflow_v )
+  {
+
+    for ( auto& matchdata : _match_triplet_v ) {
+
+      std::vector< const larcv::Image2D* > plarflow_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( larflow_v, matchdata._tpcid, matchdata._cryoid );
+      
+      LARCV_NORMAL() << " (cryo,tpcid)=" << matchdata._cryoid << "," << matchdata._tpcid << ") num larflow truth images=" << plarflow_v.size() << std::endl;
+      
+      if ( plarflow_v.size()!=6 ) {
+	continue;
+      }
+
+      int ntriplets = matchdata._triplet_v.size();
+      
+      matchdata._truth_v.clear();
+      matchdata._truth_2plane_v.clear();
+      matchdata._truth_v.resize( ntriplets, 0 );
+      matchdata._truth_2plane_v.resize( ntriplets );
+      matchdata._match_span_v.clear();
+      matchdata._match_span_v.resize( ntriplets, 0 );    
+
+      const int true_match_span = 3;
+      const int min_required_connections = 1;
+
+      int ntriplet_truth = 0;
+      std::vector< int > ndoublet_truth( (int)larflow::kNumFlows, 0 );
+    
+      for ( size_t itrip=0; itrip<matchdata._triplet_v.size(); itrip++ ) {
+	// for each triplet, we look for truth flows that connect the planes
+	auto const& triplet = matchdata._triplet_v[itrip];
+	larflow::FlowDir_t flow_dir_origin = matchdata._flowdir_v[itrip];
+	matchdata._truth_2plane_v[itrip].resize( (int)larflow::kNumFlows, 0 );
+      
+	// for debug
+	//if ( flow_dir_origin!=kY2V ) continue;
+
+	int srcplane, tarplane;
+	larflow::LArFlowConstants::getFlowPlanes( flow_dir_origin, srcplane, tarplane );
+	int othplane = larflow::LArFlowConstants::getOtherPlane( srcplane, tarplane );
+      
+	std::vector< const FlowTriples::PixData_t* > pix_v( matchdata._sparseimg_vv.size() );
+	pix_v[srcplane] = &matchdata._sparseimg_vv[srcplane][ triplet[srcplane] ];
+	pix_v[tarplane] = &matchdata._sparseimg_vv[tarplane][ triplet[tarplane] ];
+	pix_v[othplane] = &matchdata._sparseimg_vv[othplane][ triplet[othplane] ]; 
+
+	int ngood_connections = 0;
+	float pixflow  = plarflow_v[(int)flow_dir_origin]->pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
+	int target_col = pix_v[srcplane]->col + (int)pixflow;
+	int match_span = abs(target_col-pix_v[tarplane]->col);
+	if ( match_span>10 )
+	  match_span = 10;
+
+	if ( fabs(pixflow)!=0 && pixflow>-3999 && match_span<true_match_span ) {
+	  ngood_connections++;
+	  matchdata._truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
+	  ndoublet_truth[(int)flow_dir_origin]++;
+	}
+	matchdata._match_span_v[itrip] = match_span;
+	if ( ngood_connections>=min_required_connections ) {
+	  matchdata._truth_v[itrip] = 1;
+	  ntriplet_truth++;
+	}
+	else {
+	  matchdata._truth_v[itrip] = 0;
+	}
+      }//end of trips loop
+
+      LARCV_NORMAL() << "=== (cryoid,tpcid)=(" << matchdata._cryoid << "," << matchdata._tpcid << ") =======" << std::endl;
+      LARCV_NORMAL() << " number of triplets: " << matchdata._triplet_v.size() << std::endl;
+      LARCV_NORMAL() << "  number of sparse pixels: [ "
+		     << matchdata._sparseimg_vv[0].size() << ", "
+		     << matchdata._sparseimg_vv[1].size() << ", "
+		     << matchdata._sparseimg_vv[2].size() << " ]"
+		     << std::endl;
+      LARCV_NORMAL() << "  number of true-match triplets: " << ntriplet_truth << std::endl;
+      std::stringstream ss;
+      ss << "  doublet truth: [";
+      for (auto& n : ndoublet_truth ) ss << " " << n << ",";
+      ss << " ]";
+      LARCV_NORMAL() << ss.str() << std::endl;
+    }//end of loop over matchtriplet data (from different tpcs)
+    
+  }
+
+  /**
+   * @brief stores map between daughter geant4 track ids to mother ids
+   *
+   * Used in conjuction with the 2D instance image labels.
+   *
+   */
+  void PrepMatchTriplets::fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v )
+  {
+
+    _shower_daughter2mother.clear();
+    
+    for (auto const& shower : shower_v ) {
+      long showerid = shower.TrackID();
+      if ( showerid<0 ) showerid *= -1;
+      const std::vector<unsigned int>& dlist = shower.DaughterTrackID();      
+      for (auto const& daughterid : dlist ) {
+        _shower_daughter2mother[(unsigned long)daughterid]= (unsigned long)showerid;
+      }
+    }
+    
+  }
+
+  /**
+   * @brief stores map between instance id and particle class
+   *
+   * Used in conjuction with the SSNet class labels
+   *
+   */
+  void PrepMatchTriplets::fill_class_map( const std::vector<larlite::mctrack>&  track_v,
+                                          const std::vector<larlite::mcshower>& shower_v )
+  {
+
+    _instance2class_map.clear();
+    
+    for (auto const& shower : shower_v ) {
+      long showerid = shower.TrackID();
+      if ( showerid<0 ) showerid *= -1;
+      int  pid = shower.PdgCode();
+      _instance2class_map[(unsigned long)showerid] = pid;
+      for ( auto const& daughterid : shower.DaughterTrackID() ) {
+        long id = (daughterid<0) ? daughterid*-1 : daughterid;
+        _instance2class_map[(unsigned long)id] = pid;
+      }
+    }
+    
+    for (auto const& track : track_v ) {
+      long trackid = track.TrackID();
+      if ( trackid<0 ) trackid *= -1;
+      int  pid = track.PdgCode();
+      _instance2class_map[(unsigned long)trackid] = pid;
+    }
+
+    for (auto it=_instance2class_map.begin(); it!=_instance2class_map.end(); it++ ) {
+      int larcv_class = 0;
+      switch ( it->second ) {
+      case 11:
+      case -11:
+        larcv_class = (int)larcv::kROIEminus;
+        break;
+      case 13:
+      case -13:
+        larcv_class = (int)larcv::kROIMuminus;
+        break;
+      case 211:
+      case -211:
+        larcv_class = (int)larcv::kROIPiminus;
+        break;
+      case 2212:
+      case 2112:
+        larcv_class = (int)larcv::kROIProton;
+        break;
+      case 22:
+        larcv_class = (int)larcv::kROIGamma;
+        break;
+      case 111:
+        larcv_class = (int)larcv::kROIPizero;
+        break;
+      case 130:
+      case 310:
+      case 311:
+      case 312:
+        larcv_class = (int)larcv::kROIKminus;
+        break;
+      default:
+        larcv_class = (int)larcv::kROIUnknown;
+        break;
+      }
+      it->second = larcv_class;
+    }//end of iterator loop
+    
+  }
+
+  /**
+   * @brief use instance ID image to label space points
+   *
+   * @param[in] instance_img_v Vector of Image2D which contain track id.
+   *
+   */
+  void PrepMatchTriplets::make_instanceid_vector( const std::vector<larcv::Image2D>& instance_img_v )
+  {
+
+    for ( auto& matchdata : _match_triplet_v ) {
+      
+      matchdata._instance_id_v.resize( matchdata._triplet_v.size(), 0);
+
+      std::vector< const larcv::Image2D* > pinstance_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( instance_img_v, matchdata._tpcid, matchdata._cryoid );
+      
+      int nids = 0;
+      
+      for ( size_t itrip=0; itrip<matchdata._triplet_v.size(); itrip++ ) {
+
+	if ( matchdata._truth_v[itrip]==0 ) {
+	  matchdata._instance_id_v[itrip] = 0;
+	  continue;
+	}
+      
+	// for each triplet, we look for truth flows that connect the planes
+	auto const& triplet = matchdata._triplet_v[itrip];
+	std::vector<int> imgcoord = {0,0,0,triplet[3]};
+	for (int p=0; p<3; p++ ) {
+	  imgcoord[p] = matchdata._sparseimg_vv[p][triplet[p]].col;
+	}
+	
+	std::map< int, int > id_votes;
+
+	for (int p=0; p<3; p++ ) {
+	  long plane_id = pinstance_v[p]->pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+        
+	  if ( plane_id>0 ) {
+	    // see if its in the daughter to mother map
+	    auto it_showermap = _shower_daughter2mother.find( plane_id );
+	    if ( it_showermap != _shower_daughter2mother.end() ) {
+	      plane_id = (long)it_showermap->second;
+	    }
+	  }
+        
+	  if ( id_votes.find(plane_id)==id_votes.end() )
+	    id_votes[plane_id] = 0;
+	  id_votes[plane_id] += 1;
+	}
+
+	int maxid = 0;
+	int nvotes = 0;
+	for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
+	  if ( it->first>0 && it->second>nvotes) {
+	    nvotes = it->second;
+	    maxid = it->first;
+	  }
+	}
+
+	if ( maxid>0 )
+	  nids++;
+	
+	matchdata._instance_id_v[itrip] = maxid;
+      
+      }//end of trips loop
+
+      LARCV_NORMAL() << "=== (cryoid,tpcid)=(" << matchdata._cryoid << "," << matchdata._tpcid << ") =======" << std::endl;      
+      LARCV_NORMAL() << "  number labeled: " << nids << " of " << matchdata._triplet_v.size() << std::endl;
+    }//end of matchdata loop (over data from each tpc)
+    
+  }
+  
+  /**
+   * @brief use ancestor ID image to label space points
+   *
+   * @param[in] ancestor_img_v Vector of Image2D which contain track id.
+   *
+   */
+  void PrepMatchTriplets::make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_img_v )
+  {
+
+    for ( auto& matchdata : _match_triplet_v ) {
+      
+      matchdata._ancestor_id_v.resize( matchdata._triplet_v.size(), 0);
+
+      std::vector< const larcv::Image2D* > pancestor_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( ancestor_img_v, matchdata._tpcid, matchdata._cryoid );
+      
+      int nids = 0;
+      int ntrue_triplets =0;
+    
+      for ( size_t itrip=0; itrip<matchdata._triplet_v.size(); itrip++ ) {
+
+	if ( matchdata._truth_v[itrip]==0 ) {
+	  matchdata._ancestor_id_v[itrip] = 0;
+	  continue;
+	}
+        
+	ntrue_triplets++;
+      
+	// for each triplet, we look for truth flows that connect the planes
+	auto const& triplet = matchdata._triplet_v[itrip];
+	std::vector<int> imgcoord = {0,0,0,triplet[3]};
+	for (int p=0; p<3; p++ ) {
+	  imgcoord[p] = matchdata._sparseimg_vv[p][triplet[p]].col;
+	}
+
+	std::map< int, int > id_votes;
+
+	for (int p=0; p<3; p++ ) {
+	  int plane_id = pancestor_v[p]->pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+	  if ( id_votes.find(plane_id)==id_votes.end() )
+	    id_votes[plane_id] = 0;
+	  id_votes[plane_id] += 1;
+	}
+
+	int maxid = 0;
+	int nvotes = 0;
+	for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
+	  if ( it->first>0 && it->second>nvotes) {
+	    nvotes = it->second;
+	    maxid = it->first;
+	  }
+	}
+	
+	if ( maxid>0 )
+	  nids++;
+	
+	matchdata._ancestor_id_v[itrip] = maxid;
+	
+      }//end of trips loop
+      
+      LARCV_NORMAL() << "=== (cryoid,tpcid)=(" << matchdata._cryoid << "," << matchdata._tpcid << ") =======" << std::endl;
+      LARCV_NORMAL() << "  number labeled: " << nids
+		     << " of " << matchdata._triplet_v.size() << " total "
+		     << " and " << ntrue_triplets << "true" << std::endl;
+    }//end of matchdata (from different tpcs)
+    
+  }
+  
+  /**
+   * @brief use segment image to label particle class
+   *
+   * The id numbers contained in segment image correspond to enum values of larcv::ROIType_t.
+   * ROIType_t is found in larcv/core/DataFormat/DataFormatTyps.h
+   * 
+   * @param[in] segment_img_v Vector of Image2D which containing larcv particle IDs
+   *
+   */
+  void PrepMatchTriplets::make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
+                                                 const std::vector<larcv::Image2D>& adc_v )
+  {
+
+    for ( auto& matchdata : _match_triplet_v ) {
+      
+      matchdata._pdg_v.resize( matchdata._triplet_v.size(), 0);
+      matchdata._origin_v.resize( matchdata._triplet_v.size(), 0 );
+
+      std::vector< const larcv::Image2D* > psegment_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( segment_img_v, matchdata._tpcid, matchdata._cryoid );
+      std::vector< const larcv::Image2D* > padc_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, matchdata._tpcid, matchdata._cryoid );
+      
+      
+      int nids = 0;
+    
+      for ( size_t itrip=0; itrip<matchdata._triplet_v.size(); itrip++ ) {
+
+	if ( matchdata._truth_v[itrip]==0 ) {
+	  matchdata._pdg_v[itrip] = 0;
+	  matchdata._origin_v[itrip] = 0;
+	  continue;
+	}
+      
+	// for each triplet, we look for truth flows that connect the planes
+	auto const& triplet = matchdata._triplet_v[itrip];
+	std::vector<int> imgcoord = {0,0,0,triplet[3]};
+	for (int p=0; p<3; p++ ) {
+	  imgcoord[p] = matchdata._sparseimg_vv[p][triplet[p]].col;
+	}
+
+	std::map< int, float > id_votes;
+	int nsegvotes = 0;
+
+	for (int p=0; p<3; p++ ) {
+	  int plane_id = psegment_v[p]->pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+	  float pixval = padc_v[p]->pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+	  if ( id_votes.find(plane_id)==id_votes.end() )
+	    id_votes[plane_id] = 0;
+	  //id_votes[plane_id] += pixval;
+	  id_votes[plane_id] += 1;
+	  if ( plane_id>=(int)larcv::kROIEminus )
+	    nsegvotes++;
+	}
+
+	// also check the instance image for an id
+	if ( matchdata._instance_id_v.size()>itrip ) {
+	  int iid = matchdata._instance_id_v[itrip];
+	  auto it_class = _instance2class_map.find( iid );
+	  if ( it_class!=_instance2class_map.end() ) {
+	    int pid = it_class->second;
+	    if ( id_votes.find(pid)==id_votes.end() )
+	      id_votes[pid] = 0;
+	    id_votes[pid] += 10; // basically overrides segment image
+	  }
+	}
+      
+	int maxid = 0;
+	float nvotes = 0;
+	for (auto it=id_votes.begin(); it!=id_votes.end(); it++) {
+	  if ( it->first>0 && it->second>0 && (it->second>nvotes) ) {
+	    nvotes = it->second;
+	    maxid = it->first;
+	  }
+	}
+      
+	if ( maxid>0 )
+	  nids++;
+
+	matchdata._pdg_v[itrip] = maxid;
+	
+	if ( nsegvotes>2 ) // need 3 planes with segment data (no dead wires on the segment images)
+	  matchdata._origin_v[itrip] = 1;
+	else
+	  matchdata._origin_v[itrip] = 0;
+      }//end of trips loop
+    
+      LARCV_NORMAL() << "=== (cryoid,tpcid)=(" << matchdata._cryoid << "," << matchdata._tpcid << ") =======" << std::endl;      
+      LARCV_NORMAL() << "  number labeled: " << nids << " of " << matchdata._triplet_v.size() << std::endl;
+      
+    }//end of matchdata loop (over data from tpcs)
+    
+  }
+  
+  /**
+   * @brief use mcreco data to label spacepoint origin
+   *
+   * Set flag as:
+   *  origin=0 : unknown
+   *  origin=1 : neutrino
+   *  origin=2 : cosmic
+   * 
+   * @param[in] segment_img_v Vector of Image2D which containing larcv particle IDs
+   *
+   */
+  void PrepMatchTriplets::make_origin_vector_frommcreco( larlite::storage_manager& ioll )    
+  {
+
+    // need instance to ancestor map
+    std::map< int, int > trackid_to_ancestor;
+    std::map< int, int > ancestor_to_origin;
+    larlite::event_mctrack* ev_mctrack
+      = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco");
+    for ( auto const& mctrack : *ev_mctrack ) {
+      trackid_to_ancestor[(int)mctrack.TrackID()] = (int)mctrack.AncestorTrackID();
+      if ( mctrack.TrackID()==mctrack.AncestorTrackID() ) {
+	ancestor_to_origin[(int)mctrack.TrackID()] = mctrack.Origin();
+      }
+    }
+    
+    for ( auto& matchdata : _match_triplet_v ) {
+    
+      matchdata._origin_v.resize( matchdata._triplet_v.size(), 0 );
+    
+      if ( matchdata._ancestor_id_v.size() != matchdata._triplet_v.size() ) {
+	throw std::runtime_error("Ancestor ID vector not filled yet. Run make_ancestorid_vector first.");
+      }
+
+    
+      int nids = 0;
+    
+      for ( size_t itrip=0; itrip<matchdata._triplet_v.size(); itrip++ ) {
+	
+	if ( matchdata._truth_v[itrip]==0 ) {
+	  matchdata._origin_v[itrip] = 0;
+	  continue;
+	}
+
+	int trackid = matchdata._instance_id_v[itrip];
+	auto it_t2a = trackid_to_ancestor.find( trackid );
+	if ( it_t2a!=trackid_to_ancestor.end() ) {
+	  // found ancestor label
+	  int aid = it_t2a->second;
+	  auto it_a2o = ancestor_to_origin.find(aid);
+	  if ( it_a2o!=ancestor_to_origin.end() ) {
+	    matchdata._origin_v[itrip] = it_a2o->second;
+	    nids++;
+	  }
+	}
+      
+      }//end of trips loop
+      
+      LARCV_NORMAL() << "=== (cryoid,tpcid)=(" << matchdata._cryoid << "," << matchdata._tpcid << ") =======" << std::endl;    
+      LARCV_NORMAL() << "  number labeled: " << nids << " of " << matchdata._triplet_v.size() << std::endl;
+    }//matchdata loop
+    
   }
   
 }  

@@ -29,6 +29,18 @@ from larflow import larflow
 
 rt.gStyle.SetOptStat(0)
 
+# SET DETECTOR
+if args.detector == "icarus":
+    detid = larlite.geo.kICARUS
+    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root"
+elif args.detector == "uboone":
+    detid = larlite.geo.kMicroBooNE
+    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_microboone_wireoverlap_matrices.root"    
+elif args.detector == "sbnd":
+    detid = larlite.geo.kSBND    
+larutil.LArUtilConfig.SetDetector(detid)
+
+
 badchmaker = ublarcvapp.EmptyChannelAlgo()
 
 io = larcv.IOManager( larcv.IOManager.kREAD, "io", larcv.IOManager.kTickBackward )
@@ -61,14 +73,6 @@ if args.nentries is not None and args.nentries<nentries:
 else:
     end_entry = nentries-start_entry-1
 
-# SET DETECTOR
-if args.detector=="uboone":
-    larutil.LArUtilConfig.SetDetector( larlite.geo.kMicroBooNE )
-elif args.detector=="sbnd":
-    larutil.LArUtilConfig.SetDetector( larlite.geo.kSBND )
-elif args.detector=="icarus":
-    larutil.LArUtilConfig.SetDetector( larlite.geo.kICARUS )
-
 out = rt.TFile(args.output,"recreate")
 outtree = rt.TTree("larmatchtriplet","triplet data")
 triplet_v = std.vector("larflow::prep::MatchTriplets")()
@@ -76,6 +80,8 @@ outtree.Branch("triplet_v",triplet_v)
 
 preptripletalgo = larflow.prep.PrepMatchTriplets()
 preptripletalgo.set_verbosity(0) # for debug
+preptripletalgo.set_wireoverlap_filepath( overlap_matrix_file  )
+
 
 for ientry in range(start_entry, end_entry+1):
 
@@ -87,6 +93,7 @@ for ientry in range(start_entry, end_entry+1):
 
     preptripletalgo.process( io, args.adc_name, args.adc_name, 10.0, True )
     if args.has_mc:
+        print("process truth labels")
         preptripletalgo.process_truth_labels( io, ioll, args.adc_name )
 
     for imatchdata in range(preptripletalgo._match_triplet_v.size()):

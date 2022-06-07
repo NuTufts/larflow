@@ -17,7 +17,9 @@ namespace prep {
   public:
     
     MatchTriplets()
-      : _kshuffle_indices_when_sampling(false)
+      : _kshuffle_indices_when_sampling(false),
+	_tpcid(0),
+	_cryoid(0)
       {};
     virtual ~MatchTriplets() {};
 
@@ -37,6 +39,8 @@ namespace prep {
     std::vector< int >                                    _pdg_v;           ///< PDG label for each space point
     std::vector< int >                                    _origin_v;        ///< 0: unknown, 1:neutrino, 2:cosmic
     std::vector< int >                                    _match_span_v;    ///< distance from projection intersection to true intersection in wires
+    int                                                   _tpcid;           ///< TPC ID
+    int                                                   _cryoid;          ///< CRYO ID    
 
     void clear();
 

@@ -144,7 +144,7 @@ namespace prep {
     for (auto const& truth : _truth_v ) {
       if ( truth ) ntruepts++;
     }
-    std::cout << "[MatchTriplets::make_spacepoint_charge_array] number of true points: " << ntruepts << std::endl;
+    std::cout << "[MatchTriplets::make_spacepoint_charge_array] number of true points: " << ntruepts << " of " << _truth_v.size() << std::endl;
     
     if (ntruepts>0) {
       
@@ -163,6 +163,20 @@ namespace prep {
       PyDict_SetItem(d, truth_t_key, (PyObject*)truth_t);     
       Py_DECREF( truth_t );    
       Py_DECREF( truth_t_key );
+
+      // Particle type ID
+      npy_intp segment_t_dim[] = { (long int)npts };
+      PyArrayObject* segment_t = (PyArrayObject*)PyArray_SimpleNew( 1, segment_t_dim, NPY_LONG );
+      PyObject *segment_t_key = Py_BuildValue("s", "segment_t");
+      
+      for (size_t itriplet=0; itriplet<npts; itriplet++) {
+        *((long*)PyArray_GETPTR1( segment_t, itriplet )) = (long)_pdg_v[itriplet];
+      }
+      
+      PyDict_SetItem(d, segment_t_key, (PyObject*)segment_t);     
+      Py_DECREF( segment_t );    
+      Py_DECREF( segment_t_key );
+      
       
     }
 

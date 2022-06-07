@@ -66,13 +66,15 @@ namespace prep {
                   const float adc_threshold=10.0,
                   const bool check_wire_intersection=false );
 
-    // void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
-    // void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
-    // void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
-    // void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
-    //                             const std::vector<larcv::Image2D>& adc_v );
-    // void make_origin_vector_frommcreco( larlite::storage_manager& ioll );    
-    // void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
+    void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
+    
+    void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
+    void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
+    void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
+    void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
+                                const std::vector<larcv::Image2D>& adc_v );
+    void make_origin_vector_frommcreco( larlite::storage_manager& ioll );    
+
     // void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
     // void setShuffleWhenSampling( bool shuffle ) { _kshuffle_indices_when_sampling = shuffle; };
     // void setDoDeadChannelBug( bool doit ) { _do_deadch_bug = doit; };
@@ -95,13 +97,13 @@ namespace prep {
     // bool _kshuffle_indices_when_sampling;
     // bool _do_deadch_bug;
 
-    // // map from shower daughter IDs to mother IDs
-    // std::map<unsigned long, unsigned long> _shower_daughter2mother;
-    // void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
+    // map from shower daughter IDs to mother IDs
+    std::map<unsigned long, unsigned long> _shower_daughter2mother;
+    void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
 
-    // std::map<unsigned long, int> _instance2class_map;
-    // void fill_class_map( const std::vector<larlite::mctrack>&  track_v,
-    //                      const std::vector<larlite::mcshower>& shower_v );
+    std::map<unsigned long, int> _instance2class_map;
+    void fill_class_map( const std::vector<larlite::mctrack>&  track_v,
+                         const std::vector<larlite::mcshower>& shower_v );
 
     // wire overlap matrices
     std::vector< TMatrixD >           _matrix_list_v;
