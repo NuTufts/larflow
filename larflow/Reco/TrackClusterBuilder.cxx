@@ -186,32 +186,32 @@ namespace reco {
    * one of the end points of another segment.
    *
    */
-  void TrackClusterBuilder::buildNodeConnections( const std::vector<larcv::Image2D>* padc_v,
-                                                  const std::vector<larcv::Image2D>* pbadch_v )
+  void TrackClusterBuilder::buildNodeConnections( const std::vector<const larcv::Image2D*>* padc_v,
+                                                  const std::vector<const larcv::Image2D*>* pbadch_v )
   {
 
     std::vector<larcv::Image2D> mask_adc_v;
     std::vector<larcv::Image2D> mask_badch_v;
     if ( padc_v ) {
       for (auto& img : *padc_v ) {
-        larcv::Image2D mask(img.meta());
+        larcv::Image2D mask(img->meta());
         mask_adc_v.emplace_back( std::move(mask) );
       }
     }
     if ( mask_adc_v.size()!=3 ) {
-      LARCV_CRITICAL() << "Failed to load ADC image" << std::endl;
+      LARCV_CRITICAL() << "Failed to load ADC image. num adc images=" << padc_v->size() << std::endl;
     }
     
     if ( pbadch_v ) {
       for (auto& img : *pbadch_v ) {
-        larcv::Image2D mask(img.meta());
+        larcv::Image2D mask(img->meta());
         mask_badch_v.emplace_back( std::move(mask) );
       }
     }
     if ( mask_badch_v.size()!=3 ) {
-      LARCV_CRITICAL() << "Failed to load BadCh image" << std::endl;
+      LARCV_CRITICAL() << "Failed to load BadCh image. num badch images=" << pbadch_v->size() << std::endl;
     }
-
+    
     ublarcvapp::ubimagemod::TrackImageMask masker;
     int nfail_charge_check = 0;
     
@@ -310,7 +310,7 @@ namespace reco {
           for (int p=0; p<(int)mask_adc_v.size(); p++) {
             auto& mask = mask_adc_v.at(p);
             //auto const& adc = padc_v->at(p);
-	    auto const& adc = pbadch_v->at(p); // use bad channel filled image
+	    auto const& adc = *pbadch_v->at(p); // use bad channel filled image
             ncharged_v[p] = (float)masker.maskTrack( gap, adc, mask, 10.0, 0, 0, 0.3 );
 	    float nall = masker.getPathPixels();
             if ( nall>0 ) {              

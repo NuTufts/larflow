@@ -178,8 +178,8 @@ namespace reco {
                              const larlite::event_track& trackseg_v,
 			     const int tpcid, const int cryoid );                             
 
-    void buildNodeConnections( const std::vector<larcv::Image2D>* padc_v=nullptr,
-                               const std::vector<larcv::Image2D>* pbadch_v=nullptr);
+    void buildNodeConnections( const std::vector<const larcv::Image2D*>* padc_v=nullptr,
+                               const std::vector<const larcv::Image2D*>* pbadch_v=nullptr);
 
     void buildTracksFromPoint( const std::vector<float>& startpoint );
 

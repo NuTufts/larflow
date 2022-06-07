@@ -44,8 +44,10 @@ import larmatch.utils.larmatchme_engine as engine
 
 if args.detector == "icarus":
     detid = larlite.geo.kICARUS
+    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root"
 elif args.detector == "uboone":
     detid = larlite.geo.kMicroBooNE
+    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_microboone_wireoverlap_matrices.root"    
 elif args.detector == "sbnd":
     detid = larlite.geo.kSBND
     
@@ -77,10 +79,11 @@ BATCHSIZE = 1
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
 preplarmatch = larflow.prep.PrepMatchTriplets()
+preplarmatch.set_wireoverlap_filepath( overlap_matrix_file  )    
 if args.use_skip_limit is not None:
     print("Set Triplet Max where we will skip event: ",args.use_skip_limit)
     preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
-preplarmatch.set_wireoverlap_filepath( os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root" )
+
 
 if args.run_kpreco:
     kprecoalgo = larflow.reco.EventKeypointReco()
@@ -191,6 +194,9 @@ for ientry in range(NENTRIES):
 
         cryoid = matchdata._trip_cryo_tpc_v.at(0)[0]
         tpcid  = matchdata._trip_cryo_tpc_v.at(0)[1]
+        #if cryoid!=0 or tpcid!=0:
+        #    continue
+        
         img_indices_v = std.vector("int")(3,0)
         print("Run larmatch for (TPCID,CRYOID)=(%d,%d)"%(tpcid,cryoid))
 
@@ -217,7 +223,7 @@ for ientry in range(NENTRIES):
             #print(wireimg_coord_np[:10,:])
         
             wireimg_coord = torch.from_numpy( wireimg_coord_np ).to(DEVICE)
-            wireimg_feat  = torch.from_numpy( np.clip( np.expand_dims( wireimg[:,2], 1 )/30.0, 0, 10.0 ) ).to(DEVICE)
+            wireimg_feat  = torch.from_numpy( np.clip( np.expand_dims( wireimg[:,2], 1 )/50.0, 0, 10.0 ) ).to(DEVICE)
             #print("== plane[%d] =="%(p))
             #print("wireimg_coord: ",wireimg_coord.shape)        
             #print("wireimg_feat:  ",wireimg_feat.shape)

@@ -342,7 +342,7 @@ namespace reco {
       loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track, tpcid, cryoid );
     }
 
-    buildNodeConnections( &adc_v, &badch_v );
+    buildNodeConnections( &ptpc_adc_v, &tpc_badch_v );
 
     std::clock_t t_end = std::clock();
     float elapsed = float( t_end-t_start )/CLOCKS_PER_SEC;

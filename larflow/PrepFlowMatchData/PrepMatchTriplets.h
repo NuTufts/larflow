@@ -49,7 +49,8 @@ namespace prep {
 	// _kshuffle_indices_when_sampling(true),
 	// _do_deadch_bug(false),
 	_input_overlap_filepath("output_icarus_wireoverlap_matrices.root"),
-	_overlap_matrices_loaded(false)
+	_overlap_matrices_loaded(false),
+	_kAllowInductionPass(false)
     {};
     virtual ~PrepMatchTriplets() {};
     
@@ -85,6 +86,8 @@ namespace prep {
     std::vector< MatchTriplets > _match_triplet_v; ///< data objects produced by this code    
     void clear();
 
+    void allowInductionPass( bool doit=true ) { _kAllowInductionPass = doit; };
+    
   protected:
 
     // bool _kStopAtTripletMax;
@@ -105,6 +108,7 @@ namespace prep {
     std::map< std::vector<int>, int > _m_planeid_to_tree_entry;
     std::string                       _input_overlap_filepath;
     bool                              _overlap_matrices_loaded;
+    bool                              _kAllowInductionPass;
     void _load_overlap_matrices( bool force_reload=false );
 
   public:

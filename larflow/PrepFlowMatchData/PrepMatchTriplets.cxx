@@ -63,16 +63,28 @@ namespace prep {
     auto const& adc_v = ev_adc->as_vector();
     
     // get chstatus
-    //larcv::EventChStatus* ev_badch
-    //= (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus,chstatus_producer);
-
+    larcv::EventChStatus* ev_badch
+      = (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus,chstatus_producer);
 
     std::vector< larcv::Image2D > badch_v;
-    // just blanks for now
-    for ( auto const& adc : ev_adc->as_vector() ) {
-      larcv::Image2D badch_blank(adc.meta());
-      badch_blank.paint(0.0);
-      badch_v.emplace_back( badch_blank );
+    
+    if ( ev_badch->ChStatusMap().size()==0 ) {
+      // leave blank
+      LARCV_NORMAL() << "No bad channel info so making blanks" << std::endl;
+      // for ( auto const& adc : ev_adc->as_vector() ) {
+      // 	larcv::Image2D badch_blank(adc.meta());
+      // 	badch_blank.paint(0.0);
+      // 	badch_v.emplace_back( badch_blank );
+      // }
+    }
+    else {
+      // create bad channel maker algo
+      LARCV_NORMAL() << "Have bad channel info make badchannel images" << std::endl;
+      ublarcvapp::EmptyChannelAlgo badchmaker;
+      badch_v = badchmaker.makeGapChannelImage( ev_adc->as_vector(), *ev_badch,
+						4, 3, 2400, 6*1008,
+						3456, 6, 1,
+						1.0, 100, -1.0 );
     }
 
     // to do: create bad channel maker algo
@@ -158,7 +170,9 @@ namespace prep {
       _match_triplet_v.emplace_back( std::move(matchdata) );
       return;
     }
-    
+
+    // do we have bad channel info?
+    bool have_badch = (badch_v.size()>0) ? true : false;
     
     // first we make a common sparse image
     std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv =
@@ -263,10 +277,15 @@ namespace prep {
 
 	      // handle dead channels (microboone)
 	      bool deadch_pass = false;
+	      if ( have_badch ) {
+		float badchval = badch_v[start_plane+ipl3]->pixel(irow,otherwire);
+		if ( badchval>0 )
+		  deadch_pass = true;
+	      }
 
 	      // missing induction plane
 	      bool induction_pass = false;
-	      if ( ipl3==0 ) { //fabs(pixvalue)>2.0 ) {
+	      if ( ipl3==0 && _kAllowInductionPass ) { //fabs(pixvalue)>2.0 ) {
 		induction_pass = true;
 	      }
 	      
@@ -280,7 +299,7 @@ namespace prep {
 		wirecoord[3]    = (int)tick;
 
 		// we need to insert the dead or induction pixel into the sparsemap
-		if ( induction_pass ) {
+		if ( induction_pass || deadch_pass ) {
 		  auto& pl3map = map_sparseimg_pix2index_v[ipl3];
 		  auto it_img = pl3map.find( std::pair<int,int>(irow,otherwire) );
 		  if ( it_img==pl3map.end() ) {
