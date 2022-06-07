@@ -8,6 +8,8 @@
 
 #include "larcv/core/DataFormat/EventImage2D.h"
 
+#include "ublarcvapp/RecoTools/DetUtils.h"
+
 #include "larflow/SCBoundary/SCBoundary.h"
 #include "TrackdQdx.h"
 
@@ -50,17 +52,19 @@ namespace reco {
   {
 
     clear();
-    
-    for ( auto const& producer : _cluster_tree_v ) {
-      larlite::event_larflowcluster* ev_cluster
-        = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
-      larlite::event_pcaxis* ev_pcaxis
-        = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
-      larlite::event_track* ev_track
-        = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
-      loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track );
-    }
 
+
+    //output containers
+    larlite::event_track* evout_track
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
+    larlite::event_larflowcluster* evout_trackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
+
+    larlite::event_track* evout_simpletrack
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "simplecosmictrack");
+    larlite::event_larflowcluster* evout_simpletrackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "simplecosmictrack");    
+    
     // wire plane images for getting dqdx later
     larcv::EventImage2D* ev_adc =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
@@ -70,55 +74,74 @@ namespace reco {
     larcv::EventImage2D* ev_badch =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "badch" );
     auto const& badch_v = ev_badch->as_vector();
+
+    // We perform the reco one TPC at a time
+    auto const geom = larlite::larutil::Geometry::GetME();
+    for ( int icryo=0; icryo<(int)geom->Ncryostats(); icryo++) {
+      for (int itpc=0; itpc<(int)geom->NTPCs(icryo); itpc++) {
+
+	// get images for this TPC and cryostat
+	std::vector< const larcv::Image2D* > ptpc_adc_v
+	  = ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, itpc, icryo );
+	std::vector< const larcv::Image2D* > tpc_badch_v 
+	  = ublarcvapp::recotools::DetUtils::getTPCImages( badch_v, itpc, icryo );
+	
+	if ( ptpc_adc_v.size()==0 )
+	  continue;
+
+	for ( auto const& producer : _cluster_tree_v ) {
+	  larlite::event_larflowcluster* ev_cluster
+	    = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
+	  larlite::event_pcaxis* ev_pcaxis
+	    = (larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,producer);
+	  larlite::event_track* ev_track
+	    = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,producer);
+	  loadClusterLibrary( *ev_cluster, *ev_pcaxis, *ev_track, itpc, icryo );
+	}
+	
+	buildNodeConnections( &ptpc_adc_v, &tpc_badch_v );
+
+	// make tracks using keypoints
+	larlite::event_larflow3dhit* ev_keypoint
+	  = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, producer_keypoint );
+
+	for (size_t ikp=0; ikp<ev_keypoint->size(); ikp++) {
+	  auto const& kp = ev_keypoint->at(ikp);
+	  std::vector<float> startpt = { kp[0], kp[1], kp[2] };
+	  buildTracksFromPoint( startpt );
+	}
+
+	// make tracks using unused segments
+	_buildTracksFromSegments(itpc, icryo);
     
-    buildNodeConnections( &adc_v, &badch_v );
 
-    // make tracks using keypoints
-    larlite::event_larflow3dhit* ev_keypoint
-      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, producer_keypoint );
+	fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, adc_v );
 
-
-    for (size_t ikp=0; ikp<ev_keypoint->size(); ikp++) {
-      auto const& kp = ev_keypoint->at(ikp);
-      std::vector<float> startpt = { kp[0], kp[1], kp[2] };
-      buildTracksFromPoint( startpt );
-    }
-
-    // make tracks using unused segments
-    _buildTracksFromSegments();
-    
-    larlite::event_track* evout_track
-      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
-    larlite::event_larflowcluster* evout_trackcluster
-      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
-
-    fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, adc_v );
-
-    // apply dqdx calc to fitted track
-    for (int itrack=0; itrack<(int)evout_track->size(); itrack++) {
-      auto& fitted = evout_track->at(itrack);
-      auto& hitcluster = evout_trackcluster->at(itrack);
+	// apply dqdx calc to fitted track
+	for (int itrack=0; itrack<(int)evout_track->size(); itrack++) {
+	  auto& fitted = evout_track->at(itrack);
+	  auto& hitcluster = evout_trackcluster->at(itrack);
       
-      larflow::reco::TrackdQdx dqdx_algo;
-      larlite::track track_dqdx;
-      try {
-        track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
-        // swap it
-        std::swap(fitted,track_dqdx);
-      }
-      catch ( const std::exception& e ) {
-        std::stringstream msg;
-        msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << "." << std::endl;
-      }
-    }
-    
-    larlite::event_track* evout_simpletrack
-      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "simplecosmictrack");
-    larlite::event_larflowcluster* evout_simpletrackcluster
-      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "simplecosmictrack");    
-    fillLarliteTrackContainer( *evout_simpletrack, *evout_simpletrackcluster ); 
+	  larflow::reco::TrackdQdx dqdx_algo;
+	  larlite::track track_dqdx;
+	  try {
+	    track_dqdx = dqdx_algo.calculatedQdx( fitted, hitcluster, adc_v );
+	    // swap it
+	    std::swap(fitted,track_dqdx);
+	  }
+	  catch ( const std::exception& e ) {
+	    std::stringstream msg;
+	    msg << "error in trying to calculate dqdx track (id=" << itrack << "): " << e.what() << "." << std::endl;
+	  }
+	}
 
-    if ( _do_boundary_analysis ) {
+	//fillLarliteTrackContainer( *evout_simpletrack, *evout_simpletrackcluster ); 	
+      }// end of tpcid loop
+    }//end of cryoid loop
+    
+
+
+    if ( _do_boundary_analysis && larutil::LArUtilConfig::Detector()==larlite::geo::kMicroBooNE ) {
       _boundary_analysis_noflash( ioll );
     }
     
@@ -332,384 +355,384 @@ namespace reco {
     
   }
 
-  /**
-   * @brief boundary analysis of tracks found, using flash
-   *
-   * [deprecated]
-   *
-   * @param[in] ioll larlite IO manager
-   * 
-   */
-  void CosmicTrackBuilder::_boundary_analysis_wflash( larlite::storage_manager& ioll )
-  {
-    // 
+  // /**
+  //  * @brief boundary analysis of tracks found, using flash
+  //  *
+  //  * [deprecated]
+  //  *
+  //  * @param[in] ioll larlite IO manager
+  //  * 
+  //  */
+  // void CosmicTrackBuilder::_boundary_analysis_wflash( larlite::storage_manager& ioll )
+  // {
+  //   // 
 
-    const float drift_v = larutil::LArProperties::GetME()->DriftVelocity();
+  //   const float drift_v = larutil::LArProperties::GetME()->DriftVelocity();
     
-    // get the flash info
-    std::vector< std::string > flash_producers_v = { "simpleFlashBeam",
-                                                     "simpleFlashCosmic" };
+  //   // get the flash info
+  //   std::vector< std::string > flash_producers_v = { "simpleFlashBeam",
+  //                                                    "simpleFlashCosmic" };
 
-    struct FlashInfo_t {
-      std::string producer;
-      int index;
-      float usec;
-      float anode_x;
-      float cathode_x;
-      float centroid_z;
-      float centroid_y;
-      float totpe;
-    };
+  //   struct FlashInfo_t {
+  //     std::string producer;
+  //     int index;
+  //     float usec;
+  //     float anode_x;
+  //     float cathode_x;
+  //     float centroid_z;
+  //     float centroid_y;
+  //     float totpe;
+  //   };
 
-    std::vector< FlashInfo_t > flash_v;
-    flash_v.reserve(100);
+  //   std::vector< FlashInfo_t > flash_v;
+  //   flash_v.reserve(100);
     
-    for ( auto& prodname : flash_producers_v ) {
-      larlite::event_opflash* ev_flash
-        = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, prodname );
+  //   for ( auto& prodname : flash_producers_v ) {
+  //     larlite::event_opflash* ev_flash
+  //       = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, prodname );
 
-      LARCV_INFO() << "opflashes from " << prodname << ": " << ev_flash->size() << std::endl;
+  //     LARCV_INFO() << "opflashes from " << prodname << ": " << ev_flash->size() << std::endl;
 
-      for (int idx=0; idx<(int)ev_flash->size(); idx++) {
-        auto const& flash = ev_flash->at(idx);
+  //     for (int idx=0; idx<(int)ev_flash->size(); idx++) {
+  //       auto const& flash = ev_flash->at(idx);
 
-        FlashInfo_t info;
-        info.producer = prodname;
-        info.index    = idx;
-        info.usec     = flash.Time(); // usec from trigger
-        // calculate x-position, if we assume track that made flash crossed anode
-        // calculate x-position, if we assume track that made flash crossed cathode
+  //       FlashInfo_t info;
+  //       info.producer = prodname;
+  //       info.index    = idx;
+  //       info.usec     = flash.Time(); // usec from trigger
+  //       // calculate x-position, if we assume track that made flash crossed anode
+  //       // calculate x-position, if we assume track that made flash crossed cathode
 
-        info.anode_x   = info.usec*drift_v;
-        info.cathode_x = info.anode_x + 256.0;
-        info.centroid_z = 0.;
-        info.centroid_y = 0.;
-        info.totpe = 0.;
-        std::vector<float> pe_v(32,0);
-        for (int iopdet=0; iopdet<(int)flash.nOpDets(); iopdet++) {
-          float pe = flash.PE(iopdet);
-          if ( pe<=0 ) {
-            continue;
-          }
-          int ch = iopdet%32;
-          if ( pe>pe_v[ch] && ch<32)
-            pe_v[ch] = pe;
-        }
-        for (int ch=0; ch<32; ch++) {
-          float pe = pe_v[ch];
-          std::vector<double> xyz;
-          //larutil::Geometry::GetME()->GetOpDetPosition( ch, xyz );
-          larutil::Geometry::GetME()->GetOpChannelPosition( ch, xyz );
-          info.totpe += pe;
-          info.centroid_z += pe*xyz[2];
-          info.centroid_y += pe*xyz[1];
-        }
-        if ( info.totpe>0 ) {
-          info.centroid_z /= info.totpe;
-          info.centroid_y /= info.totpe;
-        }
-        LARCV_DEBUG() << "FLASH[" << flash_v.size() << "] pe=" << info.totpe << " centroid-z=" << info.centroid_z << std::endl;
+  //       info.anode_x   = info.usec*drift_v;
+  //       info.cathode_x = info.anode_x + 256.0;
+  //       info.centroid_z = 0.;
+  //       info.centroid_y = 0.;
+  //       info.totpe = 0.;
+  //       std::vector<float> pe_v(32,0);
+  //       for (int iopdet=0; iopdet<(int)flash.nOpDets(); iopdet++) {
+  //         float pe = flash.PE(iopdet);
+  //         if ( pe<=0 ) {
+  //           continue;
+  //         }
+  //         int ch = iopdet%32;
+  //         if ( pe>pe_v[ch] && ch<32)
+  //           pe_v[ch] = pe;
+  //       }
+  //       for (int ch=0; ch<32; ch++) {
+  //         float pe = pe_v[ch];
+  //         std::vector<double> xyz;
+  //         //larutil::Geometry::GetME()->GetOpDetPosition( ch, xyz );
+  // 	  larlite::larutil::Geometry::GetME()->GetOpChannelPosition( ch, xyz );
+  //         info.totpe += pe;
+  //         info.centroid_z += pe*xyz[2];
+  //         info.centroid_y += pe*xyz[1];
+  //       }
+  //       if ( info.totpe>0 ) {
+  //         info.centroid_z /= info.totpe;
+  //         info.centroid_y /= info.totpe;
+  //       }
+  //       LARCV_DEBUG() << "FLASH[" << flash_v.size() << "] pe=" << info.totpe << " centroid-z=" << info.centroid_z << std::endl;
         
-        flash_v.push_back( info );
-      }
-    }
+  //       flash_v.push_back( info );
+  //     }
+  //   }
 
-    LARCV_INFO() << "OpFlashes loaded: " << flash_v.size() << std::endl;
+  //   LARCV_INFO() << "OpFlashes loaded: " << flash_v.size() << std::endl;
 
 
-    // loop over reconstructed tracks
-    larlite::event_track* ev_cosmic
-      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"cosmictrack");
+  //   // loop over reconstructed tracks
+  //   larlite::event_track* ev_cosmic
+  //     = (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"cosmictrack");
 
-    larflow::scb::SCBoundary scb;
+  //   larflow::scb::SCBoundary scb;
 
-    struct BoundaryMatch_t {
-      int track_idx;
-      int flash_idx;
-      float x_offset;
-      float x_min;
-      float x_max;
-      float minpt_dist2scb;
-      float maxpt_dist2scb;
-      int minpt_btype;
-      int maxpt_btype;
-      float dist2scb; // min of the two above, for sorting
-      int num_ends_on_boundary;
-      float pmt_dz;
-      bool operator<( const BoundaryMatch_t& rhs ) const {
-        if ( dist2scb<rhs.dist2scb ) return true;
-        return false;
-      };
-    };
+  //   struct BoundaryMatch_t {
+  //     int track_idx;
+  //     int flash_idx;
+  //     float x_offset;
+  //     float x_min;
+  //     float x_max;
+  //     float minpt_dist2scb;
+  //     float maxpt_dist2scb;
+  //     int minpt_btype;
+  //     int maxpt_btype;
+  //     float dist2scb; // min of the two above, for sorting
+  //     int num_ends_on_boundary;
+  //     float pmt_dz;
+  //     bool operator<( const BoundaryMatch_t& rhs ) const {
+  //       if ( dist2scb<rhs.dist2scb ) return true;
+  //       return false;
+  //     };
+  //   };
 
-    // save boundary matches, one set per track
-    std::vector< std::vector<BoundaryMatch_t> > track_boundary_vv(ev_cosmic->size());
+  //   // save boundary matches, one set per track
+  //   std::vector< std::vector<BoundaryMatch_t> > track_boundary_vv(ev_cosmic->size());
       
-    for ( int itrack=0; itrack<(int)ev_cosmic->size(); itrack++ ) {
+  //   for ( int itrack=0; itrack<(int)ev_cosmic->size(); itrack++ ) {
 
-      auto const& track = ev_cosmic->at(itrack);
+  //     auto const& track = ev_cosmic->at(itrack);
 
-      LARCV_DEBUG() << "==== TRACK[" << itrack << "] ==========" << std::endl;
-      LARCV_DEBUG() << "   start(" << track.Vertex()(0) << "," << track.Vertex()(1) << "," << track.Vertex()(2) << ") "
-                    << "--> end(" << track.End()(0) << "," << track.End()(1) << "," << track.End()(2) << ") "
-                    << std::endl;
+  //     LARCV_DEBUG() << "==== TRACK[" << itrack << "] ==========" << std::endl;
+  //     LARCV_DEBUG() << "   start(" << track.Vertex()(0) << "," << track.Vertex()(1) << "," << track.Vertex()(2) << ") "
+  //                   << "--> end(" << track.End()(0) << "," << track.End()(1) << "," << track.End()(2) << ") "
+  //                   << std::endl;
 
-      float x_min; 
-      float x_max;
-      float pt_min[3];
-      float pt_max[3];
-      if ( track.Vertex()(0)<track.End()(0) ) {
-        x_min = track.Vertex()(0);
-        x_max = track.End()(0);
-        for (int v=0; v<3; v++) {
-          pt_min[v] = track.Vertex()(v);
-          pt_max[v] = track.End()(v);
-        }
-      }
-      else {
-        x_max = track.Vertex()(0);
-        x_min = track.End()(0);
-        for (int v=0; v<3; v++) {
-          pt_max[v] = track.Vertex()(v);
-          pt_min[v] = track.End()(v);
-        }        
-      }
+  //     float x_min; 
+  //     float x_max;
+  //     float pt_min[3];
+  //     float pt_max[3];
+  //     if ( track.Vertex()(0)<track.End()(0) ) {
+  //       x_min = track.Vertex()(0);
+  //       x_max = track.End()(0);
+  //       for (int v=0; v<3; v++) {
+  //         pt_min[v] = track.Vertex()(v);
+  //         pt_max[v] = track.End()(v);
+  //       }
+  //     }
+  //     else {
+  //       x_max = track.Vertex()(0);
+  //       x_min = track.End()(0);
+  //       for (int v=0; v<3; v++) {
+  //         pt_max[v] = track.Vertex()(v);
+  //         pt_min[v] = track.End()(v);
+  //       }        
+  //     }
 
-      float z_min;
-      float z_max;
-      if ( track.Vertex()(2)<track.End()(2) ) {
-        z_min = track.Vertex()(2);
-        z_max = track.End()(2);
-      }
-      else {
-        z_max = track.Vertex()(2);
-        z_min = track.End()(2);
-      }
+  //     float z_min;
+  //     float z_max;
+  //     if ( track.Vertex()(2)<track.End()(2) ) {
+  //       z_min = track.Vertex()(2);
+  //       z_max = track.End()(2);
+  //     }
+  //     else {
+  //       z_max = track.Vertex()(2);
+  //       z_min = track.End()(2);
+  //     }
       
-      // we now pair with every flash, along with a null flash match where we shift
-      // to the space-charge boundary in x
-      int nmatches = 0;   //< number of flashes that if matched to track, moves it to a boundary
-      int npossible = 0;  //< number of flashes that were consistent with track
-      for (int iflash=0; iflash<(int)flash_v.size(); iflash++) {
+  //     // we now pair with every flash, along with a null flash match where we shift
+  //     // to the space-charge boundary in x
+  //     int nmatches = 0;   //< number of flashes that if matched to track, moves it to a boundary
+  //     int npossible = 0;  //< number of flashes that were consistent with track
+  //     for (int iflash=0; iflash<(int)flash_v.size(); iflash++) {
 
-        auto const& info = flash_v[iflash];
+  //       auto const& info = flash_v[iflash];
 
 
-        float real_x_min = x_min-info.anode_x;
-        float real_x_max = x_max-info.anode_x;
+  //       float real_x_min = x_min-info.anode_x;
+  //       float real_x_max = x_max-info.anode_x;
 
-        //  we allow for slop of 10 cm;
-        float x_offset = 0.;
-        if ( real_x_min>-10 && real_x_min<0.0 ) {
-          x_offset = -real_x_min;
-        }
-        else if ( real_x_max>256.0 && real_x_max<256.0+10.0 ) {
-          x_offset = 256.0-real_x_max;
-        }
+  //       //  we allow for slop of 10 cm;
+  //       float x_offset = 0.;
+  //       if ( real_x_min>-10 && real_x_min<0.0 ) {
+  //         x_offset = -real_x_min;
+  //       }
+  //       else if ( real_x_max>256.0 && real_x_max<256.0+10.0 ) {
+  //         x_offset = 256.0-real_x_max;
+  //       }
 
-        real_x_min += x_offset;
-        real_x_max += x_offset;
+  //       real_x_min += x_offset;
+  //       real_x_max += x_offset;
           
-        // check if track within flash bounds
-        if ( real_x_min<0.0 || real_x_min>256.0
-             || real_x_max<0.0 || real_x_max>256.0 ) {
-          continue; // out-of-bounds
-        }
+  //       // check if track within flash bounds
+  //       if ( real_x_min<0.0 || real_x_min>256.0
+  //            || real_x_max<0.0 || real_x_max>256.0 ) {
+  //         continue; // out-of-bounds
+  //       }
 
-        npossible++;
+  //       npossible++;
         
-        // check distance to boundary of ends
+  //       // check distance to boundary of ends
         
-        // min bound
-        int btype_min = -1;
-        float dist2scb_min = scb.dist2boundary( real_x_min, pt_min[1], pt_min[2], btype_min );
+  //       // min bound
+  //       int btype_min = -1;
+  //       float dist2scb_min = scb.dist2boundary( real_x_min, pt_min[1], pt_min[2], btype_min );
 
-        // max bound
-        int btype_max = -1;
-        float dist2scb_max = scb.dist2boundary( real_x_max, pt_max[1], pt_max[2], btype_max );
+  //       // max bound
+  //       int btype_max = -1;
+  //       float dist2scb_max = scb.dist2boundary( real_x_max, pt_max[1], pt_max[2], btype_max );
 
-        // ok, is anything close to the bound!
-        if ( (dist2scb_min<10.0 || dist2scb_max<10.0 ) && btype_min!=btype_max ) {
+  //       // ok, is anything close to the bound!
+  //       if ( (dist2scb_min<10.0 || dist2scb_max<10.0 ) && btype_min!=btype_max ) {
 
 
-          // record a boundary match!
-          BoundaryMatch_t match;
-          match.track_idx = itrack;
-          match.flash_idx = iflash;
-          match.x_offset = -info.anode_x+x_offset;
-          match.x_min = real_x_min;
-          match.x_max = real_x_max;
-          match.minpt_dist2scb = dist2scb_min;
-          match.maxpt_dist2scb = dist2scb_max;
-          match.minpt_btype = btype_min;
-          match.maxpt_btype = btype_max;
-          match.dist2scb = fabs(dist2scb_min)+fabs(dist2scb_max);
+  //         // record a boundary match!
+  //         BoundaryMatch_t match;
+  //         match.track_idx = itrack;
+  //         match.flash_idx = iflash;
+  //         match.x_offset = -info.anode_x+x_offset;
+  //         match.x_min = real_x_min;
+  //         match.x_max = real_x_max;
+  //         match.minpt_dist2scb = dist2scb_min;
+  //         match.maxpt_dist2scb = dist2scb_max;
+  //         match.minpt_btype = btype_min;
+  //         match.maxpt_btype = btype_max;
+  //         match.dist2scb = fabs(dist2scb_min)+fabs(dist2scb_max);
 
-          if ( info.centroid_z<z_min )
-            match.pmt_dz = info.centroid_z-z_min;
-          else if ( info.centroid_z>z_max )
-            match.pmt_dz = z_max - info.centroid_z;
-          else {
-            match.pmt_dz = fabs(0.5*(z_min+z_max) - info.centroid_z);
-          }
+  //         if ( info.centroid_z<z_min )
+  //           match.pmt_dz = info.centroid_z-z_min;
+  //         else if ( info.centroid_z>z_max )
+  //           match.pmt_dz = z_max - info.centroid_z;
+  //         else {
+  //           match.pmt_dz = fabs(0.5*(z_min+z_max) - info.centroid_z);
+  //         }
          
-          match.num_ends_on_boundary = 0;
-          if ( dist2scb_min<3.0 ) match.num_ends_on_boundary++;
-          if ( dist2scb_max<3.0 ) match.num_ends_on_boundary++;
+  //         match.num_ends_on_boundary = 0;
+  //         if ( dist2scb_min<3.0 ) match.num_ends_on_boundary++;
+  //         if ( dist2scb_max<3.0 ) match.num_ends_on_boundary++;
 
-          LARCV_DEBUG() << "qualifying boundary match: track[" << itrack << "]<->flash[" << iflash << "]" << std::endl;
-          LARCV_DEBUG() << "   dist2scb@min extremum pt (" << real_x_min << "," << pt_min[1] << "," << pt_min[2] << "): "
-                        << " " << dist2scb_min << std::endl;
-          LARCV_DEBUG() << "   dist2scb@max extremum pt (" << real_x_max << "," << pt_max[1] << "," << pt_max[2] << "): "
-                        << " " << dist2scb_max << std::endl;
-          LARCV_DEBUG() << "  pmt_dz: " << match.pmt_dz << std::endl;
+  //         LARCV_DEBUG() << "qualifying boundary match: track[" << itrack << "]<->flash[" << iflash << "]" << std::endl;
+  //         LARCV_DEBUG() << "   dist2scb@min extremum pt (" << real_x_min << "," << pt_min[1] << "," << pt_min[2] << "): "
+  //                       << " " << dist2scb_min << std::endl;
+  //         LARCV_DEBUG() << "   dist2scb@max extremum pt (" << real_x_max << "," << pt_max[1] << "," << pt_max[2] << "): "
+  //                       << " " << dist2scb_max << std::endl;
+  //         LARCV_DEBUG() << "  pmt_dz: " << match.pmt_dz << std::endl;
           
           
-          track_boundary_vv[itrack].push_back(match);
-          nmatches++;
-        }
+  //         track_boundary_vv[itrack].push_back(match);
+  //         nmatches++;
+  //       }
         
-      }//end of flash loop      
+  //     }//end of flash loop      
 
-      LARCV_DEBUG() << "track[" << itrack << "] at bounds for " << nmatches << " flashes,"
-                    << " of " << npossible << " flash-track matches" << std::endl;
-    }//end of track loop
+  //     LARCV_DEBUG() << "track[" << itrack << "] at bounds for " << nmatches << " flashes,"
+  //                   << " of " << npossible << " flash-track matches" << std::endl;
+  //   }//end of track loop
 
 
-    // now we make boundary tag + flash assignments
+  //   // now we make boundary tag + flash assignments
 
-    // first we go through tracks where one end x-position is > 100 cm. this is range where being
-    //  on the boundary and matching to a flash is valuable info!
-    // we first make assignment to tracks with only one 2-boundary matches
-    // we then go through others and veto matches to previously matched flashes
-    //   of the non-veto'd matches, we pick the ones closest to the boundary
+  //   // first we go through tracks where one end x-position is > 100 cm. this is range where being
+  //   //  on the boundary and matching to a flash is valuable info!
+  //   // we first make assignment to tracks with only one 2-boundary matches
+  //   // we then go through others and veto matches to previously matched flashes
+  //   //   of the non-veto'd matches, we pick the ones closest to the boundary
 
-    std::vector< BoundaryMatch_t > final_match_v;
-    std::vector<int> flash_used_v( flash_v.size(), 0 );
-    std::vector<int> tracks_matched_v( track_boundary_vv.size(), 0 );
+  //   std::vector< BoundaryMatch_t > final_match_v;
+  //   std::vector<int> flash_used_v( flash_v.size(), 0 );
+  //   std::vector<int> tracks_matched_v( track_boundary_vv.size(), 0 );
 
-    // first pass: accept matches where there is only one solution
-    //             one end must be > 100 cm in position
-    for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {
+  //   // first pass: accept matches where there is only one solution
+  //   //             one end must be > 100 cm in position
+  //   for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {
 
-      // first, count number of qualifying matches
-      int nmatches = 0;
-      const BoundaryMatch_t* qualifying_match = nullptr;
-      for ( auto const& bm : track_boundary_vv[itrack] ) {
+  //     // first, count number of qualifying matches
+  //     int nmatches = 0;
+  //     const BoundaryMatch_t* qualifying_match = nullptr;
+  //     for ( auto const& bm : track_boundary_vv[itrack] ) {
 
-        if ( (bm.x_min>100.0 || bm.x_max>100.0) && bm.dist2scb<3.0 && bm.num_ends_on_boundary==2 ) {
-          qualifying_match = &bm;
-          nmatches++;
-        }
+  //       if ( (bm.x_min>100.0 || bm.x_max>100.0) && bm.dist2scb<3.0 && bm.num_ends_on_boundary==2 ) {
+  //         qualifying_match = &bm;
+  //         nmatches++;
+  //       }
         
-      }
+  //     }
 
-      if ( nmatches==1 ) {
-        // accept this match
-        final_match_v.push_back( *qualifying_match );
-        flash_used_v[ qualifying_match->flash_idx ] = 1;
-        tracks_matched_v[ itrack ] = 1;
-        LARCV_DEBUG() << "FIRST PASS MATCH: track[" << itrack << "] <--> flash[" << qualifying_match->flash_idx << "]" << std::endl;
-      }
+  //     if ( nmatches==1 ) {
+  //       // accept this match
+  //       final_match_v.push_back( *qualifying_match );
+  //       flash_used_v[ qualifying_match->flash_idx ] = 1;
+  //       tracks_matched_v[ itrack ] = 1;
+  //       LARCV_DEBUG() << "FIRST PASS MATCH: track[" << itrack << "] <--> flash[" << qualifying_match->flash_idx << "]" << std::endl;
+  //     }
       
-    }//end of track loop
+  //   }//end of track loop
 
-    LARCV_DEBUG() << "Number of first pass matches: "
-                  << final_match_v.size() << " tracks of " << track_boundary_vv.size() << std::endl;
+  //   LARCV_DEBUG() << "Number of first pass matches: "
+  //                 << final_match_v.size() << " tracks of " << track_boundary_vv.size() << std::endl;
 
-    // second pass, 2 ends matched, best match viz smallest dist2scb, do not reuse first pass flashes.
-    int n2ndpass = 0;
-    for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {    
-      if ( tracks_matched_v[itrack]==1 ) continue;
+  //   // second pass, 2 ends matched, best match viz smallest dist2scb, do not reuse first pass flashes.
+  //   int n2ndpass = 0;
+  //   for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {    
+  //     if ( tracks_matched_v[itrack]==1 ) continue;
 
-      // loop through matches, accept only 2-end, exclude previous flash matches
-      // rank match by pmt_dz for qualifying matches only
-      const BoundaryMatch_t* min_match = nullptr;
-      float min_match_dist = -1e9;
-      for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
-        auto const& bm = track_boundary_vv[itrack].at(ibm);
-        if( flash_used_v[ bm.flash_idx ]==1 ) continue;
+  //     // loop through matches, accept only 2-end, exclude previous flash matches
+  //     // rank match by pmt_dz for qualifying matches only
+  //     const BoundaryMatch_t* min_match = nullptr;
+  //     float min_match_dist = -1e9;
+  //     for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
+  //       auto const& bm = track_boundary_vv[itrack].at(ibm);
+  //       if( flash_used_v[ bm.flash_idx ]==1 ) continue;
         
-        if ( bm.dist2scb<5.0 && bm.num_ends_on_boundary==2 && min_match_dist<bm.pmt_dz) {
-          min_match_dist = bm.pmt_dz;
-          min_match = &bm;
-        }        
-      }
+  //       if ( bm.dist2scb<5.0 && bm.num_ends_on_boundary==2 && min_match_dist<bm.pmt_dz) {
+  //         min_match_dist = bm.pmt_dz;
+  //         min_match = &bm;
+  //       }        
+  //     }
 
-      if ( min_match ) {
-        final_match_v.push_back( *min_match );
-        flash_used_v[ min_match->flash_idx ] = 2;
-        tracks_matched_v[itrack] = 2;
-        n2ndpass++;
-        LARCV_DEBUG() << "SECOND PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;
-      }
+  //     if ( min_match ) {
+  //       final_match_v.push_back( *min_match );
+  //       flash_used_v[ min_match->flash_idx ] = 2;
+  //       tracks_matched_v[itrack] = 2;
+  //       n2ndpass++;
+  //       LARCV_DEBUG() << "SECOND PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;
+  //     }
 
-    }
+  //   }
 
-    LARCV_DEBUG() << "Number of second pass matches: "
-                  << n2ndpass << ", total matches: " << final_match_v.size() << " tracks of " << track_boundary_vv.size()
-                  << std::endl;
+  //   LARCV_DEBUG() << "Number of second pass matches: "
+  //                 << n2ndpass << ", total matches: " << final_match_v.size() << " tracks of " << track_boundary_vv.size()
+  //                 << std::endl;
 
-    // third pass: 1 end matched, best match viz smallest dist2scb of matched end, do not reuse first+second pass flashes.
-    int n3rdpass = 0;
-    for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {    
-      if ( tracks_matched_v[itrack]>0 ) continue;
+  //   // third pass: 1 end matched, best match viz smallest dist2scb of matched end, do not reuse first+second pass flashes.
+  //   int n3rdpass = 0;
+  //   for ( size_t itrack=0; itrack<track_boundary_vv.size(); itrack++ ) {    
+  //     if ( tracks_matched_v[itrack]>0 ) continue;
 
-      // loop through matches, accept only 2-end, exclude previous flash matches
-      const BoundaryMatch_t* min_match = nullptr;
-      float min_match_dist = 1e9;
-      for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
-        auto const& bm = track_boundary_vv[itrack].at(ibm);
-        if( flash_used_v[ bm.flash_idx ]>0 ) continue;
+  //     // loop through matches, accept only 2-end, exclude previous flash matches
+  //     const BoundaryMatch_t* min_match = nullptr;
+  //     float min_match_dist = 1e9;
+  //     for ( size_t ibm=0; ibm<track_boundary_vv[itrack].size(); ibm++ ) {
+  //       auto const& bm = track_boundary_vv[itrack].at(ibm);
+  //       if( flash_used_v[ bm.flash_idx ]>0 ) continue;
         
-        if ( bm.num_ends_on_boundary==1 ) {
+  //       if ( bm.num_ends_on_boundary==1 ) {
 
-          float minend_dist = (bm.minpt_dist2scb<bm.maxpt_dist2scb) ? bm.minpt_dist2scb : bm.maxpt_dist2scb;
-          if( minend_dist<5.0 && minend_dist<min_match_dist) {
-            min_match_dist = minend_dist;
-            min_match = &bm;
-          }
-        }        
-      }
+  //         float minend_dist = (bm.minpt_dist2scb<bm.maxpt_dist2scb) ? bm.minpt_dist2scb : bm.maxpt_dist2scb;
+  //         if( minend_dist<5.0 && minend_dist<min_match_dist) {
+  //           min_match_dist = minend_dist;
+  //           min_match = &bm;
+  //         }
+  //       }        
+  //     }
 
-      if ( min_match ) {
-        final_match_v.push_back( *min_match );
-        flash_used_v[ min_match->flash_idx ] = 3;
-        tracks_matched_v[itrack] = 3;
-        n3rdpass++;
-        LARCV_DEBUG() << "THIRD PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;                
-      }
+  //     if ( min_match ) {
+  //       final_match_v.push_back( *min_match );
+  //       flash_used_v[ min_match->flash_idx ] = 3;
+  //       tracks_matched_v[itrack] = 3;
+  //       n3rdpass++;
+  //       LARCV_DEBUG() << "THIRD PASS MATCH: track[" << itrack << "] <--> flash[" << min_match->flash_idx << "]" << std::endl;                
+  //     }
 
-    }//end of third pass track loop
-    LARCV_DEBUG() << "Number of third pass matches: "
-                  << n3rdpass << ", total matches: " << final_match_v.size() << " tracks of " << track_boundary_vv.size()
-                  << std::endl;
+  //   }//end of third pass track loop
+  //   LARCV_DEBUG() << "Number of third pass matches: "
+  //                 << n3rdpass << ", total matches: " << final_match_v.size() << " tracks of " << track_boundary_vv.size()
+  //                 << std::endl;
 
-    // save track with matches along with flash as a pair
-    larlite::event_track* evout_match_track =
-      (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"matchedcosmictrack");
-    larlite::event_opflash* evout_match_opflash =
-      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"matchedcosmictrack");
+  //   // save track with matches along with flash as a pair
+  //   larlite::event_track* evout_match_track =
+  //     (larlite::event_track*)ioll.get_data(larlite::data::kTrack,"matchedcosmictrack");
+  //   larlite::event_opflash* evout_match_opflash =
+  //     (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"matchedcosmictrack");
 
-    for ( auto const& bm : final_match_v ) {
-      auto const& track = ev_cosmic->at(bm.track_idx);
-      larlite::track cptrack;
-      cptrack.reserve( track.NumberTrajectoryPoints() );
-      for ( int ipt=0; ipt<(int)track.NumberTrajectoryPoints(); ipt++ ) {
-        const TVector3& pos = track.LocationAtPoint(ipt);
-        cptrack.add_vertex( TVector3(pos(0)+bm.x_offset,pos(1),pos(2)) );
-        cptrack.add_direction( track.DirectionAtPoint(ipt) );
-      }
+  //   for ( auto const& bm : final_match_v ) {
+  //     auto const& track = ev_cosmic->at(bm.track_idx);
+  //     larlite::track cptrack;
+  //     cptrack.reserve( track.NumberTrajectoryPoints() );
+  //     for ( int ipt=0; ipt<(int)track.NumberTrajectoryPoints(); ipt++ ) {
+  //       const TVector3& pos = track.LocationAtPoint(ipt);
+  //       cptrack.add_vertex( TVector3(pos(0)+bm.x_offset,pos(1),pos(2)) );
+  //       cptrack.add_direction( track.DirectionAtPoint(ipt) );
+  //     }
       
-      evout_match_track->emplace_back( std::move(cptrack) );
+  //     evout_match_track->emplace_back( std::move(cptrack) );
 
-      larlite::event_opflash* ev_flash
-        = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, flash_v[bm.flash_idx].producer );
-      evout_match_opflash->push_back( ev_flash->at(flash_v[bm.flash_idx].index) );
+  //     larlite::event_opflash* ev_flash
+  //       = (larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, flash_v[bm.flash_idx].producer );
+  //     evout_match_opflash->push_back( ev_flash->at(flash_v[bm.flash_idx].index) );
 
-    }
+  //   }
     
-  }
+  // }
 
   void CosmicTrackBuilder::add_cluster_treename( std::string treename )
   {

@@ -45,7 +45,7 @@ namespace reco {
 
     bool _do_boundary_analysis; ///< if true, split found tracks into boundary and contained tracks
     
-    void _boundary_analysis_wflash( larlite::storage_manager& ioll );
+    //void _boundary_analysis_wflash( larlite::storage_manager& ioll );
     void _boundary_analysis_noflash( larlite::storage_manager& ioll );
 
     bool _using_default_cluster; ///< if true, replace the default cluster tree

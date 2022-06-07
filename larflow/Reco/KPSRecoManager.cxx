@@ -156,7 +156,7 @@ namespace reco {
     }
     
     // // COSMIC RECO
-    // cosmicTrackReco( iolcv, ioll );
+    cosmicTrackReco( iolcv, ioll );
     
     // MULTI-PRONG INTERNAL RECO
     multiProngReco( iolcv, ioll );
@@ -728,22 +728,22 @@ namespace reco {
    * At some point, execute Mask-RCNN here
    *
    */
-  // void KPSRecoManager::cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
-  // {
+  void KPSRecoManager::cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  {
 
-  //   LARCV_INFO() << "reco cosmic tracks" << std::endl;
+    LARCV_INFO() << "reco cosmic tracks" << std::endl;
     
-  //   _cosmic_track_builder.clear();
-  //   //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
-  //   _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
-  //   _cosmic_track_builder.do_boundary_analysis( true );
-  //   _cosmic_track_builder.process( iolcv, ioll );
+    _cosmic_track_builder.clear();
+    //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
+    _cosmic_track_builder.do_boundary_analysis( true );
+    _cosmic_track_builder.process( iolcv, ioll );
 
-  //   //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
-  //   _cosmic_proton_finder.set_verbosity( larcv::msg::kINFO );    
-  //   _cosmic_proton_finder.process( iolcv, ioll );
+    //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
+    //_cosmic_proton_finder.set_verbosity( larcv::msg::kINFO );    
+    //_cosmic_proton_finder.process( iolcv, ioll );
     
-  // }
+  }
   
 
   /**

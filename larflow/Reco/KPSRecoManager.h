@@ -36,6 +36,7 @@
 #include "PostNuCheckShowerTrunkOverlap.h"
 #include "VetoHitClustering.h"
 #include "NuVertexAddSecondaries.h"
+#include "CosmicTrackBuilder.h"
 
 // Kinematics modules
 #include "NuTrackKinematics.h"
@@ -43,7 +44,6 @@
 
 // #include "ShortProtonClusterReco.h"
 // #include "CosmicVertexBuilder.h"
-// #include "CosmicTrackBuilder.h"
 // #include "NuShowerBuilder.h"
 // #include "NuVertexActivityReco.h"
 
@@ -124,7 +124,7 @@ namespace reco {
     NuVertexAddSecondaries _nuvertex_add_secondaries; ///< add secondary particles to neutrino interaction
     
     // NuVertexActivityReco _nuvertexactivity; ///< nu vertex activity    
-    // CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
+    CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     // CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
 
     // NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex
@@ -164,7 +164,7 @@ namespace reco {
     void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void clusterSubparticleFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    // void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void cosmicTrackReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void multiProngReco( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     

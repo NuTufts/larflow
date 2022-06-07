@@ -956,7 +956,7 @@ namespace reco {
    * Possible segments to seed the tracks are from _segment_v.
    *
    */
-  void TrackClusterBuilder::_buildTracksFromSegments()
+  void TrackClusterBuilder::_buildTracksFromSegments(int tpcid, int cryoid)
   {
 
     // mark segments used
@@ -989,8 +989,8 @@ namespace reco {
 
       int btype1 = 0;
       int btype2 = 0;
-      float dwall1 = ublarcvapp::dwall_noAC( _segment_v[iseg].start, btype1 );
-      float dwall2 = ublarcvapp::dwall_noAC( _segment_v[iseg].end,   btype2 );
+      float dwall1 = ublarcvapp::dwall_noAC( _segment_v[iseg].start, btype1, tpcid, cryoid );
+      float dwall2 = ublarcvapp::dwall_noAC( _segment_v[iseg].end,   btype2, tpcid, cryoid );
 
       seginfo.dwall =  ( dwall1<dwall2 ) ? dwall1: dwall2;
       if ( dwall1<dwall2 ) {

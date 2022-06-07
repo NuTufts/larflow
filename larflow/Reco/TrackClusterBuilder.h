@@ -223,7 +223,7 @@ namespace reco {
     void _choose_best_paths( std::vector< std::vector<NodePos_t*> >& complete_v, 
                              std::vector< std::vector<NodePos_t*> >& filtered_v );
 
-    void _buildTracksFromSegments();
+    void _buildTracksFromSegments( int tpcid, int clusterid );
 
     bool _checkForMissingVplane( const std::vector<float>& frac_v,
 				 const std::vector<float>& seg_dir,
