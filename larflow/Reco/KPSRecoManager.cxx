@@ -519,7 +519,8 @@ namespace reco {
     //_pcacluster.process( iolcv, ioll );
 
     // PRIMITIVE TRACK FRAGMENTS: WC-FILTER
-    const float _maxdist = 5.0; //1.0 for uboone; 5.0 for icarus
+    //const float _maxdist = 5.0; //1.0 for uboone; 5.0 for icarus
+    const float _maxdist = 1.0;
     const float _minsize = 10;
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
@@ -575,8 +576,9 @@ namespace reco {
       
       ioll.set_data_to_write( larlite::data::kLArFlowCluster, "showerkp" ); // shower in-time clusters
       ioll.set_data_to_write( larlite::data::kPCAxis, "showerkp" );         // shower in-time clusters
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "showergoodhit" ); // shower in-time clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "showergoodhit" );         // shower in-time clusters
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "showerkpunused" ); // unused shower spacepoints
-      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "showerkp" ); // keypoints used to build shower clusters    
 
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "projsplitnoise" ); // unused hits in cluster splitter
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "projsplitvetoed" ); // unused hits in cluster splitter      
@@ -617,7 +619,7 @@ namespace reco {
     _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
     //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
     _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-    //_nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
     
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    

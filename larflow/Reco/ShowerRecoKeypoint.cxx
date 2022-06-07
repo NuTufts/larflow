@@ -71,11 +71,11 @@ namespace reco {
 
     // output containers
     // --------------------------------
-    // larlite::event_larflowcluster* evout_goodhit_cluster_v
-    //   = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showergoodhit" );
+    larlite::event_larflowcluster* evout_goodhit_cluster_v
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showergoodhit" );
     
-    // larlite::event_pcaxis* evout_goodhit_pca_v
-    //   = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showergoodhit" );
+    larlite::event_pcaxis* evout_goodhit_pca_v
+      = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showergoodhit" );
 
     larlite::event_larflowcluster* evout_shower_cluster_v
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showerkp" );
@@ -168,17 +168,17 @@ namespace reco {
 
 
 	// save shower cluster pca's
-	// int pcidx = 0;
-	// for ( auto const& cluster : cluster_v ) {
-	//   larlite::larflowcluster lfc;
-	//   for (auto const& idx : cluster.hitidx_v ) {
-	//     lfc.push_back( shower_goodhit_v[idx] );
-	//   }
-	//   larlite::pcaxis pca = cluster_make_pcaxis( cluster, pcidx );
-	//   pcidx++;
-	//   evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
-	//   evout_goodhit_pca_v->emplace_back( std::move(pca) );
-	// }
+	int pcidx = 0;
+	for ( auto const& cluster : cluster_v ) {
+	  larlite::larflowcluster lfc;
+	  for (auto const& idx : cluster.hitidx_v ) {
+	    lfc.push_back( shower_goodhit_v[idx] );
+	  }
+	  larlite::pcaxis pca = cluster_make_pcaxis( cluster, pcidx );
+	  pcidx++;
+	  evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
+	  evout_goodhit_pca_v->emplace_back( std::move(pca) );
+	}
 	
 	LARCV_INFO() << "num of trunk candidates: " << showerhit_cluster_v.size() << std::endl;
 
@@ -256,7 +256,7 @@ namespace reco {
 
       }//end of tpc loop
     }//end of cryo loop
-
+    
     // save unused shower points
     larlite::event_larflow3dhit* evout_unused_hit_v
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "showerkpunused" );
