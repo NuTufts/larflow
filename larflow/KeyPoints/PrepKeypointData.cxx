@@ -248,18 +248,24 @@ namespace keypoints {
     auto const geom = larlite::larutil::Geometry::GetME();
     
     // get list of primaries
-    std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries
-      = mcpg.getPrimaryParticles();
+    // std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries;
+    //   = mcpg.getPrimaryParticles();
 
     // output vector of keypoint data
     std::vector<KPdata> kpd_v;
 
-    for ( auto const& pnode : primaries ) {
+    for ( auto const& node : mcpg.node_v ) {
 
+      auto const& pnode = &node;
+      
       if ( abs(pnode->pid)!=13
            && abs(pnode->pid)!=2212
            && abs(pnode->pid)!=211 )
         continue;
+
+      if ( (abs(pnode->pid)==13 && pnode->E_MeV<10.0 )
+	   || (abs(pnode->pid)!=13 && pnode->E_MeV<25.0 ) )
+	continue;
 
       auto const& mctrk = mctrack_v.at( pnode->vidx );
 
@@ -281,7 +287,7 @@ namespace keypoints {
       
       int tpcid = CT[1];
       int cryoid = CT[2];
-      std::cout << "muon traveling through (cryo,tpc)=(" << cryoid << "," << tpcid << ")" << std::endl;
+      //std::cout << "muon traveling through (cryo,tpc)=(" << cryoid << "," << tpcid << ")" << std::endl;
 
 
       std::vector< const larcv::Image2D* > padc_v
@@ -318,26 +324,26 @@ namespace keypoints {
           
         }
 
-        // if ( crossingtype>=0 && crossingtype<=2 ) {
-        //   KPdata kpd;
-        //   kpd.crossingtype = crossingtype;
-        //   kpd.trackid = pnode->tid;
-        //   kpd.pid     = pnode->pid;
-        //   kpd.vid     = pnode->vidx;
-        //   kpd.is_shower = 0;
-        //   kpd.origin  = pnode->origin;
-        //   kpd.kptype  = larflow::kTrackEnd;
-	//   kpd.tpcid   = tpcid;
-	//   kpd.cryoid  = cryoid;
-        //   kpd.imgcoord = 
-        //     ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
-        //                                                                                4050.0, false, 0.3, 0.1,
-        //                                                                                kpd.keypt, psce, verbose );
-        //   if ( kpd.imgcoord.size()>0 ) {
-        //     kpd_v.emplace_back( std::move(kpd) );
-        //   }
-        // }
-
+        if ( crossingtype>=0 && crossingtype<=2 ) {
+          KPdata kpd;
+          kpd.crossingtype = crossingtype;
+          kpd.trackid = pnode->tid;
+          kpd.pid     = pnode->pid;
+          kpd.vid     = pnode->vidx;
+          kpd.is_shower = 0;
+          kpd.origin  = pnode->origin;
+          kpd.kptype  = larflow::kTrackEnd;
+	  kpd.tpcid   = tpcid;
+	  kpd.cryoid  = cryoid;
+          kpd.imgcoord = 
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
+                                                                                       4050.0, false, 0.3, 0.1,
+                                                                                       kpd.keypt, psce, verbose );
+          if ( kpd.imgcoord.size()>0 ) {
+            kpd_v.emplace_back( std::move(kpd) );
+          }
+        }
+	
 
       }//if track in image
 
@@ -832,7 +838,7 @@ namespace keypoints {
 
 	auto const& testkpd = _kpd_v[itestkp];
 	  
-	if ( testkpd.tpcid==kpdata.tpcid || testkpd.cryoid==kpdata.cryoid )
+	if ( testkpd.tpcid!=kpdata.tpcid || testkpd.cryoid!=kpdata.cryoid )
 	  continue;
 
 	kpdata._kpd_v.push_back( testkpd );

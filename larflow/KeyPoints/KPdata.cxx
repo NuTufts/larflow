@@ -39,7 +39,7 @@ namespace keypoints {
   std::string KPdata::str() const
   {
     std::stringstream ss;
-    ss << "KPdata[type=" << crossingtype << " pid=" << pid
+    ss << "KPdata[crossingtype=" << crossingtype << " pid=" << pid
        << " vid=" << vid
        << " isshower=" << is_shower
        << " origin=" << origin << "] "
