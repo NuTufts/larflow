@@ -11,13 +11,14 @@
 
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 // larlite
 #include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
-#include "larlite/LArUtil/LArProperties.h"
+#include "larlite/LArUtil/DetectorProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/mctrack.h"
@@ -46,10 +47,10 @@ namespace keypoints {
     for (int i=0; i<3; i++) hdist[i] = nullptr;
     for (int i=0; i<4; i++) hdpix[i] = nullptr;
     for (int i=0; i<6; i++) {
-      _match_proposal_labels_v[i].clear();
       _kppos_v[i].clear();
       _kp_pdg_trackid_v[i].clear();      
     }
+    _keypoint_tpclabel_v.clear();
       
   }
 
@@ -166,14 +167,14 @@ namespace keypoints {
     LARCV_DEBUG() << "finished graph" << std::endl;        
     mcpg.printGraph();
 
-    // build key-points
+    // build key-point containers
     _kpd_v.clear();
     for (int i=0; i<6; i++) {
       _kppos_v[i].clear();
       _kp_pdg_trackid_v[i].clear();      
     }
 
-    // build crossing points for muon track primaries
+    // build crossing points for muon track primaries    
     std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
 
@@ -199,8 +200,11 @@ namespace keypoints {
     //filter_duplicates();
 
     // copy positions of keypoints into flat vector for storage
-    for ( auto const& kpd : _kpd_v ) {
+    for ( auto& kpd : _kpd_v ) {
       if ( kpd.kptype>=0 && kpd.kptype<6 ) {
+	kpd.keypt.resize(5,0);
+	kpd.keypt[3] = kpd.tpcid;
+	kpd.keypt[4] = kpd.cryoid;
         _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
 	std::vector<int> pdg_trackid(2);
 	pdg_trackid[0] = kpd.pid;
@@ -240,6 +244,8 @@ namespace keypoints {
     LARCV_DEBUG() << "start" << std::endl;
     
     bool verbose = false;
+
+    auto const geom = larlite::larutil::Geometry::GetME();
     
     // get list of primaries
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> primaries
@@ -257,11 +263,24 @@ namespace keypoints {
 
       auto const& mctrk = mctrack_v.at( pnode->vidx );
 
+      if (mctrk.size()==0)
+	continue;
+
+      auto const& firststep = mctrk.at(0);
+      TVector3 vpos( firststep.X(), firststep.Y(), firststep.Z() );
+      std::vector<int> CT = geom->GetContainingCryoAndTPCIDs(vpos);
+      int tpcid = CT[1];
+      int cryoid = CT[0];
+
+      std::vector< const larcv::Image2D* > padc_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );
+      
+
       int crossingtype =
         ublarcvapp::mctools::CrossingPointsAnaMethods::
         doesTrackCrossImageBoundary( mctrk,
-                                     adc_v.front().meta(),
-                                     4050.0,
+                                     padc_v.front()->meta(),
+                                     4050.0, // remove this!!
                                      psce );
 
       if ( crossingtype>=0 ) {
@@ -275,8 +294,10 @@ namespace keypoints {
           kpd.is_shower = 0;
           kpd.origin  = pnode->origin;
           kpd.kptype  = larflow::kTrackStart;
+	  kpd.tpcid   = tpcid;
+	  kpd.cryoid  = cryoid;
           kpd.imgcoord = 
-            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, padc_v.front()->meta(),
                                                                                        4050.0, true, 0.3, 0.1,
                                                                                        kpd.keypt, psce, verbose );
           if ( kpd.imgcoord.size()>0 ) {
@@ -285,23 +306,25 @@ namespace keypoints {
           
         }
 
-        if ( crossingtype>=0 && crossingtype<=2 ) {
-          KPdata kpd;
-          kpd.crossingtype = crossingtype;
-          kpd.trackid = pnode->tid;
-          kpd.pid     = pnode->pid;
-          kpd.vid     = pnode->vidx;
-          kpd.is_shower = 0;
-          kpd.origin  = pnode->origin;
-          kpd.kptype  = larflow::kTrackEnd;          
-          kpd.imgcoord = 
-            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
-                                                                                       4050.0, false, 0.3, 0.1,
-                                                                                       kpd.keypt, psce, verbose );
-          if ( kpd.imgcoord.size()>0 ) {
-            kpd_v.emplace_back( std::move(kpd) );
-          }
-        }
+        // if ( crossingtype>=0 && crossingtype<=2 ) {
+        //   KPdata kpd;
+        //   kpd.crossingtype = crossingtype;
+        //   kpd.trackid = pnode->tid;
+        //   kpd.pid     = pnode->pid;
+        //   kpd.vid     = pnode->vidx;
+        //   kpd.is_shower = 0;
+        //   kpd.origin  = pnode->origin;
+        //   kpd.kptype  = larflow::kTrackEnd;
+	//   kpd.tpcid   = tpcid;
+	//   kpd.cryoid  = cryoid;
+        //   kpd.imgcoord = 
+        //     ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
+        //                                                                                4050.0, false, 0.3, 0.1,
+        //                                                                                kpd.keypt, psce, verbose );
+        //   if ( kpd.imgcoord.size()>0 ) {
+        //     kpd_v.emplace_back( std::move(kpd) );
+        //   }
+        // }
 
 
       }//if track in image
@@ -336,6 +359,7 @@ namespace keypoints {
   {
 
     LARCV_DEBUG() << "start" << std::endl;
+    auto const geom = larlite::larutil::Geometry::GetME();
     
     // output vector of keypoint data
     std::vector<KPdata> kpd_v;
@@ -358,9 +382,25 @@ namespace keypoints {
         continue;
 
       auto const& shower = mcshower_v.at( pnode.vidx );
+
+      TVector3 vpos;
+      for (int i=0; i<3; i++)
+	vpos[i] = shower.DetProfile().Position()[i];
+      std::vector<int> CT = geom->GetContainingCryoAndTPCIDs(vpos);
+      if ( CT.size()==0 )
+	continue;
+      
+      int tpcid = CT[1];
+      int cryoid = CT[0];
+
+      std::vector< const larcv::Image2D* > padc_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );      
+      
       LARCV_DEBUG() << "shower(tid=" << pnode.tid << ","
 		    << "mtid=" << pnode.mtid << ","
 		    << "aid=" << pnode.aid << ") "
+		    << "tpcid=" << tpcid << " "
+		    << "cryoid=" << cryoid << " "	
 		    << "process: " << shower.Process()
 		    << std::endl;
       std::string process = shower.Process();
@@ -372,6 +412,8 @@ namespace keypoints {
       kpd.pid     = pnode.pid;
       kpd.vid     = pnode.vidx;
       kpd.origin  = pnode.origin;
+      kpd.tpcid   = tpcid;
+      kpd.cryoid  = cryoid;
       kpd.is_shower = 1;
       ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
       ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
@@ -401,20 +443,20 @@ namespace keypoints {
       for (int i=0; i<3; i++)
         kpd.keypt[i]   = pnode.imgpos4[i];
 
-      std::vector<double> dpos(3,0);
+      TVector3 dpos(0,0,0);
       for (int i=0; i<3; i++ ) dpos[i] = pnode.imgpos4[i];
 
       kpd.imgcoord.resize(4,0);      
       try {
         for (int p=0; p<3; p++)
-          kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( dpos, p );
+          kpd.imgcoord[1+p] = (int)geom->NearestWire( dpos, p, tpcid, cryoid );
       }
       catch (...) {
         continue;
       }
       float tick = pnode.imgpos4[3];
-      if ( tick>adc_v[0].meta().min_y() && tick<adc_v[0].meta().max_y() ) {
-        kpd.imgcoord[0] = adc_v[0].meta().row( tick );
+      if ( tick>padc_v[0]->meta().min_y() && tick<padc_v[0]->meta().max_y() ) {
+        kpd.imgcoord[0] = padc_v[0]->meta().row( tick );
       }
       else {
         continue;
@@ -442,6 +484,8 @@ namespace keypoints {
                                               std::vector<KPdata>& kpdata_v  )
   {
 
+    auto const geom = larlite::larutil::Geometry::GetME();
+    
     // loop over all interactions
     int inu = -1;
     for ( auto const& mct : mctruth_v ) {
@@ -453,11 +497,18 @@ namespace keypoints {
       if (nutraj.size()>0) {
       
         // get the space-charge corrected neutrino vertex
-        std::vector<double> nupos(3,0);
-        for (int i=0; i<3; i++ )
+        TVector3 nupos(0,0,0);
+        for (int i=0; i<3; i++ ) {
           nupos[i] = nutraj.front().Position()[i];
+	}
 
-        std::vector<double> offsets = psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
+	std::vector<int> CT = geom->GetContainingCryoAndTPCIDs(nupos);
+	int tpcid = CT[1];
+	int cryoid = CT[0];
+
+        std::vector<double> offsets = {0.7,0,0};
+	if ( psce )
+	  psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
         nupos[0] = nupos[0] - offsets[0] + 0.7;
         nupos[1] += offsets[1];
         nupos[2] += offsets[2];
@@ -470,6 +521,8 @@ namespace keypoints {
         kpd.vid     = inu;
         kpd.is_shower = 0;
         kpd.origin  = 1;
+	kpd.tpcid   = tpcid;
+	kpd.cryoid  = cryoid;
         kpd.kptype  = larflow::kNuVertex;
         kpd.keypt.resize(3,0);
         for (int i=0; i<3; i++) kpd.keypt[i] = nupos[i];
@@ -477,12 +530,13 @@ namespace keypoints {
 
         try {
           for (int p=0; p<3; p++)
-            kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( nupos, p );
+            kpd.imgcoord[1+p] = (int)larlite::larutil::Geometry::GetME()->NearestWire( nupos, p, tpcid, cryoid );
         }
         catch (...) {
           continue;
         }
-        float tick = 3200 + nupos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
+        //float tick = 3200 + nupos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
+	float tick = larutil::DetectorProperties::GetME()->ConvertXToTicks( nupos[0], 0, tpcid, cryoid );
         if ( tick>img_v[0].meta().min_y() && tick<img_v[0].meta().max_y() ) {
           kpd.imgcoord[0] = img_v[0].meta().row( tick );
         }
@@ -602,45 +656,45 @@ namespace keypoints {
    * @return Numpy array with shape [num space points, 6 classes ]
    *
    */
-  PyObject* PrepKeypointData::get_triplet_score_array( float sig ) const
-  {
+  // PyObject* PrepKeypointData::get_triplet_score_array( float sig ) const
+  // {
 
-    if ( !PrepKeypointData::_setup_numpy ) {
-      import_array1(0);
-      PrepKeypointData::_setup_numpy = true;
-    }
+  //   if ( !PrepKeypointData::_setup_numpy ) {
+  //     import_array1(0);
+  //     PrepKeypointData::_setup_numpy = true;
+  //   }
 
-    // get label info for each triplet proposal
-    int npts = (int)_match_proposal_labels_v[0].size();
-    for (size_t iclass=0; iclass<6; iclass++) {
-      if ( _match_proposal_labels_v[iclass].size()!=npts ) {
-        throw std::runtime_error("number of triplet labels/scores for each class does not match!");
-      }
-    }
+  //   // get label info for each triplet proposal
+  //   int npts = (int)_match_proposal_labels_v[0].size();
+  //   for (size_t iclass=0; iclass<6; iclass++) {
+  //     if ( _match_proposal_labels_v[iclass].size()!=npts ) {
+  //       throw std::runtime_error("number of triplet labels/scores for each class does not match!");
+  //     }
+  //   }
     
-    int nd = 2;
-    npy_intp dims[] = { npts, 6 };
-    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
+  //   int nd = 2;
+  //   npy_intp dims[] = { npts, 6 };
+  //   PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
-    size_t ipt = 0;
-    for ( size_t ipt=0; ipt<npts; ipt++ ) {
-      for (size_t iclass=0; iclass<6; iclass++) {
+  //   size_t ipt = 0;
+  //   for ( size_t ipt=0; ipt<npts; ipt++ ) {
+  //     for (size_t iclass=0; iclass<6; iclass++) {
         
-        auto const& label_v = _match_proposal_labels_v[iclass][ipt];
+  //       auto const& label_v = _match_proposal_labels_v[iclass][ipt];
         
-        if ( label_v[0]==0.0 ) {
-          *((float*)PyArray_GETPTR2(array,ipt,iclass)) = 0.0;
-        }
-        else {
-          float dist = 0.;
-          for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
-          *((float*)PyArray_GETPTR2(array,ipt,iclass)) = exp( -0.5*dist/(sig*sig) );
-        }
-      }
-    }// end of loop over keypointdata structs
+  //       if ( label_v[0]==0.0 ) {
+  //         *((float*)PyArray_GETPTR2(array,ipt,iclass)) = 0.0;
+  //       }
+  //       else {
+  //         float dist = 0.;
+  //         for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
+  //         *((float*)PyArray_GETPTR2(array,ipt,iclass)) = exp( -0.5*dist/(sig*sig) );
+  //       }
+  //     }
+  //   }// end of loop over keypointdata structs
     
-    return (PyObject*)array;
-  }
+  //   return (PyObject*)array;
+  // }
   
   /**
    * given a set of space point (i.e. triplet match) proposals, 
@@ -656,97 +710,132 @@ namespace keypoints {
   {
 
     const float max_dist_to_label = 10.0;
-    
-    for (int i=0; i<6; i++) {
-      _match_proposal_labels_v[i].clear();
-      _match_proposal_labels_v[i].reserve(match_proposals._triplet_v.size());
-    }
 
-    for (int imatch=0; imatch<match_proposals._triplet_v.size(); imatch++ ) {
+    for (auto const& matchdata : match_proposals._match_triplet_v ) {
 
-      // triplet index (index of the sparse matrix coordinates)
-      const std::vector<int>& triplet = match_proposals._triplet_v[imatch];
-
-      // 3D position formed by intersection of the wires
-      const std::vector<float>& pos   = match_proposals._pos_v[imatch];
-      // std::cout << "[match " << imatch << "] "
-      //           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
-      //           << std::endl;
-
-      // make a score for each class
-      for (int ikpclass=0; ikpclass<(int)6; ikpclass++) {
-
-        // store label values
-        // [0]: has a match to a true keypoint
-        // [1,2,3]: (dx,dy,dz) to closest keypoint
-        // [4,5,6,7]: (dr,du,dv,dy) shift in row and columns
-        std::vector<float> label_v(10,0);
-        float dist = 1.0e9;
+      KeypointData kpdata;
+      kpdata.tpcid  = matchdata._tpcid;
+      kpdata.cryoid = matchdata._cryoid;
       
-        // dumb assignment, loops over all truth keypoints
-        // seems fast enough
-        const KPdata* kpd = nullptr;
-        std::vector<float> leafpos(3,0);
+      for (int i=0; i<6; i++) {
+	kpdata._match_proposal_labels_v[i].clear();
+	kpdata._match_proposal_labels_v[i].reserve(matchdata._triplet_v.size());
+      }
+
+      std::set<int> labeled_keypoint_indices[6];
+
+      for (int imatch=0; imatch<matchdata._triplet_v.size(); imatch++ ) {
       
-        for (auto const& testkpd : _kpd_v ) {
-          // ignore those not in class
-          if ( testkpd.kptype!=(larflow::KeyPoint_t)ikpclass )
-            continue;
+	// triplet index (index of the sparse matrix coordinates)
+	const std::vector<int>& triplet = matchdata._triplet_v[imatch];
+
+	// 3D position formed by intersection of the wires
+	const std::vector<float>& pos   = matchdata._pos_v[imatch];
+	// std::cout << "[match " << imatch << "] "
+	//           << "testpt=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
+	//           << std::endl;
+	
+	// make a score for each class
+	for (int ikpclass=0; ikpclass<(int)6; ikpclass++) {
+
+	  // store label values
+	  // [0]: has a match to a true keypoint
+	  // [1,2,3]: (dx,dy,dz) to closest keypoint
+	  // [4,5,6,7]: (dr,du,dv,dy) shift in row and columns
+	  std::vector<float> label_v(10,0);
+	  float dist = 1.0e9;
+      
+	  // dumb assignment, loops over all truth keypoints
+	  // seems fast enough
+	  const KPdata* kpd = nullptr;
+	  std::vector<float> leafpos(3,0);
+      
+	  for (int itestkp=0; itestkp<(int)_kpd_v.size(); itestkp++) {
+
+	    auto const& testkpd = _kpd_v[itestkp];
+	    
+	    // ignore those not in class
+	    if ( testkpd.kptype!=(larflow::KeyPoint_t)ikpclass )
+	      continue;
+
+	    if ( testkpd.tpcid!=kpdata.tpcid || testkpd.cryoid!=kpdata.cryoid )
+	      continue;
           
-          float testdist = 0.;
-          for ( int v=0; v<3; v++ )
-            testdist += (testkpd.keypt[v]-pos[v])*(testkpd.keypt[v]-pos[v]);
-          testdist = sqrt(testdist);
+	    float testdist = 0.;
+	    for ( int v=0; v<3; v++ )
+	      testdist += (testkpd.keypt[v]-pos[v])*(testkpd.keypt[v]-pos[v]);
+	    testdist = sqrt(testdist);
         
-          if ( dist>testdist ) {
-            // update the leadpos and kpd pointer
-            dist = testdist;
-            for (int v=0; v<3; v++ )
-              leafpos[v] = testkpd.keypt[v];
-            kpd = &testkpd;
-          }
-        }//end of loop over true points
+	    if ( dist>testdist ) {
+	      // update the leadpos and kpd pointer
+	      dist = testdist;
+	      for (int v=0; v<3; v++ )
+		leafpos[v] = testkpd.keypt[v];
+	      kpd = &testkpd;
+	    }
+	  }//end of loop over true points
+	  
+	  // make label vector
 
-        // make label vector
+	  // within 50 pixels/15 cm
+	  bool is_close = false;
+	  if ( dist<max_dist_to_label ) {
+	    is_close = true;
+	    label_v[0] = 1.0;
+	    _nclose++;
+	  }
+	  else {
+	    label_v[0] = 0.0;
+	    _nfar++;
+	  }
 
-        // within 50 pixels/15 cm
-	bool is_close = false;
-        if ( dist<max_dist_to_label ) {
-	  is_close = true;
-          label_v[0] = 1.0;
-          _nclose++;
-        }
-        else {
-          label_v[0] = 0.0;
-          _nfar++;
-        }
+	  if ( is_close ) {	
+	    // make shift in 3D label
+	    for (int i=0; i<3; i++ ) {
+	      label_v[1+i] = leafpos[i]-pos[i];
+	      //if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
+	    }
 
-	if ( is_close ) {	
-	  // make shift in 3D label
-          for (int i=0; i<3; i++ ) {
-            label_v[1+i] = leafpos[i]-pos[i];
-            if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
-          }
+	    // shift in imgcoords
+	    std::vector<int> imgcoords(4,0);
+	    imgcoords[0] = matchdata._sparseimg_vv[0][triplet[0]].row;
+	    for (int p=0; p<3; p++ ) {
+	      imgcoords[1+p] = matchdata._sparseimg_vv[p][triplet[p]].col;
+	    }
+	    for (int i=0; i<4; i++) {
+	      label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
+	      //if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
+	    }
+	  }
+	  else {
+	    // empy label to save space
+	    //label_v.clear(); // this messes up file
+	  }
+	  kpdata._match_proposal_labels_v[ikpclass].push_back(label_v);
+	}//end of keypoint class loop
+      }//end of triplet loop
 
-          // shift in imgcoords
-          std::vector<int> imgcoords(4,0);
-          imgcoords[0] = match_proposals._sparseimg_vv[0][triplet[0]].row;
-          for (int p=0; p<3; p++ ) {
-            imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
-          }
-          for (int i=0; i<4; i++) {
-            label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
-            if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
-          }
+      // store the keypoint info for this TPC
+      for (int ikpclass=0; ikpclass<6; ikpclass++) {
+	for (int itestkp=0; itestkp<(int)_kpd_v.size(); itestkp++) {
+	  
+	  auto const& testkpd = _kpd_v[itestkp];
+	  
+	  // ignore those not in class
+	  if ( testkpd.kptype!=(larflow::KeyPoint_t)ikpclass )
+	    continue;
+
+	  if ( testkpd.tpcid!=kpdata.tpcid || testkpd.cryoid!=kpdata.cryoid )
+	    continue;
+
+	  kpdata._kp_pdg_trackid_v[ikpclass].push_back( _kp_pdg_trackid_v[ikpclass].at(itestkp) );
+	  kpdata._kppos_v[ikpclass].push_back( _kppos_v[ikpclass].at(itestkp) );
 	}
-	else {
-	  // empy label to save space
-	  //label_v.clear(); // this messes up file
-	}
-        _match_proposal_labels_v[ikpclass].push_back(label_v);
-      }//end of keypoint class loop
-    }//end of match proposal loop
+      }
+
+      _keypoint_tpclabel_v.emplace_back( std::move(kpdata) );
       
+    }//end of matchdata loop for each TPC
   }
 
   /** 
@@ -780,18 +869,19 @@ namespace keypoints {
     std::string kp_type_names[6]
       = {"nuvertex","trackstart","trackend","showerstart","showermichel","showerdelta"};
     
-    _label_tree->Branch("kplabel_nuvertex",     &_match_proposal_labels_v[0]);
-    _label_tree->Branch("kplabel_trackstart",   &_match_proposal_labels_v[1]);
-    _label_tree->Branch("kplabel_trackend",     &_match_proposal_labels_v[2]);    
-    _label_tree->Branch("kplabel_showerstart",  &_match_proposal_labels_v[3]);
-    _label_tree->Branch("kplabel_showermichel", &_match_proposal_labels_v[4]);
-    _label_tree->Branch("kplabel_showerdelta",  &_match_proposal_labels_v[5]);    
+    // _label_tree->Branch("kplabel_nuvertex",     &_match_proposal_labels_v[0]);
+    // _label_tree->Branch("kplabel_trackstart",   &_match_proposal_labels_v[1]);
+    // _label_tree->Branch("kplabel_trackend",     &_match_proposal_labels_v[2]);    
+    // _label_tree->Branch("kplabel_showerstart",  &_match_proposal_labels_v[3]);
+    // _label_tree->Branch("kplabel_showermichel", &_match_proposal_labels_v[4]);
+    // _label_tree->Branch("kplabel_showerdelta",  &_match_proposal_labels_v[5]);    
     _label_tree->Branch("kppos_nuvertex",     &_kppos_v[0]);
     _label_tree->Branch("kppos_trackstart",   &_kppos_v[1]);
     _label_tree->Branch("kppos_trackend",     &_kppos_v[2]);    
     _label_tree->Branch("kppos_showerstart",  &_kppos_v[3]);
     _label_tree->Branch("kppos_showermichel", &_kppos_v[4]);
     _label_tree->Branch("kppos_showerdelta",  &_kppos_v[5]);
+    _label_tree->Branch("keypoint_tpclabel_v", &_keypoint_tpclabel_v);
 
     // truth meta data branches
     for (int i=0; i<6; i++) {
@@ -850,42 +940,42 @@ namespace keypoints {
    * @return  vector of TH2D, one for each 
    * 
    */
-  std::vector<TH2D> PrepKeypointData::makeScoreImage( const int ikpclass, const float sigma,
-                                                      const std::string histname,
-                                                      const larflow::prep::PrepMatchTriplets& tripmaker,
-                                                      const std::vector<larcv::Image2D>& adc_v ) const
-  {
+  // std::vector<TH2D> PrepKeypointData::makeScoreImage( const int ikpclass, const float sigma,
+  //                                                     const std::string histname,
+  //                                                     const larflow::prep::PrepMatchTriplets& tripmaker,
+  //                                                     const std::vector<larcv::Image2D>& adc_v ) const
+  // {
 
-    std::vector<TH2D> hist_v;
-    for ( size_t p=0; p<adc_v.size(); p++ ) {
-      std::stringstream ss;
-      ss << histname << "_p" << (int)p;
-      TH2D hist( ss.str().c_str(), ss.str().c_str(),
-                 adc_v[p].meta().cols(), adc_v[p].meta().min_x(), adc_v[p].meta().max_x(),
-                 adc_v[p].meta().rows(), adc_v[p].meta().min_y(), adc_v[p].meta().max_y() );
+  //   std::vector<TH2D> hist_v;
+  //   for ( size_t p=0; p<adc_v.size(); p++ ) {
+  //     std::stringstream ss;
+  //     ss << histname << "_p" << (int)p;
+  //     TH2D hist( ss.str().c_str(), ss.str().c_str(),
+  //                adc_v[p].meta().cols(), adc_v[p].meta().min_x(), adc_v[p].meta().max_x(),
+  //                adc_v[p].meta().rows(), adc_v[p].meta().min_y(), adc_v[p].meta().max_y() );
 
-      for (size_t ipt=0; ipt<tripmaker._triplet_v.size(); ipt++) {
-        int r = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].row;
-        int c = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].col;
+  //     for (size_t ipt=0; ipt<tripmaker._triplet_v.size(); ipt++) {
+  //       int r = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].row;
+  //       int c = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].col;
 
-        auto const& label_v = _match_proposal_labels_v[ikpclass][ipt];
+  //       auto const& label_v = _match_proposal_labels_v[ikpclass][ipt];
         
-        if ( label_v[0]==0.0 && hist.GetBinContent(c+1,r+1)<0.01 ) {
-          hist.SetBinContent( c+1, r+1, 0.01 );
-        }
-        else if (label_v[0]>0.0) {
-          float dist = 0.;
-          for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
-          float score = exp( -0.5*dist/(sigma*sigma) );
-          if ( hist.GetBinContent(c+1,r+1)<score )
-            hist.SetBinContent( c+1, r+1, score );
-        }
-      }
-      hist_v.emplace_back( std::move(hist) );
-    }
+  //       if ( label_v[0]==0.0 && hist.GetBinContent(c+1,r+1)<0.01 ) {
+  //         hist.SetBinContent( c+1, r+1, 0.01 );
+  //       }
+  //       else if (label_v[0]>0.0) {
+  //         float dist = 0.;
+  //         for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
+  //         float score = exp( -0.5*dist/(sigma*sigma) );
+  //         if ( hist.GetBinContent(c+1,r+1)<score )
+  //           hist.SetBinContent( c+1, r+1, score );
+  //       }
+  //     }
+  //     hist_v.emplace_back( std::move(hist) );
+  //   }
     
-    return hist_v;
-  }
+  //   return hist_v;
+  // }
   
 }
 }

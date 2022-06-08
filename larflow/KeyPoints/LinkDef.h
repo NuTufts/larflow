@@ -17,6 +17,8 @@
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::keypoints;
 #pragma link C++ class larflow::keypoints::KPdata+;
+#pragma link C++ class larflow::keypoints::KeypointData+;
+#pragma link C++ class std::vector< larflow::keypoints::KeypointData >+;
 #pragma link C++ class larflow::keypoints::PrepKeypointData+;
 #pragma link C++ class larflow::keypoints::PrepAffinityField+;
 #pragma link C++ class larflow::keypoints::LoaderKeypointData+;

@@ -30,6 +30,8 @@ namespace keypoints {
     int vid;                   ///< vector index of container from which the track or shower truth object came
     int is_shower;             ///< if =1, then keypoint came from shower
     int origin;                ///< if =1, origin is cosmics; if =2 origin is from neutrino interaction generator
+    int tpcid;
+    int cryoid;
     KeyPoint_t kptype;         ///< class of keypoint label, KeyPoint_t
     KPdata() {
       crossingtype = -1;
@@ -40,6 +42,8 @@ namespace keypoints {
       vid = 0;
       is_shower = 0;
       origin = -1;
+      tpcid = 0;
+      cryoid = 0;
       kptype = larflow::kNumKeyPoints; // sentinal value
     };
     ~KPdata() {};

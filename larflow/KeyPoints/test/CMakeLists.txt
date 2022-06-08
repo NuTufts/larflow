@@ -8,7 +8,7 @@ message("larlite libs: ${LARLITE_LIBS}")
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
 
 # ublarcvapp libs used
-set(UBLARCVAPP_LIBS_USED LArCVApp_MCTools LArCVApp_UBImageMod LArCVApp_UBWireTool LArCVApp_ubdllee LArCVApp_LLCVProcessor LArCVApp_Reco3D LArCVApp_ContourTools LArCVApp_UBWireTool )
+set(UBLARCVAPP_LIBS_USED LArCVApp_MCTools LArCVApp_UBImageMod LArCVApp_UBWireTool LArCVApp_ubdllee LArCVApp_UBWireTool )
 
 # larflow libs
 set(LARFLOW_LIBS_USED LArFlow_KeyPoints LArFlow_PrepFlowMatchData LArFlow_Reco LArFlow_SCBoundary )

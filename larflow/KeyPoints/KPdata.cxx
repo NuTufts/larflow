@@ -42,7 +42,9 @@ namespace keypoints {
        << " vid=" << vid
        << " isshower=" << is_shower
        << " origin=" << origin << "] "
-       << " kptype=" << kptype << " ";
+       << " kptype=" << kptype << " "
+       << " tpcid=" << tpcid << " "
+       << " cryoid=" << cryoid << " ";
 
     if ( imgcoord.size()>0 )
       ss << " imgstart=(" << imgcoord[0] << ","

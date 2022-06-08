@@ -11,6 +11,7 @@
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
 #include "KPdata.h"
+#include "KeypointData.h"
 
 class TH1F;
 class TH2D;
@@ -138,15 +139,16 @@ namespace keypoints {
   public:
 
     PyObject* get_keypoint_array(int ikpclass ) const;
-    PyObject* get_triplet_score_array( float sig ) const;
+    //PyObject* get_triplet_score_array( float sig ) const;
 
     
   public:
 
     // PROPOSAL LABELS
     // ----------------
-    
-    std::vector< std::vector<float> > _match_proposal_labels_v[6]; ///< provides the labels for triplet proposals made by larflow::prep::PrepMatchTriplets
+
+    std::vector< KeypointData > _keypoint_tpclabel_v; ///< keypoint data for each TPC
+    //std::vector< std::vector<float> > _match_proposal_labels_v[6]; ///< provides the labels for triplet proposals made by larflow::prep::PrepMatchTriplets
 
     // Ana Tree
     int _run; ///< run ID number of event
@@ -175,10 +177,10 @@ namespace keypoints {
     int _nfar;      ///< number of space point proposals further than some radius of a true keypoint
     void writeHists();
 
-    std::vector<TH2D> makeScoreImage( const int ikpclass, const float sigma,
-                                      const std::string histname,
-                                      const larflow::prep::PrepMatchTriplets& tripmaker,
-                                      const std::vector<larcv::Image2D>& adc_v ) const;
+    // std::vector<TH2D> makeScoreImage( const int ikpclass, const float sigma,
+    //                                   const std::string histname,
+    //                                   const larflow::prep::PrepMatchTriplets& tripmaker,
+    //                                   const std::vector<larcv::Image2D>& adc_v ) const;
     
   private:
     

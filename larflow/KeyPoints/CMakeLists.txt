@@ -4,17 +4,21 @@ set(MODULE_NAME KeyPoints )
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
 set( HEADERS KPdata.h
+  KeypointData.h
   PrepKeypointData.h
-  LoaderKeypointData.h
-  PrepAffinityField.h
-  LoaderAffinityField.h )
+  #LoaderKeypointData.h
+  #PrepAffinityField.h
+  #LoaderAffinityField.h
+  )
 
 add_library( ${LIBNAME} SHARED
   KPdata.cxx
+  KeypointData.cxx  
   PrepKeypointData.cxx  
-  LoaderKeypointData.cxx
-  PrepAffinityField.cxx
-  LoaderAffinityField.cxx )
+  #LoaderKeypointData.cxx
+  #PrepAffinityField.cxx
+  #LoaderAffinityField.cxx
+  )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
