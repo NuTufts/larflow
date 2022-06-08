@@ -1,8 +1,10 @@
 #include "TripletTruthFixer.h"
 
+#include "larlite/LArUtil/LArUtilConfig.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 #include "larflow/Reco/geofuncs.h"
 
 
@@ -11,15 +13,20 @@ namespace prep {
 
 
   TripletTruthFixer::TripletTruthFixer()
-    : _kExcludeCosmicShowers(true),
+    : larcv::larcv_base("TripletTruthFixer"),
+      _kExcludeCosmicShowers(true),
       _p_sce(nullptr)
   {
-    _p_sce = new larutil::SpaceChargeMicroBooNE();
+    if ( larutil::LArUtilConfig::Detector()==larlite::geo::kMicroBooNE )
+      _p_sce = new larutil::SpaceChargeMicroBooNE();
+    else
+      _p_sce = nullptr;
   }
 
   TripletTruthFixer::~TripletTruthFixer()
   {
-    delete _p_sce;
+    if ( _p_sce )
+      delete _p_sce;
     _p_sce = nullptr;
   }
   
@@ -52,7 +59,7 @@ namespace prep {
     _label_cosmic_pid( tripmaker, mcpg, iolcv );
     
     // we start by resolving instance and class consistency checks
-    _enforce_instance_and_class_consistency( tripmaker, mcpg, *ev_mctrack );    
+    //_enforce_instance_and_class_consistency( tripmaker, mcpg, *ev_mctrack );    
     
     // start off by separately clustering points with different segment ids
     // then match clusters with mcshower objects using shower profile
@@ -106,19 +113,8 @@ namespace prep {
                                                                bool reassign_instance_labels )
   {
     
-    cluster_v.clear();
-    pid_v.clear();
-    shower_instance_v.clear();
-
-    // make a list of instance id's from mcshower instances
-    // we do this to protect the fragment. this will
-    // prevent showers close enough to get clustered together
-    // from being merged incorrectly. eg. includes
-    // parallel gamma-showers converting around the same distance
-    // and gamma-showers converting at the vertex.
-
     std::cout << "[TripletTruthFixer::_cluster_same_showerpid_spacepoints.L" << __LINE__ << "] "
-              << " protected instances: ";
+	      << " protected instances: ";
     std::set<int> mcshower_instances;
     std::map<int,larflow::reco::cluster_t> mcshower_fragments;
     for ( auto const& info : shower_info_v ) {
@@ -127,102 +123,116 @@ namespace prep {
       std::cout << info.trackid << " ";
     }
     std::cout << std::endl;
-
-    const float maxdist = 0.75;
-    const int minsize = 10;
-    const int maxkd = 50;
+    cluster_v.clear();
+    pid_v.clear();
+    shower_instance_v.clear();
     
-    std::vector<int> shower_ids = { 3, 4, 5 };
-    for (int iid=0; iid<3; iid++) {
-      int pid = shower_ids[iid];
-
-      std::vector< std::vector<float> > point_v;
-      std::vector< int > tripmaker_idx_v;
-      point_v.reserve( tripmaker._pos_v.size() );
-      tripmaker_idx_v.reserve( tripmaker._pos_v.size() );
-
-      for ( int ipt=0; ipt<(int)tripmaker._pos_v.size(); ipt++) {
-        if ( tripmaker._pdg_v[ipt]==pid && tripmaker._origin_v[ipt]==1 ) {
-          int instanceid = tripmaker._instance_id_v[ipt];
-          if ( mcshower_instances.find(instanceid)!=mcshower_instances.end() ) {
-            // protected instance id
-            auto& mcshower_fragment = mcshower_fragments[instanceid];
-            mcshower_fragment.points_v.push_back( tripmaker._pos_v[ipt] );
-            mcshower_fragment.hitidx_v.push_back( ipt );
-          }
-          else  {
-            // unprotected instance id
-            std::vector<float> pos = tripmaker._pos_v[ipt];
-            point_v.push_back(pos);
-            tripmaker_idx_v.push_back(ipt);
-          }
-        }
-      }
-
-      std::vector< larflow::reco::cluster_t > pid_cluster_v;
-      larflow::reco::cluster_sdbscan_spacepoints( point_v, pid_cluster_v, maxdist, minsize, maxkd );
-
-      std::cout << "PID[" << pid << "] has " << pid_cluster_v.size() << " dbscan clusters" << std::endl;
-
-      for (auto & cluster : pid_cluster_v ) {
-        // for each cluster, we decide which label to use based on majority vote
-        std::map<int,int> idcount;
-        for ( auto const& hitidx : cluster.hitidx_v ) {
-          int idx = tripmaker._instance_id_v[ tripmaker_idx_v[hitidx] ];
-          if ( idcount.find(idx)==idcount.end() )
-            idcount[idx] = 0;
-          idcount[idx]++;
-        }
-
-        int maxcount = 0;
-        int maxid = 0;
-        for ( auto it=idcount.begin(); it!=idcount.end(); it++ ) {
-          if ( maxcount<it->second ) {
-            maxcount = it->second;
-            maxid = it->first;
-          }
-        }
-
-        // reassign the origina instance label.
-        // also reassign the hit index to point back to triplet vector
-        for ( auto & hitidx : cluster.hitidx_v ) {
-          tripmaker._instance_id_v[ tripmaker_idx_v[hitidx] ] = maxid;
-          hitidx =  tripmaker_idx_v[hitidx];
-        }
-
-        //xfer cluster to event container
-        cluster_v.emplace_back( std::move(cluster) );
-        pid_v.push_back( pid );
-        shower_instance_v.push_back( maxid );
-      }//end of loop over found clusters
+    for ( auto& matchdata : tripmaker._match_triplet_v ) {    
       
-    }//end of loop over pid
+      // make a list of instance id's from mcshower instances
+      // we do this to protect the fragment. this will
+      // prevent showers close enough to get clustered together
+      // from being merged incorrectly. eg. includes
+      // parallel gamma-showers converting around the same distance
+      // and gamma-showers converting at the vertex.
 
-    // add mcshower fragments into cluster list                
-    for ( auto const& info : shower_info_v ) {
-      auto& mcshower_fragment = mcshower_fragments[info.trackid];
-      std::cout << "[TripletTruthFixer.L" << __LINE__ << "] "
-                << "mcshower fragment trackid[" << info.trackid << "] "
-                << "size=" << mcshower_fragment.points_v.size()
-                << std::endl;
-      cluster_v.emplace_back( std::move(mcshower_fragment) );
-      switch (info.pid) {
-      case -11:
-      case 11:        
-        pid_v.push_back( 3 );
-        break;
-      case 111:
-        pid_v.push_back( 5 );
-        break;
-      default:
-        pid_v.push_back( 4 );
-        break;
-      }
-      shower_instance_v.push_back( info.trackid );
-    }
+
+      const float maxdist = 0.75;
+      const int minsize = 10;
+      const int maxkd = 50;
     
-  }
+      std::vector<int> shower_ids = { 3, 4, 5 };
+      for (int iid=0; iid<3; iid++) {
+	int pid = shower_ids[iid];
 
+	std::vector< std::vector<float> > point_v;
+	std::vector< int > tripmaker_idx_v;
+	point_v.reserve( matchdata._pos_v.size() );
+	tripmaker_idx_v.reserve( matchdata._pos_v.size() );
+
+	for ( int ipt=0; ipt<(int)matchdata._pos_v.size(); ipt++) {
+	  if ( matchdata._pdg_v[ipt]==pid && matchdata._origin_v[ipt]==1 ) {
+	    int instanceid = matchdata._instance_id_v[ipt];
+	    if ( mcshower_instances.find(instanceid)!=mcshower_instances.end() ) {
+	      // protected instance id
+	      auto& mcshower_fragment = mcshower_fragments[instanceid];
+	      mcshower_fragment.points_v.push_back( matchdata._pos_v[ipt] );
+	      mcshower_fragment.hitidx_v.push_back( ipt );
+	    }
+	    else  {
+	      // unprotected instance id
+	      std::vector<float> pos = matchdata._pos_v[ipt];
+	      point_v.push_back(pos);
+	      tripmaker_idx_v.push_back(ipt);
+	    }
+	  }
+	}
+	
+	std::vector< larflow::reco::cluster_t > pid_cluster_v;
+	larflow::reco::cluster_sdbscan_spacepoints( point_v, pid_cluster_v, maxdist, minsize, maxkd );
+
+	std::cout << "PID[" << pid << "] has " << pid_cluster_v.size() << " dbscan clusters" << std::endl;
+
+	for (auto & cluster : pid_cluster_v ) {
+	  // for each cluster, we decide which label to use based on majority vote
+	  std::map<int,int> idcount;
+	  for ( auto const& hitidx : cluster.hitidx_v ) {
+	    int idx = matchdata._instance_id_v[ tripmaker_idx_v[hitidx] ];
+	    if ( idcount.find(idx)==idcount.end() )
+	      idcount[idx] = 0;
+	    idcount[idx]++;
+	  }
+
+	  int maxcount = 0;
+	  int maxid = 0;
+	  for ( auto it=idcount.begin(); it!=idcount.end(); it++ ) {
+	    if ( maxcount<it->second ) {
+	      maxcount = it->second;
+	      maxid = it->first;
+	    }
+	  }
+
+	  // reassign the origina instance label.
+	  // also reassign the hit index to point back to triplet vector
+	  for ( auto & hitidx : cluster.hitidx_v ) {
+	    matchdata._instance_id_v[ tripmaker_idx_v[hitidx] ] = maxid;
+	    hitidx =  tripmaker_idx_v[hitidx];
+	  }
+
+	  //xfer cluster to event container
+	  cluster_v.emplace_back( std::move(cluster) );
+	  pid_v.push_back( pid );
+	  shower_instance_v.push_back( maxid );
+	}//end of loop over found clusters
+	
+      }//end of loop over pid
+
+      // add mcshower fragments into cluster list                
+      for ( auto const& info : shower_info_v ) {
+	auto& mcshower_fragment = mcshower_fragments[info.trackid];
+	std::cout << "[TripletTruthFixer.L" << __LINE__ << "] "
+		  << "mcshower fragment trackid[" << info.trackid << "] "
+		  << "size=" << mcshower_fragment.points_v.size()
+		  << std::endl;
+	cluster_v.emplace_back( std::move(mcshower_fragment) );
+	switch (info.pid) {
+	case -11:
+	case 11:        
+	  pid_v.push_back( 3 );
+	  break;
+	case 111:
+	  pid_v.push_back( 5 );
+	  break;
+	default:
+	  pid_v.push_back( 4 );
+	  break;
+	}
+	shower_instance_v.push_back( info.trackid );
+      }//end of shower info loop
+    
+    }//end of matchdata loop
+  }
+  
   /**
    * @brief use neighboring pixels to reassign track clusters with small number of voxels
    *
@@ -234,135 +244,140 @@ namespace prep {
                                                        const std::vector< larcv::Image2D >& instanceimg_v,
                                                        const float threshold )
   {
-
-    const int dvoxel = 3;
-    const int nrows = instanceimg_v.front().meta().rows();
-    const int ncols = instanceimg_v.front().meta().cols();    
-    auto const& meta = instanceimg_v.front().meta(); // assuming metas the same for all planes
-
-    // make list of track pixels to reassign: proton and charged pion labels
-    std::vector<int> track_idx_v;
-    // also make count of pixels in each instance
-    std::map<int,int> track_instance_count; // key: instance id, value: count
-    track_idx_v.reserve( tripmaker._pos_v.size() );
-    for ( size_t i=0; i<tripmaker._pos_v.size(); i++ ) {
-      if ( tripmaker._truth_v[i]==1 &&
-           (tripmaker._pdg_v[i]>=7 && tripmaker._pdg_v[i]<=9) ) {
-        track_idx_v.push_back(i);
-
-        int instanceid = tripmaker._instance_id_v[i];
-        if ( track_instance_count.find(instanceid)==track_instance_count.end() )
-          track_instance_count[i] = 0;
-        track_instance_count[i]++;
-      }
-    }
-
-    // use this to decide which id should be used to replace
-    // subthreshold instances
-    struct ReplacementTally_t {
-      int orig_instanceid;
-      std::set<int> replacement_ids;
-      ReplacementTally_t()
-        : orig_instanceid(0) {};
-      ReplacementTally_t(int id)
-        : orig_instanceid(id) {};
-    };
-    std::map<int,ReplacementTally_t> replacement_tally_v;
     
-    for ( size_t iidx=0; iidx<track_idx_v.size(); iidx++ ) {
+    for ( auto& matchdata : tripmaker._match_triplet_v ) {        
 
-      int triplet_idx = track_idx_v[iidx];
-
-      std::vector<int> imgcoord = tripmaker.get_triplet_imgcoord_rowcol( triplet_idx );
-      int truth_instance_index = tripmaker._instance_id_v[triplet_idx];
+      std::vector< const larcv::Image2D* > pinstance_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( instanceimg_v, matchdata._tpcid, matchdata._cryoid );
       
-      auto it=track_instance_count.find( truth_instance_index );
-      if ( it==track_instance_count.end() )
-        continue; /// unexpected (should throw an error)
+      const int dvoxel = 3;
+      const int nrows  = pinstance_v.front()->meta().rows();
+      const int ncols  = pinstance_v.front()->meta().cols();    
+      auto const& meta = pinstance_v.front()->meta(); // assuming metas the same for all planes
       
-      if ( it->second>threshold )
-        continue; // above threshold for reassignment
+      // make list of track pixels to reassign: proton and charged pion labels
+      std::vector<int> track_idx_v;
+      // also make count of pixels in each instance
+      std::map<int,int> track_instance_count; // key: instance id, value: count
+      track_idx_v.reserve( matchdata._pos_v.size() );
+      for ( size_t i=0; i<matchdata._pos_v.size(); i++ ) {
+	if ( matchdata._truth_v[i]==1 &&
+	     (matchdata._pdg_v[i]>=7 && matchdata._pdg_v[i]<=9) ) {
+	  track_idx_v.push_back(i);
+
+	  int instanceid = matchdata._instance_id_v[i];
+	  if ( track_instance_count.find(instanceid)==track_instance_count.end() )
+	    track_instance_count[i] = 0;
+	  track_instance_count[i]++;
+	}
+      }
+
+      // use this to decide which id should be used to replace
+      // subthreshold instances
+      struct ReplacementTally_t {
+	int orig_instanceid;
+	std::set<int> replacement_ids;
+	ReplacementTally_t()
+	  : orig_instanceid(0) {};
+	ReplacementTally_t(int id)
+	  : orig_instanceid(id) {};
+      };
+      std::map<int,ReplacementTally_t> replacement_tally_v;
+    
+      for ( size_t iidx=0; iidx<track_idx_v.size(); iidx++ ) {
+
+	int triplet_idx = track_idx_v[iidx];
+
+	std::vector<int> imgcoord = matchdata.get_triplet_imgcoord_rowcol( triplet_idx );
+	int truth_instance_index  = matchdata._instance_id_v[triplet_idx];
       
-      auto it_t = replacement_tally_v.find( truth_instance_index );
-      if ( it_t==replacement_tally_v.end() )
-        replacement_tally_v[truth_instance_index] = ReplacementTally_t(truth_instance_index);
+	auto it=track_instance_count.find( truth_instance_index );
+	if ( it==track_instance_count.end() )
+	  continue; /// unexpected (should throw an error)
+      
+	if ( it->second>threshold )
+	  continue; // above threshold for reassignment
+      
+	auto it_t = replacement_tally_v.find( truth_instance_index );
+	if ( it_t==replacement_tally_v.end() )
+	  replacement_tally_v[truth_instance_index] = ReplacementTally_t(truth_instance_index);
 
-      auto& tally = replacement_tally_v[truth_instance_index];
+	auto& tally = replacement_tally_v[truth_instance_index];
 
       
-      for (int dr=-dvoxel; dr<=dvoxel; dr++) {
+	for (int dr=-dvoxel; dr<=dvoxel; dr++) {
 
-        if ( imgcoord[3]<=meta.min_y() || imgcoord[3]>=meta.max_y() )
-          continue;
-        int row = (int)meta.row( imgcoord[3] ); // tick to row
+	  if ( imgcoord[3]<=meta.min_y() || imgcoord[3]>=meta.max_y() )
+	    continue;
+	  int row = (int)meta.row( imgcoord[3] ); // tick to row
         
-        for (int p=0; p<3; p++) {
-          for (int dc=-dvoxel; dc<=dvoxel; dc++) {
-            int col = imgcoord[p]+dc;
-            if (col<0 || col>=ncols ) continue;
+	  for (int p=0; p<3; p++) {
+	    for (int dc=-dvoxel; dc<=dvoxel; dc++) {
+	      int col = imgcoord[p]+dc;
+	      if (col<0 || col>=ncols ) continue;
 
-            int iid = instanceimg_v[p].pixel(row,col,__FILE__,__LINE__);
+	      int iid = pinstance_v[p]->pixel(row,col,__FILE__,__LINE__);
 
-            // ignore own instanceid
-            if ( iid==truth_instance_index || iid<0)
-              continue;
-
-            // this checks that its a track instance            
-            if ( track_instance_count.find(iid)!=track_instance_count.end() )
-              // tally track instance
-              tally.replacement_ids.insert( iid );
-            else {
-              //std::cout << "trying to replace id=" << truth_instance_index << " but id=" << iid << " not in track count dict" << std::endl;
-            }
-          }//end of col loop
-        }//end of plane loop
-      }//end of row loop
-    }
+	      // ignore own instanceid
+	      if ( iid==truth_instance_index || iid<0)
+		continue;
+	      
+	      // this checks that its a track instance            
+	      if ( track_instance_count.find(iid)!=track_instance_count.end() )
+		// tally track instance
+		tally.replacement_ids.insert( iid );
+	      else {
+		//std::cout << "trying to replace id=" << truth_instance_index << " but id=" << iid << " not in track count dict" << std::endl;
+	      }
+	    }//end of col loop
+	  }//end of plane loop
+	}//end of row loop
+      }
     
-    // choose the replacement id
-    // we pick the id associated to the largest track cluster
-    std::map<int,int> replace_trackid;
-    for ( auto it=track_instance_count.begin(); it!=track_instance_count.end(); it++ ) {
-      if ( it->second>threshold)
-        continue;
+      // choose the replacement id
+      // we pick the id associated to the largest track cluster
+      std::map<int,int> replace_trackid;
+      for ( auto it=track_instance_count.begin(); it!=track_instance_count.end(); it++ ) {
+	if ( it->second>threshold)
+	  continue;
       
-      auto& tally = replacement_tally_v[it->first];
-      int max_nhits = 0;
-      int max_replacement_id = 0;
-      for (auto& id : tally.replacement_ids ) {
-        if ( track_instance_count[id]>max_nhits ) {
-          max_nhits = track_instance_count[id];
-          max_replacement_id = id;
-        }
+	auto& tally = replacement_tally_v[it->first];
+	int max_nhits = 0;
+	int max_replacement_id = 0;
+	for (auto& id : tally.replacement_ids ) {
+	  if ( track_instance_count[id]>max_nhits ) {
+	    max_nhits = track_instance_count[id];
+	    max_replacement_id = id;
+	  }
+	}
+	replace_trackid[it->first] = max_replacement_id;
+	if ( max_replacement_id>0 ) {
+	  std::cout << "TripletTruthFixer::_reassignSmallTrackClusters.L:" << __LINE__ << "] "
+		    << "successfully replace trackid=" << it->first
+		    << "( w/ " << it->second << " counts)"
+		    << " with " << max_replacement_id << " (w/ " << max_nhits << ")"
+		    << std::endl;
+	  track_instance_count[max_replacement_id] += it->second;
+	  it->second = 0;
+	  // need to propagate this reassignment to past reassignments
+	  for ( auto it_r=replace_trackid.begin(); it_r!=replace_trackid.end(); it_r++ ) {
+	    if ( it_r->second==it->first )
+	      it_r->second = max_replacement_id;
+	  }
+	}
       }
-      replace_trackid[it->first] = max_replacement_id;
-      if ( max_replacement_id>0 ) {
-        std::cout << "TripletTruthFixer::_reassignSmallTrackClusters.L:" << __LINE__ << "] "
-                  << "successfully replace trackid=" << it->first
-                  << "( w/ " << it->second << " counts)"
-                  << " with " << max_replacement_id << " (w/ " << max_nhits << ")"
-                  << std::endl;
-        track_instance_count[max_replacement_id] += it->second;
-        it->second = 0;
-        // need to propagate this reassignment to past reassignments
-        for ( auto it_r=replace_trackid.begin(); it_r!=replace_trackid.end(); it_r++ ) {
-          if ( it_r->second==it->first )
-            it_r->second = max_replacement_id;
-        }
-      }
-    }
     
-    // execute the replacement
-    int nreassigned = 0;
-    for ( auto& tripidx : track_idx_v ) {
-      int instanceid = tripmaker._instance_id_v[tripidx];      
-      if ( replace_trackid.find( instanceid )!=replace_trackid.end() ) {
-        tripmaker._instance_id_v[tripidx] = replace_trackid[instanceid];
-        nreassigned++;
+      // execute the replacement
+      int nreassigned = 0;
+      for ( auto& tripidx : track_idx_v ) {
+	int instanceid = matchdata._instance_id_v[tripidx];      
+	if ( replace_trackid.find( instanceid )!=replace_trackid.end() ) {
+	  matchdata._instance_id_v[tripidx] = replace_trackid[instanceid];
+	  nreassigned++;
+	}
       }
-    }
-    std::cout << "[TripletTruthFixer::_reassignSmallTrackClusters] num reassigned = " << nreassigned << std::endl;
-    
+      std::cout << "[TripletTruthFixer::_reassignSmallTrackClusters] num reassigned = " << nreassigned << std::endl;
+    }//loop over matchdata
   }
 
   /**
@@ -722,22 +737,28 @@ namespace prep {
                                                                    std::vector<ShowerInfo_t>& shower_info_v,
                                                                    larflow::prep::PrepMatchTriplets& tripmaker )
   {
+
     if ( merged_showers_v.size()!=shower_info_v.size() ) {
       std::stringstream msg;
       msg << "[TripletTruthFixer::_reassign_merged_shower_instance_labels.L" << __LINE__ << "] "
-          << "num merged showers (" << merged_showers_v.size() << ") != "
-          << "num shower info (" << shower_info_v.size() << ")"
-          << std::endl;
+	  << "num merged showers (" << merged_showers_v.size() << ") != "
+	    << "num shower info (" << shower_info_v.size() << ")"
+	  << std::endl;
       throw std::runtime_error( msg.str() );
     }
+    
+    for ( auto& matchdata : tripmaker._match_triplet_v ) {        
+    
 
-    for ( int ish=0; ish<(int)shower_info_v.size(); ish++ ) {
-      auto& info = shower_info_v[ish];
-      if ( info.matched_cluster<0 ) continue;
-      int use_label = info.trackid;
-      for ( auto& hitidx : merged_showers_v[ish].hitidx_v ) {
-        tripmaker._instance_id_v[hitidx] = use_label;
+      for ( int ish=0; ish<(int)shower_info_v.size(); ish++ ) {
+	auto& info = shower_info_v[ish];
+	if ( info.matched_cluster<0 ) continue;
+	int use_label = info.trackid;
+	for ( auto& hitidx : merged_showers_v[ish].hitidx_v ) {
+	  matchdata._instance_id_v[hitidx] = use_label;
+	}
       }
+      
     }
     
   }
@@ -752,158 +773,163 @@ namespace prep {
                                                                    ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                                    const larlite::event_mctrack& ev_mctrack )
   {
-    int max_iid_value = 0;
-    std::map<int,std::vector<int> > instance_segment_counts;
-    std::map<int,int> instance_origin_counts;
+
+    // we loop over tpcs
+    for ( auto& matchdata : tripmaker._match_triplet_v ) {    
     
-    for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
-      int iid = tripmaker._instance_id_v[idx];
-      int pid = tripmaker._pdg_v[idx];
-      if ( iid<=0 ) continue;
-
-      if ( instance_segment_counts.find( iid )==instance_segment_counts.end() ) {
-        instance_segment_counts[iid] = std::vector<int>( larcv::kROITypeMax, 0 );
-        instance_origin_counts[iid] = 0;
-      }
-
-      if ( pid<0 ) pid = 0;
-      instance_segment_counts[iid][pid]++;
-      if ( iid>max_iid_value )
-        max_iid_value = iid;
-      if ( tripmaker._origin_v[idx]==1 )
-        instance_origin_counts[iid]++;
-    }
-
-    for ( auto it=instance_segment_counts.begin(); it!=instance_segment_counts.end(); it++ ) {
-      int n_non_zero = 0;
-      int max_pid = 0;
-      int num_max_pid = 0;
-      for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
-        if ( it->second[pid]>0 ) n_non_zero++;
-        if ( pid>0 && it->second[pid]>num_max_pid ) {
-          num_max_pid = it->second[pid];
-          max_pid = pid;
-        }
-      }
-
-      int second_pid = 0;
-      int num_second_pid = 0;
-      if ( n_non_zero>1 ) {
-        for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
-          if ( pid!=max_pid && it->second[pid]>num_second_pid ) {
-            second_pid = pid;
-            num_second_pid = it->second[pid];
-          }
-        }
-      }
-
-      if ( n_non_zero>1 ) {
-
-        // if ( max_pid<larcv::kROIEminus )
-        //   max_pid = larcv::kROIGamma;
-
-        ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode = mcpg.findTrackID( it->first );
-        if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 ) {
-          // is a track!
-          // no need to vote
-          if ( max_pid==larcv::kROIEminus || max_pid==larcv::kROIGamma ) {
-            // switch the labels
-            second_pid = max_pid;
-          }
-          switch( pNode->pid ) {
-          case 2212:
-          case 2112:            
-            max_pid = larcv::kROIProton;
-            break;
-          case 13:
-          case -13:
-            max_pid = larcv::kROIMuminus;
-            break;
-          case 321:
-          case -321:          
-            max_pid = larcv::kROIKminus;
-            break;            
-          default:
-            max_pid = larcv::kROIPiminus;
-            break;
-          }
-        }
-        
-        if ( max_pid>larcv::kROIGamma && (second_pid==larcv::kROIEminus || second_pid==larcv::kROIGamma )) {
-          // we are going to shave off shower points into new instance id
-          // get direction of proton
-          if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 && pNode->origin==1) {
-            // do this for neutrino for now -- come back to cosmic later
-
-            int nrelabeled = 0;
-            std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
-                      << "using proton truth direction to relabel pixels as shower" << std::endl;
-
-            ublarcvapp::mctools::TruthTrackSCE trackutil( _p_sce );
-            //trackutil.set_verbosity( larcv::msg::kDEBUG );
-            auto const& mct = ev_mctrack.at( pNode->vidx );
-            larlite::track sce_track = trackutil.applySCE( mct );
-            //std::cout << "debug: " << sce_track.NumberTrajectoryPoints() << std::endl;
-            //std::cin.get();
-
-            for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
-              if ( tripmaker._instance_id_v[idx]==it->first ) {
-                const std::vector<float>& pos = tripmaker._pos_v[idx];
-                float min_r = 1.0e9;
-                int min_step = -1;
-                trackutil.dist2track( pos, sce_track, min_r, min_step );
-                
-                if ( min_r>2.0 ) {
-                  tripmaker._pdg_v[idx] = second_pid;
-                  tripmaker._instance_id_v[idx] = max_iid_value+1;
-                  nrelabeled++;
-                }
-              }
-            }
-
-            std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
-                      << "number relabeled=" << nrelabeled
-                      << " to instance-id=" << max_iid_value+1
-                      << " with pid=" << second_pid
-                      << std::endl;
-            max_iid_value++;
-          }//end of node found, so make modifications
-        }
-
-        float origin_denom = 0.;
-        for (auto& ncount : instance_segment_counts[it->first] )
-          origin_denom += (float)ncount;
-               
-        float origin_frac = 0.;
-        if ( n_non_zero>0 )
-          origin_frac = float( instance_origin_counts[it->first] )/origin_denom;
-        int origin_label = 0;
-        if ( origin_frac>0.9 )
-          origin_label = 1;
-        
-        // majority wins
-        std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
-                  << "instance[" << it->first << "] has " << n_non_zero << " classes: ";
-        for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
-          if ( it->second[pid]>0 )
-            std::cout << "[" << pid << "](" << it->second[pid] << ") ";
-        }
-        std::cout << " origin[" << origin_label << "," << origin_frac << "] ";
-        std::cout << " :: set to " << max_pid << std::endl;
-
-        
-        for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {
-          if ( tripmaker._instance_id_v[idx]==it->first ) {
-            tripmaker._pdg_v[idx] = max_pid;
-            tripmaker._origin_v[idx] = origin_label;
-          }
-        }
-      }
-      else {
-      }
+      int max_iid_value = 0;
+      std::map<int,std::vector<int> > instance_segment_counts;
+      std::map<int,int> instance_origin_counts;
       
-    }//end of loop over instances
-    
+      for ( size_t idx=0; idx<matchdata._instance_id_v.size(); idx++ ) {
+	int iid = matchdata._instance_id_v[idx];
+	int pid = matchdata._pdg_v[idx];
+	if ( iid<=0 ) continue;
+
+	if ( instance_segment_counts.find( iid )==instance_segment_counts.end() ) {
+	  instance_segment_counts[iid] = std::vector<int>( larcv::kROITypeMax, 0 );
+	  instance_origin_counts[iid] = 0;
+	}
+
+	if ( pid<0 ) pid = 0;
+	instance_segment_counts[iid][pid]++;
+	if ( iid>max_iid_value )
+	  max_iid_value = iid;
+	if ( matchdata._origin_v[idx]==1 )
+	  instance_origin_counts[iid]++;
+      }
+
+      for ( auto it=instance_segment_counts.begin(); it!=instance_segment_counts.end(); it++ ) {
+	int n_non_zero = 0;
+	int max_pid = 0;
+	int num_max_pid = 0;
+	for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+	  if ( it->second[pid]>0 ) n_non_zero++;
+	  if ( pid>0 && it->second[pid]>num_max_pid ) {
+	    num_max_pid = it->second[pid];
+	    max_pid = pid;
+	  }
+	}
+	
+	int second_pid = 0;
+	int num_second_pid = 0;
+	if ( n_non_zero>1 ) {
+	  for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+	    if ( pid!=max_pid && it->second[pid]>num_second_pid ) {
+	      second_pid = pid;
+	      num_second_pid = it->second[pid];
+	    }
+	  }
+	}
+	
+	if ( n_non_zero>1 ) {
+	  
+	  // if ( max_pid<larcv::kROIEminus )
+	  //   max_pid = larcv::kROIGamma;
+
+	  ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode = mcpg.findTrackID( it->first );
+	  if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 ) {
+	    // is a track!
+	    // no need to vote
+	    if ( max_pid==larcv::kROIEminus || max_pid==larcv::kROIGamma ) {
+	      // switch the labels
+	      second_pid = max_pid;
+	    }
+	    switch( pNode->pid ) {
+	    case 2212:
+	    case 2112:            
+	      max_pid = larcv::kROIProton;
+	      break;
+	    case 13:
+	    case -13:
+	      max_pid = larcv::kROIMuminus;
+	      break;
+	    case 321:
+	    case -321:          
+	      max_pid = larcv::kROIKminus;
+	      break;            
+	    default:
+	      max_pid = larcv::kROIPiminus;
+	      break;
+	    }
+	  }
+        
+	  if ( max_pid>larcv::kROIGamma && (second_pid==larcv::kROIEminus || second_pid==larcv::kROIGamma )) {
+	    // we are going to shave off shower points into new instance id
+	    // get direction of proton
+	    if ( pNode!=nullptr && pNode->tid==it->first && pNode->type==0 && pNode->origin==1) {
+	      // do this for neutrino for now -- come back to cosmic later
+	      
+	      int nrelabeled = 0;
+	      std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+			<< "using proton truth direction to relabel pixels as shower" << std::endl;
+
+	      
+	      ublarcvapp::mctools::TruthTrackSCE trackutil( _p_sce );
+	      //trackutil.set_verbosity( larcv::msg::kDEBUG );
+	      auto const& mct = ev_mctrack.at( pNode->vidx );
+	      larlite::track sce_track = trackutil.applySCE( mct );
+	      //std::cout << "debug: " << sce_track.NumberTrajectoryPoints() << std::endl;
+	      //std::cin.get();
+
+	      for ( size_t idx=0; idx<matchdata._instance_id_v.size(); idx++ ) {
+		if ( matchdata._instance_id_v[idx]==it->first ) {
+		  const std::vector<float>& pos = matchdata._pos_v[idx];
+		  float min_r = 1.0e9;
+		  int min_step = -1;
+		  trackutil.dist2track( pos, sce_track, min_r, min_step );
+                
+		  if ( min_r>2.0 ) {
+		    matchdata._pdg_v[idx] = second_pid;
+		    matchdata._instance_id_v[idx] = max_iid_value+1;
+		    nrelabeled++;
+		  }
+		}
+	      }
+	      
+	      std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+			<< "number relabeled=" << nrelabeled
+			<< " to instance-id=" << max_iid_value+1
+			<< " with pid=" << second_pid
+			<< std::endl;
+	      max_iid_value++;
+	    }//end of node found, so make modifications
+	  }
+	  
+	  float origin_denom = 0.;
+	  for (auto& ncount : instance_segment_counts[it->first] )
+	    origin_denom += (float)ncount;
+               
+	  float origin_frac = 0.;
+	  if ( n_non_zero>0 )
+	    origin_frac = float( instance_origin_counts[it->first] )/origin_denom;
+	  int origin_label = 0;
+	  if ( origin_frac>0.9 )
+	    origin_label = 1;
+        
+	  // majority wins
+	  std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+		    << "instance[" << it->first << "] has " << n_non_zero << " classes: ";
+	  for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+	    if ( it->second[pid]>0 )
+	      std::cout << "[" << pid << "](" << it->second[pid] << ") ";
+	  }
+	  std::cout << " origin[" << origin_label << "," << origin_frac << "] ";
+	  std::cout << " :: set to " << max_pid << std::endl;
+
+        
+	  for ( size_t idx=0; idx<matchdata._instance_id_v.size(); idx++ ) {
+	    if ( matchdata._instance_id_v[idx]==it->first ) {
+	      matchdata._pdg_v[idx] = max_pid;
+	      matchdata._origin_v[idx] = origin_label;
+	    }
+	  }
+	}//end of if n_non_zero>1
+	else {
+	}
+      
+      }//end of loop over instances
+    }//matchdata loop
   }
 
   /**
@@ -920,102 +946,108 @@ namespace prep {
                                              larcv::IOManager& iolcv )
   {
 
-    int nrelabels = 0;
-    for ( size_t itrip=0; itrip<tripmaker._instance_id_v.size(); itrip++ ) {
-      int trueflow = tripmaker._truth_v[itrip];
-      if ( trueflow==0 )
-        continue;
+    // we loop over tpcs
+    for ( auto& matchdata : tripmaker._match_triplet_v ) {    
+    
+	int nrelabels = 0;
+	for ( size_t itrip=0; itrip<matchdata._instance_id_v.size(); itrip++ ) {
+	  int trueflow = matchdata._truth_v[itrip];
+	  if ( trueflow==0 )
+	    continue;
       
-      int iid = tripmaker._instance_id_v[itrip]; // instance id
-      int aid = tripmaker._ancestor_id_v[itrip]; // ancestor id
+	  int iid = matchdata._instance_id_v[itrip]; // instance id
+	  int aid = matchdata._ancestor_id_v[itrip]; // ancestor id
 
-      // look for track id in graph
-      bool has_graphnode = false;
-      ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode_instance = mcpg.findTrackID( iid );
-      if ( pNode_instance!=nullptr && pNode_instance->tid==iid )
-        has_graphnode = true;
+	  // look for track id in graph
+	  bool has_graphnode = false;
+	  ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode_instance = mcpg.findTrackID( iid );
+	  if ( pNode_instance!=nullptr && pNode_instance->tid==iid )
+	    has_graphnode = true;
 
-      if ( has_graphnode && pNode_instance->origin==2) {
+	  if ( has_graphnode && pNode_instance->origin==2) {
 
-        nrelabels++;
-        int relabel = 0;
+	    nrelabels++;
+	    int relabel = 0;
         
-        // fix up cosmic only
-        switch ( pNode_instance->pid ) {
-        case 13:
-        case -13:
-          relabel = larcv::kROIMuminus;
-          break;
-        case 2212:
-        case 2112:
-          relabel = larcv::kROIProton;
-          break;
-        case 11:
-        case -11:
-          relabel = larcv::kROIEminus;
-          break;
-        case 22:
-          relabel = larcv::kROIGamma;
-          break;
-        case 111:
-          relabel = larcv::kROIPizero;
-          break;
-        case 321:
-        case -321:          
-          relabel = larcv::kROIKminus;
-          break;
-        default:
-          relabel = larcv::kROIPiminus;
-          break;
-        }
+	    // fix up cosmic only
+	    switch ( pNode_instance->pid ) {
+	    case 13:
+	    case -13:
+	      relabel = larcv::kROIMuminus;
+	      break;
+	    case 2212:
+	    case 2112:
+	      relabel = larcv::kROIProton;
+	      break;
+	    case 11:
+	    case -11:
+	      relabel = larcv::kROIEminus;
+	      break;
+	    case 22:
+	      relabel = larcv::kROIGamma;
+	      break;
+	    case 111:
+	      relabel = larcv::kROIPizero;
+	      break;
+	    case 321:
+	    case -321:          
+	      relabel = larcv::kROIKminus;
+	      break;
+	    default:
+	      relabel = larcv::kROIPiminus;
+	      break;
+	    }
 
-        //std::cout << "cosmic relabel: from [" << tripmaker._pdg_v[itrip] << "] to [" << relabel << "]" << std::endl;
-        tripmaker._pdg_v[itrip] = relabel;
-        continue;
-      }
+	    //std::cout << "cosmic relabel: from [" << tripmaker._pdg_v[itrip] << "] to [" << relabel << "]" << std::endl;
+	    matchdata._pdg_v[itrip] = relabel;
+	    continue; // got a good label. move on.
+	  }
 
-      // no graph node for track id, but node for ancestor
-      bool has_ancestornode = false;
-      ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode_ancestor = mcpg.findTrackID( aid );
-      if ( pNode_ancestor!=nullptr && pNode_ancestor->tid==aid )
-        has_ancestornode = true;
+	  // no graph node for track id, but node for ancestor
+	  bool has_ancestornode = false;
+	  ublarcvapp::mctools::MCPixelPGraph::Node_t* pNode_ancestor = mcpg.findTrackID( aid );
+	  if ( pNode_ancestor!=nullptr && pNode_ancestor->tid==aid )
+	    has_ancestornode = true;
+	  
+	  if ( has_ancestornode && pNode_ancestor->origin==2 ) {
+	    nrelabels++;
+	    int relabel = 0;        
+	    // fix up cosmic-secondary
+	    switch ( pNode_ancestor->pid ) {
+	    case 13:
+	    case -13:
+	      relabel = larcv::kROICosmic; //delta
+	      break;
+	    case 2212:
+	    case 2112:
+	    case 321:
+	    case -321:
+	      relabel = larcv::kROIProton;
+	      break;
+	    case 11:
+	    case -11:
+	      relabel = larcv::kROIEminus;
+	      break;
+	    case 22:
+	    case 111:          
+	      relabel = larcv::kROIGamma;
+	      break;
+	    default:
+	      relabel = larcv::kROICosmic;
+	      break;
+	    }
+	    
+	    //std::cout << "cosmic relabel: from [" << tripmaker._pdg_v[itrip] << "] to [" << relabel << "]" << std::endl;
+	    matchdata._pdg_v[itrip] = relabel;
+	    continue;// ok got the label    
+	  }
+	}//end of triplet loop
 
-      if ( has_ancestornode && pNode_ancestor->origin==2 ) {
-        nrelabels++;
-        int relabel = 0;        
-        // fix up cosmic-secondary
-        switch ( pNode_ancestor->pid ) {
-        case 13:
-        case -13:
-          relabel = larcv::kROICosmic; //delta
-          break;
-        case 2212:
-        case 2112:
-        case 321:
-        case -321:
-          relabel = larcv::kROIProton;
-          break;
-        case 11:
-        case -11:
-          relabel = larcv::kROIEminus;
-          break;
-        case 22:
-        case 111:          
-          relabel = larcv::kROIGamma;
-          break;
-        default:
-          relabel = larcv::kROICosmic;
-          break;
-        }
-
-        //std::cout << "cosmic relabel: from [" << tripmaker._pdg_v[itrip] << "] to [" << relabel << "]" << std::endl;
-        tripmaker._pdg_v[itrip] = relabel;
-        continue;        
-      }
-      
-    }//end of triplet loop
-
-    std::cout << "number of cosmic-relables: " << nrelabels << std::endl;
+	LARCV_NORMAL() << "=== (cryoid,tpcid)=(" << matchdata._cryoid << "," << matchdata._tpcid << ") =======" << std::endl;	
+	LARCV_NORMAL() << "  number of cosmic-relables: " << nrelabels << std::endl;	
+    }// matchdata loop over tpc data
+    
+    
   }
 
   void TripletTruthFixer::_reassign_showers_along_tracks( PrepMatchTriplets& tripmaker,
@@ -1023,60 +1055,131 @@ namespace prep {
 							  larlite::event_mcshower& ev_mcshower,
 							  std::vector< float >& vtx )
   {
-    // we limit things to near the neutrino, vertex, else too much.
-    std::vector<int> near_vertex_list_v;
-    near_vertex_list_v.reserve( 1000 );
-    for (int idx=0; idx<(int)tripmaker._triplet_v.size(); idx++) {
-      if ( tripmaker._instance_id_v[idx]==0
-	   || tripmaker._truth_v[idx]==0 ) {
-	continue;
-      }
 
-      int pdg        = tripmaker._pdg_v[idx];
-      if ( pdg!=(int)larcv::kROIEminus && pdg!=larcv::kROIGamma )
-	continue;
+    const int vertex_dist = 1000.0;
+    const int min_r_threshold = 1.0;
+    
+    for ( auto& matchdata : tripmaker._match_triplet_v ) {
       
-      auto const& pos = tripmaker._pos_v[idx];
-      float dist =0.;
-      for (int v=0; v<3; v++) {
-	dist += (pos[v]-vtx[v])*(pos[v]-vtx[v]);
-      }
-      dist = sqrt(dist);
-      if ( dist<20.0 ) {
-	near_vertex_list_v.push_back( idx );
-      }
-    }
-
-    if ( near_vertex_list_v.size()==0 )
-      return;
-
-    int nconverted = 0;    
-    ublarcvapp::mctools::TruthTrackSCE converter( getSCE() );
-    for (auto& mctrack : ev_mctrack ) {
-
-      if (mctrack.Origin()!=1)
-	continue;
-      
-      larlite::track scetrack = converter.applySCE( mctrack );
-
-      // find points near the line segment
-      for (auto const& idx : near_vertex_list_v ) {
-	auto const& pt = tripmaker._pos_v[ idx ];
-	int instanceid = tripmaker._instance_id_v[idx];
-	if ( instanceid==mctrack.TrackID() )
+      // we limit things to near the neutrino, vertex, else too much.
+      std::vector<int> near_vertex_list_v;
+      near_vertex_list_v.reserve( 1000 );
+      for (int idx=0; idx<(int)matchdata._triplet_v.size(); idx++) {
+	// if ( matchdata._instance_id_v[idx]==0
+	//      || matchdata._truth_v[idx]==0 ) {
+	if ( matchdata._truth_v[idx]==0 ) {
 	  continue;
+	}
 	
-	float min_r = 1.0e9;
-	int min_step = -1;
-	converter.dist2track( pt, scetrack, min_r, min_step );
-	if ( min_r<0.5 ) {
-	  // convert
-	  tripmaker._instance_id_v[idx] = mctrack.TrackID();
-	  nconverted++;
+	int pdg = matchdata._pdg_v[idx];
+	// if ( pdg!=(int)larcv::kROIEminus && pdg!=larcv::kROIGamma && pdg!=0)
+	//   continue;
+	
+	auto const& pos = matchdata._pos_v[idx];
+	float dist =0.;
+	for (int v=0; v<3; v++) {
+	  dist += (pos[v]-vtx[v])*(pos[v]-vtx[v]);
+	}
+	dist = sqrt(dist);
+	if ( dist<vertex_dist ) {
+	  near_vertex_list_v.push_back( idx );
 	}
       }
-    }//end of mctrack loop
-    std::cout << "TripletTruthFixer::converted " << nconverted << " hits out of " << near_vertex_list_v.size() << " near vertex pixels" << std::endl;
+      
+      if ( near_vertex_list_v.size()==0 )
+	return;
+      
+      int nconverted = 0;    
+      ublarcvapp::mctools::TruthTrackSCE converter( getSCE() );
+      std::cout << "converter SCE: " << getSCE() << std::endl;
+
+      std::map<int,float> idx2energy;
+      std::map<int,float> idx2rmin;      
+      
+      for (auto& mctrack : ev_mctrack ) {
+
+	if (mctrack.Origin()!=1)
+	  continue; // nu only
+	if (mctrack.PdgCode()==2112)
+	  continue; // no neutrons
+      
+	larlite::track scetrack = converter.applySCE( mctrack );
+
+	// find points near the line segment
+	for (auto const& idx : near_vertex_list_v ) {
+	  auto const& pt = matchdata._pos_v[ idx ];
+	  int instanceid = matchdata._instance_id_v[idx];
+	  // if ( instanceid==mctrack.TrackID() )
+	  //   continue;
+	
+	  float min_r = 1.0e9;
+	  int min_step = -1;
+	  // if ( mctrack.TrackID()==1499515 )
+	  //   converter.set_verbosity(larcv::msg::kDEBUG);
+	  converter.dist2track( pt, scetrack, min_r, min_step );
+	  //converter.set_verbosity(larcv::msg::kNORMAL);
+	  
+	  // if ( fabs(mctrack.PdgCode())==211 || mctrack.PdgCode()==2212 ) {
+	  // }
+	  if ( min_r<min_r_threshold ) {
+	    // check for conversion
+	    auto it = idx2rmin.find(idx);
+	    if ( it==idx2rmin.end() ) {
+	      idx2rmin[idx] = 1000.0;
+	      it = idx2rmin.find(idx);
+	    }
+	    if ( min_r<it->second ) {	      
+	      matchdata._instance_id_v[idx] = mctrack.TrackID();
+	      int newpid = _pdg_to_larcvpid( mctrack.PdgCode() );
+	      int origpid = matchdata._pdg_v[idx];
+	      if ( newpid!=0 ) { 
+		matchdata._pdg_v[idx] = newpid;
+	      }
+	      nconverted++;
+	      // std::cout << "mctrack[" << mctrack.TrackID() << "] "
+	      // 		<< " pdg=" << mctrack.PdgCode()
+	      // 		<< " min_r=" << min_r
+	      // 		<< " idx=" << idx
+	      // 		<< " pt=(" << pt[0] << "," << pt[1] << "," << pt[2] << ")";
+	      // if ( min_step>=0 )
+	      // 	std::cout << " minstep=(" << mctrack.at(min_step).X() << "," << mctrack.at(min_step).Y() << "," << mctrack.at(min_step).Z() << ")";
+	      // std::cout << " -- converted to from " << origpid << " to " << matchdata._pdg_v[idx] << std::endl;		
+	      idx2rmin[idx] = min_r;
+	    }
+	  }
+	  
+	}
+      }//end of mctrack loop
+      std::cout << "TripletTruthFixer::converted " << nconverted << " hits out of " << near_vertex_list_v.size() << " near vertex pixels" << std::endl;
+    }//end of matchdata loop
   }
+
+  int TripletTruthFixer::_pdg_to_larcvpid( int pdg ) const
+  {
+    int max_pid = 0;
+    switch( pdg ) {
+    case 2212:
+    case 2112:            
+      max_pid = larcv::kROIProton;
+      break;
+    case 13:
+    case -13:
+      max_pid = larcv::kROIMuminus;
+      break;
+    case 321:
+    case -321:          
+      max_pid = larcv::kROIKminus;
+      break;
+    case 211:
+    case -211:
+      max_pid = larcv::kROIPiminus;
+      break;
+    default:
+      max_pid = 0;
+      break;
+    }
+    return max_pid;
+  }
+  
 }
 }

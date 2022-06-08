@@ -5,6 +5,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctrack.h"
+#include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 
@@ -20,7 +21,7 @@ namespace prep {
    * @brief Uses clustering and larlite truth to repair triplet spacepoint instance labels
    *
    */
-  class TripletTruthFixer {
+  class TripletTruthFixer : larcv::larcv_base {
 
   public:
 
@@ -118,7 +119,8 @@ namespace prep {
 					 larlite::event_mcshower& ev_mcshower,
 					 std::vector< float >& vtx );
     
-
+    int _pdg_to_larcvpid( int pdg ) const;
+    
     larutil::SpaceChargeMicroBooNE* _p_sce;
     
   };

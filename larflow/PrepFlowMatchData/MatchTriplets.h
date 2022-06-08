@@ -52,6 +52,8 @@ namespace prep {
 
     PyObject* get_all_triplet_data( const bool withtruth ); // used by deploy/network data prep
 
+    std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
+
     PyObject* make_spacepoint_charge_array(); // used by deploy/network data prep
     
 

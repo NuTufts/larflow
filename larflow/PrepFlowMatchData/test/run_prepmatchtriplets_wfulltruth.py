@@ -11,6 +11,7 @@ parser.add_argument("-mc","--has-mc",default=False,action="store_true",help="Has
 parser.add_argument("-ll","--input-larlite",required=False,default=None,type=str,help="Input larlite file")
 parser.add_argument("-n","--nentries",default=None,type=int,help="Set number of events to run [default: all in file]")
 parser.add_argument("-e","--start-entry",default=0,type=int,help="Set entry to start at [default: entry 0]")
+parser.add_argument("--save-mc",default=False,action='store_true',help="Save MCTrack and MCShower [default:false]")
 args = parser.parse_args(sys.argv[1:])
 
 if args.detector not in ["uboone","sbnd","icarus"]:
@@ -74,9 +75,15 @@ else:
     end_entry = nentries-start_entry-1
 
 out = rt.TFile(args.output,"recreate")
+out.cd()
 outtree = rt.TTree("larmatchtriplet","triplet data")
 triplet_v = std.vector("larflow::prep::MatchTriplets")()
 outtree.Branch("triplet_v",triplet_v)
+
+if args.save_mc:
+    outio = larlite.storage_manager( larlite.storage_manager.kWRITE )
+    outio.set_out_filename( args.output.replace(".root","_larlite.root") )
+    outio.open()
 
 preptripletalgo = larflow.prep.PrepMatchTriplets()
 preptripletalgo.set_verbosity(0) # for debug
@@ -96,14 +103,29 @@ for ientry in range(start_entry, end_entry+1):
         print("process truth labels")
         preptripletalgo.process_truth_labels( io, ioll, args.adc_name )
 
-    for imatchdata in range(preptripletalgo._match_triplet_v.size()):
-        triplet_v.push_back( preptripletalgo._match_triplet_v.at(imatchdata) )
+    truthfixer = larflow.prep.TripletTruthFixer()
+    truthfixer.calc_reassignments( preptripletalgo, io, ioll )
 
-    #truthfixer = larflow.prep.TripletTruthFixer()
-    #truthfixer.calc_reassignments( tripmaker, io, ioll )
+    for imatchdata in range(preptripletalgo._match_triplet_v.size()):
+        triplet_v.push_back( preptripletalgo._match_triplet_v.at(imatchdata) )    
+
+    if args.save_mc:
+        ev_mctrack  = ioll.get_data( larlite.data.kMCTrack,  "mcreco" )
+        ev_mcshower = ioll.get_data( larlite.data.kMCShower, "mcreco" )
+        evout_mctrack  = outio.get_data( larlite.data.kMCTrack,  "mcreco" )
+        evout_mcshower = outio.get_data( larlite.data.kMCShower, "mcreco" )
+        for itrack in range( ev_mctrack.size() ):
+            if ev_mctrack.at(itrack).Origin()==1:
+                evout_mctrack.push_back( ev_mctrack.at(itrack) )
+        for ishower in range( ev_mcshower.size() ):
+            if ev_mcshower.at(ishower).Origin()==1:
+                evout_mcshower.push_back( ev_mcshower.at(ishower) )
     
     outtree.Fill()
-    if True:
+    if args.save_mc:
+        outio.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
+        outio.next_event()
+    if False:
         break
     
 
@@ -112,6 +134,9 @@ out.Write()
 io.finalize()
 if args.has_mc:
     ioll.close()
+if args.save_mc:
+    outio.close()
+
 
 print("End of event loop")
 print("[FIN]")

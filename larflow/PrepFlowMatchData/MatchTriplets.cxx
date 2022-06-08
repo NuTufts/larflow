@@ -83,6 +83,32 @@ namespace prep {
   }
 
   /**
+   * @brief utility function to get imgcoord of triplet
+   *
+   * @param[in] idx_triplet Index of triplet to return info for.
+   * @return a vector<int> containing (col,col,col,row)
+   *
+   */
+  std::vector<int> MatchTriplets::get_triplet_imgcoord_rowcol( int idx_triplet )
+  {
+    if ( idx_triplet<0 || idx_triplet>=(int)_triplet_v.size() ) {
+      std::stringstream msg;
+      msg << "[PrepMatchTriplets::get_triplet_imgcoord_rowcol.L" << __LINE__ << "] "
+          << "triplet index requested (" << idx_triplet << ") is out of bounds. "
+          << "values should be between [0," << _triplet_v.size() << ")."
+          << std::endl;
+      throw std::runtime_error(msg.str());
+    }
+
+    auto const& triplet = _triplet_v[idx_triplet];
+    std::vector<int> imgcoord = {0,0,0,triplet[3]};
+    for (int p=0; p<3; p++ ) {
+      imgcoord[p] = _sparseimg_vv[p][triplet[p]].col;
+    }
+    return imgcoord;
+  }
+  
+  /**
    * @brief Make ndarray containing charge data from the wire planes for all spacepoint proposals
    * 
    * the dictionary contains the following:
