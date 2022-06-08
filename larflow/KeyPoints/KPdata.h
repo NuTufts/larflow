@@ -48,7 +48,9 @@ namespace keypoints {
     };
     ~KPdata() {};
 
+ #ifndef __CINT__    
     std::string str() const;
+ #endif
     
   };
 

@@ -266,11 +266,23 @@ namespace keypoints {
       if (mctrk.size()==0)
 	continue;
 
-      auto const& firststep = mctrk.at(0);
-      TVector3 vpos( firststep.X(), firststep.Y(), firststep.Z() );
-      std::vector<int> CT = geom->GetContainingCryoAndTPCIDs(vpos);
+      // determine cryostat
+      std::vector<int> CT;
+      for (auto const& step : mctrk ) {
+	TVector3 vpos( step.X(), step.Y(), step.Z() );
+	std::vector<int> step_ct = geom->GetContainingCryoAndTPCIDs(vpos);
+	if (step_ct.size()==2) {
+	  CT = step_ct;
+	  break;
+	}
+      }
+      if ( CT.size()==0 )
+	continue;
+      
       int tpcid = CT[1];
-      int cryoid = CT[0];
+      int cryoid = CT[2];
+      std::cout << "muon traveling through (cryo,tpc)=(" << cryoid << "," << tpcid << ")" << std::endl;
+
 
       std::vector< const larcv::Image2D* > padc_v
 	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );
@@ -816,21 +828,14 @@ namespace keypoints {
       }//end of triplet loop
 
       // store the keypoint info for this TPC
-      for (int ikpclass=0; ikpclass<6; ikpclass++) {
-	for (int itestkp=0; itestkp<(int)_kpd_v.size(); itestkp++) {
-	  
-	  auto const& testkpd = _kpd_v[itestkp];
-	  
-	  // ignore those not in class
-	  if ( testkpd.kptype!=(larflow::KeyPoint_t)ikpclass )
-	    continue;
+      for (int itestkp=0; itestkp<(int)_kpd_v.size(); itestkp++) {      
 
-	  if ( testkpd.tpcid!=kpdata.tpcid || testkpd.cryoid!=kpdata.cryoid )
-	    continue;
+	auto const& testkpd = _kpd_v[itestkp];
+	  
+	if ( testkpd.tpcid==kpdata.tpcid || testkpd.cryoid==kpdata.cryoid )
+	  continue;
 
-	  kpdata._kp_pdg_trackid_v[ikpclass].push_back( _kp_pdg_trackid_v[ikpclass].at(itestkp) );
-	  kpdata._kppos_v[ikpclass].push_back( _kppos_v[ikpclass].at(itestkp) );
-	}
+	kpdata._kpd_v.push_back( testkpd );
       }
 
       _keypoint_tpclabel_v.emplace_back( std::move(kpdata) );
@@ -881,7 +886,6 @@ namespace keypoints {
     _label_tree->Branch("kppos_showerstart",  &_kppos_v[3]);
     _label_tree->Branch("kppos_showermichel", &_kppos_v[4]);
     _label_tree->Branch("kppos_showerdelta",  &_kppos_v[5]);
-    _label_tree->Branch("keypoint_tpclabel_v", &_keypoint_tpclabel_v);
 
     // truth meta data branches
     for (int i=0; i<6; i++) {
@@ -896,7 +900,9 @@ namespace keypoints {
     hdpix[0] = new TH1F("hdpix_dt","",1001,-500,500);
     hdpix[1] = new TH1F("hdpix_du","",1001,-500,500);
     hdpix[2] = new TH1F("hdpix_dv","",1001,-500,500);
-    hdpix[3] = new TH1F("hdpix_dy","",1001,-500,500);        
+    hdpix[3] = new TH1F("hdpix_dy","",1001,-500,500);
+
+    _label_tree->Branch("keypoint_tpclabel_v", &_keypoint_tpclabel_v);    
     
   }
 

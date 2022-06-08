@@ -85,8 +85,6 @@ outfile.cd()
 lmctree.Write()
 del lmc
 
-sys.exit(0)
-
 # ALGOS
 # -----------------------
 
@@ -95,6 +93,8 @@ badchmaker = ublarcvapp.EmptyChannelAlgo()
 
 # triplet proposal maker
 ev_triplet = std.vector("larflow::prep::PrepMatchTriplets")(1)
+ev_triplet.at(0).set_wireoverlap_filepath( overlap_matrix_file  )
+ev_tripdata = std.vector("larflow::prep::MatchTriplets")()
 
 # keypoint score data
 kpana = larflow.keypoints.PrepKeypointData()
@@ -104,20 +104,20 @@ outfile.cd()
 kpana.defineAnaTree()
 
 # ssnet label data
-ssnet = larflow.prep.PrepSSNetTriplet()
-outfile.cd()
-ssnet.defineAnaTree()
+#ssnet = larflow.prep.PrepSSNetTriplet()
+##outfile.cd()
+#ssnet.defineAnaTree()
 
 # affinity field data
-kpflow = larflow.keypoints.PrepAffinityField()
-outfile.cd()
-kpflow.defineAnaTree()
+#kpflow = larflow.keypoints.PrepAffinityField()
+#outfile.cd()
+#kpflow.defineAnaTree()
 
 
 if args.save_triplets:
     outfile.cd()
     triptree = rt.TTree("larmatchtriplet","LArMatch triplets")
-    triptree.Branch("triplet_v",ev_triplet)
+    triptree.Branch("triplet_v",ev_tripdata)
 
 start = time.time()
 
@@ -131,6 +131,8 @@ for ientry in range(start_entry,end_entry,1):
     
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
+
+    ev_tripdata.clear()
 
     #lmc.process(ioll)
 
@@ -165,6 +167,8 @@ for ientry in range(start_entry,end_entry,1):
     #kpflow.fillAnaTree()    
     
     if args.save_triplets:
+        for imatch in range(tripmaker._match_triplet_v.size()):
+            ev_tripdata.push_back( tripmaker._match_triplet_v.at(imatch) )
         triptree.Fill()
     nrun += 1    
     
@@ -181,9 +185,9 @@ print("Time: ",float(dtime)/float(nrun)," sec/event")
 outfile.cd()
 #lmc.finalize()
 kpana.writeAnaTree()
-kpana.writeHists()
-ssnet.writeAnaTree()
-kpflow.writeAnaTree()
+#kpana.writeHists()
+#ssnet.writeAnaTree()
+#kpflow.writeAnaTree()
 if args.save_triplets:
     triptree.Write()
 

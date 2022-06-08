@@ -32,6 +32,7 @@ namespace keypoints {
     return false;
   }
 
+#ifndef __CINT__
   /**
    * @brief print info about keypoint info to standard out
    */    
@@ -57,6 +58,7 @@ namespace keypoints {
     
     return ss.str();
   }
+#endif
   
 }
 }
