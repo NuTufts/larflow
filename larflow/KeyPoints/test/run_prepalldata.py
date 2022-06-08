@@ -115,6 +115,7 @@ kpflow.defineAnaTree()
 
 
 if args.save_triplets:
+    outfile.cd()
     triptree = rt.TTree("larmatchtriplet","LArMatch triplets")
     triptree.Branch("triplet_v",ev_triplet)
 
@@ -135,30 +136,12 @@ for ientry in range(start_entry,end_entry,1):
 
     tripmaker = ev_triplet[0]
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
-    
-    ev_adc = iolcv.get_data( larcv.kProductImage2D, args.adc )
-    print("number of images: ",ev_adc.Image2DArray().size())
-    adc_v = ev_adc.Image2DArray()
-    for p in range(adc_v.size()):
-        print(" image[",p,"] ",adc_v[p].meta().dump())
-    sys.stdout.flush()
-        
-    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, args.adc )
-    ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
-    larflow_v  = ev_larflow.Image2DArray()
-    
-    badch_v = badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
-                                              4, 3, 2400, 1008*6, 3456, 6, 1,
-                                              1.0, 100, -1.0 );
-    print("made badch_v, size=",badch_v.size())
+    mcpg.buildgraphonly( ioll )
+    mcpg.printGraph(0,False)    
     sys.stdout.flush()
     
     # make triplet proposals
-    tripmaker.process( adc_v, badch_v, 10.0, True )
-
-    # dump pgraph
-    mcpg.buildgraphonly( ioll )
-    #mcpg.printGraph(0,False)
+    tripmaker.process( iolcv, args.adc, args.adc, 10.0, True )
 
     # make good/bad triplet ground truth
     tripmaker.process_truth_labels( iolcv, ioll, args.adc )
@@ -173,20 +156,20 @@ for ientry in range(start_entry,end_entry,1):
     kpana.fillAnaTree()
 
     # make ssnet ground truth
-    ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    #ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
     
     # fill happens automatically (ugh so ugly)
 
     # make affinity field ground truth
-    kpflow.process( iolcv, ioll, tripmaker )
-    kpflow.fillAnaTree()    
+    #kpflow.process( iolcv, ioll, tripmaker )
+    #kpflow.fillAnaTree()    
     
     if args.save_triplets:
         triptree.Fill()
     nrun += 1    
     
     #sys.exit(0)
-    #break
+    break
 
 print("NCLOSE: ",kpana._nclose)
 print("NFAR: ",kpana._nfar)
