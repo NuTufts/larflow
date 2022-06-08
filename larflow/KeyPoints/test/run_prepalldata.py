@@ -2,6 +2,7 @@ from __future__ import print_function
 import os,sys,argparse,time
 
 parser = argparse.ArgumentParser("Test PrepKeypointData")
+parser.add_argument('-d','--detector',required=True,type=str,help="Choose detector. Optons: {'uboone','sbnd','icarus'} [required]")
 parser.add_argument("-ill", "--input-larlite",required=True,type=str,help="Input larlite file [required]")
 parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file [required]")
 parser.add_argument("-o","--output",required=True,type=str,help="output file name [required]")
@@ -12,12 +13,29 @@ parser.add_argument("-n",   "--nentries",type=int,default=-1,help="Number of ent
 parser.add_argument("-e",   "--start-entry",type=int,default=0,help="Entry to start [default: 0]")
 args = parser.parse_args()
 
+if args.detector not in ["uboone","sbnd","icarus"]:
+    raise ValueError("Invalid detector")
+
+
 import ROOT as rt
 from ROOT import std
 from larcv import larcv
 from larlite import larlite
 from larflow import larflow
 from ublarcvapp import ublarcvapp
+from ROOT import larutil
+
+# SET DETECTOR
+if args.detector == "icarus":
+    detid = larlite.geo.kICARUS
+    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root"
+elif args.detector == "uboone":
+    detid = larlite.geo.kMicroBooNE
+    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_microboone_wireoverlap_matrices.root"    
+elif args.detector == "sbnd":
+    detid = larlite.geo.kSBND    
+larutil.LArUtilConfig.SetDetector(detid)
+
 
 """
 test script for the PrepKeypointData class
@@ -52,17 +70,22 @@ if end_entry>=nentries:
     end_entry = nentries
 
 # OUTPUT FILE
-tmp = rt.TFile(args.output,"recreate")
-
-# MAKE TRUTH INFO
 lmc = ublarcvapp.mctools.LArbysMC()
-tmp.cd()
-lmc.initialize()
+
+outfile = rt.TFile(args.output,"recreate")
+lmctree = rt.TTree("LArbysMCTree","MC infomation")
+lmctree.SetDirectory(outfile)
+# MAKE TRUTH INFO
+lmc.bindAnaVariables(lmctree)
 for ientry in range(start_entry,end_entry,1):
     ioll.go_to(ientry)
     lmc.process(ioll)
-lmc.finalize()
+    lmctree.Fill()
+outfile.cd()
+lmctree.Write()
 del lmc
+
+sys.exit(0)
 
 # ALGOS
 # -----------------------
@@ -77,17 +100,17 @@ ev_triplet = std.vector("larflow::prep::PrepMatchTriplets")(1)
 kpana = larflow.keypoints.PrepKeypointData()
 kpana.set_verbosity( larcv.msg.kDEBUG )
 kpana.setADCimageTreeName( args.adc )
-tmp.cd()
+outfile.cd()
 kpana.defineAnaTree()
 
 # ssnet label data
 ssnet = larflow.prep.PrepSSNetTriplet()
-tmp.cd()
+outfile.cd()
 ssnet.defineAnaTree()
 
 # affinity field data
 kpflow = larflow.keypoints.PrepAffinityField()
-tmp.cd()
+outfile.cd()
 kpflow.defineAnaTree()
 
 
@@ -172,7 +195,7 @@ print("FRAC CLOSE: ",float(kpana._nclose)/float(kpana._nclose+kpana._nfar))
 dtime = time.time()-start
 print("Time: ",float(dtime)/float(nrun)," sec/event")
 
-tmp.cd()
+outfile.cd()
 #lmc.finalize()
 kpana.writeAnaTree()
 kpana.writeHists()
