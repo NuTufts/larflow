@@ -149,6 +149,7 @@ namespace keypoints {
                                   const larlite::event_mctruth&  mctruth_v ) {
 
     LARCV_DEBUG() << "start" << std::endl;
+    clear();
     
     // allocate space charge class
     larutil::SpaceChargeMicroBooNE sce;
@@ -218,6 +219,14 @@ namespace keypoints {
     
   }
 
+  void PrepKeypointData::clear()
+  {
+    for (int i=0; i<6; i++) {
+      _kppos_v[i].clear();
+      _kp_pdg_trackid_v[i].clear();      
+    }
+    _keypoint_tpclabel_v.clear();
+  }
 
   /**
    * make list of end-points for track-like particles
