@@ -173,7 +173,7 @@ for ientry in range(start_entry,end_entry,1):
     nrun += 1    
     
     #sys.exit(0)
-    break
+    #break
 
 print("NCLOSE: ",kpana._nclose)
 print("NFAR: ",kpana._nfar)
