@@ -104,9 +104,9 @@ outfile.cd()
 kpana.defineAnaTree()
 
 # ssnet label data
-#ssnet = larflow.prep.PrepSSNetTriplet()
-##outfile.cd()
-#ssnet.defineAnaTree()
+ssnet = larflow.prep.PrepSSNetTriplet()
+outfile.cd()
+ssnet.defineAnaTree()
 
 # affinity field data
 #kpflow = larflow.keypoints.PrepAffinityField()
@@ -158,7 +158,7 @@ for ientry in range(start_entry,end_entry,1):
     kpana.fillAnaTree()
 
     # make ssnet ground truth
-    #ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
+    ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
     
     # fill happens automatically (ugh so ugly)
 
@@ -185,8 +185,7 @@ print("Time: ",float(dtime)/float(nrun)," sec/event")
 outfile.cd()
 #lmc.finalize()
 kpana.writeAnaTree()
-#kpana.writeHists()
-#ssnet.writeAnaTree()
+ssnet.writeAnaTree()
 #kpflow.writeAnaTree()
 if args.save_triplets:
     triptree.Write()

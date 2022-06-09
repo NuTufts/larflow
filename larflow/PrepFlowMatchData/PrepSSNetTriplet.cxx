@@ -3,6 +3,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
+#include "ublarcvapp/RecoTools/DetUtils.h"
 
 namespace larflow {
 namespace prep {
@@ -83,83 +84,102 @@ namespace prep {
                                                   const std::vector<int>& vtx_imgcoord )
   {
 
+    _ssnet_labeldata_v.clear();
     
-    size_t ntriplets = tripletmaker._triplet_v.size();
-    _ssnet_label_v.clear();
-    _ssnet_label_v.resize( ntriplets, 0 );
-    _ssnet_weight_v.clear();
-    _ssnet_weight_v.resize( ntriplets, 1.0 );
-    _ssnet_num_v.clear();
-    _ssnet_num_v.resize(kNumClasses,0.0);
+    for (int imatchdata=0; imatchdata<(int)tripletmaker._match_triplet_v.size(); imatchdata++) {
 
-    int vtxrow = -1;
-    if ( vtx_imgcoord[3]>tripletmaker._imgmeta_v.front().min_y()
-         && vtx_imgcoord[3]<tripletmaker._imgmeta_v.front().max_y()  ) {
-      vtxrow = tripletmaker._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
-    }
+      auto const& matchdata = tripletmaker._match_triplet_v.at(imatchdata);
 
-    for (int i=0; i<kNumClasses; i++) _ssnet_num_v[i] = 0;
+      std::vector< const larcv::Image2D* > psegment_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( segment_v, matchdata._tpcid, matchdata._cryoid );
       
-    for ( size_t itrip=0; itrip<ntriplets; itrip++ ) {
-      const std::vector<int>& triplet = tripletmaker._triplet_v[itrip];
+      size_t ntriplets = matchdata._triplet_v.size();
 
-      int larcv_pid = tripletmaker._pdg_v[itrip]; // particle label using larcv class enum
-      int net_label = larcv2class( larcv_pid );
-      if ( tripletmaker._truth_v[itrip]==0 )
-	net_label = 0;
-      //std::cout << larcv_pid << "  " << net_label << std::endl;
-      _ssnet_label_v[itrip] = net_label;
-      _ssnet_num_v[net_label] += 1;
-      _ssnet_weight_v[itrip] = 1.;
+      SSNetLabelData ssnetdata;
+      
+      ssnetdata._ssnet_label_v.clear();
+      ssnetdata._ssnet_label_v.resize( ntriplets, 0 );
+      ssnetdata._ssnet_weight_v.clear();
+      ssnetdata._ssnet_weight_v.resize( ntriplets, 1.0 );
+      ssnetdata._ssnet_num_v.clear();
+      ssnetdata._ssnet_num_v.resize(kNumClasses,0.0);
+      ssnetdata._boundary_weight_v.resize( ntriplets );
 
-      // we get the column for each plane
-      std::vector<int> imgcoord(4,0); //(u,v,y,row)
-      for (size_t p=0; p<3; p++)
-        imgcoord[p] = tripletmaker._sparseimg_vv[p][triplet[p]].col;
-      //use the y-plane for the row, should be the same      
-      imgcoord[3] = tripletmaker._sparseimg_vv[2][triplet[2]].row;      
+      int vtxrow = -1;
+      if ( vtx_imgcoord[3]>matchdata._imgmeta_v.front().min_y()
+         && vtx_imgcoord[3]<matchdata._imgmeta_v.front().max_y()  ) {
+	vtxrow = matchdata._imgmeta_v.front().row( vtx_imgcoord[3] ); // convert tick to row
+      }
 
-      // go to planes and vote on boundary status
-      std::vector<int> nclass( kNumClasses, 0 );
-      int isboundary = 0;
-      int isvertex = 0;
-      for ( size_t p=0; p<3; p++ ) {
-        auto const& seg = segment_v[p];
-        int label = seg.pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
-        // determine if boundary
-        int nneigh = 0;
-        int nsame  = 0;
-        for (size_t dr=-1; dr<=1; dr++) {
-          int row = imgcoord[3]+dr;
-          if ( row<0 || row>=(int)seg.meta().rows() ) continue;
-          for ( size_t dc=-1; dc<=1; dc++ ) {
-            int col = imgcoord[p]+dc;
-            if ( col<0 || col>=seg.meta().cols() ) continue;
-            int neighbor_label = seg.pixel(row,col,__FILE__,__LINE__);
-            if ( neighbor_label!=0 ) {
-              nneigh++;
-              if ( neighbor_label==label )
-                nsame++;
-            }
-          }//end of dcol loop
-        }//end of drow loop
-        if (nneigh!=nsame)
-          isboundary += 1;
+      for (int i=0; i<kNumClasses; i++) ssnetdata._ssnet_num_v[i] = 0;
+      
+      for ( size_t itrip=0; itrip<ntriplets; itrip++ ) {
+	const std::vector<int>& triplet = matchdata._triplet_v[itrip];
 
-        // determine if near vertex
-        if ( vtxrow>=0 && abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
-          isvertex++;
-      }//end of plane loop    
+	int larcv_pid = matchdata._pdg_v[itrip]; // particle label using larcv class enum
+	int net_label = larcv2class( larcv_pid );
+	if ( matchdata._truth_v[itrip]==0 )
+	  net_label = 0;
+	//std::cout << larcv_pid << "  " << net_label << std::endl;
+	ssnetdata._ssnet_label_v[itrip] = net_label;
+	ssnetdata._ssnet_num_v[net_label] += 1;
+	ssnetdata._ssnet_weight_v[itrip] = 1.;
 
-      // set weight
-      if ( isvertex==3 )
-        _ssnet_weight_v[itrip] = 100.;
-      else if ( isboundary>0 )
-        _ssnet_weight_v[itrip] = 10.;
-      else
-        _ssnet_weight_v[itrip] = 1.;
+	// we get the column for each plane
+	std::vector<int> imgcoord(4,0); //(u,v,y,row)
+	for (size_t p=0; p<3; p++)
+	  imgcoord[p] = matchdata._sparseimg_vv[p][triplet[p]].col;
+	//use the y-plane for the row, should be the same      
+	imgcoord[3] = matchdata._sparseimg_vv[2][triplet[2]].row;      
+	
+	// go to planes and vote on boundary status
+	std::vector<int> nclass( kNumClasses, 0 );
+	int isboundary = 0;
+	int isvertex = 0;
+	for ( size_t p=0; p<3; p++ ) {
+	  auto const& seg = *psegment_v[p];
+	  int label = seg.pixel( imgcoord[3], imgcoord[p], __FILE__, __LINE__ );
+	  // determine if boundary
+	  int nneigh = 0;
+	  int nsame  = 0;
+	  for (size_t dr=-1; dr<=1; dr++) {
+	    int row = imgcoord[3]+dr;
+	    if ( row<0 || row>=(int)seg.meta().rows() ) continue;
+	    for ( size_t dc=-1; dc<=1; dc++ ) {
+	      int col = imgcoord[p]+dc;
+	      if ( col<0 || col>=seg.meta().cols() ) continue;
+	      int neighbor_label = seg.pixel(row,col,__FILE__,__LINE__);
+	      if ( neighbor_label!=0 ) {
+		nneigh++;
+		if ( neighbor_label==label )
+		  nsame++;
+	      }
+	    }//end of dcol loop
+	  }//end of drow loop
+	  if (nneigh!=nsame)
+	    isboundary += 1;
 
-    }//end of loop over proposed triplets
+	  // determine if near vertex
+	  if ( vtxrow>=0 && abs(imgcoord[3]-vtxrow)<10 && abs(imgcoord[p]-vtx_imgcoord[p])<10 )
+	    isvertex++;
+	}//end of plane loop    
+
+	// set weight
+	std::vector< float > topology_weights(2,1.0);
+	if ( isvertex==3 ) {
+	  topology_weights[1] = 5.0;
+	}
+	if ( isboundary>0 ) {
+	  topology_weights[0] = 2.0;
+	}
+
+	ssnetdata._ssnet_weight_v[itrip] = 1.;
+	ssnetdata._boundary_weight_v[itrip] = topology_weights;
+
+      }//end of loop over proposed triplets
+
+      _ssnet_labeldata_v.emplace_back( std::move(ssnetdata) );
+    }//end of matchdata for each TPC
 
     if ( _label_tree )
       _label_tree->Fill();
@@ -174,10 +194,9 @@ namespace prep {
     _label_tree = new TTree("ssnetlabels","SSNet Triplet labels and weights");
     _label_tree->Branch( "run",    &_run,    "run/I" );
     _label_tree->Branch( "subrun", &_subrun, "subrun/I" );
-    _label_tree->Branch( "event",  &_event,  "event/I" );    
-    _label_tree->Branch( "ssnet_label_v",  &_ssnet_label_v );
-    _label_tree->Branch( "ssnet_weight_v", &_ssnet_weight_v );
-    _label_tree->Branch( "ssnet_num_v",    &_ssnet_num_v );
+    _label_tree->Branch( "event",  &_event,  "event/I" );
+    _label_tree->Branch( "ssnet_labeldata_v", &_ssnet_labeldata_v );
+
   }
 
   void PrepSSNetTriplet::writeAnaTree()

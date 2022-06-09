@@ -8,6 +8,7 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "PrepMatchTriplets.h"
+#include "SSNetLabelData.h"
 
 namespace larflow {
 namespace prep {
@@ -47,12 +48,13 @@ namespace prep {
     int _run;     ///< run number of event used to make labels
     int _subrun;  ///< subrun of event used to make labels
     int _event;   ///< event number of event used to make labels
-    std::vector< int >                _ssnet_label_v;  ///< pixel topology label:: 0:bg, 1:track, 2:shower
-    std::vector< float >              _ssnet_weight_v; ///< triplet weights based on topology
-    std::vector< int >                _ssnet_num_v;    ///< number of each class
-    std::vector< std::vector<int> >   _pid_label_v;          ///< particle ID labe:: 0:bg, 1:muon,  2: proton, 3:pion, 4:electron, 5:gamma
-    std::vector< float >              _pid_weight_v;         ///< class balancing weight
-    std::vector< std::vector<float> > _boundary_weight_v;    ///< upweights at boundary, vertex
+    // std::vector< int >                _ssnet_label_v;  ///< pixel topology label:: 0:bg, 1:track, 2:shower
+    // std::vector< float >              _ssnet_weight_v; ///< triplet weights based on topology
+    // std::vector< int >                _ssnet_num_v;    ///< number of each class
+    // std::vector< std::vector<int> >   _pid_label_v;          ///< particle ID labe:: 0:bg, 1:muon,  2: proton, 3:pion, 4:electron, 5:gamma
+    // std::vector< float >              _pid_weight_v;         ///< class balancing weight
+    // std::vector< std::vector<float> > _boundary_weight_v;    ///< upweights at boundary, vertex
+    std::vector< SSNetLabelData > _ssnet_labeldata_v;
 
     void defineAnaTree();
 

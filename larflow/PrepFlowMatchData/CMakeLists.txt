@@ -12,7 +12,8 @@ set( HEADERS #WireOverlap.h
   #PrepFlowMatchData.hh
   #MatchTripletProcessor.h
   #PyFlowMatchData.hh
-  #PrepSSNetTriplet.h
+  SSNetLabelData.h
+  PrepSSNetTriplet.h
   #TripletIO.h
   TripletTruthFixer.h
   )
@@ -27,7 +28,8 @@ add_library( ${LIBNAME} SHARED
   #FlowMatchMap.cxx
   #PrepFlowMatchData.cxx
   #PyFlowMatchData.cxx
-  #PrepSSNetTriplet.cxx
+  SSNetLabelData.cxx
+  PrepSSNetTriplet.cxx
   #TripletIO.cxx
   TripletTruthFixer.cxx
   )

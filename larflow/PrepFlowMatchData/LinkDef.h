@@ -26,12 +26,15 @@
 #pragma link C++ class larflow::prep::MatchTriplets+;
 #pragma link C++ class std::vector<larflow::prep::MatchTriplets>+;
 #pragma link C++ class larflow::prep::PrepMatchTriplets+;
-//#pragma link C++ class larflow::prep::PrepSSNetTriplet+;
+#pragma link C++ class larflow::prep::SSNetLabelData+;
+#pragma link C++ class std::vector<larflow::prep::SSNetLabelData>+;
+#pragma link C++ class larflow::prep::PrepSSNetTriplet+;
+#pragma link C++ class larflow::prep::TripletTruthFixer+;
+
 //#pragma link C++ class std::vector<larflow::prep::PrepMatchTriplets>+;
 //#pragma link C++ class larflow::prep::MatchTripletProcessor+;
 //#pragma link C++ class larflow::prep::FlowMatchHitMaker+;
 //#pragma link C++ class larflow::prep::TripletIO+;
-//#pragma link C++ class larflow::prep::TripletTruthFixer+;
 //#pragma link C++ function larflow::prep::sample_pair_array( const int&, const FlowMatchMap&, int&, bool )+;
 //#pragma link C++ function larflow::prep::get_chunk_pair_array( const int&, const int&, const FlowMatchMap&, int&, int&, bool )+;
 //#pragma link C++ function larflow::prep::make_larflow_hits( PyObject*, PyObject*, PyObject*, const larcv::ImageMeta&, larlite::event_larflow3dhit&, const larcv::EventChStatus* )+;
