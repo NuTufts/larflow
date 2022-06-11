@@ -3,11 +3,18 @@ import os,sys,argparse
 sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
 
 parser = argparse.ArgumentParser(description='Run Prep larmatch data')
+parser.add_argument('-d','--detector',required=True,type=str,help="Set detector. Options: ['uboone','sbnd','icarus']")
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
 parser.add_argument('-s','--single',default=False,action='store_true',help='If flag given, input_list argument is interpretted as a triplet file')
 parser.add_argument('input_list',type=str,help="text file with paths to larmatch triplet files to distill")
 
 args = parser.parse_args()
+
+# CHECK ARGUMENTS
+args = parser.parse_args()
+if args.detector not in ["uboone","sbnd","icarus"]:
+    raise ValueError("Invalid detector [%s]. options are {\"uboone\",\"sbnd\",\"icarus\"}")
+
 
 from ctypes import c_int
 from array import array
@@ -16,6 +23,16 @@ import ROOT as rt
 from ROOT import std
 from larcv import larcv
 from larflow import larflow
+
+# SET DETECTOR
+# SET GEOMETRY
+if args.detector == "icarus":
+    detid = larlite.geo.kICARUS
+elif args.detector == "uboone":
+    detid = larlite.geo.kMicroBooNE
+elif args.detector == "sbnd":
+    detid = larlite.geo.kSBND    
+larutil.LArUtilConfig.SetDetector(detid)
 
 
 if not os.path.exists(args.input_list):
