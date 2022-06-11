@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os,sys,argparse
+import os,sys,argparse,gc
 sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
 
 parser = argparse.ArgumentParser(description='Run Prep larmatch data')
@@ -22,6 +22,8 @@ import numpy as np
 import ROOT as rt
 from ROOT import std
 from larcv import larcv
+from larlite import larlite
+from ROOT import larutil
 from larflow import larflow
 
 # SET DETECTOR
@@ -118,6 +120,7 @@ for ientry in range(nentries):
     # clear entry data containers
     coord_v.clear()
     feat_v.clear()
+    matchtriplet_v.clear()    
     lm_truth_v.clear()
     lm_weight_v.clear()
     ssnet_truth_v.clear()
@@ -125,12 +128,13 @@ for ientry in range(nentries):
     ssnet_top_weight_v.clear()    
     kp_truth_v.clear()
     kp_weight_v.clear()
-    matchtriplet_v.clear()
+
     
     # Get the first entry (or row) in the tree (i.e. table)
     kploader.load_entry(ientry)
 
     # turn shuffle off (to do, function should be kploader function)
+    
     tripdata = kploader.triplet_v.at(0).setShuffleWhenSampling( False )
 
     # 2d images
@@ -144,26 +148,26 @@ for ientry in range(nentries):
 
     # get 3d spacepoints (to do, function should be kploader function)
     tripdata = kploader.triplet_v.at(0).get_all_triplet_data( True )
-    spacepoints = kploader.triplet_v.at(0).make_spacepoint_charge_array()    
+    #spacepoints = kploader.triplet_v.at(0).make_spacepoint_charge_array()    
     nfilled = c_int(0)
     ntriplets = tripdata.shape[0]    
 
     TPCID = 0
     CRYOID = 0
     data = kploader.sample_data( ntriplets, nfilled, True, TPCID, CRYOID )
-    data.update(spacepoints)
-    data.update( wireimg_dict )
+    #data.update(spacepoints)
+    #data.update( wireimg_dict )
 
     # to do: the commands here are still awfully wonky
     
-    print("numpy arrays in tripdata: ",tripdata.shape)
-    print("numpy arrays from kploader: ",data.keys())
+    #print("numpy arrays in tripdata: ",tripdata.shape)
+    #print("numpy arrays from kploader: ",data.keys())
 
-    max_u = np.max( data["matchtriplet"][:,0] )
-    max_v = np.max( data["matchtriplet"][:,1] )
-    max_y = np.max( data["matchtriplet"][:,2] )
-    print("sanity check, max indices: ",max_u,max_v,max_y)
-    print("matchtriplet shape: ",data["matchtriplet"].shape,data["matchtriplet"].dtype)
+    #max_u = np.max( data["matchtriplet"][:,0] )
+    #max_v = np.max( data["matchtriplet"][:,1] )
+    #max_y = np.max( data["matchtriplet"][:,2] )
+    #print("sanity check, max indices: ",max_u,max_v,max_y)
+    #print("matchtriplet shape: ",data["matchtriplet"].shape,data["matchtriplet"].dtype)
 
     # Store data
     # run, subrun, event indices for entry
@@ -186,6 +190,7 @@ for ientry in range(nentries):
     matchtriplets.store(data["matchtriplet"][:,:3].astype(np.int32))
     matchtriplet_v.push_back(matchtriplets)
 
+
     # truth data for larmatch tasks
     lm_truth_v.push_back( data["matchtriplet"][:,3].astype(np.int32) )
     lm_weight_v.push_back( data["match_weight"].astype(np.float32) )
@@ -200,12 +205,15 @@ for ientry in range(nentries):
     kp_weight_v.push_back( data["kplabel_weight"].astype(np.float32) )    
 
     outtree.Fill()
-    if True and ientry>=9:
+    for k in data:
+        print(k," refs=",len(gc.get_referrers(data[k])))
+
+    # del data
+    # gc.collect()
+    if False and ientry>=99:
         # For debug
         break
 
 
 outfile.Write()
-    
-
     
