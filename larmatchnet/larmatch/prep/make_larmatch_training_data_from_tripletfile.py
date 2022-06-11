@@ -130,8 +130,10 @@ for ientry in range(nentries):
     spacepoints = kploader.triplet_v.at(0).make_spacepoint_charge_array()    
     nfilled = c_int(0)
     ntriplets = tripdata.shape[0]    
-    
-    data = kploader.sample_data( ntriplets, nfilled, True )
+
+    TPCID = 0
+    CRYOID = 0
+    data = kploader.sample_data( ntriplets, nfilled, True, TPCID, CRYOID )
     data.update(spacepoints)
     data.update( wireimg_dict )
 
@@ -181,7 +183,7 @@ for ientry in range(nentries):
     kp_weight_v.push_back( data["kplabel_weight"].astype(np.float32) )    
 
     outtree.Fill()
-    if False and ientry>=4:
+    if True and ientry>=9:
         # For debug
         break
 

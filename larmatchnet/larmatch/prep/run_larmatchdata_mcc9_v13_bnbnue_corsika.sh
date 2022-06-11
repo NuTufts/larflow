@@ -1,8 +1,8 @@
 #!/bin/bash
 
 tag=bnbnue
-WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
-UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
+WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/prep/workdir/
+UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl
 INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/inputlists/mcc9_v13_bnbnue_corsika.triplettruth.list
 OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika/
 PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_data_from_tripletfile.py

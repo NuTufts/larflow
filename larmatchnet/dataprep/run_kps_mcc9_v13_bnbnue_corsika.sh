@@ -1,7 +1,7 @@
 #!/bin/bash
 
-WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/dataprep/workdir
-UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
+WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/dataprep/workdir
+UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl
 INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.paired.list
 OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/dataprep/outdir_triplettruth_mcc9_v13_bnbnue_corsika/
 TAG=bnbnue
@@ -30,7 +30,7 @@ source setenv_py3.sh >> ${local_logfile} 2>&1
 source configure.sh >>	${local_logfile} 2>&1
 cd $local_jobdir
 
-SCRIPT="python ${UBDL_DIR}/larflow/larflow/KeyPoints/test/run_prepalldata.py"
+SCRIPT="python3 ${UBDL_DIR}/larflow/larflow/KeyPoints/test/run_prepalldata.py"
 echo "SCRIPT: ${SCRIPT}" >> ${local_logfile} 2>&1
 echo "startline: ${startline}" >> ${local_logfile} 2>&1
 
@@ -39,7 +39,7 @@ do
     let lineno=$startline+$i
     larcvtruth=`sed -n ${lineno}p $INPUTLIST | awk '{print $1}'`
     mcinfo_path=`sed -n ${lineno}p $INPUTLIST | awk '{print $2}'`
-    COMMAND="${SCRIPT} --out out_${i}.root --input-larcv $larcvtruth --input-larlite ${mcinfo_path} -adc wiremc -tb -tri"
+    COMMAND="${SCRIPT} -d uboone --out out_${i}.root --input-larcv $larcvtruth --input-larlite ${mcinfo_path} -adc wiremc -tb -tri"
     echo $COMMAND
     $COMMAND >> ${local_logfile} 2>&1
 done
