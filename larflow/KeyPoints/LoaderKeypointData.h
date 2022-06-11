@@ -17,6 +17,9 @@
 
 #include "TChain.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/PrepFlowMatchData/MatchTriplets.h"
+#include "larflow/PrepFlowMatchData/SSNetLabelData.h"
+#include "larflow/KeyPoints/KeypointData.h"
 
 namespace larflow {
 namespace keypoints {
@@ -52,7 +55,7 @@ namespace keypoints {
 	_subrun(0),
 	_event(0)
     {};
-    
+   
     LoaderKeypointData( std::vector<std::string>& input_v );
     virtual ~LoaderKeypointData();
 
@@ -72,13 +75,9 @@ namespace keypoints {
     int _run;    ///< run number ID
     int _subrun; ///< subrun number ID
     int _event;  ///< event number ID
-    std::vector<larflow::prep::PrepMatchTriplets>* triplet_v; ///< pointer to triplet data loaded from ttriplet ROOT tree
-    std::vector< std::vector<float> >*       kplabel_v[6];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
-    std::vector< std::vector<float> >*       kppos_v[6];      ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
-    std::vector< std::vector<int> >*         kptruth_v[6];    ///< pointer to keypoint true (pdg,trackid) for tkeypoint ROOT tree        
-    std::vector< std::vector<float> >*       kpshift_v;       ///< pointer to vector to closet true keypoint loaded from the tkeypoint ROOT tree
-    std::vector< int   >*                    ssnet_label_v;   ///< pointer to ssnet label for each space point loaded from the tssnet ROOT tree
-    std::vector< float >*                    ssnet_weight_v;  ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree
+    std::vector<larflow::prep::MatchTriplets>*    triplet_v; ///< pointer to triplet data loaded from ttriplet ROOT tree
+    std::vector<larflow::keypoints::KeypointData>* kpdata_v;  ///< pointer to keypoint data loaded from ttriplet ROOT tree
+    std::vector<larflow::prep::SSNetLabelData>*   ssnet_v;   ///< pointer to ssnet data loaded from ttriplet ROOT tree    
 
     /** @brief set flag that, if True, only loads true (non-ghost) spacepoints for training ssnet and keypoint labels (default is false)*/
     void exclude_false_triplets( bool exclude ) { _exclude_neg_examples = exclude; };
@@ -87,15 +86,17 @@ namespace keypoints {
     unsigned long GetEntries();    
     PyObject* sample_data( const int& num_max_samples,
                            int& nfilled,
-                           bool withtruth );
+                           bool withtruth,
+			   int tpcid,
+			   int cryoid );
 
     int run()    { if (_run)    return _run;    else return -1; };
     int subrun() { if (_subrun) return _subrun; else return -1; };
     int event()  { if (_event)  return _event;  else return -1; };
 
-    std::vector< int >                get_keypoint_types() const;
-    std::vector< std::vector<float> > get_keypoint_pos()   const;
-    std::vector< std::vector<int> >   get_keypoint_pdg_and_trackid() const;
+    std::vector< int >                get_keypoint_types(const int imatchdata) const;
+    std::vector< std::vector<float> > get_keypoint_pos(const int imatchdata)   const;
+    //std::vector< std::vector<int> >   get_keypoint_pdg_and_trackid(const int imatchdat) const;
 
   public:
 
@@ -108,6 +109,7 @@ namespace keypoints {
   protected:
     
     int make_ssnet_arrays( const int& num_max_samples,
+			   const int imatchdata,
                            int& nfilled,
                            bool withtruth,
                            std::vector<int>& pos_match_index,
@@ -117,6 +119,7 @@ namespace keypoints {
                            PyArrayObject*& ssnet_class_weight );
 
     int make_kplabel_arrays( const int& num_max_samples,
+			     const int imatchdata,
                              int& nfilled,
                              bool withtruth,
                              std::vector<int>& pos_match_index,
@@ -124,11 +127,11 @@ namespace keypoints {
                              PyArrayObject*& kplabel_label,
                              PyArrayObject*& kplabel_weight );
 
-    int make_kpshift_arrays( const int& num_max_samples,
-                             int& nfilled,
-                             bool withtruth,
-                             PyArrayObject* match_array,
-                             PyArrayObject*& kpshift_label );
+    // int make_kpshift_arrays( const int& num_max_samples,
+    //                          int& nfilled,
+    //                          bool withtruth,
+    //                          PyArrayObject* match_array,
+    //                          PyArrayObject*& kpshift_label );
 
     
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)

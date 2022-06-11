@@ -6,7 +6,7 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 set( HEADERS KPdata.h
   KeypointData.h
   PrepKeypointData.h
-  #LoaderKeypointData.h
+  LoaderKeypointData.h
   #PrepAffinityField.h
   #LoaderAffinityField.h
   )
@@ -15,7 +15,7 @@ add_library( ${LIBNAME} SHARED
   KPdata.cxx
   KeypointData.cxx  
   PrepKeypointData.cxx  
-  #LoaderKeypointData.cxx
+  LoaderKeypointData.cxx
   #PrepAffinityField.cxx
   #LoaderAffinityField.cxx
   )

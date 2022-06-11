@@ -530,6 +530,8 @@ namespace keypoints {
 	}
 
 	std::vector<int> CT = geom->GetContainingCryoAndTPCIDs(nupos);
+	if ( CT.size()==0 )
+	  continue;
 	int tpcid = CT[1];
 	int cryoid = CT[0];
 

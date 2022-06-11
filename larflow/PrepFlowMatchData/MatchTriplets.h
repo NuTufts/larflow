@@ -62,9 +62,9 @@ namespace prep {
                                   const std::vector<int>& idx_v,
                                   const int start_idx,
                                   const bool withtruth,
-                                  int& nsamples );
+                                  int& nsamples ) const;
     
-    PyObject* sample_triplet_matches( const int& num_max_samples, int& nfilled, bool withtruth );
+    PyObject* sample_triplet_matches( const int& num_max_samples, int& nfilled, bool withtruth ) const;
 
     PyObject* get_chunk_triplet_matches( const int& start_index,
                                          const int& max_num_pairs,

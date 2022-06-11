@@ -227,7 +227,7 @@ namespace prep {
                                                    const std::vector<int>& idx_v,
                                                    const int start_idx,
                                                    const bool withtruth,
-                                                   int& nsamples )
+                                                   int& nsamples ) const
   {
 
     if ( !_setup_numpy ) {
@@ -292,7 +292,8 @@ namespace prep {
    */
   PyObject* MatchTriplets::sample_triplet_matches( const int& nsamples,
                                                        int& nfilled,
-                                                       bool withtruth ) {
+                                                       bool withtruth ) const
+  {
 
     std::vector<int> idx_v( _triplet_v.size() );
     for ( size_t i=0; i<_triplet_v.size(); i++ ) idx_v[i] = (int)i;
