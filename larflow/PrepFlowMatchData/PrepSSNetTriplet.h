@@ -42,6 +42,8 @@ namespace prep {
                                   const larflow::prep::PrepMatchTriplets& tripletmaker,
                                   const std::vector<int>& vtx_imgcoord );
 
+    void clear();
+
     enum { kBG=0, kElectron, kGamma, kMuon, kPion, kProton, kOther, kNumClasses };
     
     TTree* _label_tree;  ///< ROOT TTree used to store label data to output file

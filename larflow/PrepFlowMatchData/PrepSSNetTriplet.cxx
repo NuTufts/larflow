@@ -185,6 +185,16 @@ namespace prep {
       _label_tree->Fill();
   }
 
+  /**
+   * @brief clear output containers
+   *
+   */
+  void PrepSSNetTriplet::clear()
+  {
+    _ssnet_labeldata_v.clear();
+  }
+  
+
   /** 
    * @brief create the ana tree where we'll save labels
    *
