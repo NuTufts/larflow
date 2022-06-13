@@ -272,7 +272,8 @@ class LMDataset(torch.utils.data.Dataset):
                 raise("Dupe introduced somehow in batch-index=%d"%(ib)," arr=",data["voxcoord"].shape)
 
 
-        v = ["tree_entry","voxcoord","voxfeat","voxlabel","ssnet_labels","kplabel","voxlmweight","ssnet_weights","kpweight"]
+        ##v = ["tree_entry","voxcoord","voxfeat","voxlabel","ssnet_labels","kplabel","voxlmweight","ssnet_weights","kpweight"]
+        v = ["tree_entry","voxcoord","voxfeat","voxlabel","ssnet_labels","voxlmweight","ssnet_weights"]
 
         print("batch_size: ",batch_size)
         for ib in range(batch_size):
