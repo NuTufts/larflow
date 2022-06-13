@@ -16,6 +16,7 @@ from array import array
 import numpy as np
 from array import array
 import torch
+from collections import defaultdict
 from larvoxel_dataset import larvoxelDataset
 
 import ROOT as rt
@@ -195,10 +196,10 @@ def voxelizeIntrxn(iid_v):
 
     iilm_truth_v = [ data["voxlabel"][indexmatch[:]] for indexmatch in indexmatch_v ]
     iissnet_truth_v = [ data["ssnet_labels"][indexmatch[:]] for indexmatch in indexmatch_v ]
-    iikp_truth_v = [ data["kplabel"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
+    ##iikp_truth_v = [ data["kplabel"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
     iilm_weight_v = [ data["voxlmweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
     iissnet_weight_v = [ data["ssnet_weights"][indexmatch[:]] for indexmatch in indexmatch_v ]
-    iikp_weight_v = [ data["kpweight"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
+    ##iikp_weight_v = [ data["kpweight"][:,indexmatch[:]] for indexmatch in indexmatch_v ]
     #iiinstance_truth_v = [ data["voxinstance"][indexmatch[:],:] for indexmatch in indexmatch_v ]
     iiorigin_truth_v = [ data["voxorigin"][indexmatch[:]] for indexmatch in indexmatch_v ]
     iiorigin_weight_v = [ data["voxoriginweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
@@ -212,10 +213,10 @@ def voxelizeIntrxn(iid_v):
     iifeat = np.concatenate( iifeat_v )
     iilm_truth = np.concatenate( iilm_truth_v )
     iissnet_truth = np.concatenate( iissnet_truth_v )
-    iikp_truth = np.concatenate( iikp_truth_v )
+    ##iikp_truth = np.concatenate( iikp_truth_v )
     iilm_weight = np.concatenate( iilm_weight_v )
     iissnet_weight = np.concatenate( iissnet_weight_v )
-    iikp_weight = np.concatenate( iikp_weight_v )
+    ##iikp_weight = np.concatenate( iikp_weight_v )
     #iiinstance_truth = np.concatenate( iiinstance_truth_v )
     iiorigin_truth = np.concatenate( iiorigin_truth_v )
     iiorigin_weight = np.concatenate( iiorigin_weight_v )
@@ -235,11 +236,11 @@ def voxelizeIntrxn(iid_v):
 
 
     ssnet_truth_v.push_back( larcv.NumpyArrayInt( iissnet_truth.astype(np.int32) ) )
-    kp_truth_v.push_back( larcv.NumpyArrayFloat( iikp_truth ) )
+    ##kp_truth_v.push_back( larcv.NumpyArrayFloat( iikp_truth ) )
 
     lm_weight_v.push_back( larcv.NumpyArrayFloat( iilm_weight ) )
     ssnet_weight_v.push_back( larcv.NumpyArrayFloat( iissnet_weight ) )
-    kp_weight_v.push_back( larcv.NumpyArrayFloat( iikp_weight ) )
+    ##kp_weight_v.push_back( larcv.NumpyArrayFloat( iikp_weight ) )
 
     #instance_truth_v.push_back(  larcv.NumpyArrayInt( iiinstance_truth.astype(np.int32) ) )
 
@@ -251,7 +252,7 @@ def voxelizeIntrxn(iid_v):
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(2):
+for ientry in range(2): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []
@@ -277,9 +278,38 @@ for ientry in range(2):
     print("ev_opflash_cosmic.size() is:", ev_opflash_cosmic.size() )
     print("ev_opflash_beam.size() is:", ev_opflash_beam.size() )
 
-    #mcpg = ublarcvapp.mctools.MCPixelPGraph()
-    #mcpg.buildgraphonly( ioll  )
-    #mcpg.printGraph(0,False)
+    mcpg = ublarcvapp.mctools.MCPixelPGraph()
+    mcpg.buildgraphonly( ioll  )
+    mcpg.printGraph(0,False)
+    print ("Node?: ",mcpg.node_v[1].nodeidx)
+
+    # create dictionary of key: ancestorid (int), value: list of corresponding trackids
+    #intrxnDict = defaultdict(list)
+    intrxnDict = dict()
+
+    for i in range(0, mcpg.node_v.size(), 1):
+
+        nodeAncestor = mcpg.node_v[i].aid
+        nodeTrackid = mcpg.node_v[i].tid
+        print("i, total num clusters (tracks & showers) in event: ", i, " ", mcpg.node_v.size())
+
+        if nodeAncestor not in ancestorList:
+            ancestorList.append( nodeAncestor )
+            intrxnDict[nodeAncestor] = [nodeAncestor]
+            continue
+            #intrxnDict.setdefault(nodeAncestor, [])
+
+        #if nodeAncestor in ancestorList:
+
+        # if it's a secondary, append the track to the list for the ancestorid key
+        intrxnDict[nodeAncestor].append(nodeTrackid)
+        #    continue
+
+        #ancestorList.append( nodeAncestor )
+        #intrxnDict[nodeAncestor] = nodeAncestor
+        #intrxnDict.setdefault(nodeAncestor, [])
+
+    print("intrxnDict", intrxnDict)
 
     numTracks = fmutil.numTracks( ioll )
     numShowers = fmutil.numShowers( ioll )
@@ -288,6 +318,42 @@ for ientry in range(2):
 
     iidList = [] # push back each iid_v list into here
 
+
+    # loop over interactions in the event
+    for key in intrxnDict: # let's loop through all ancestorids
+
+        iid_v = [] # list of instance ids to collect
+
+        #print("intrxnDict", intrxnDict)
+        #print("intrxnDict[key]", intrxnDict[key])
+
+        trackList = intrxnDict[key]
+
+        #print("trackList: ", trackList)
+
+        for ii in data["voxinstance2id"]:
+            k = ii
+            v = data["voxinstance2id"][k]
+            pair = std.vector("int")(2,0)
+            pair[0] = int(k)
+            pair[1] = int(v)
+            print("trackID and instance: ", pair[0], " ", pair[1])
+            instance_map_v.push_back(pair)
+            #print("instance_map_v: ",instance_map_v)
+            if (k in trackList):
+            #print("FOUND a track that matches ancestorID!")
+                print("It is track ID: ",k)
+                print("For instance: ",v)
+                iid_v.append(v)
+
+        print("This is iid_v: ",iid_v)
+        if not iid_v:
+            print("List is empty")
+            continue
+
+        iidList.append(iid_v)
+
+    '''
     # loop thru tracks in event
     for i in range( 0, numTracks, 1 ):
 
@@ -311,11 +377,11 @@ for ientry in range(2):
 
         trackList.append(trackid)
 
-        if ancestor in ancestorList:
-            continue # this is a secondary; skip for now
+        #if ancestor in ancestorList:
+        #    continue # this is a secondary; skip for now
 
-        ancestorList.append( ancestor )
-        print("ancestorList: ",ancestorList)
+        #ancestorList.append( ancestor )
+        #print("ancestorList: ",ancestorList)
 
         print(producer)
 
@@ -386,6 +452,7 @@ for ientry in range(2):
                 continue
 
             iidList.append(iid_v)
+            '''
 
     # should be in event loop
 

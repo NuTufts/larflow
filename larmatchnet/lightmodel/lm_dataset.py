@@ -216,10 +216,10 @@ class LMDataset(torch.utils.data.Dataset):
         #print("postnorm: ",np.min(data["voxfeat"])," to ",np.max(data["voxfeat"]))
 
         data["ssnet_labels"] =  self.voxeldata_tree.ssnet_truth_v.at(0).tonumpy().astype(np.int)
-        data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()
+        #data["kplabel"] =  self.voxeldata_tree.kp_truth_v.at(0).tonumpy()
         data["voxlabel"] = self.voxeldata_tree.larmatch_truth_v.at(0).tonumpy()
         data["voxlmweight"] = self.voxeldata_tree.larmatch_weight_v.at(0).tonumpy()
-        data["kpweight"]    = self.voxeldata_tree.kp_weight_v.at(0).tonumpy()
+        #data["kpweight"]    = self.voxeldata_tree.kp_weight_v.at(0).tonumpy()
         data["ssnet_weights"] = self.voxeldata_tree.ssnet_weight_v.at(0).tonumpy()
 
         if self._verbose:
