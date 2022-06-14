@@ -48,7 +48,7 @@ for opt in color_by_options:
 
 # DATA LOADER
 batch_size = 1
-dataset = LMDataset( filelist=["test_beamONLY_showers.root"], is_voxeldata=True, random_access=False )
+dataset = LMDataset( filelist=["test_COMBINED.root"], is_voxeldata=True, random_access=False )
 nentries = len(dataset)
 
 print("NENTRIES: ",nentries)
@@ -138,7 +138,7 @@ def make_figures(ientry,loader,minprob=0.0):
 
     print("voxel entries: ",batch["voxcoord"].shape)
 
-    #traces_v = []
+    traces_v = []
 
     color = batch["voxfeat"][:,0]
 
