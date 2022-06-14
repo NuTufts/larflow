@@ -125,7 +125,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("test_beamONLY_MODTEST.root","recreate")
+outfile = rt.TFile("test_COMBINED.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -252,7 +252,7 @@ def voxelizeIntrxn(iid_v):
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(2): # event loop
+for ientry in range(3): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []
@@ -286,13 +286,26 @@ for ientry in range(2): # event loop
     # create dictionary of key: ancestorid (int), value: list of corresponding trackids
     #intrxnDict = defaultdict(list)
     intrxnDict = dict()
+    neutrinoKey = 0
 
     for i in range(0, mcpg.node_v.size(), 1):
+
+        #if mcpg.node_v[i].origin!=1:
+    #        continue
 
         nodeAncestor = mcpg.node_v[i].aid
         nodeTrackid = mcpg.node_v[i].tid
         print("i, total num clusters (tracks & showers) in event: ", i, " ", mcpg.node_v.size())
 
+        if mcpg.node_v[i].origin==1:
+            print("beam cluster")
+            if neutrinoKey==0:
+                neutrinoKey = -9997
+                intrxnDict[neutrinoKey] = [nodeTrackid]
+            intrxnDict[neutrinoKey].append(nodeTrackid)
+            continue
+
+        # Rest is for cosmics
         if nodeAncestor not in ancestorList:
             ancestorList.append( nodeAncestor )
             intrxnDict[nodeAncestor] = [nodeAncestor]
