@@ -297,8 +297,9 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
 
-        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).sum()
+        ssnet_weight[ ssnet_truth==0 ] = 0.0 # zero out background class which can be noisy
+        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none', ignore_index=0 )
+        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).mean()
             
         if self.ssnet_use_lovasz_loss:
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
