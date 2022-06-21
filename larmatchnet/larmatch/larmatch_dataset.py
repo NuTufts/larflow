@@ -12,6 +12,7 @@ class larmatchDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, npairs=None, load_truth=False,
                  triplet_limit=2500000, normalize_inputs=True,
+                 num_triplet_samples=None,
                  verbose=False):
         """
         Parameters:
@@ -63,6 +64,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._max_num_tries = 10
         self._triplet_limit = triplet_limit
         self._normalize_inputs = normalize_inputs
+        self._num_triplet_samples = num_triplet_samples
         if self._random_access:
             self._rng = np.random.default_rng(None)
             self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )        
@@ -150,19 +152,39 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data["feat_%d"%(p)] = np.clip( data["feat_%d"%(p)], 0, 10.0 )
         # get the 2D-3D correspondence data
         data["matchtriplet_v"] = self.tree.matchtriplet_v.at(0).tonumpy()
-        if data["matchtriplet_v"].shape[0]>self._triplet_limit:
+        ntriplets = data["matchtriplet_v"].shape[0]
+        
+        if ntriplets>self._triplet_limit:
             print("num triplets above the limit: ",data["matchtriplet_v"].shape)
             data = None
             return False
+
+
+        if self._num_triplet_samples is not None and self._num_triplet_samples<ntriplets:
+            sample = np.arange(ntriplets)
+            ntriplets = self._num_triplet_samples
+            np.random.shuffle(sample)
+            data["matchtriplet_v"] = data["matchtriplet_v"][sample[:ntriplets],:]
+
+            if self.load_truth:
+                data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample[:ntriplets]]
+                data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample[:ntriplets]]
+                data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)[sample[:ntriplets]]
+                data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()[sample[:ntriplets]]
+                data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()[sample[:ntriplets]]
+                data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy()[sample[:ntriplets],:], (1,0) )
+                data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy()[sample[:ntriplets],:], (1,0) )
+            
+        else:
         
-        if self.load_truth:
-            data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
-            data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
-            data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)
-            data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
-            data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()
-            data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
-            data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
+            if self.load_truth:
+                data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
+                data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
+                data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)
+                data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
+                data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()
+                data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
+                data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
         
         if self._verbose:
             tottime = time.time()-t_start            
