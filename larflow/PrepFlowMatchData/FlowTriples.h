@@ -7,6 +7,7 @@
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larcv/core/DataFormat/Image2D.h"
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "TH2D.h"
 
 namespace larflow {
@@ -103,6 +104,19 @@ namespace prep {
     static std::vector< std::vector<FlowTriples::PixData_t> >
       make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v, float threshold );
 
+    static std::vector< std::vector<FlowTriples::PixData_t> >
+      make_initial_sparse_prong_image( const std::vector<larcv::Image2D>& adc_v, 
+                                       ublarcvapp::mctools::MCPixelPGraph& mcpg, 
+                                       int trackid, float threshold );
+
+    static std::vector< std::vector<FlowTriples::PixData_t> >
+      make_cropped_initial_sparse_prong_image( const std::vector<larcv::Image2D>& adc_v, 
+                                               ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                               larlite::storage_manager& ioll, 
+                                               int trackid, float threshold,
+                                               int rowSpan, int colSpan,
+                                               bool shower=true );
+
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };
 
@@ -117,6 +131,10 @@ namespace prep {
                                         std::string hist_stem_name );
     
     std::vector<TH2D> plot_sparse_data( const std::vector<larcv::Image2D>& adc_v,
+                                        const std::vector< std::vector<PixData_t> >& sparseimg_vv,
+                                        std::string hist_stem_name );
+
+    std::vector<TH2D> plot_cropped_sparse_data( int rowSpan, int colSpan,
                                         const std::vector< std::vector<PixData_t> >& sparseimg_vv,
                                         std::string hist_stem_name );
 
