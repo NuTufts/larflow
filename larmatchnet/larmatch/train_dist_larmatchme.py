@@ -20,17 +20,34 @@ import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.nn.functional as F
 import torch.distributed as dist
+import wandb
 
 import MinkowskiEngine as ME
 
 def cleanup():
     dist.destroy_process_group()
 
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12356'
+    # initialize the process group
+    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    # this function is responsible for synchronizing and successfully communicate across multiple process
+    # involving multiple GPUs.
+
 def run(gpu, args ):
     """
     This is the function run by each worker process
     """
     ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
+    #========================================================
+    # CREATE PROCESS
+    rank = gpu
+    print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
+    if not args.no_parallel:
+        setup( rank, args.gpus )
+    #========================================================
+    torch.manual_seed(0)
     
     # tensorboardX
     from torch.utils.tensorboard import SummaryWriter
@@ -46,30 +63,22 @@ def run(gpu, args ):
     from larcv import larcv
     from larflow import larflow
 
-    #========================================================
-    # CREATE PROCESS
-    rank = args.nr * args.gpus + gpu
-    print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
-    if not args.no_parallel:
-        dist.init_process_group(                                   
-	    #backend='nccl',
-            backend='gloo',        
-            #init_method='env://',
-            init_method='file:///tmp/sharedfile',
-	    world_size=args.world_size,                              
-	    rank=rank,
-            timeout=datetime.timedelta(0, 1800)
-        )
-    #========================================================
-    torch.manual_seed(gpu)
 
+    print("LOAD CONFIG")
+    sys.stdout.flush()
     config = engine.load_config_file( args )
+    
     verbose = config["VERBOSE_MAIN_LOOP"]
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
 
     if rank==0:
         tb_writer = SummaryWriter()
+        # log into wandb
+        print("RANK-0 THREAD: LOAD WANDB")
+        sys.stdout.flush()    
+        wandb.init(project="larmatchme-v3-test",config=config)
+
 
     single_model = engine.get_model( config, dump_model=False )
 
@@ -77,6 +86,7 @@ def run(gpu, args ):
     num_loss_pars = len(list(criterion.parameters()))
     print("Num loss parameters: ",num_loss_pars)
     print("lm loss weight: ",criterion.lm)
+    sys.stdout.flush()    
     
     if config["RESUME_FROM_CHECKPOINT"]:
         if not os.path.exists(config["CHECKPOINT_FILE"]):
@@ -110,6 +120,7 @@ def run(gpu, args ):
     optimizer = torch.optim.AdamW(param_list,
                                   lr=float(config["LEARNING_RATE"]), 
                                   weight_decay=config["WEIGHT_DECAY"])
+    
     #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
     #    print("optimizer params")
     #    for n,par in enumerate(optimizer.param_groups):
@@ -192,9 +203,13 @@ def run(gpu, args ):
 
                 # write to tensorboard
                 # --------------------
-                # losses go into same plot
-                loss_scalars = { x:y.avg for x,y in loss_meters.items() }
+
+                logme = {"epoch":train_iteration}
+                
+                # losses go into same plot                
+                loss_scalars = { "loss-"+x:y.avg for x,y in loss_meters.items() }
                 tb_writer.add_scalars('data/train_loss', loss_scalars, train_iteration )
+                logme.update(loss_scalars)
                 
                 # split acc into different types
                 # larmatch
@@ -204,6 +219,7 @@ def run(gpu, args ):
                         acc_scalars[accname] = acc_meters[accname].avg
                 if len(acc_scalars)>0:
                     tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
+                    logme.update(acc_scalars)
 
                 # ssnet
                 ssnet_scalars = {}
@@ -212,6 +228,7 @@ def run(gpu, args ):
                         ssnet_scalars[accname] = acc_meters[accname].avg
                 if len(ssnet_scalars)>0:
                     tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
+                    logme.update(ssnet_scalars)
                 
                 # keypoint
                 kp_scalars = {}
@@ -220,17 +237,24 @@ def run(gpu, args ):
                         kp_scalars[accname] = acc_meters[accname].avg
                 if len(kp_scalars)>0:
                     tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
+                    logme.update(kp_scalars)                    
                 
                 # paf
                 if acc_meters["paf"].count>0:
                     paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
                     tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
+                    logme.update(paf_acc_scalars)                    
 
                 # loss params
                 loss_weight_scalars = {}
                 for k,par in criterion.named_parameters():
                     loss_weight_scalars[k] = torch.exp( -par.detach() ).item()
                 tb_writer.add_scalars("data/loss_weights", loss_weight_scalars, train_iteration )
+                logme.update(loss_weight_scalars)
+
+                # log into wandb
+                wandb.log(logme,step=train_iteration)
+                #wandb.watch(model)
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
@@ -245,11 +269,15 @@ def run(gpu, args ):
                                                 valid_acc_meters,
                                                 valid_loss_meters,
                                                 valid_time_meters )
-                    # write to tensorboard
+                    # write to tensorboard/wandb
                     # --------------------
+
+                    logme = {"epoch":train_iteration}
+                    
                     # losses go into same plot
-                    loss_scalars = { x:y.avg for x,y in loss_meters.items() }
+                    loss_scalars = { "loss-"+x:y.avg for x,y in loss_meters.items() }
                     tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
+                    logme.update(loss_scalars)
                 
                     # split acc into different types
                     # larmatch
@@ -259,6 +287,7 @@ def run(gpu, args ):
                             val_acc_scalars[accname] = valid_acc_meters[accname].avg
                     if len(val_acc_scalars)>0:
                         tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
+                        logme.update(val_acc_scalars)
 
                     # ssnet
                     val_ssnet_scalars = {}
@@ -267,6 +296,7 @@ def run(gpu, args ):
                             val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
                     if len(val_ssnet_scalars)>0:
                         tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
+                        logme.update( val_ssnet_scalars )
                 
                     # keypoint
                     val_kp_scalars = {}
@@ -275,11 +305,20 @@ def run(gpu, args ):
                             val_kp_scalars[accname] = valid_acc_meters[accname].avg
                     if len(val_kp_scalars)>0:
                         tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
+                        logme.update( val_kp_scalars )
                 
                     # paf
                     if valid_acc_meters["paf"].count>0:
                         val_paf_acc_scalars = { "paf":valid_acc_meters["paf"].avg  }
                         tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
+                        logme.update( val_paf_acc_scalars )
+
+                    logme_valid = {}
+                    for x,y in logme.items():
+                        logme_valid["valid-"+x] = y
+                    # log into wandb
+                    wandb.log(logme_valid,step=train_iteration)
+                    
 
                 else:
                     if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))
@@ -316,7 +355,7 @@ def main():
     parser.add_argument('-c', '--config-file', required=True, default="config.yaml", type=str,
                         help='configuration file [default: config.yaml]')
     parser.add_argument('-n', '--nodes', default=1, type=int, metavar='N',
-                        help='number of data loading workers (default: 4)')
+                        help='number of data loading workers (default: 1)')
     parser.add_argument('-g', '--gpus', default=1, type=int,
                         help='number of gpus per node')
     parser.add_argument('-nr', '--nr', default=0, type=int,
@@ -325,9 +364,6 @@ def main():
     args = parser.parse_args()
     args.world_size = args.gpus * args.nodes
     
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '8888'
-    ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
     if args.no_parallel:
         print("RUNNING WITHOUT USING TORCH DDP")
         run( 0, args )

@@ -11,7 +11,7 @@ PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_da
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
 
-stride=1
+stride=5
 jobid=${SLURM_ARRAY_TASK_ID}
 let startline=$(expr "${stride}*${jobid}")
 
@@ -45,12 +45,11 @@ do
     larmatchdata_dir=`dirname ${larmatchdata}`
     voxel_filesuffix=`echo ${larmatchdata_base} | sed 's|larmatchtriplet\_||g'`
 
-    COMMAND="python3 ${PYSCRIPT} --output larmatchdata_${tag}_${voxel_filesuffix} --single ${larmatchdata}"
-    echo $COMMAND
+    COMMAND="python3 ${PYSCRIPT} -d uboone --output larmatchdata_${tag}_${voxel_filesuffix} --single ${larmatchdata}"
+    echo $COMMAND >> ${local_logfile}
     $COMMAND >> ${local_logfile} 2>&1
     cp larmatchdata_${tag}_${voxel_filesuffix}* ${OUTPUT_DIR}/
     rm larmatchdata_${tag}_${voxel_filesuffix}*
-    break
 done
 
 cp log_${tag}_jobid* ${jobworkdir}/

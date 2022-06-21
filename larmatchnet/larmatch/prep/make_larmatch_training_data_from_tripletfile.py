@@ -205,8 +205,8 @@ for ientry in range(nentries):
     kp_weight_v.push_back( data["kplabel_weight"].astype(np.float32) )    
 
     outtree.Fill()
-    for k in data:
-        print(k," refs=",len(gc.get_referrers(data[k])))
+    #for k in data:
+    #    print(k," refs=",len(gc.get_referrers(data[k])))
 
     # del data
     # gc.collect()

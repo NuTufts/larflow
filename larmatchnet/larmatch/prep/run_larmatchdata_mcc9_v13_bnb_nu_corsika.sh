@@ -1,8 +1,8 @@
 #!/bin/bash
 
 tag=bnb_nu
-WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
-UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
+WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/prep/workdir/
+UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl
 INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/inputlists/mcc9_v13_bnb_nu_corsika.triplettruth.list
 OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika/
 PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_data_from_tripletfile.py
@@ -11,7 +11,7 @@ PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_da
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
 
-stride=1
+stride=5
 jobid=${SLURM_ARRAY_TASK_ID}
 let startline=$(expr "${stride}*${jobid}")
 
@@ -45,14 +45,14 @@ do
     larmatchdata_dir=`dirname ${larmatchdata}`
     voxel_filesuffix=`echo ${larmatchdata_base} | sed 's|larmatchtriplet\_||g'`
 
-    COMMAND="python3 ${PYSCRIPT} --output larmatchdata_${tag}_${voxel_filesuffix} --single ${larmatchdata}"
+    COMMAND="python3 ${PYSCRIPT} -d uboone --output larmatchdata_${tag}_${voxel_filesuffix} --single ${larmatchdata}"
     echo $COMMAND
     echo $COMMAND >> ${local_logfile} 2>&1
     #$COMMAND >> ${local_logfile} 2>&1
     $COMMAND >> ${local_logfile}
     cp larmatchdata_${tag}_${voxel_filesuffix}* ${OUTPUT_DIR}/
     rm larmatchdata_${tag}_${voxel_filesuffix}*
-    break
+    #break
 done
 
 cp log_${tag}_jobid* ${jobworkdir}/

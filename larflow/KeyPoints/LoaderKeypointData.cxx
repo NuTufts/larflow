@@ -1,5 +1,6 @@
 #include "LoaderKeypointData.h"
 #include <iostream>
+#include <sstream>
 #include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
 
 namespace larflow {
@@ -95,6 +96,23 @@ namespace keypoints {
     bytes += tkeypoint->GetEntry(entry);
     if ( has_larbysmc )
       bytes += tlarbysmc->GetEntry(entry);
+
+    // check entry
+    for (int i=0; i<(int)triplet_v->size(); i++) {
+      auto const& matchdata = triplet_v->at(i);
+      auto const& kpdata = kpdata_v->at(i);
+      auto const& ssdata = ssnet_v->at(i);
+      if ( matchdata._triplet_v.size()!=kpdata._match_proposal_labels_v[0].size() ) {
+	std::stringstream msg;
+	msg << "num triplets (" << matchdata._triplet_v.size() << ") does not match keypoint labels (" << kpdata._match_proposal_labels_v[0].size() << ")" << std::endl;
+	throw std::runtime_error(msg.str());
+      }
+      if ( matchdata._triplet_v.size()!=ssdata._ssnet_label_v.size() ) {
+	std::stringstream msg;
+	msg << "num triplets (" << matchdata._triplet_v.size() << ") does not match ssnet labels (" << ssdata._ssnet_label_v.size() << ")" << std::endl;
+	throw std::runtime_error(msg.str());
+      }
+    }
 
     LARCV_INFO() << "Loaded trees (ttriplet,tssnet,tkeypoint)" << std::endl;
     return bytes;
@@ -200,7 +218,7 @@ namespace keypoints {
         *((float*)PyArray_GETPTR1(match_weights,i)) = w_neg/w_norm;
     }
     PyObject *match_weight_key = Py_BuildValue("s", "match_weight");
-    
+
     // make index array
     npy_intp pos_dim[] = { (long)pos_index_v.size() };
     PyArrayObject* positive_index = (PyArrayObject*)PyArray_SimpleNew( 1, pos_dim, NPY_LONG );
@@ -390,7 +408,7 @@ namespace keypoints {
     
     for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
       long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
-      if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
+       if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
 	std::stringstream msg;
 	msg << "invalid class label=" << label << " from the Tree" << std::endl;
 	throw std::runtime_error( msg.str() );

@@ -13,6 +13,7 @@ class SparseLArMatchKPSLoss(nn.Module):
                  eval_affinity_field=False,
                  init_lm_weight=0.0,
                  init_kp_weight=0.0,
+                 init_ssnet_weight=0.0,
                  larmatch_name="lm",
                  ssnet_name="ssnet",
                  keypoint_name="kp",
@@ -32,7 +33,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.affinity_name = affinity_name
         self.learnable_weights = learnable_weights
         self.task_weights = {larmatch_name:nn.Parameter(torch.ones(1)*init_lm_weight),
-                             ssnet_name:nn.Parameter( torch.ones(1)*5.29 ),
+                             ssnet_name:nn.Parameter( torch.ones(1)*init_ssnet_weight ),
                              keypoint_name:nn.Parameter(torch.ones(1)*init_kp_weight),
                              affinity_name:nn.Parameter(torch.zeros(1))}
         for k,w in self.task_weights.items():
@@ -118,7 +119,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             ssnet_label  = truthlabels[self.ssnet_name]
             ssnet_weight = weights[self.ssnet_name]
             #truematch_index  = truthlabels[self.larmatch_name]                    
-            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, verbose=verbose )
+            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, larmatch_label, verbose=verbose )
             if not self.learnable_weights:
                 if loss["tot"] is None:
                     loss["tot"] = ssloss
@@ -282,6 +283,7 @@ class SparseLArMatchKPSLoss(nn.Module):
     def ssnet_loss( self, ssnet_pred,
                     ssnet_truth,
                     ssnet_weight,
+                    larmatch_label,
                     verbose=False):
         npairs = ssnet_pred.shape[0]
         nclasses = ssnet_pred.shape[1]
@@ -297,8 +299,10 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
 
-        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).sum()
+        ssnet_weight[ ssnet_truth==0 ] = 0.0 # zero out background class which can be noisy
+        ssnet_weight[ larmatch_label==0 ] = 0.0 # zero out non-true spacepoints
+        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none', ignore_index=0 )
+        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).mean()
             
         if self.ssnet_use_lovasz_loss:
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )

@@ -279,6 +279,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         for data in batchdata:
             npts += data["matchtriplet_v"].shape[0]
         print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+        sys.stdout.flush()
         ntries+=1
 
 

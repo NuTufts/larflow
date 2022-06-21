@@ -63,7 +63,8 @@ namespace prep {
       *((float*)PyArray_GETPTR2( array, (int)idx, 2)) = (float)_sparseimg_vv[plane][idx].val;      
     }
 
-    
+    //Py_DECREF( array ); // breaks
+      
     return (PyObject*)array;
   }
 
@@ -224,10 +225,10 @@ namespace prep {
    *
    */
   PyObject* MatchTriplets::make_triplet_array( const int max_num_samples,
-                                                   const std::vector<int>& idx_v,
-                                                   const int start_idx,
-                                                   const bool withtruth,
-                                                   int& nsamples ) const
+					       const std::vector<int>& idx_v,
+					       const int start_idx,
+					       const bool withtruth,
+					       int& nsamples ) const
   {
 
     if ( !_setup_numpy ) {
@@ -236,7 +237,7 @@ namespace prep {
     }
 
     int nd = 2;
-    int ndims2 = 5;
+    int ndims2 = 5; // (index0, index1, index2, truth, tripindex)
     npy_intp dims[] = { max_num_samples, ndims2 };
 
     // output array
