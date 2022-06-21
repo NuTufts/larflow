@@ -447,6 +447,7 @@ namespace keypoints {
     
     int index_col = (withtruth) ? 4 : 3;
     float sigma = 2.0; // cm
+    float label_threshold = 0.10;
 
     int kplabel_nd = 2;
     int nclasses = 6; //number of keypoint classes
@@ -474,7 +475,7 @@ namespace keypoints {
 	
 	//std::cout << "[" << i << "," << c << "] index=" << index << " size=" << kplabel_v[c]->at( index ).size() << std::endl;	
 	float label = *((float*)PyArray_GETPTR2(kplabel_label,i,c));
-	if( label>0 )
+	if( label>label_threshold )
 	  // increment number of positive keypoint labels
 	  npos[c]++;
 	else 
@@ -490,8 +491,8 @@ namespace keypoints {
     kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
     for (int c=0; c<nclasses; c++ ) {
-      float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
-      float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+      float w_pos = (npos[c]) ? 1.0/float(npos[c]) : 0.0;
+      float w_neg = (nneg[c]) ? 1.0/float(nneg[c]) : 0.0;
       float w_norm = w_pos*npos[c] + w_neg*nneg[c];
 
       //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
@@ -503,7 +504,7 @@ namespace keypoints {
         long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
 
 	float label = *((float*)PyArray_GETPTR2(kplabel_label,i,c));	
-	if (label>0) {
+	if (label>label_threshold) {
 	  *((float*)PyArray_GETPTR2(kplabel_weight,i,c)) = w_pos/w_norm;
 	}
         else {
