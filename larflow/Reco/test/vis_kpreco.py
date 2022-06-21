@@ -18,8 +18,10 @@ from larflow import larflow
 #larcv.SetPyUtil()
 
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+#import dash_core_components as dcc
+from dash import dcc
+#import dash_html_components as html
+from dash import html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -32,10 +34,8 @@ for opt in color_by_options:
     option_dict.append( {"label":opt,"value":opt} )
 
 # OPEN LARLITE FILE
-if args.input_larlite is not None or args.input_mcinfo is not None:
-    io = larlite.storage_manager( larlite.storage_manager.kREAD )
-    
 if args.input_larlite is not None:
+    io = larlite.storage_manager( larlite.storage_manager.kREAD )
     io.add_in_filename( args.input_larlite )
     HAS_LARLITE = True
     print("HAS_LARLITE")
@@ -44,12 +44,11 @@ else:
     
 if args.input_mcinfo is not None:
     io.add_in_filename( args.input_mcinfo )
-    print("HAS_MCINFO")
     HAS_MC = True
 else:
     HAS_MC = False
 
-if HAS_LARLITE or HAS_MC:
+if HAS_LARLITE:
     io.open()
 
 # OPEN VERTEX RECO FILE
@@ -77,6 +76,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     nbytes = kpsanatree.GetEntry(entry)
     if nbytes==0:
         return []
+    print("run = %i, subrun = %i, event = %i"%(kpsanatree.run, kpsanatree.subrun, kpsanatree.event))
     
     traces_v = []
 
