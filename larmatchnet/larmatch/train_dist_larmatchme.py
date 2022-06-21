@@ -27,11 +27,27 @@ import MinkowskiEngine as ME
 def cleanup():
     dist.destroy_process_group()
 
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12356'
+    # initialize the process group
+    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    # this function is responsible for synchronizing and successfully communicate across multiple process
+    # involving multiple GPUs.
+
 def run(gpu, args ):
     """
     This is the function run by each worker process
     """
     ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
+    #========================================================
+    # CREATE PROCESS
+    rank = gpu
+    print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
+    if not args.no_parallel:
+        setup( rank, args.gpus )
+    #========================================================
+    torch.manual_seed(0)
     
     # tensorboardX
     from torch.utils.tensorboard import SummaryWriter
@@ -47,22 +63,6 @@ def run(gpu, args ):
     from larcv import larcv
     from larflow import larflow
 
-    #========================================================
-    # CREATE PROCESS
-    rank = args.nr * args.gpus + gpu
-    print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
-    if not args.no_parallel:
-        dist.init_process_group(                                   
-	    #backend='nccl',
-            backend='gloo',        
-            #init_method='env://',
-            init_method='file:///tmp/sharedfile',
-	    world_size=args.world_size,                              
-	    rank=rank,
-            timeout=datetime.timedelta(0, 1800)
-        )
-    #========================================================
-    torch.manual_seed(gpu)
 
     print("LOAD CONFIG")
     sys.stdout.flush()
@@ -204,7 +204,7 @@ def run(gpu, args ):
                 # write to tensorboard
                 # --------------------
 
-                logme = {}
+                logme = {"epoch":train_iteration}
                 
                 # losses go into same plot                
                 loss_scalars = { "loss-"+x:y.avg for x,y in loss_meters.items() }
@@ -253,8 +253,8 @@ def run(gpu, args ):
                 logme.update(loss_weight_scalars)
 
                 # log into wandb
-                wandb.log(logme)
-                wandb.watch(model)
+                wandb.log(logme,step=train_iteration)
+                #wandb.watch(model)
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
@@ -272,7 +272,7 @@ def run(gpu, args ):
                     # write to tensorboard/wandb
                     # --------------------
 
-                    logme = {}
+                    logme = {"epoch":train_iteration}
                     
                     # losses go into same plot
                     loss_scalars = { "loss-"+x:y.avg for x,y in loss_meters.items() }
@@ -317,7 +317,7 @@ def run(gpu, args ):
                     for x,y in logme.items():
                         logme_valid["valid-"+x] = y
                     # log into wandb
-                    wandb.log(logme_valid)
+                    wandb.log(logme_valid,step=train_iteration)
                     
 
                 else:
@@ -355,7 +355,7 @@ def main():
     parser.add_argument('-c', '--config-file', required=True, default="config.yaml", type=str,
                         help='configuration file [default: config.yaml]')
     parser.add_argument('-n', '--nodes', default=1, type=int, metavar='N',
-                        help='number of data loading workers (default: 4)')
+                        help='number of data loading workers (default: 1)')
     parser.add_argument('-g', '--gpus', default=1, type=int,
                         help='number of gpus per node')
     parser.add_argument('-nr', '--nr', default=0, type=int,
@@ -364,9 +364,6 @@ def main():
     args = parser.parse_args()
     args.world_size = args.gpus * args.nodes
     
-    os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '8888'
-    ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
     if args.no_parallel:
         print("RUNNING WITHOUT USING TORCH DDP")
         run( 0, args )

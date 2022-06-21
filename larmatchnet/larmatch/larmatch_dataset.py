@@ -118,6 +118,8 @@ class larmatchDataset(torch.utils.data.Dataset):
         #     raise("[larvoxel_dataset::__getitem__] Dupe introduced somehow in batch-index=%d"%(ibatch)," arr=",data["voxcoord"].shape)
 
         self._nloaded += 1
+        #print("data lodaded ntries: ",num_tries)
+        #sys.stdout.flush()
         #print("data: ",data.keys())
         
         return copy.deepcopy(data)

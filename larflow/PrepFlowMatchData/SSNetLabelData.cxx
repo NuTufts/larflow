@@ -91,11 +91,12 @@ namespace prep {
     std::vector<float> w_class( larflow::prep::PrepSSNetTriplet::kNumClasses, 0.0 );
     float w_norm  = 0.;
     for (int i=0; i<(int)nclass.size(); i++) {
-      if ( nclass[i]>0 )
+      if ( i>0 && nclass[i]>0 )
 	w_class[i] = 1.0/float(nclass[i]);
       else
 	w_class[i] = 0.0;
-      w_norm += w_class[i];
+      if ( i>0 )
+	w_norm += w_class[i];
     }
     if ( w_norm>0 ) {
       for (int i=0; i<(int)nclass.size(); i++)
