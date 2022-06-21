@@ -157,8 +157,8 @@ class larmatchDataset(torch.utils.data.Dataset):
             data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
             data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
             data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)
-            data["ssnet_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
-            data["ssnet_weight"] *= self.tree.ssnet_class_weight_v.at(0).tonumpy()
+            data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
+            data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()
             data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
             data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
         
@@ -349,7 +349,7 @@ if __name__ == "__main__":
 
     niter = 10
     batch_size = 4
-    test = larmatchDataset( filelist=["temp.root"])
+    test = larmatchDataset( filelist=["test.root"])
     print("NENTRIES: ",len(test))
     
     loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larmatchDataset.collate_fn)
@@ -362,15 +362,16 @@ if __name__ == "__main__":
             print("ITER[%d]:BATCH[%d]"%(iiter,ib))
             print(" keys: ",data.keys())
             for name,d in data.items():
-                if type(d) is np.array:
-                    print("  ",name,": ",d.shape)
+                if type(d) is np.ndarray:
+                    print("  ",name,"-[array]: ",d.shape)
                 else:
-                    print("  ",name,": ",type(d))
+                    print("  ",name,"-[non-array]: ",type(d))
             print(data['coord_0'].shape)
             print(np.unique(data['coord_0'],axis=0).shape)
     end = time.time()
     elapsed = end-start
     sec_per_iter = elapsed/float(niter)
     print("sec per iter: ",sec_per_iter)
-    
     loader.dataset.print_status()
+
+    
