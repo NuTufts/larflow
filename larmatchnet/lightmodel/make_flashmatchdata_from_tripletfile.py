@@ -280,49 +280,90 @@ for ientry in range(3): # event loop
 
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
     mcpg.buildgraphonly( ioll  )
-    mcpg.printGraph(0,False)
-    print ("Node?: ",mcpg.node_v[1].nodeidx)
+    ##mcpg.printGraph(0,False)
+    ##print ("Node?: ",mcpg.node_v[1].nodeidx)
 
     # create dictionary of key: ancestorid (int), value: list of corresponding trackids
     #intrxnDict = defaultdict(list)
     intrxnDict = dict()
     neutrinoKey = 0
 
+    intrxnTracks = dict()
+    intrxnShowers = dict()
+
     for i in range(0, mcpg.node_v.size(), 1):
+
+        print("Looping thru nodes in the mcpg vector!")
+        print("i, total num clusters (tracks & showers) in event: ", i, " ", mcpg.node_v.size())
 
         #if mcpg.node_v[i].origin!=1:
     #        continue
 
         nodeAncestor = mcpg.node_v[i].aid
         nodeTrackid = mcpg.node_v[i].tid
-        print("i, total num clusters (tracks & showers) in event: ", i, " ", mcpg.node_v.size())
+        nodeType = mcpg.node_v[i].type # is this a track or a shower?
+        nodeIndex = mcpg.node_v[i].vidx # position in mctrack/mcshower vector
 
-        if mcpg.node_v[i].origin==1:
+        print("nodeAncestor: ",nodeAncestor)
+        print("nodeTrackid: ",nodeTrackid)
+        print("node Type (0 for track, 1 for shwr): ",nodeType)
+        print("index in track/shower vector: ",nodeIndex)
+
+        if nodeType == -1: #not a track or shower
+            continue
+
+        if mcpg.node_v[i].origin==1: # if a cluster from beam origin
             print("beam cluster")
             if neutrinoKey==0:
                 neutrinoKey = -9997
                 intrxnDict[neutrinoKey] = [nodeTrackid]
-            intrxnDict[neutrinoKey].append(nodeTrackid)
+            else:
+                intrxnDict[neutrinoKey].append(nodeTrackid)
+
+            if nodeType==0: #this is a track
+                if neutrinoKey in intrxnTracks:
+                    intrxnTracks[neutrinoKey].append(nodeIndex)
+                else:
+                    intrxnTracks[neutrinoKey] = [nodeIndex]
+            else: # this is a shower
+                if neutrinoKey in intrxnShowers:
+                    intrxnShowers[neutrinoKey].append(nodeIndex)
+                else:
+                    intrxnShowers[neutrinoKey] = [nodeIndex]
             continue
 
         # Rest is for cosmics
         if nodeAncestor not in ancestorList:
             ancestorList.append( nodeAncestor )
             intrxnDict[nodeAncestor] = [nodeAncestor]
-            continue
+        else:
             #intrxnDict.setdefault(nodeAncestor, [])
 
         #if nodeAncestor in ancestorList:
 
         # if it's a secondary, append the track to the list for the ancestorid key
-        intrxnDict[nodeAncestor].append(nodeTrackid)
+            intrxnDict[nodeAncestor].append(nodeTrackid)
+
+        if nodeType==0: #this is a track
+            if nodeAncestor in intrxnTracks:
+                intrxnTracks[nodeAncestor].append(nodeIndex)
+            else:
+                intrxnTracks[nodeAncestor] = [nodeIndex]
+        else: # this is a shower
+            if nodeAncestor in intrxnShowers:
+                print("intrxnShowers[nodeAncestor]",intrxnShowers[nodeAncestor])
+                intrxnShowers[nodeAncestor].append(nodeIndex)
+            else:
+                intrxnShowers[nodeAncestor] = [nodeIndex]
         #    continue
 
         #ancestorList.append( nodeAncestor )
         #intrxnDict[nodeAncestor] = nodeAncestor
         #intrxnDict.setdefault(nodeAncestor, [])
 
-    print("intrxnDict", intrxnDict)
+        print("intrxnDict", intrxnDict)
+        print("intrxnTracks", intrxnTracks)
+        print("intrxnShowers", intrxnShowers)
 
     numTracks = fmutil.numTracks( ioll )
     numShowers = fmutil.numShowers( ioll )
@@ -330,6 +371,7 @@ for ientry in range(3): # event loop
     counter = 0
 
     iidList = [] # push back each iid_v list into here
+    keyList = []
 
 
     # loop over interactions in the event
@@ -365,6 +407,7 @@ for ientry in range(3): # event loop
             continue
 
         iidList.append(iid_v)
+        keyList.append(key)
 
     '''
     # loop thru tracks in event
@@ -471,6 +514,7 @@ for ientry in range(3): # event loop
 
     print("This is event NO: ", ientry)
     print("IIDLOST: ",iidList)
+    print("keyList: ",keyList)
     print("ancestorList: ", ancestorList)
     print("trackList: ", trackList)
 
@@ -478,9 +522,12 @@ for ientry in range(3): # event loop
     subrun[0] = ioll.subrun_id()
     event[0] = ioll.event_id()
 
-    for i in range(len( iidList )):
+    for i in range(len( iidList )): #loops thru entries in iidList and keyList which should be same
         print("size of the iidList at the END: ",len( iidList ))
         print("i, iidList[i]: ",i, iidList[i])
+        print("size of keyList, which should be the same: ", len(keyList))
+        print("key, or corresponding ancestorID of this iidlist, is: ", keyList[i])
+
 
         for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
                  ssnet_truth_v, ssnet_weight_v,
@@ -491,8 +538,25 @@ for ientry in range(3): # event loop
 
         voxelizeIntrxn(iidList[i])
 
-            ##out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
-            ##out_mctrack.push_back( ev_mctrack.at(i) )
+        key = keyList[i]
+
+        out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
+        out_mcshower  = iomc.get_data( larlite.data.kMCShower, "mcreco" )
+
+        print(intrxnTracks)
+        print(intrxnShowers)
+
+        if key in intrxnTracks:
+            for j in intrxnTracks[key]:
+                print("These are the corresponding mctrack vector positions according to dict: ",j)
+                # save the MCTRACKS
+                out_mctrack.push_back( ev_mctrack.at(j) )
+
+        if key in intrxnShowers:
+            for j in intrxnShowers[key]:
+                print("These are the corresponding mcshower vector positions according to dict: ",j)
+                # save the MCSHOWERS
+                out_mcshower.push_back( ev_mcshower.at(j) )
 
 
             ##out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
@@ -503,12 +567,12 @@ for ientry in range(3): # event loop
             ##    print("ev_opflash_beam: ",ev_opflash_beam)
             ##    out_opflash.push_back( ev_opflash_beam.at( match[1] ) )
 
-            ##counter = counter + 1
+        counter = counter + 1
 
-            # need to increment event id so final filtered tree entries don't all have same eventid
-            # (assumes <100 clusters in an event)
-            ##iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
-            ##iomc.next_event()
+        #need to increment event id so final filtered tree entries don't all have same eventid
+        # (assumes <100 clusters in an event)
+        iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
+        iomc.next_event()
 #            ioop.next_event()
 
             ##print("CHOSEN TICK ACTUAL TIME WAS: ", ((match[0]-3200.0)*0.5) )
