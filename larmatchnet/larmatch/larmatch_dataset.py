@@ -13,6 +13,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                  random_access=True, npairs=None, load_truth=False,
                  triplet_limit=2500000, normalize_inputs=True,
                  num_triplet_samples=None,
+                 return_constant_sample=False,
                  verbose=False):
         """
         Parameters:
@@ -65,6 +66,8 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._triplet_limit = triplet_limit
         self._normalize_inputs = normalize_inputs
         self._num_triplet_samples = num_triplet_samples
+        self._return_constant_sample = return_constant_sample
+        self._constant_sample = None
         if self._random_access:
             self._rng = np.random.default_rng(None)
             self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )        
@@ -72,7 +75,8 @@ class larmatchDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         
-
+        if self._return_constant_sample and self._constant_sample is not None:
+            return copy.deepcopy(self._constant_sample)
         
         worker_info = torch.utils.data.get_worker_info()
 
@@ -123,6 +127,8 @@ class larmatchDataset(torch.utils.data.Dataset):
         #print("data lodaded ntries: ",num_tries)
         #sys.stdout.flush()
         #print("data: ",data.keys())
+        if self._return_constant_sample and self._constant_sample is None:
+            self._constant_sample = data
         
         return copy.deepcopy(data)
 
