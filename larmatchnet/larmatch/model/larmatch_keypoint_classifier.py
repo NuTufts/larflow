@@ -6,31 +6,37 @@ import torch.nn as nn
 class LArMatchKeypointClassifier(nn.Module):
 
     def __init__(self,features_per_layer=16,
-                 keypoint_nfeatures=[32,32],                 
+                 keypoint_nfeatures=[512],
                  ninput_planes=3,
                  nclasses=6,
-                 use_bn=True):
+                 norm_layer='batchnorm'):
         super(LArMatchKeypointClassifier,self).__init__()
-
+        assert norm_layer in ['batchnorm','instance','stableinstance']
+                
         # SCORE PREDICTION
         self.class_layers = {}
         for iclass in range(nclasses):
             keypoint_layers = OrderedDict()
             keypoint_layers["keypoint0conv_class%d"%(iclass)] = torch.nn.Conv1d(ninput_planes*features_per_layer,
-                                                                                keypoint_nfeatures[0],1)
-            if use_bn:
+                                                                                keypoint_nfeatures[0],1,bias=False)
+            if norm_layer=='batchnorm':
                 keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.BatchNorm1d(keypoint_nfeatures[0])
-            else:
+            elif norm_layer in ['instance','stableinstance']:
                 keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.InstanceNorm1d(keypoint_nfeatures[0])
             keypoint_layers["keypoint0relu_class%d"%(iclass)] = torch.nn.LeakyReLU()
+            last_layer_nfeats = keypoint_nfeatures[0]
             for ilayer,nfeats in enumerate(keypoint_nfeatures[1:]):
-                keypoint_layers["keypoint%dconv_class%d"%(ilayer+1,iclass)] = torch.nn.Conv1d(nfeats,nfeats,1)
-                if use_bn:
+                keypoint_layers["keypoint%dconv_class%d"%(ilayer+1,iclass)] = torch.nn.Conv1d(nfeats,nfeats,1,bias=False)
+                if norm_layer=='batchnorm':                    
                     keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.BatchNorm1d(nfeats)
-                else:
+                elif norm_layer in ['instance','stableinstance']:
                     keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.InstanceNorm1d(nfeats)
                 keypoint_layers["keypoint%drelu_class%d"%(ilayer+1,iclass)] = torch.nn.LeakyReLU()
-            keypoint_layers["keypointout_class%d"%(iclass)] = torch.nn.Conv1d(nfeats,1,1)
+                last_layer_nfeats = nfeats
+            keypoint_layers["keypointout_class%d"%(iclass)] = torch.nn.Conv1d(last_layer_nfeats,1,1)
+            # set the bias to zero so that initial output is zero
+            #keypoint_layers["keypointout_class%d"%(iclass)].bias.data[0] = 0.0
+            
             self.class_layers[iclass] = torch.nn.Sequential( keypoint_layers )
             setattr( self, "keypoint_class%d_layers"%(iclass), self.class_layers[iclass] )
         
@@ -47,6 +53,6 @@ class LArMatchKeypointClassifier(nn.Module):
             classpred = layers(triplet_feat_t)
             classout.append(classpred)
         pred = torch.cat( classout, dim=1 )
-        pred = torch.sigmoid(pred)
+        pred = torch.sigmoid(pred) # not good for gradients?
         return pred
     

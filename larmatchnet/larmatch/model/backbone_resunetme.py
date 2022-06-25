@@ -9,14 +9,14 @@ Implementations of different Residual UNet backbones for larmatch
 
 class MinkEncode6Layer(MinkEncodeBase):
     BLOCK = BasicBlockInstanceNorm
-    LAYERS = ( 1,  1,  1,   1,   1,   1)
+    LAYERS = ( 2,  2,  2,   2,   2,   2)
     PLANES = (16, 32, 64, 128, 256, 512)
     INIT_DIM = 16
 
 class MinkDecode6Layer(MinkDecodeBase):
     BLOCK = BasicBlockInstanceNorm
     IN_PLANES = (16, 32, 64, 128, 256, 512)    
-    LAYERS = (1, 1, 1, 1, 1, 1)    
+    LAYERS = (2, 2, 2, 2, 2, 2)    
     PLANES = (256, 128, 64, 32, 16, 16)
     INIT_DIM = 16
 

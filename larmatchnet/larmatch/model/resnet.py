@@ -38,15 +38,15 @@ class ResNetBase(nn.Module):
     INIT_DIM = 64
     PLANES = (64, 128, 256, 512)
 
-    def __init__(self, in_channels, out_channels, D=3):
+    def __init__(self, in_channels, out_channels, D=3, norm_layer='instance'):
         nn.Module.__init__(self)
         self.D = D
         assert self.BLOCK is not None
 
-        self.network_initialization(in_channels, out_channels, D)
+        self.network_initialization(in_channels, out_channels, D, norm_layer)
         self.weight_initialization()
 
-    def network_initialization(self, in_channels, out_channels, D):
+    def network_initialization(self, in_channels, out_channels, D, norm_layer):
 
         self.inplanes = self.INIT_DIM
         self.conv1 = nn.Sequential(
@@ -93,8 +93,20 @@ class ResNetBase(nn.Module):
                 nn.init.constant_(m.bn.weight, 1)
                 nn.init.constant_(m.bn.bias, 0)
 
-    def _make_layer(self, block, planes, blocks, stride=1, dilation=1, bn_momentum=0.1, use_bn=True):
+    def _make_layer(self, block, planes, blocks, stride=1, dilation=1, bn_momentum=0.1, norm_layer='instance' ):
+        assert norm_layer in ['instance','batchnorm','stableinstance']        
         downsample = None
+
+        if norm_layer=='instance':
+            norm = ME.MinkowskiInstanceNorm(planes * block.expansion)
+        elif norm_layer=='batchnorm':
+            norm = ME.MinkowskiBatchNorm(planes * block.expansion)
+        elif norm_layer=='stableinstance':
+            norm = ME.MinkowskiStableInstanceNorm(planes * block.expansion)
+        else:
+            norm = None
+
+        
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 ME.MinkowskiConvolution(
@@ -104,7 +116,7 @@ class ResNetBase(nn.Module):
                     stride=stride,
                     dimension=self.D,
                 ),
-                ME.MinkowskiBatchNorm(planes * block.expansion) if use_bn else ME.MinkowskiInstanceNorm(planes * block.expansion),
+                norm,
             )
         layers = []
         layers.append(
@@ -115,13 +127,14 @@ class ResNetBase(nn.Module):
                 dilation=dilation,
                 downsample=downsample,
                 dimension=self.D,
+                norm_layer=norm_layer,
             )
         )
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(
                 block(
-                    self.inplanes, planes, stride=1, dilation=dilation, dimension=self.D
+                    self.inplanes, planes, stride=1, dilation=dilation, dimension=self.D, norm_layer=norm_layer
                 )
             )
 

@@ -42,10 +42,12 @@ class MinkEncodeBase(ResNetBase):
     # To use the model, must call initialize_coords before forward pass.
     # Once data is processed, call clear to reset the model before calling
     # initialize_coords
-    def __init__(self, in_channels=3, out_channels=5, D=3):
-        ResNetBase.__init__(self, in_channels, out_channels, D)
+    def __init__(self, in_channels=3, out_channels=5, D=3, norm_layer='instance'):
+        ResNetBase.__init__(self, in_channels, out_channels, D, norm_layer=norm_layer)
 
-    def network_initialization(self, in_channels, out_channels, D):
+    def network_initialization(self, in_channels, out_channels, D, norm_layer):
+        assert norm_layer in ['instance','batchnorm','stableinstance']
+        
         # Output of the first conv concated to conv6
         self.inplanes = self.INIT_DIM
 
@@ -53,21 +55,35 @@ class MinkEncodeBase(ResNetBase):
         self.conv0p1s1 = ME.MinkowskiConvolution(
             in_channels, self.inplanes, kernel_size=5, dimension=D)
 
-        self.bn0 = ME.MinkowskiInstanceNorm(self.inplanes)
+        if norm_layer=='instance':
+            self.bn0 = ME.MinkowskiInstanceNorm(self.inplanes)
+        elif norm_layer=='batchnorm':
+            self.bn0 = ME.MinkowskiBatchNorm(self.inplanes)
+        elif norm_layer=='stableinstance':
+            self.bn0 = ME.MinkowskiStableInstanceNorm(self.inplanes)
+
+        self.relu = ME.MinkowskiReLU(inplace=True)        
 
         nlayers = len( self.LAYERS )
 
         for ilayer in range(nlayers):
 
-            conv  = ME.MinkowskiConvolution(self.inplanes, self.inplanes, kernel_size=2, stride=2, dimension=D)                
-            bn    = ME.MinkowskiInstanceNorm(self.inplanes)
-            block = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer])
-            setattr(self,"layer%02d_convs2"%(ilayer),conv)
-            setattr(self,"layer%02d_bn"%(ilayer),bn)
+            # This striding layer does the downsampling
+            #conv  = ME.MinkowskiConvolution(self.inplanes, self.inplanes, kernel_size=2, stride=2, dimension=D)
+            #
+            #if norm_layer=='instance':
+            #    bn = ME.MinkowskiInstanceNorm(self.inplanes)
+            #elif norm_layer=='batchnorm':
+            #    bn = ME.MinkowskiBatchNorm(self.inplanes)
+            #elif norm_layer=='stableinstance':
+            #    bn = ME.MinkowskiStableInstanceNorm(self.inplanes)
+
+            # we use ResNetBase::_make_layer function here
+            block = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer], stride=2, norm_layer=norm_layer)
+            #setattr(self,"layer%02d_convs2"%(ilayer),conv)
+            #setattr(self,"layer%02d_bn"%(ilayer),bn)
             setattr(self,"layer%02d_block"%(ilayer),block)
 
-        self.relu = ME.MinkowskiReLU(inplace=True)        
-            
 
     def forward(self, x):
 
@@ -79,14 +95,15 @@ class MinkEncodeBase(ResNetBase):
         layerout = [stemout]
         for ilayer in range( len(self.LAYERS) ):
             #print("Encoder layer-%d"%(ilayer))
-            conv  = getattr(self, "layer%02d_convs2"%(ilayer))
-            bn    = getattr(self, "layer%02d_bn"%(ilayer))
+            #conv  = getattr(self, "layer%02d_convs2"%(ilayer))
+            #bn    = getattr(self, "layer%02d_bn"%(ilayer))
             block = getattr(self, "layer%02d_block"%(ilayer))
-            out = conv(layerout[-1])
+            #out = conv(layerout[-1])
 
-            out = bn(out)
-            out = self.relu(out)
-            out_px = block(out)
+            #out = bn(out)
+            #out = self.relu(out)
+            #out_px = block(out)
+            out_px = block( layerout[-1] )
             layerout.append(out_px)
 
         return layerout
@@ -104,10 +121,12 @@ class MinkDecodeBase(ResNetBase):
     # To use the model, must call initialize_coords before forward pass.
     # Once data is processed, call clear to reset the model before calling
     # initialize_coords
-    def __init__(self, in_channels, out_channels, D=3):
-        ResNetBase.__init__(self, in_channels, out_channels, D)
+    def __init__(self, in_channels, out_channels, D=3, norm_layer='instance'):
+        ResNetBase.__init__(self, in_channels, out_channels, D, norm_layer=norm_layer)
 
-    def network_initialization(self, in_channels, out_channels, D):
+    def network_initialization(self, in_channels, out_channels, D, norm_layer):
+        assert norm_layer in ['instance','batchnorm','stableinstance']
+        
         # Output of the first conv concated to conv6
         self.inplanes = self.INIT_DIM
 
@@ -117,14 +136,20 @@ class MinkDecodeBase(ResNetBase):
             
             convtr = ME.MinkowskiConvolutionTranspose(self.IN_PLANES[-1-ilayer], self.PLANES[ilayer],
                                                       kernel_size=2, stride=2, dimension=D)
-            bntr   = ME.MinkowskiInstanceNorm(self.PLANES[ilayer])
 
+            if norm_layer=='instance':
+                bntr = ME.MinkowskiInstanceNorm(self.PLANES[ilayer])
+            elif norm_layer=='batchnorm':
+                bntr = ME.MinkowskiBatchNorm(self.PLANES[ilayer])
+            elif norm_layer=='stableinstance':
+                bntr = ME.MinkowskiStableInstanceNorm(self.PLANES[ilayer])
+            
             if ilayer+1<nlayers:
                 self.inplanes = self.IN_PLANES[-2-ilayer] + self.PLANES[ilayer] * self.BLOCK.expansion
             else:
                 # last layer use stem out
                 self.inplanes = self.INIT_DIM + self.PLANES[ilayer] * self.BLOCK.expansion
-            block  = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer])
+            block  = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer], norm_layer=norm_layer)
             setattr(self,"decode_layer%02d_convtrs2"%(ilayer),convtr)
             setattr(self,"decode_layer%02d_bntr"%(ilayer),bntr)
             setattr(self,"decode_layer%02d_block"%(ilayer),block)

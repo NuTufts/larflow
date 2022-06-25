@@ -18,9 +18,12 @@ class LArMatchMinkowski(nn.Module):
                  inputshape=(1024,3584),                 
                  input_nfeatures=1,
                  input_nplanes=3,
+                 stem_nfeatures = 16,
+                 stem_nlayers = 3,                 
                  run_lm=True,
                  run_ssnet=True,
                  run_kp=True,
+                 norm_layer='instance',
                  num_ssnet_classes=7,
                  num_kp_classes=6):
         """
@@ -36,30 +39,28 @@ class LArMatchMinkowski(nn.Module):
         self.ninput_planes = input_nplanes
         
         # STEM
-        stem_nfeatures = 16
-        stem_nlayers = 3
         stem_layers = OrderedDict()
         if stem_nlayers==1:
             respath = ME.MinkowskiConvolution( input_nfeatures, stem_nfeatures, kernel_size=1, stride=1, dimension=ndimensions )
-            block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+            block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath, norm_layer=norm_layer )
             #block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )            
             stem_layers["stem_layer0"] = block
         else:
             for istem in range(stem_nlayers):
                 if istem==0:
                     respath = ME.MinkowskiConvolution( input_nfeatures, stem_nfeatures, kernel_size=1, stride=1, dimension=ndimensions )
-                    block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+                    block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath, norm_layer=norm_layer )
                     #block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )                    
                 else:
-                    block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )
+                    block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions, norm_layer=norm_layer  )
                     #block   = BasicBlock( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )                    
                 stem_layers["stem_layer%d"%(istem)] = block
             
         self.stem = nn.Sequential(stem_layers)
 
         # RESIDUAL UNET FOR FEATURE CONSTRUCTION
-        self.encoder = MinkEncode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
-        self.decoder = MinkDecode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+        self.encoder = MinkEncode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2, norm_layer=norm_layer )
+        self.decoder = MinkDecode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2, norm_layer=norm_layer )
 
         # sparse to dense operation
         self.sparse_to_dense = [ ME.MinkowskiToFeature() for p in range(input_nplanes) ]
@@ -75,9 +76,9 @@ class LArMatchMinkowski(nn.Module):
         self.use_kp_bn   = False
         
         # CLASSIFERS
-        if self.run_lm:      self.lm_classifier = LArMatchSpacepointClassifier( num_input_feats=stem_nfeatures*3 )
-        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=stem_nfeatures,num_classes=num_ssnet_classes)
-        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=stem_nfeatures,nclasses=num_kp_classes,use_bn=self.use_kp_bn)
+        if self.run_lm:      self.lm_classifier = LArMatchSpacepointClassifier( num_input_feats=stem_nfeatures*3, norm_layer=norm_layer )
+        if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=stem_nfeatures,num_classes=num_ssnet_classes,norm_layer=norm_layer)
+        if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=stem_nfeatures,nclasses=num_kp_classes,norm_layer=norm_layer)
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=features_per_layer)
         
 
@@ -100,31 +101,27 @@ class LArMatchMinkowski(nn.Module):
 
         # then we have to extract a feature tensor
         batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, batch_size )
-        #for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
-        #    print("--------------------------------------------------------")
-        #    print("extracted features batch[",b,"]_spacepoint_feat")            
-        #    print(spacepoint_feat)
-        #print("--------------------------------------------------------")            
+        #with torch.no_grad():
+        #    for b in range(batch_spacepoint_feat.shape[0]):
+        #        spacepoint_feat = batch_spacepoint_feat[b]
+        #        print("--------------------------------------------------------")
+        #        print("extracted features batch[",b,"]_spacepoint_feat")            
+        #        print(spacepoint_feat.shape)
+        #    print("--------------------------------------------------------")            
 
         # we pass the features through the different classifiers
-        batch_output = []
-        for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
-            output = {}            
-            x = spacepoint_feat.unsqueeze(0)
+        output = {}        
+        if self.run_lm:
+            #print("batch ",b," spacepoint feats: ",x.shape)
+            output["lm"] = self.lm_classifier( batch_spacepoint_feat )
 
-            if self.run_lm:
-                #print("batch ",b," spacepoint feats: ",x.shape)
-                output["lm"] = self.lm_classifier( x )
+        if self.run_ssnet:
+            output["ssnet"] = self.ssnet_head( batch_spacepoint_feat )
 
-            if self.run_ssnet:
-                output["ssnet"] = self.ssnet_head( x )
-
-            if self.run_kplabel:
-                output["kp"] = self.kplabel_head( x )
+        if self.run_kplabel:
+            output["kp"] = self.kplabel_head( batch_spacepoint_feat )
             
-            batch_output.append( output )
-
-        return batch_output
+        return output
                                         
     def extract_features(self, feat_v, index_t, batch_size, verbose=False ):
         """ 
@@ -191,7 +188,10 @@ class LArMatchMinkowski(nn.Module):
             #print("(extract) batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
             #print(spacepoint_feats_t)
             #print("------------------------------------------------------------")            
-            batch_feats.append( spacepoint_feats_t )
+            batch_feats.append( spacepoint_feats_t.unsqueeze(0) )
+        
+        # contact
+        batch_feats_cat = torch.cat( batch_feats, dim=0 )
             
-        return batch_feats
+        return batch_feats_cat
     

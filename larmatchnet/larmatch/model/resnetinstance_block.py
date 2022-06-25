@@ -32,17 +32,38 @@ class BasicBlockInstanceNorm(nn.Module):
                  planes,
                  stride=1,
                  dilation=1,
+                 kernel_size=3,
                  downsample=None,
+                 norm_layer='instance',
                  dimension=-1):
         super(BasicBlockInstanceNorm, self).__init__()
         assert dimension > 0
+        assert norm_layer in ['instance','batchnorm','stableinstance']
 
         self.conv1 = ME.MinkowskiConvolution(
-            inplanes, planes, kernel_size=3, stride=stride, dilation=dilation, dimension=dimension)
-        self.norm1 = ME.MinkowskiInstanceNorm(planes)
+            inplanes, planes, kernel_size=kernel_size, stride=stride, dilation=dilation, dimension=dimension)
+        
+        if norm_layer=='instance':
+            self.norm1 = ME.MinkowskiInstanceNorm(planes)
+        elif norm_layer=='batchnorm':
+            self.norm1 = ME.MinkowskiBatchNorm(planes)
+        elif norm_layer=='stableinstance':
+            self.norm1 = ME.MinkowskiStableInstanceNorm(planes)
+        else:
+            self.norm1 = None
+            
         self.conv2 = ME.MinkowskiConvolution(
-            planes, planes, kernel_size=3, stride=1, dilation=dilation, dimension=dimension)
-        self.norm2 = ME.MinkowskiInstanceNorm(planes)
+            planes, planes, kernel_size=kernel_size, stride=1, dilation=dilation, dimension=dimension)
+
+        if norm_layer=='instance':
+            self.norm2 = ME.MinkowskiInstanceNorm(planes)
+        elif norm_layer=='batchnorm':
+            self.norm2 = ME.MinkowskiBatchNorm(planes)
+        elif norm_layer=='stableinstance':
+            self.norm2 = ME.MinkowskiStableInstanceNorm(planes)
+        else:
+            self.norm2 = None
+
         self.relu = ME.MinkowskiReLU(inplace=True)
         self.downsample = downsample
 

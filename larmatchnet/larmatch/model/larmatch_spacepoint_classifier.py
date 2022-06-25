@@ -5,23 +5,30 @@ import MinkowskiEngine as ME
 
 class LArMatchSpacepointClassifier( nn.Module ):
 
-    def __init__(self, num_input_feats, classifier_nfeatures=[32,32], ndimensions=2 ):
+    def __init__(self, num_input_feats, classifier_nfeatures=[512], ndimensions=2, norm_layer='batchnorm' ):
         super(LArMatchSpacepointClassifier,self).__init__()
-
+        assert norm_layer in ['instance','batchnorm','stableinstance']        
+        
         # larmatch classifier
         self.final_vec_nfeats = num_input_feats
         lm_class_layers = OrderedDict()
         for i,nfeat in enumerate(classifier_nfeatures):
             if i==0:
-                lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(num_input_feats,nfeat,1)
+                lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(num_input_feats,nfeat,1,bias=False)
             else:
-                lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(classifier_nfeatures[i-1],nfeat,1)
-            lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
+                lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(classifier_nfeatures[i-1],nfeat,1,bias=False)
+                if norm_layer in ['instance','stableinstance']:
+                    lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
+                elif norm_layer=='batchnorm':
+                    lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
             lm_class_layers["lmclassifier_relu%d"%(i)] = torch.nn.ReLU()
-        lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1)
+        lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1,bias=False)
+        # set bias assuming a 1:2 pos:neg class imbalance
+        #lm_class_layers["lmclassifier_out"].bias.data[0] = 0.0
+        #lm_class_layers["lmclassifier_out"].bias.data[1] = -1.0        
         self.lm_classifier = nn.Sequential( lm_class_layers )
 
-    def forward( self, triplet_feat_t ):
+    def forward( self, triplet_feat_t : torch.FloatTensor ):
         """
         classify triplet of (u,v,y) wire plane pixel locations as being a true or false position.
         use information from concat feature vectors.
