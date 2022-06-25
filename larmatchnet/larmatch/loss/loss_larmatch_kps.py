@@ -32,6 +32,8 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.keypoint_name = keypoint_name
         self.affinity_name = affinity_name
         self.learnable_weights = learnable_weights
+        # using multi-task adaptive weighting: arXiv:1705.07115
+        # we learn a parameter s = log( sigma^2 ), which is monotonically related to the "uncertainty" in the prediction
         self.task_weights = {larmatch_name:nn.Parameter(torch.ones(1)*init_lm_weight),
                              ssnet_name:nn.Parameter( torch.ones(1)*init_ssnet_weight ),
                              keypoint_name:nn.Parameter(torch.ones(1)*init_kp_weight),
@@ -56,21 +58,59 @@ class SparseLArMatchKPSLoss(nn.Module):
                 self.ssnet_name:0.0,
                 self.keypoint_name:0.0,
                 self.affinity_name:0.0}
-        
-        for ib in range(batch_size):
-            losses = self.forward_onebatch( predictions[ib], truthlabels[ib], weights[ib], device, verbose=verbose )
+
+        if verbose:
+            print("type(predictions)=",type(predictions))
+            
+        if type(predictions) is list:
+            whole_batch = False
+            for ib in range(batch_size):
+                losses = self.forward_onebatch( predictions[ib], truthlabels[ib], weights[ib], device, verbose=verbose )
+                for k in losses:
+                    if loss[k] is None:
+                        loss[k] = losses[k]
+                    else:
+                        loss[k] += losses[k]
+            for k in loss:
+                loss[k] /= float(batch_size)            
+        else:
+            # we need to cat the truth and weights
+            whole_batch_labels = {}
+            whole_batch_weights = {}
+            if verbose:
+                print("======== Make whole_batch truth and weights ==========")
+            for k in [self.larmatch_name,self.ssnet_name,self.keypoint_name,self.affinity_name]:
+                if k not in truthlabels[0]:
+                    continue
+                label_batch = []
+                for x in truthlabels:
+                    if len(x[k].shape)==1:
+                        x[k] = x[k].reshape( 1, 1, x[k].shape[0] ) # B, C, N
+                    elif len(x[k].shape)==2:
+                        x[k] = x[k].unsqueeze(0)  # B, C, N
+                    label_batch.append( x[k] )
+                whole_batch_labels[k] = torch.cat( label_batch, dim=0 )
+
+                weight_batch = []
+                for x in weights:
+                    if len(x[k].shape)==1:
+                        x[k] = x[k].reshape( 1, 1, x[k].shape[0] ) # B, C, N
+                    elif len(x[k].shape)==2:
+                        x[k] = x[k].unsqueeze(0)  # B, C, N
+                    weight_batch.append( x[k] )
+                whole_batch_weights[k] = torch.cat( weight_batch, dim=0 )
+                if verbose:
+                    print("whole_batch_labels [",k,"]: ",whole_batch_labels[k].shape)
+                    print("whole_batch_weights [",k,"]: ",whole_batch_weights[k].shape)
+            losses = self.forward_onebatch( predictions, whole_batch_labels, whole_batch_weights, device, verbose=verbose, whole_batch=True )
             for k in losses:
                 if loss[k] is None:
                     loss[k] = losses[k]
                 else:
                     loss[k] += losses[k]
-
-        for k in loss:
-            loss[k] /= float(batch_size)
-            
         return loss
         
-    def forward_onebatch(self, predictions, truthlabels, weights, device, verbose=False ):
+    def forward_onebatch(self, predictions, truthlabels, weights, device, verbose=False, whole_batch=True ):
 
         loss = {"tot":None,
                 self.larmatch_name:0.0,
@@ -93,10 +133,10 @@ class SparseLArMatchKPSLoss(nn.Module):
 
             if self.learnable_weights:
                 if verbose:
-                    print("lm loss weight: ",self.task_weights[self.larmatch_name]," exp(w)=",torch.exp(-self.task_weights[self.larmatch_name].detach()))
-                    print("lm loss: ",lm_loss.detach().item())
-                    print("lm loss shape: ",lm_loss.shape)
-                weighted_lm_loss = lm_loss*torch.exp(-self.task_weights[self.larmatch_name]) + self.task_weights[self.larmatch_name]
+                    print("  lm loss weight: ",self.task_weights[self.larmatch_name]," exp(w)=",torch.exp(-self.task_weights[self.larmatch_name].detach()))
+                    print("  lm loss: ",lm_loss.detach().item())
+                    print("  lm loss shape: ",lm_loss.shape)
+                weighted_lm_loss = lm_loss*torch.exp(-self.task_weights[self.larmatch_name]) + 0.5*self.task_weights[self.larmatch_name]
                 if loss["tot"] is None:
                     loss["tot"] = weighted_lm_loss
                 else:
@@ -115,7 +155,7 @@ class SparseLArMatchKPSLoss(nn.Module):
                 print("eval SSNET loss")
             if self.ssnet_name not in predictions:
                 raise ValueError("Asked to eval larmatch loss, but prediction diction does not contain key",self.larmatch_name)            
-            ssnet_pred = predictions[self.ssnet_name]
+            ssnet_pred   = predictions[self.ssnet_name]
             ssnet_label  = truthlabels[self.ssnet_name]
             ssnet_weight = weights[self.ssnet_name]
             #truematch_index  = truthlabels[self.larmatch_name]                    
@@ -127,10 +167,10 @@ class SparseLArMatchKPSLoss(nn.Module):
                     loss["tot"] += ssloss
             else:
                 if verbose:
-                    print("ssnet loss weight: ",self.task_weights[self.ssnet_name]," exp(w)=",torch.exp(-self.task_weights[self.ssnet_name].detach()))
-                    print("ssnet loss shape: ",ssloss.shape)
-                    print("weight shape: ",self.task_weights[self.ssnet_name].shape)
-                weighted_ssloss = ssloss*torch.exp(-self.task_weights[self.ssnet_name]) + self.task_weights[self.ssnet_name]
+                    print("  ssnet loss weight: ",self.task_weights[self.ssnet_name]," exp(w)=",torch.exp(-self.task_weights[self.ssnet_name].detach()))
+                    print("  ssnet loss shape: ",ssloss.shape)
+                    print("  task-weight shape: ",self.task_weights[self.ssnet_name].shape)
+                weighted_ssloss = ssloss*torch.exp(-self.task_weights[self.ssnet_name]) + 0.5*self.task_weights[self.ssnet_name]
                 if loss["tot"] is None:
                     loss["tot"] = weighted_ssloss
                 else:
@@ -153,8 +193,8 @@ class SparseLArMatchKPSLoss(nn.Module):
                     loss["tot"] += kploss
             else:
                 if verbose:
-                    print("keypoint loss weight: ",self.task_weights[self.keypoint_name]," exp(w)=",torch.exp(-self.task_weights[self.keypoint_name].detach()))
-                weighted_kploss = kploss*torch.exp(-self.task_weights[self.keypoint_name]) + self.task_weights[self.keypoint_name]
+                    print("keypoint loss weight: ",self.task_weights[self.keypoint_name]," exp(-w)=",torch.exp(-self.task_weights[self.keypoint_name].detach()))
+                weighted_kploss = kploss*torch.exp(-self.task_weights[self.keypoint_name]) + 0.5*self.task_weights[self.keypoint_name]
                 if loss["tot"] is None:
                     loss["tot"] = weighted_kploss
                 else:
@@ -189,27 +229,32 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("[SparseLArMatchKPSLoss::larmatch_loss]")
             print("  larmatch pred: ",larmatch_pred.shape)
             print("  larmatch weight: ",larmatch_weight.shape)
+            print("  larmatch truth: ",larmatch_truth.shape)
             
         # convert int to float for subsequent calculations
         true_lm = larmatch_truth.eq(1)
         false_lm = larmatch_truth.eq(0)
+        if verbose:
+            print("  true_lm: ",true_lm.shape)
 
         if self.larmatch_use_focal_loss:
             # p_t for focal loss
 
-            if verbose: print("  larmatch_pred shape: ",larmatch_pred.squeeze().shape)            
-            p = torch.softmax( larmatch_pred.squeeze(), dim=0 )
-            if verbose: print("  softmaxout shape: ",p.shape)                        
+            if verbose: print("  larmatch_pred shape: ",larmatch_pred.shape)            
+            p = torch.softmax( larmatch_pred, dim=1 )
+            if verbose: print("  LM softmaxout shape: ",p.shape)                        
 
-            p_t_true  = p[1,true_lm]
+            p_t_true  = p[:,1,:][true_lm.squeeze()]
+            if verbose: print("  p_t_true: ",p_t_true.shape)
             loss_true = -larmatch_weight[true_lm]*torch.log(p_t_true+1.0e-4)*torch.pow(1-p_t_true,self.focal_loss_gamma)
             loss_true = loss_true.sum()
 
-            p_t_false = p[0,false_lm]
+            p_t_false = p[:,0,:][false_lm.squeeze()]
+            if verbose: print("  p_t_false: ",p_t_false.shape)
             loss_false = -larmatch_weight[false_lm]*torch.log(p_t_false+1.0e-4)*torch.pow(1-p_t_false,self.focal_loss_gamma)
             loss_false = loss_false.sum()
 
-            loss = loss_true+loss_false
+            loss = (loss_true+loss_false)/float(larmatch_pred.shape[0])
 
             if verbose:
                 print("  true-match loss: ",loss_true.detach().item())
@@ -252,7 +297,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         fnout = fn_kp( keypoint_score_pred.squeeze(), keypoint_score_truth )
         if verbose:
             print("  fnout shape: ",fnout.shape)
-        kp_loss  = (fnout*keypoint_weight).sum()
+        kp_loss  = (fnout*keypoint_weight).sum()/float(keypoint_score_pred.shape[0])
         kp_floss = kp_loss.detach().item()
         if verbose:
             print(" loss-kplabel: ",kp_floss)
@@ -299,10 +344,10 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
 
-        ssnet_weight[ ssnet_truth==0 ] = 0.0 # zero out background class which can be noisy
+        ssnet_weight[ ssnet_truth==0 ]    = 0.0 # zero out background class which can be noisy
         ssnet_weight[ larmatch_label==0 ] = 0.0 # zero out non-true spacepoints
         fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none', ignore_index=0 )
-        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).mean()
+        ssnet_loss = (fn_ssnet( ssnet_pred, ssnet_truth.squeeze() )*ssnet_weight).mean()
             
         if self.ssnet_use_lovasz_loss:
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )

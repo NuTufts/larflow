@@ -22,7 +22,7 @@ class LArMatchSpacepointClassifier( nn.Module ):
                 elif norm_layer=='batchnorm':
                     lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
             lm_class_layers["lmclassifier_relu%d"%(i)] = torch.nn.ReLU()
-        lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1,bias=False)
+        lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1,bias=True)
         # set bias assuming a 1:2 pos:neg class imbalance
         #lm_class_layers["lmclassifier_out"].bias.data[0] = 0.0
         #lm_class_layers["lmclassifier_out"].bias.data[1] = -1.0        

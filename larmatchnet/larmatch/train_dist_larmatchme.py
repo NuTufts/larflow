@@ -27,11 +27,13 @@ import MinkowskiEngine as ME
 def cleanup():
     dist.destroy_process_group()
 
-def setup(rank, world_size):
+def setup(rank, world_size, backend, port):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12356'
+    #os.environ['MASTER_PORT'] = '12355'
+    os.environ['MASTER_PORT'] = port
     # initialize the process group
-    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    #dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+    dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
     # this function is responsible for synchronizing and successfully communicate across multiple process
     # involving multiple GPUs.
 
@@ -40,33 +42,34 @@ def run(gpu, args ):
     This is the function run by each worker process
     """
     ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
+
+    # larmatch imports
+    import larmatch
+    import larmatch.utils.larmatchme_engine as engine
+    from larmatch_dataset import larmatchDataset
+
+    # load config
+    config = engine.load_config_file( args )
+    print("LOAD CONFIG")
+    sys.stdout.flush()
+    
     #========================================================
     # CREATE PROCESS
     rank = gpu
     print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
     if not args.no_parallel:
-        setup( rank, args.gpus )
+        setup( rank, args.gpus, config["MULTIPROCESS_BACKEND"], config["MASTER_PORT"] )
     #========================================================
     torch.manual_seed(0)
     
     # tensorboardX
     from torch.utils.tensorboard import SummaryWriter
     
-    # larmatch imports
-    import larmatch
-    import larmatch.utils.larmatchme_engine as engine
-    from larmatch_dataset import larmatchDataset
-
     # ROOT, larcv
     import ROOT as rt
     from ROOT import std
     from larcv import larcv
     from larflow import larflow
-
-
-    print("LOAD CONFIG")
-    sys.stdout.flush()
-    config = engine.load_config_file( args )
     
     verbose = config["VERBOSE_MAIN_LOOP"]
     torch.cuda.set_device(gpu)
@@ -77,10 +80,13 @@ def run(gpu, args ):
         # log into wandb
         print("RANK-0 THREAD: LOAD WANDB")
         sys.stdout.flush()    
-        wandb.init(project="larmatchme-v3-test",config=config)
+        wandb.init(project="larmatchme-v3-test2",config=config)
 
 
     single_model = engine.get_model( config, dump_model=False )
+    if config["NORM_LAYER"]=="batchnorm":
+        torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model)
+        ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(single_model)
 
     criterion = engine.make_loss_fn( config )
     num_loss_pars = len(list(criterion.parameters()))
@@ -132,7 +138,9 @@ def run(gpu, args ):
     
     train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
                                      random_access=True,
+                                     num_triplet_samples=50000,
                                      verbose=config["TRAIN_DATASET_VERBOSE"],
+                                     return_constant_sample=False,
                                      load_truth=True )
     if args.world_size>0:
         train_dataset.set_partition( rank, args.world_size )
@@ -147,6 +155,8 @@ def run(gpu, args ):
         valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
                                          random_access=True,
                                          load_truth=True,
+                                         num_triplet_samples=50000,
+                                         return_constant_sample=False,
                                          verbose=config["VALID_DATASET_VERBOSE"],
                                          npairs=None )
         VALID_NENTRIES = len(valid_dataset)
@@ -154,7 +164,23 @@ def run(gpu, args ):
         valid_loader = torch.utils.data.DataLoader(valid_dataset,
                                                    batch_size=config["BATCH_SIZE"],
                                                    collate_fn=larmatchDataset.collate_fn)
-    
+
+        fixed_dataset = larmatchDataset( txtfile=config["FIXED_DATASET_INPUT_TXTFILE"],
+                                         random_access=True,
+                                         load_truth=True,
+                                         num_triplet_samples=20000,
+                                         return_constant_sample=True,                                         
+                                         verbose=config["FIXED_DATASET_VERBOSE"],
+                                         npairs=None )
+        FIXED_NENTRIES = len(fixed_dataset)
+        print("RANK-%d: LOAD FIXED DATASET NENTRIES: "%(rank),FIXED_NENTRIES)
+        fixed_loader = torch.utils.data.DataLoader(fixed_dataset,
+                                                   batch_size=config["FIXED_SAMPLE_BATCH_SIZE"],
+                                                   collate_fn=larmatchDataset.collate_fn)
+
+        # WATCH
+        wandb.watch(model,log="all",log_freq=100)
+        
     
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
@@ -204,10 +230,10 @@ def run(gpu, args ):
                 # write to tensorboard
                 # --------------------
 
-                logme = {"epoch":train_iteration}
+                logme = {}
                 
                 # losses go into same plot                
-                loss_scalars = { "loss-"+x:y.avg for x,y in loss_meters.items() }
+                loss_scalars = { "loss/"+x:y.avg for x,y in loss_meters.items() }
                 tb_writer.add_scalars('data/train_loss', loss_scalars, train_iteration )
                 logme.update(loss_scalars)
                 
@@ -216,7 +242,7 @@ def run(gpu, args ):
                 acc_scalars = {}
                 for accname in engine.LM_CLASS_NAMES:
                     if acc_meters[accname].count>0:
-                        acc_scalars[accname] = acc_meters[accname].avg
+                        acc_scalars["lm/"+accname] = acc_meters[accname].avg
                 if len(acc_scalars)>0:
                     tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
                     logme.update(acc_scalars)
@@ -225,7 +251,7 @@ def run(gpu, args ):
                 ssnet_scalars = {}
                 for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
                     if acc_meters[accname].count>0:
-                        ssnet_scalars[accname] = acc_meters[accname].avg
+                        ssnet_scalars["ssnet/"+accname] = acc_meters[accname].avg
                 if len(ssnet_scalars)>0:
                     tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
                     logme.update(ssnet_scalars)
@@ -234,34 +260,37 @@ def run(gpu, args ):
                 kp_scalars = {}
                 for accname in engine.KP_CLASS_NAMES:
                     if acc_meters[accname].count>0:
-                        kp_scalars[accname] = acc_meters[accname].avg
+                        kp_scalars["kplabel/"+accname] = acc_meters[accname].avg
                 if len(kp_scalars)>0:
                     tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
                     logme.update(kp_scalars)                    
                 
                 # paf
                 if acc_meters["paf"].count>0:
-                    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
+                    paf_acc_scalars = { "paf/paf":acc_meters["paf"].avg  }
                     tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
                     logme.update(paf_acc_scalars)                    
 
                 # loss params
                 loss_weight_scalars = {}
                 for k,par in criterion.named_parameters():
-                    loss_weight_scalars[k] = torch.exp( -par.detach() ).item()
+                    loss_weight_scalars["loss-weights/"+k] = torch.exp( -par.detach() ).item()
                 tb_writer.add_scalars("data/loss_weights", loss_weight_scalars, train_iteration )
                 logme.update(loss_weight_scalars)
 
                 # log into wandb
-                wandb.log(logme,step=train_iteration)
-                #wandb.watch(model)
+                logme_train = {}
+                for x,y in logme.items():
+                    logme_train["train/"+x] = y
+                wandb.log(logme_train,step=train_iteration)
 
-            if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
+
+            if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0 and iiter>0:
                 if rank==0:
                     valid_loss_meters,valid_acc_meters,valid_time_meters = engine.make_meters(config)                    
                     for viter in range(int(config["NUM_VALID_ITERS"])):
                         with torch.no_grad():
-                            engine.do_one_iteration(config,single_model,
+                            engine.do_one_iteration(config,model,
                                                     valid_loader,criterion,optimizer,
                                                     valid_acc_meters,valid_loss_meters,valid_time_meters,
                                                     False,device,verbose=False)
@@ -272,10 +301,10 @@ def run(gpu, args ):
                     # write to tensorboard/wandb
                     # --------------------
 
-                    logme = {"epoch":train_iteration}
+                    logme = {}
                     
                     # losses go into same plot
-                    loss_scalars = { "loss-"+x:y.avg for x,y in loss_meters.items() }
+                    loss_scalars = { "loss/"+x:y.avg for x,y in valid_loss_meters.items() }
                     tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
                     logme.update(loss_scalars)
                 
@@ -284,7 +313,7 @@ def run(gpu, args ):
                     val_acc_scalars = {}
                     for accname in engine.LM_CLASS_NAMES:
                         if valid_acc_meters[accname].count>0:
-                            val_acc_scalars[accname] = valid_acc_meters[accname].avg
+                            val_acc_scalars["lm/"+accname] = valid_acc_meters[accname].avg
                     if len(val_acc_scalars)>0:
                         tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
                         logme.update(val_acc_scalars)
@@ -293,7 +322,7 @@ def run(gpu, args ):
                     val_ssnet_scalars = {}
                     for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
                         if valid_acc_meters[accname].count>0:
-                            val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
+                            val_ssnet_scalars["ssnet/"+accname] = valid_acc_meters[accname].avg
                     if len(val_ssnet_scalars)>0:
                         tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
                         logme.update( val_ssnet_scalars )
@@ -302,20 +331,20 @@ def run(gpu, args ):
                     val_kp_scalars = {}
                     for accname in engine.KP_CLASS_NAMES:
                         if valid_acc_meters[accname].count>0:
-                            val_kp_scalars[accname] = valid_acc_meters[accname].avg
+                            val_kp_scalars["kplabel/"+accname] = valid_acc_meters[accname].avg
                     if len(val_kp_scalars)>0:
                         tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
                         logme.update( val_kp_scalars )
                 
                     # paf
                     if valid_acc_meters["paf"].count>0:
-                        val_paf_acc_scalars = { "paf":valid_acc_meters["paf"].avg  }
+                        val_paf_acc_scalars = { "paf/paf":valid_acc_meters["paf"].avg  }
                         tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
                         logme.update( val_paf_acc_scalars )
 
                     logme_valid = {}
                     for x,y in logme.items():
-                        logme_valid["valid-"+x] = y
+                        logme_valid["valid/"+x] = y
                     # log into wandb
                     wandb.log(logme_valid,step=train_iteration)
                     
@@ -323,9 +352,69 @@ def run(gpu, args ):
                 else:
                     if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
-                # wait for rank-0 to finish reporting and plotting
-                #if not args.no_parallel:
-                #    torch.distributed.barrier()
+            if rank==0 and config["TRAIN_ITER_PER_FIXEDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_FIXEDPT"])==0 and iiter>0:
+                fixed_loss_meters,fixed_acc_meters,fixed_time_meters = engine.make_meters(config)                    
+                with torch.no_grad():
+                    engine.do_one_iteration(config, model,
+                                            fixed_loader,criterion,optimizer,
+                                            fixed_acc_meters,fixed_loss_meters,fixed_time_meters,
+                                            False,device,verbose=False)
+                    #print("Fixed check")
+                    for k,par in model.module.named_parameters():
+                        #print(k,type(par))
+                        if torch.isnan(par.data).any():
+                            raise ValueError("Found a NAN")
+                        
+                        
+                    engine.prep_status_message( "Fixed-Iteration", train_iteration,
+                                                fixed_acc_meters,
+                                                fixed_loss_meters,
+                                                fixed_time_meters )
+                    # write to wandb
+                    # --------------------
+
+                    logme = {}
+                    
+                    # losses go into same plot
+                    loss_scalars = { "loss/"+x:y.avg for x,y in fixed_loss_meters.items() }
+                    logme.update(loss_scalars)
+                    
+                    # split acc into different types
+                    # larmatch
+                    fixed_acc_scalars = {}
+                    for accname in engine.LM_CLASS_NAMES:
+                        if fixed_acc_meters[accname].count>0:
+                            fixed_acc_scalars["lm/"+accname] = fixed_acc_meters[accname].avg
+                    if len(fixed_acc_scalars)>0:
+                        logme.update(fixed_acc_scalars)
+
+                    # ssnet
+                    fixed_ssnet_scalars = {}
+                    for accname in engine.SSNET_CLASS_NAMES+["ssnet-all"]:
+                        if fixed_acc_meters[accname].count>0:
+                            fixed_ssnet_scalars["ssnet/"+accname] = fixed_acc_meters[accname].avg
+                    if len(fixed_ssnet_scalars)>0:
+                        logme.update( fixed_ssnet_scalars )
+                        
+                    # keypoint
+                    fixed_kp_scalars = {}
+                    for accname in engine.KP_CLASS_NAMES:
+                        if fixed_acc_meters[accname].count>0:
+                            fixed_kp_scalars["kplabel/"+accname] = fixed_acc_meters[accname].avg
+                    if len(fixed_kp_scalars)>0:
+                        logme.update( fixed_kp_scalars )
+                        
+                    # paf
+                    if fixed_acc_meters["paf"].count>0:
+                        fixed_paf_acc_scalars = { "paf/paf":fixed_acc_meters["paf"].avg  }
+                        logme.update( fixed_paf_acc_scalars )
+
+                    logme_fixed = {}
+                    for x,y in logme.items():
+                        logme_fixed["fixed/"+x] = y
+                        # log into wandb
+                    wandb.log(logme_fixed,step=train_iteration)
+
 
         if verbose: print("RANK-%d process finished. Waiting to sync."%(rank))
         if rank==0:

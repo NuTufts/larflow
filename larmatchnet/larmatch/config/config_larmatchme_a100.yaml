@@ -1,37 +1,46 @@
 # TRAINING PARAMETERS
 RESUME_FROM_CHECKPOINT: false
 RESUME_OPTIM_FROM_CHECKPOINT: false
-CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/checkpoint.14000th.tar"
-LEARNING_RATE: 1.0e-2
-WEIGHT_DECAY: 1.0e-4
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/checkpoint_previous/checkpoint.cc1gpu.78500th.tar"
+LEARNING_RATE: 1.0e-3
+WEIGHT_DECAY: 1.0e-6
 NUM_ITERATIONS: 1000000
 START_ITER: 0
 DEVICE: cuda
 RUN_PROFILER: false
-BATCH_SIZE: 8
-BATCH_TRIPLET_LIMIT: 3300000
-CLIP_GRAD_NORM: false
-TRAIN_ITER_PER_RECORD: 1
-TRAIN_ITER_PER_VALIDPT: 10
+BATCH_SIZE: 10
+BATCH_TRIPLET_LIMIT: 4000000
+NUM_TRIPLET_SAMPLES: 50000
+CLIP_GRAD_NORM: true
+TRAIN_ITER_PER_RECORD: 10
+TRAIN_ITER_PER_VALIDPT: 50
+TRAIN_ITER_PER_FIXEDPT: 50
 NUM_VALID_ITERS: 1
-ITER_PER_CHECKPOINT: 1000
+ITER_PER_CHECKPOINT: 500
 ITER_PER_CACHECLEAR: 1
 VERBOSE_MAIN_LOOP: false
 VERBOSE_ITER_LOOP: false
 VERBOSE_LOSS: false
 VERBOSE_ACCURACY: false
-CHECKPOINT_TAG: "a100"
+MULTIPROCESS_BACKEND: "gloo"
+MASTER_PORT: "12350"
+CHECKPOINT_TAG: "ccgpu.sampled"
 
 # DATASET PARAMETERS
-TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
+TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.train.list"
 TRAIN_DATASET_VERBOSE: false
-VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
+VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.valid.list"
 VALID_DATASET_VERBOSE: false
+FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
+FIXED_SAMPLE_BATCH_SIZE: 12
+FIXED_DATASET_VERBOSE: false
 
 # MODEL PARAMETERS
+NUM_STEM_FEATURES: 16
+NORM_LAYER: "batchnorm"
 
 # LOSS PARAMETERS
-USE_LEARNABLE_LOSS_WEIGHTS: true
+USE_LEARNABLE_LOSS_WEIGHTS: false
 RUN_LARMATCH: true
 RUN_SSNET: true
 RUN_KPLABEL: true

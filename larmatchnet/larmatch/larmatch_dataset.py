@@ -166,23 +166,29 @@ class larmatchDataset(torch.utils.data.Dataset):
             return False
 
 
-        if self._num_triplet_samples is not None and self._num_triplet_samples<ntriplets:
-            sample = np.arange(ntriplets)
-            ntriplets = self._num_triplet_samples
-            np.random.shuffle(sample)
-            data["matchtriplet_v"] = data["matchtriplet_v"][sample[:ntriplets],:]
-
+        if self._num_triplet_samples is not None:
+            sample = np.arange(self._num_triplet_samples)
+            if self._num_triplet_samples<ntriplets:
+                ntriplets = self._num_triplet_samples
+                np.random.shuffle(sample)
+            elif self._num_triplet_samples>ntriplets:
+                sample[ntriplets:] = 0
+                
+            data["matchtriplet_v"] = data["matchtriplet_v"][sample,:]
+            data["ntriplets"] = int(ntriplets)
+            
             if self.load_truth:
-                data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample[:ntriplets]]
-                data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample[:ntriplets]]
-                data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)[sample[:ntriplets]]
-                data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()[sample[:ntriplets]]
-                data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()[sample[:ntriplets]]
-                data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy()[sample[:ntriplets],:], (1,0) )
-                data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy()[sample[:ntriplets],:], (1,0) )
+                data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample]
+                data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample]
+                data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)[sample]
+                data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()[sample]
+                data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()[sample]
+                data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy()[sample,:], (1,0) )
+                data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy()[sample,:], (1,0) )
+
             
         else:
-        
+            data["ntriplets"] = int(ntriplets)
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
                 data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()

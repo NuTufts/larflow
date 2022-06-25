@@ -6,25 +6,33 @@ import numpy as np
 # this tests the individual elements of loading the model, data, and calculating the loss
 
 # model defined here
-from model.larmatchminkowski import LArMatchMinkowski
+from larmatch.model.larmatchminkowski import LArMatchMinkowski
+from larmatch.utils.larmatchme_engine import get_model, load_config_file
 
-# use CPU or GPU
-DEVICE = torch.device("cuda")
-#DEVICE = torch.device("cpu")
+class argstest:
+    def __init__(self):
+        self.config_file = sys.argv[1]
+
+args = argstest()
+config = load_config_file( args, dump_to_stdout=True )
+config["DEVICE"] = "cpu"
+DEVICE = torch.device(config["DEVICE"])
+model = get_model( config, dump_model=True )
+
 
 # create model
 inputshape=(1024,3584)
-model = LArMatchMinkowski(ndimensions=2,inputshape=inputshape,input_nfeatures=1,input_nplanes=3).to(DEVICE)
-if False:
-    print(model)
 
 # Load some test data and push it through
 from larmatch_dataset import larmatchDataset
 import MinkowskiEngine as ME
 
-niter = 10
-batch_size = 1
-test = larmatchDataset( filelist=["testdata/temp.root"], load_truth=True )
+niter = 1
+batch_size = 4
+testfile="/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_kpreweight/larmatchdata_bnbnue_bnbnue_0429.root"
+test = larmatchDataset( filelist=[testfile],
+                        load_truth=True,
+                        num_triplet_samples=config["NUM_TRIPLET_SAMPLES"])
 print("NENTRIES: ",len(test))
 loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larmatchDataset.collate_fn)
 
@@ -64,14 +72,14 @@ if True:
 # running the model requires the wire plane image (in sparsetensor format)
 # and the 3D-to-2D correspondence
 with torch.autograd.detect_anomaly():
-    out = model.forward( wireplane_sparsetensors, matchtriplet_v, original_coord_batch, batch_size )
+    out = model.forward( wireplane_sparsetensors, matchtriplet_v, batch_size )
 
 # what comes out is a class score for each possible 3D spacepoint
-print("model run: batchsize=",len(out))
-for b,arr_v in enumerate(out):
-    print("batch[%d]"%(b))
-    for k,arr in arr_v.items():
-        print("  ",k,": ",arr.shape," ",type(arr))
+print("model run: batchsize=",out['lm'].shape[0])
+for b in range(out["lm"].shape[0]):
+    print("batch[%d]"%(b))    
+    for k in out.keys():
+        print("  ",k,": ",out[k][b].shape," ",type(out[k]))
 if True:
     print("Ran one forward pass. [enter] to continue.")
     input()
@@ -97,9 +105,8 @@ for b,data in enumerate(batch):
     #print("  weight: ",lm_weight_t.shape)
  
     ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
-    ssnet_weight_t = torch.from_numpy(data["ssnet_weight"]).to(DEVICE)
-    ssnet_max = ssnet_truth_t.max()
-    for i in range(ssnet_max):
+    ssnet_weight_t = torch.from_numpy(data["ssnet_class_weight"]).to(DEVICE)
+    for i in range(7):
         print("  ssnet class[",i,"]: ",ssnet_truth_t.eq(i).sum())
 
     kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
@@ -107,24 +114,35 @@ for b,data in enumerate(batch):
         
     truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
     weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
+
+    for k in ["lm","ssnet","kp"]:
+        print("[",b,"] ",k,": truth=",truth_data[k].shape," weight=",weight_data[k].shape)
     
     batch_truth.append( truth_data )
     batch_weight.append( weight_data )
 
+print("=========================")
+print("RUN LOSS FUNCTION")
+print("=========================")
 with torch.autograd.detect_anomaly():    
     loss = loss_fn( out, batch_truth, batch_weight, batch_size, DEVICE, verbose=True )
 
 print("LOSS: ",loss)
+print("[ENTER] to continue to backward pass")
+input()
+
+print("===============================")
+print("CALL BACKWARD")
+print("===============================")
 
 # Backward pass
 loss["tot"].backward()
-#with torch.autograd.detect_anomaly():
-#    out[0]["lm"].sum().backward()
 
 # make perfect prediction tensors to test loss
-batch_perfect = []
+batch_perfect = {}
 for ib, data in enumerate(batch):
-    perfect_lm = torch.zeros( out[ib]["lm"].shape ).to(DEVICE)
+    perfect_lm = torch.zeros( out["lm"][ib].shape ).to(DEVICE)
+    print("perfect_lm: ",perfect_lm.shape)
 
     seq = torch.arange( perfect_lm.shape[2] )
 
@@ -144,7 +162,7 @@ for ib, data in enumerate(batch):
 
     perfect_lm += 0.5
 
-    perfect_ssnet = torch.ones( out[ib]["ssnet"].shape ).to(DEVICE)*(-9.0)
+    perfect_ssnet = torch.ones( out["ssnet"][ib].shape ).to(DEVICE)*(-9.0)
     #for i,x in enumerate(batch_truth[ib]["ssnet"]):
     #    perfect_ssnet[0,x,i] = 9.0
     perfect_ssnet[0, batch_truth[ib]["ssnet"][:], seq[:] ] = 9.0

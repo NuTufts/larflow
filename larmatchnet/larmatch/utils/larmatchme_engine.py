@@ -5,8 +5,9 @@ import torch
 import torch.distributed as dist
 import MinkowskiEngine as ME
 import yaml
-from model.larmatchminkowski import LArMatchMinkowski
-from loss.loss_larmatch_kps import SparseLArMatchKPSLoss
+import larmatch
+from larmatch.model.larmatchminkowski import LArMatchMinkowski
+from larmatch.loss.loss_larmatch_kps import SparseLArMatchKPSLoss
 from collections import OrderedDict
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
@@ -32,7 +33,9 @@ def get_model( config, dump_model=False ):
     # create model, mark it to run on the device
     model = LArMatchMinkowski(run_lm=config["RUN_LARMATCH"],
                               run_ssnet=config["RUN_SSNET"],
-                              run_kp=config["RUN_KPLABEL"])
+                              run_kp=config["RUN_KPLABEL"],
+                              stem_nfeatures=config["NUM_STEM_FEATURES"],
+                              norm_layer=config["NORM_LAYER"])
 
     if dump_model:
         # DUMP MODEL (for debugging)
@@ -173,9 +176,15 @@ def accuracy(predictions, truthdata,
              verbose=False):
     """Computes the accuracy metrics."""
 
-    batchsize = len(predictions)
+    batchsize = len(predictions['lm'])
 
-    for ibatch,(data,labels) in enumerate( zip(predictions,truthdata) ):
+    for ibatch in range(batchsize):
+
+        data = {}
+        labels = truthdata[ibatch]
+        for k in predictions.keys():
+            data[k] = predictions[k][ibatch]
+            if verbose: print("accuracy calc [",ibatch,"] key=",k,": ",data[k].shape)
 
         # get the data from the dictionaries
         if "lm" in data:
@@ -209,17 +218,26 @@ def accuracy(predictions, truthdata,
             ssnet_label_t = labels["ssnet"]
             ssnet_class   = torch.argmax( ssnet_pred_t, 0 )
             ssnet_correct = ssnet_class.eq( ssnet_label_t )
-            ssnet_tot_correct = ssnet_correct.sum().item()        
+            ssnet_tot_correct = 0
+            ssnet_tot_labels  = 0
             for iclass,classname in enumerate(SSNET_CLASS_NAMES):
                 if ssnet_label_t.eq(iclass).sum().item()>0:                
-                    ssnet_class_correct = ssnet_correct[ ssnet_label_t==iclass ].sum().item()    
-                    acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_label_t.eq(iclass).sum().item()) )
-            acc_meters["ssnet-all"].update( ssnet_tot_correct/float(ssnet_label_t.shape[0]) )
+                    ssnet_class_correct = ssnet_correct[ ssnet_label_t==iclass ].sum().item()
+                    ssnet_class_nlabels = ssnet_label_t.eq(iclass).sum().item()
+                    acc_meters[classname].update( float(ssnet_class_correct)/float(ssnet_class_nlabels) )
+                    if iclass>0:
+                        # skip BG class
+                        ssnet_tot_correct += ssnet_class_correct
+                        ssnet_tot_labels  += ssnet_class_nlabels
+            if ssnet_tot_labels>0:
+                acc_meters["ssnet-all"].update( float(ssnet_tot_correct)/float(ssnet_tot_labels) )
 
         # KP METRIC
         if "kp" in data:
-            kp_pred  = data["kp"].detach().squeeze()
-            kp_label = labels["kp"].detach()
+            kp_pred  = data["kp"].detach()
+            kp_label = labels["kp"].detach().squeeze()
+            #print("kp_pred=",kp_pred.shape)
+            #print("kp_label=",kp_label.shape)
             for c,kpname in enumerate(KP_CLASS_NAMES):
                 kp_n_pos = float(kp_label[c,:].gt(0.5).sum().item())
                 kp_pos   = float(kp_pred[c,:].gt(0.5)[ kp_label[c,:].gt(0.5) ].sum().item())
@@ -255,7 +273,7 @@ def accuracy(predictions, truthdata,
 
 def do_one_iteration( config, model, data_loader, criterion, optimizer,
                       acc_meters, loss_meters, time_meters, is_train, device,
-                      verbose=False ):
+                      verbose=False,no_step=False ):
     """
     Perform one iteration, i.e. processes one batch. Handles both train and validation iteraction.
     """
@@ -271,17 +289,17 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
 
     dt_io = time.time()
 
-    npts = 10*1000000
+    npts = None
     ntries = 0
-    while npts>config["BATCH_TRIPLET_LIMIT"] and ntries<20:
+    while (npts is None or npts>config["BATCH_TRIPLET_LIMIT"]) and ntries<20:
         batchdata = next(iter(data_loader))
         npts = 0
         for data in batchdata:
             npts += data["matchtriplet_v"].shape[0]
-        print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+        #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
         sys.stdout.flush()
         ntries+=1
-
+    batch_size = len(batchdata)
 
     # convert wire plane data, in numpy form into ME.SparseTensor form
     # data comes back as numpy arrays.
@@ -324,6 +342,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
         if verbose:
             print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
+        sys.stdout.flush()
 
     # # get the truth
     batch_truth = []
@@ -338,7 +357,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
             print("  weight: ",lm_weight_t.shape)
 
         ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
-        ssnet_weight_t = torch.from_numpy(data["ssnet_weight"]).to(DEVICE)
+        ssnet_weight_t = torch.from_numpy(data["ssnet_class_weight"]).to(DEVICE)
         ssnet_truth_t.requires_grad = False
         ssnet_weight_t.requires_grad = False
 
@@ -364,7 +383,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     dt_forward = time.time()
 
     # use UNET portion to first get feature vectors
-    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, config["BATCH_SIZE"] )
+    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, batch_size )
     #if not args.no_parallel:
     #    torch.distributed.barrier()
 
@@ -376,7 +395,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         
     # Calculate the loss
     loss_dict = criterion( pred_dict, batch_truth, batch_weight,
-                           config["BATCH_SIZE"], DEVICE,
+                           batch_size, DEVICE,
                            verbose=config["VERBOSE_LOSS"] )
 
     if config["RUN_PROFILER"]:
@@ -396,9 +415,10 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         #        print(n,": ",p)
 
         if config["CLIP_GRAD_NORM"]:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-    
+            torch.nn.utils.clip_grad_value_(model.parameters(), 1.0)
+        if not no_step:
+            optimizer.step()
+            
         if config["RUN_PROFILER"]:
             torch.cuda.synchronize()                
         time_meters["backward"].update(time.time()-dt_backward)
@@ -458,13 +478,18 @@ def save_checkpoint(state, is_best, p, tag=None):
         bestname += ".tar"
         shutil.copyfile(filename, bestname )
 
+#def make_random_images( input_shape, batchsize ):
+    
+
 if __name__ == "__main__":
 
     class argstest:
         def __init__(self):
-            self.config_file = "config.yaml"
+            self.config_file = sys.argv[1]
 
     args = argstest()
-    config = load_config_file( args, dump_to_stdout=True ) 
+    config = load_config_file( args, dump_to_stdout=True )
+    config["DEVICE"] = "cpu"
+    lmmodel = get_model( config, dump_model=True )
 
-    model = get_larmatch_model( config, config["DEVICE"], dump_model=True )
+
