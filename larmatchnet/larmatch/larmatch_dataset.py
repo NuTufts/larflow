@@ -14,6 +14,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                  triplet_limit=2500000, normalize_inputs=True,
                  num_triplet_samples=None,
                  return_constant_sample=False,
+                 use_keypoint_sampler=False,
                  verbose=False):
         """
         Parameters:
@@ -68,9 +69,18 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._num_triplet_samples = num_triplet_samples
         self._return_constant_sample = return_constant_sample
         self._constant_sample = None
+        self._use_keypoint_sampler = use_keypoint_sampler
         if self._random_access:
             self._rng = np.random.default_rng(None)
-            self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )        
+            self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
+
+        self.triplet_array_names = ["matchtriplet_v",
+                                    "larmatch_weight",
+                                    "ssnet_truth",
+                                    "ssnet_top_weight",
+                                    "ssnet_class_weight",
+                                    "keypoint_truth",
+                                    "keypoint_weight"]
                                  
 
     def __getitem__(self, idx):
@@ -102,7 +112,17 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data    = {"entry":ientry,
                            "tree_entry":int(ientry)%int(self.nentries)}
 
-            okentry = self.get_data_from_tree( data )
+            if self._num_triplet_samples is not None:
+                # we want to sample
+                if not self._use_keypoint_sampler:
+                    # unguided sampling
+                    okentry = self.get_data_from_tree( data, sample_spacepoints=True )
+                else:
+                    # guided sampling by keypoint truth
+                    okentry = self.get_data_from_tree( data, sample_spacepoints=False )
+                    self.keypoint_sampler( data, self._num_triplet_samples, int(self._num_triplet_samples/2) )
+            else:
+                okentry = self.get_data_from_tree( data, sample_spacepoints=False )
 
             # increment the entry index
             self._current_entry += 1
@@ -137,7 +157,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         return self.nentries
 
     # get data from match trees
-    def get_data_from_tree( self, data ):
+    def get_data_from_tree( self, data, sample_spacepoints=False ):
 
         if self._verbose:
             dtio = time.time()-tio
@@ -166,7 +186,7 @@ class larmatchDataset(torch.utils.data.Dataset):
             return False
 
 
-        if self._num_triplet_samples is not None:
+        if sample_spacepoints:
             sample = np.arange(self._num_triplet_samples)
             if self._num_triplet_samples<ntriplets:
                 ntriplets = self._num_triplet_samples
@@ -222,7 +242,79 @@ class larmatchDataset(torch.utils.data.Dataset):
         #print(batch)
         return batch
     
+
+    def keypoint_sampler(self,data, NALLSAMPLE, NTOTSAMPLE):        
+        """
+        Takes the output of 'get_data_from_tree' and downsamples to emphasize keypoint spacepoints
+        """
+        # Keypoint sampler
+        idxlist = np.arange( len(data["matchtriplet_v"]) )
+        kptruth = data["keypoint_truth"]
+
+        # positive sample index
+        sampleidx = np.zeros(NTOTSAMPLE,dtype=np.int64)
+
+        # all sample index
+        kpallidx = np.zeros(NALLSAMPLE,dtype=np.int64)
+        kpweightall = np.zeros( (6,NALLSAMPLE) )
+
+        NUSED = 0
+        class_limits = {0:2000,1:5000,2:5000,3:2000,4:2000,5:5000}
+
+        for c in [0,3,4,1,2,5]:
+            #abovezero = (kptruth[c]>0).sum()
+            #above1sig = (kptruth[c]>0.66).sum()            
+            #above2sig = (kptruth[c]>0.10).sum()
+            above3sig = (kptruth[c]>0.05).sum()
+            #print("class[",c,"] : ",abovezero," ",above3sig," ",above2sig," ",above1sig)
+            classidx = idxlist[ kptruth[c]>0.05 ]
+            fill_limit = class_limits[c]
+            if c==5:
+                fill_limit = np.minimum( above3sig, NTOTSAMPLE-NUSED )
+            if above3sig<fill_limit:
+                nfilled = classidx.shape[0]
+                if NUSED+nfilled>NTOTSAMPLE:
+                    nfilled = NTOTSAMPLE-NUSED
+            else:
+                np.random.shuffle(classidx)
+                nfilled = class_limits[c]
+                if NUSED+nfilled>NTOTSAMPLE:
+                    nfilled = NTOTSAMPLE-NUSED
+            if nfilled>classidx.shape[0]:
+                nfilled = classidx.shape[0]
+            #print("class[",c,"] abovezero=",abovezero," filled ",nfilled," NUSED=",NUSED)
+            sampleidx[NUSED:NUSED+nfilled][:] = classidx[:nfilled]
+            if nfilled>0:
+                kpweightall[c,NUSED:NUSED+nfilled] = 0.5/nfilled
+                kpweightall[c,0:NUSED] = 0.5/(NALLSAMPLE-nfilled)
+                kpweightall[c,NUSED+nfilled:] = 0.5/(NALLSAMPLE-nfilled)
+            else:
+                kpweightall[c,:] = 1.0/float(NALLSAMPLE)
+        
+                #print("class[",c,"] abovezero=",abovezero," filled ",nfilled," NUSED=",NUSED)
+                #print("class[",c,"] minweight=",np.min(kpweightall[c])," maxweight=",np.max(kpweightall[c]), 
+                #      " sum=",np.sum(kpweightall[c]))
+            NUSED += nfilled
+
+        kpallidx[:NUSED] = sampleidx[:NUSED]
+        if NALLSAMPLE-NUSED>0:
+            np.random.shuffle( idxlist )
+            kpallidx[NUSED:] = idxlist[:NALLSAMPLE-NUSED]
+
+        # downsample all tensors
+        data["matchtriplet_v"]  = data["matchtriplet_v"][kpallidx,:]
+        data["larmatch_truth"]  = data["larmatch_truth"][kpallidx]
+        data["larmatch_weight"] = data["larmatch_weight"][kpallidx]
+        data["ssnet_truth"]     = data["ssnet_truth"][kpallidx]
+        data["ssnet_top_weight"]   = data["ssnet_top_weight"][kpallidx]
+        data["ssnet_class_weight"] = data["ssnet_class_weight"][kpallidx]
+        data["keypoint_truth"]     = data["keypoint_truth"][:,kpallidx[:]]
+        data["keypoint_weight"]    = kpweightall
+        return
+
             
+                
+    
 if __name__ == "__main__":
 
     """
