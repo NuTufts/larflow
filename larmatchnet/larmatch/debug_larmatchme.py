@@ -15,10 +15,9 @@ class argstest:
 
 args = argstest()
 config = load_config_file( args, dump_to_stdout=True )
-config["DEVICE"] = "cpu"
+config["DEVICE"] = "cuda:0"
 DEVICE = torch.device(config["DEVICE"])
-model = get_model( config, dump_model=True )
-
+model = get_model( config, dump_model=True ).to(DEVICE)
 
 # create model
 inputshape=(1024,3584)
@@ -29,8 +28,7 @@ import MinkowskiEngine as ME
 
 niter = 1
 batch_size = 4
-testfile="/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_kpreweight/larmatchdata_bnbnue_bnbnue_0429.root"
-test = larmatchDataset( filelist=[testfile],
+test = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
                         load_truth=True,
                         num_triplet_samples=config["NUM_TRIPLET_SAMPLES"])
 print("NENTRIES: ",len(test))
@@ -75,8 +73,8 @@ with torch.autograd.detect_anomaly():
     out = model.forward( wireplane_sparsetensors, matchtriplet_v, batch_size )
 
 # what comes out is a class score for each possible 3D spacepoint
-print("model run: batchsize=",out['lm'].shape[0])
-for b in range(out["lm"].shape[0]):
+print("model run")
+for b in range(batch_size):
     print("batch[%d]"%(b))    
     for k in out.keys():
         print("  ",k,": ",out[k][b].shape," ",type(out[k]))
@@ -86,10 +84,11 @@ if True:
 
 # test the loss
 from loss.loss_larmatch_kps import SparseLArMatchKPSLoss
-loss_fn = SparseLArMatchKPSLoss( eval_ssnet=True,
-                                 eval_keypoint_label=True,
+loss_fn = SparseLArMatchKPSLoss( eval_lm=config["RUN_LARMATCH"],
+                                 eval_ssnet=config["RUN_SSNET"],
+                                 eval_keypoint_label=config["RUN_KPLABEL"],
                                  eval_keypoint_shift=False,
-                                 eval_affinity_field=False )
+                                 eval_affinity_field=False ).to(DEVICE)
 
 # load the truth data
 print("== TRUTH DATA ===")
@@ -136,7 +135,14 @@ print("CALL BACKWARD")
 print("===============================")
 
 # Backward pass
-loss["tot"].backward()
+with torch.autograd.detect_anomaly():    
+    loss["tot"].backward()
+print("completed. [ENTER] to continue to perfect loss tests")
+input()
+
+print("================================")
+print("PERFECT LOSS TEST")
+print("================================")
 
 # make perfect prediction tensors to test loss
 batch_perfect = {}
