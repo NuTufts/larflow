@@ -215,7 +215,7 @@ def run(gpu, args ):
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
             if verbose: print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
-            if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
+            if train_iteration%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
                 if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
@@ -285,7 +285,7 @@ def run(gpu, args ):
                 wandb.log(logme_train,step=train_iteration)
 
 
-            if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0 and iiter>0:
+            if config["TRAIN_ITER_PER_VALIDPT"]>0 and train_iteration%int(config["TRAIN_ITER_PER_VALIDPT"])==0 and iiter>0:
                 if rank==0:
                     valid_loss_meters,valid_acc_meters,valid_time_meters = engine.make_meters(config)                    
                     for viter in range(int(config["NUM_VALID_ITERS"])):
@@ -352,7 +352,7 @@ def run(gpu, args ):
                 else:
                     if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))
 
-            if rank==0 and config["TRAIN_ITER_PER_FIXEDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_FIXEDPT"])==0 and iiter>0:
+            if rank==0 and config["TRAIN_ITER_PER_FIXEDPT"]>0 and train_iteration%int(config["TRAIN_ITER_PER_FIXEDPT"])==0 and iiter>0:
                 fixed_loss_meters,fixed_acc_meters,fixed_time_meters = engine.make_meters(config)                    
                 with torch.no_grad():
                     engine.do_one_iteration(config, model,

@@ -1,14 +1,14 @@
 # TRAINING PARAMETERS
-RESUME_FROM_CHECKPOINT: false
-RESUME_OPTIM_FROM_CHECKPOINT: false
-CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/checkpoint_previous/checkpoint.cc1gpu.78500th.tar"
-LEARNING_RATE: 1.0e-3
+RESUME_FROM_CHECKPOINT: true
+RESUME_OPTIM_FROM_CHECKPOINT: true
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/northern_feather_13/checkpoint.p1cmp075.sampled.4000th.tar"
+LEARNING_RATE: 2.0e-3
 WEIGHT_DECAY: 1.0e-6
 NUM_ITERATIONS: 200000
-START_ITER: 0
+START_ITER: 4001
 DEVICE: cuda
 RUN_PROFILER: false
-BATCH_SIZE: 4
+BATCH_SIZE: 12
 BATCH_TRIPLET_LIMIT: 160000000
 NUM_TRIPLET_SAMPLES: 50000
 CLIP_GRAD_NORM: true
@@ -32,7 +32,7 @@ TRAIN_DATASET_VERBOSE: false
 VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.valid.list"
 VALID_DATASET_VERBOSE: false
 FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
-FIXED_SAMPLE_BATCH_SIZE: 16
+FIXED_SAMPLE_BATCH_SIZE: 12
 FIXED_DATASET_VERBOSE: false
 
 # MODEL PARAMETERS
