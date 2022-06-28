@@ -133,19 +133,6 @@ def run(gpu, args ):
     if model.run_lm:      set_param_list.append( {"params":model.lm_classifier.parameters(),"lr":base_lr} )
     if model.run_ssnet:   set_param_list.append( {"params":model.ssnet_head.parameters(),"lr":base_lr} )
     if model.run_kplabel: set_param_list.append( {"params":model.kplabel_head.parameters(),"lr":base_lr} )    
-        
-    optimizer = torch.optim.AdamW(set_param_list,
-                                  lr=float(config["LEARNING_RATE"]), 
-                                  weight_decay=config["WEIGHT_DECAY"])
-    
-    #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
-    #    print("optimizer params")
-    #    for n,par in enumerate(optimizer.param_groups):
-    #        print(n,": ",par)
-    
-    if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
-        print("RESUME OPTIM CHECKPOINT")
-        optimizer.load_state_dict( checkpoint_data["optimizer"] )
 
     num_train_samples = config["NUM_TRIPLET_SAMPLES"]
     if "USE_HARD_EXAMPLE_TRAINING" in config and config["USE_HARD_EXAMPLE_TRAINING"]==True:
@@ -196,6 +183,26 @@ def run(gpu, args ):
         # WATCH
         if config["WANDB_PROJECT"] != "NONE":
             wandb.watch(model,log="all",log_freq=100)
+
+    # SEUTP OPTIMIZER ===============================================================
+    if not args.no_parallel:
+        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"])
+    else:
+        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"]*args.gpus)
+    optimizer = torch.optim.AdamW(set_param_list,
+                                  lr=float(config["LEARNING_RATE"]), 
+                                  weight_decay=config["WEIGHT_DECAY"])
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=int(0.5*ITERS_PER_EPOCH), eta_min=1.0e-6)
+    
+    #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
+    #    print("optimizer params")
+    #    for n,par in enumerate(optimizer.param_groups):
+    #        print(n,": ",par)
+    
+    if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
+        print("RESUME OPTIM CHECKPOINT")
+        optimizer.load_state_dict( checkpoint_data["optimizer"] )
+        
         
     
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
@@ -212,6 +219,9 @@ def run(gpu, args ):
             engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
                                     acc_meters,loss_meters,time_meters,True,device,
                                     verbose=config["VERBOSE_ITER_LOOP"])
+
+            # increment the LR scheduler
+            scheduler.step()
 
             # periodic checkpoint
             if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
@@ -287,6 +297,9 @@ def run(gpu, args ):
                 for k,par in criterion.named_parameters():
                     loss_weight_scalars["loss-weights/"+k] = torch.exp( -par.detach() ).item()
                 logme.update(loss_weight_scalars)
+
+                # add learning rate
+                logme["lr"] = optimizer.param_groups[0]["lr"]
 
                 # log into wandb
                 logme_train = {}
