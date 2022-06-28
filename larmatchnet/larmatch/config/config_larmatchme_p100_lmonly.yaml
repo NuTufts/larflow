@@ -3,7 +3,7 @@ WANDB_PROJECT: "larmatch-negmining-test"
 RESUME_FROM_CHECKPOINT: True
 RESUME_OPTIM_FROM_CHECKPOINT: false
 CHECKPOINT_FILE: "checkpoint.p1cmp075.sampled.26500th.tar"
-LEARNING_RATE: 1.0e-4
+LEARNING_RATE: 1.0e-5
 WEIGHT_DECAY: 1.0e-6
 NUM_ITERATIONS: 200000
 START_ITER: 0
@@ -11,7 +11,7 @@ DEVICE: cuda
 RUN_PROFILER: false
 BATCH_SIZE: 10
 BATCH_TRIPLET_LIMIT: 160000000
-CLIP_GRAD_NORM: true
+CLIP_GRAD_NORM: false
 TRAIN_ITER_PER_RECORD: 10
 TRAIN_ITER_PER_VALIDPT: 50
 TRAIN_ITER_PER_FIXEDPT: 50
@@ -25,9 +25,10 @@ VERBOSE_ACCURACY: false
 MULTIPROCESS_BACKEND: "nccl"
 MASTER_PORT: "12355"
 CHECKPOINT_TAG: "p1cmp075.sampled"
+USE_HARD_EXAMPLE_TRAINING: true
 
 # DATASET PARAMETERS
-NUM_TRIPLET_SAMPLES: 100000
+NUM_TRIPLET_SAMPLES: 50000
 #TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.train.list"
 TRAIN_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
 TRAIN_DATASET_VERBOSE: false

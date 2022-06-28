@@ -146,10 +146,13 @@ def run(gpu, args ):
     if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
         print("RESUME OPTIM CHECKPOINT")
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
-    
+
+    num_train_samples = config["NUM_TRIPLET_SAMPLES"]
+    if "USE_HARD_EXAMPLE_TRAINING" in config and config["USE_HARD_EXAMPLE_TRAINING"]==True:
+        num_train_samples *= 2
     train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
                                      random_access=True,
-                                     num_triplet_samples=config["NUM_TRIPLET_SAMPLES"],
+                                     num_triplet_samples=num_train_samples,
                                      use_keypoint_sampler=config["USE_KEYPOINT_SAMPLER"],
                                      verbose=config["TRAIN_DATASET_VERBOSE"],
                                      return_constant_sample=False,

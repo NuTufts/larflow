@@ -298,7 +298,6 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     dt_all = time.time()
     
     if is_train:
-        optimizer.zero_grad(set_to_none=True)
         model.train()
     else:
         model.eval()
@@ -317,84 +316,14 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         ntries+=1
     batch_size = len(batchdata)
 
-    if True and is_train:
+    if config["USE_HARD_EXAMPLE_TRAINING"] and is_train:
         # HARD EXAMLPE MINING
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = larmatch_hard_example_mining( model, batchdata, DEVICE, int(config["NUM_TRIPLET_SAMPLES"]/2), verbose=False )
+            = larmatch_hard_example_mining( model, batchdata, DEVICE, int(config["NUM_TRIPLET_SAMPLES"]), verbose=False )
         model.train()
     else:
-        wireplane_sparsetensors = prepare_me_sparsetensor( batchdata, DEVICE )
-
-        # convert wire plane data, in numpy form into ME.SparseTensor form
-        # data comes back as numpy arrays.
-        # we need to move it to DEVICE and then form MinkowskiEngine SparseTensors
-        # needs to be done three times: one for each wire plane of the detector
-        # wireplane_sparsetensors = []
-    
-        # for p in range(3):
-
-        #     if verbose:
-        #         print("plane ",p)
-        #         for b,data in enumerate(batchdata):
-        #             print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
-
-        #     coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(DEVICE) for data in batchdata ]
-        #     feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(DEVICE) for data in batchdata ]
-
-        #     # hack make random matrix
-        #     # coord_v = []
-        #     # feat_v = []
-        #     # for b in range(config["BATCH_SIZE"]):
-        #     #     fake_coord = np.random.randint( 0, high=1004, size=(200000,2) )
-        #     #     coord_v.append( torch.from_numpy(fake_coord).to(DEVICE) )
-        #     #     fake_feat  = np.random.rand( 200000, 1 )
-        #     #     feat_v.append( torch.from_numpy(fake_feat.astype(np.float32)).to(DEVICE) )
-        
-        #     for x in coord_v:
-        #         x.requires_grad = False
-    
-        #     coords, feats = ME.utils.sparse_collate(coord_v, feat_v)
-        #     if verbose:
-        #         print(" coords: ",coords.shape)
-        #         print(" feats: ",feats.shape)
-        #     wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
-    
-        # we also need the metadata associating possible 3d spacepoints
-        # to the wire image location they project to
-        matchtriplet_v = []
-        for b,data in enumerate(batchdata):
-            matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
-            if verbose:
-                print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
-                sys.stdout.flush()
-
-        # # get the truth
-        batch_truth = []
-        batch_weight = []
-        for b,data in enumerate(batchdata):
-            lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
-            lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
-            lm_truth_t.requires_grad = False
-            lm_weight_t.requires_grad = False
-            if verbose:
-                print("  truth: ",lm_truth_t.shape)
-                print("  weight: ",lm_weight_t.shape)
-
-            ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
-            ssnet_weight_t = torch.from_numpy(data["ssnet_class_weight"]).to(DEVICE)
-            ssnet_truth_t.requires_grad = False
-            ssnet_weight_t.requires_grad = False
-            
-            kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
-            kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)
-            kp_truth_t.requires_grad = False
-            kp_weight_t.requires_grad = False
-            
-            truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
-            weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
-            
-            batch_truth.append( truth_data )
-            batch_weight.append( weight_data )
+        wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
+            = prepare_me_sparsetensor( batchdata, DEVICE )
     
     dt_io = time.time()-dt_io
     if verbose:
@@ -405,6 +334,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         torch.cuda.synchronize()
 
     dt_forward = time.time()
+    optimizer.zero_grad(set_to_none=True)    
 
     # use UNET portion to first get feature vectors
     pred_dict = model( wireplane_sparsetensors, matchtriplet_v, batch_size )

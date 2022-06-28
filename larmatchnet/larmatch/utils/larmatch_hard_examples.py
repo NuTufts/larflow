@@ -8,47 +8,11 @@ def larmatch_hard_example_mining( model, batchdata, DEVICE, return_num_samples, 
 
     model.eval()
     
-    wireplane_sparsetensors = prepare_me_sparsetensor( batchdata, DEVICE)
+    wireplane_sparsetensors, matchtriplet_v, batch_truth_v, batch_weight_v \
+        = prepare_me_sparsetensor( batchdata, DEVICE)
     batch_size = len(batchdata)
 
-    # we also need the metadata associating possible 3d spacepoints
-    # to the wire image location they project to
-    matchtriplet_v = []
-    for b,data in enumerate(batchdata):
-        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
-        if verbose:
-            print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
-        sys.stdout.flush()
-
-    # # get the truth
-    batch_truth_v = []
-    batch_weight_v = []
-    for b,data in enumerate(batchdata):
-        lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
-        lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
-        lm_truth_t.requires_grad = False
-        lm_weight_t.requires_grad = False
-        if verbose:
-            print("  truth: ",lm_truth_t.shape)
-            print("  weight: ",lm_weight_t.shape)
-
-        ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
-        ssnet_weight_t = torch.from_numpy(data["ssnet_class_weight"]).to(DEVICE)
-        ssnet_truth_t.requires_grad = False
-        ssnet_weight_t.requires_grad = False
-
-        kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
-        kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)
-        kp_truth_t.requires_grad = False
-        kp_weight_t.requires_grad = False
-
-        truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
-        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
-    
-        batch_truth_v.append( truth_data )
-        batch_weight_v.append( weight_data )
-
-    # we remake the batch, prioritizing errors, then sampling randomly
+    # we remake the batch, prioritizing examplaes of mistakes, then sampling randomly
     sampled_matchtriplet_v = []
     sampled_batch_truth_v  = []
     sampled_batch_weight_v = []
@@ -57,17 +21,17 @@ def larmatch_hard_example_mining( model, batchdata, DEVICE, return_num_samples, 
         pred = torch.softmax( pred_dict["lm"], dim=1 )
         # num correct
         for b in range(batch_size):
-            pos_num_correct = pred[b,1,:].gt(0.5)[ batch_truth_v[b]["lm"].eq(1) ].sum()
-            pos_num_eval    = batch_truth_v[b]["lm"].eq(1).sum()
-            neg_num_correct = pred[b,1,:].lt(0.5)[ batch_truth_v[b]["lm"].eq(0) ].sum()
-            neg_num_eval    = batch_truth_v[b]["lm"].eq(0).sum()
+            #pos_num_correct = pred[b,1,:].gt(0.5)[ batch_truth_v[b]["lm"].eq(1) ].sum()
+            #pos_num_eval    = batch_truth_v[b]["lm"].eq(1).sum()
+            #neg_num_correct = pred[b,1,:].lt(0.5)[ batch_truth_v[b]["lm"].eq(0) ].sum()
+            #neg_num_eval    = batch_truth_v[b]["lm"].eq(0).sum()
 
 
             # incorrect examples
             false_pos = pred[b,1,:].gt(0.5)*batch_truth_v[b]["lm"].eq(0) # 1 at each false pos entry
             false_neg = pred[b,1,:].lt(0.5)*batch_truth_v[b]["lm"].eq(1) # 1 at each false neg entry
             false_ex  = false_pos+false_neg # 1 at each false entry
-            false_idx = torch.arange(0,pred.shape[2]).to(DEVICE)[ false_ex ] # try to keep everying on the gpu?
+            false_idx = torch.arange(0,pred.shape[-1]).to(DEVICE)[ false_ex ] # try to keep everying on the gpu?
             if verbose:
                 print("hard-example mine: batch[",b,"] true positive =",float(pos_num_correct+neg_num_correct)/float(pos_num_eval+neg_num_eval),            
                       " false examples: ",false_idx.shape)
@@ -77,7 +41,7 @@ def larmatch_hard_example_mining( model, batchdata, DEVICE, return_num_samples, 
             num_else = return_num_samples-num_false            
             shufidx = np.arange(0,pred.shape[2])
             np.random.shuffle(shufidx)
-            shufidx = torch.from_numpy(shufidx) # for filling remainder
+            shufidx = torch.from_numpy(shufidx).to(DEVICE) # for filling remainder
 
             # match triplet
             sampled_matchtriplet = torch.zeros( (return_num_samples, 3), dtype=torch.long ).to(DEVICE)
