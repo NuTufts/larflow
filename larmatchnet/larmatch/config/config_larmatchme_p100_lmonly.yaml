@@ -1,4 +1,5 @@
 # TRAINING PARAMETERS
+WANDB_PROJECT: "larmatch-lmonly-cyclictest"
 RESUME_FROM_CHECKPOINT: true
 RESUME_OPTIM_FROM_CHECKPOINT: true
 CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/northern_feather_13/checkpoint.p1cmp075.sampled.4000th.tar"
@@ -10,8 +11,7 @@ DEVICE: cuda
 RUN_PROFILER: false
 BATCH_SIZE: 12
 BATCH_TRIPLET_LIMIT: 160000000
-NUM_TRIPLET_SAMPLES: 50000
-CLIP_GRAD_NORM: true
+CLIP_GRAD_NORM: false
 TRAIN_ITER_PER_RECORD: 10
 TRAIN_ITER_PER_VALIDPT: 50
 TRAIN_ITER_PER_FIXEDPT: 50
@@ -25,15 +25,26 @@ VERBOSE_ACCURACY: false
 MULTIPROCESS_BACKEND: "nccl"
 MASTER_PORT: "12355"
 CHECKPOINT_TAG: "p1cmp075.sampled"
+USE_HARD_EXAMPLE_TRAINING: false
 
 # DATASET PARAMETERS
-TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.train.list"
+NUM_TRIPLET_SAMPLES: 50000
+#TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.train.list"
+TRAIN_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
 TRAIN_DATASET_VERBOSE: false
-VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.valid.list"
+#VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.valid.list"
+VALID_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
 VALID_DATASET_VERBOSE: false
+
 FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
 FIXED_SAMPLE_BATCH_SIZE: 12
+=======
+#FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
+FIXED_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
+FIXED_SAMPLE_BATCH_SIZE: 16
+>>>>>>> ce8101478ea674fd041e1cdbe2f17e8548b4850a
 FIXED_DATASET_VERBOSE: false
+USE_KEYPOINT_SAMPLER: false
 
 # MODEL PARAMETERS
 NUM_STEM_FEATURES: 16

@@ -9,9 +9,16 @@ import larmatch
 from larmatch.model.larmatchminkowski import LArMatchMinkowski
 from larmatch.loss.loss_larmatch_kps import SparseLArMatchKPSLoss
 from collections import OrderedDict
+from larmatch.utils.common import prepare_me_sparsetensor
+from larmatch.utils.larmatch_hard_examples import larmatch_hard_example_mining
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
-KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
+KP_CLASS_NAMES=["kp_nu_pos",
+                "kp_trackstart",
+                "kp_trackend",
+                "kp_shower",
+                "kp_michel",
+                "kp_delta"]
 LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
 
 def load_config_file( args, dump_to_stdout=False ):
@@ -80,7 +87,13 @@ def load_model_weights( model, checkpoint_file ):
     # change names if we saved the distributed data parallel model state
     rename_distributed_checkpoint_par_names(checkpoint)
 
-    model.load_state_dict( checkpoint["state_larmatch"] )
+    missing, extra = model.load_state_dict( checkpoint["state_larmatch"], strict=False )
+    #print("MISSING KEYS WHEN LOADING ============")
+    #for k in missing:
+    #    print("  ",k)
+    #print("EXTRA KEYS WHEN LOADING ============")        
+    #for k in extra:        
+    #    print("  ",k)
 
     return checkpoint
 
@@ -176,7 +189,7 @@ def accuracy(predictions, truthdata,
              verbose=False):
     """Computes the accuracy metrics."""
 
-    batchsize = len(predictions['lm'])
+    batchsize = len(truthdata)
 
     for ibatch in range(batchsize):
 
@@ -208,9 +221,12 @@ def accuracy(predictions, truthdata,
                 print("pos correct: ",pos_correct)
                 print("neg correct: ",neg_correct)
 
-            acc_meters["lm_pos"].update( float(pos_correct)/npos )
-            acc_meters["lm_neg"].update( float(neg_correct)/nneg )
-            acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
+            if npos>0:
+                acc_meters["lm_pos"].update( float(pos_correct)/npos )
+            if nneg>0:
+                acc_meters["lm_neg"].update( float(neg_correct)/nneg )
+            if npos+nneg>0:
+                acc_meters["lm_all"].update( float(pos_correct+neg_correct)/(npos+nneg) )
 
         # SSNET METRICS
         if "ssnet" in data:
@@ -239,8 +255,8 @@ def accuracy(predictions, truthdata,
             #print("kp_pred=",kp_pred.shape)
             #print("kp_label=",kp_label.shape)
             for c,kpname in enumerate(KP_CLASS_NAMES):
-                kp_n_pos = float(kp_label[c,:].gt(0.5).sum().item())
-                kp_pos   = float(kp_pred[c,:].gt(0.5)[ kp_label[c,:].gt(0.5) ].sum().item())
+                kp_n_pos = float(kp_label[c,:].gt(0.05).sum().item())
+                kp_pos   = float(kp_pred[c,:].gt(0.05)[ kp_label[c,:].gt(0.05) ].sum().item())
                 if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
                 if kp_n_pos>0:
                     acc_meters[kpname].update( kp_pos/kp_n_pos )
@@ -282,7 +298,6 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     dt_all = time.time()
     
     if is_train:
-        optimizer.zero_grad(set_to_none=True)
         model.train()
     else:
         model.eval()
@@ -301,76 +316,14 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         ntries+=1
     batch_size = len(batchdata)
 
-    # convert wire plane data, in numpy form into ME.SparseTensor form
-    # data comes back as numpy arrays.
-    # we need to move it to DEVICE and then form MinkowskiEngine SparseTensors
-    # needs to be done three times: one for each wire plane of the detector
-    wireplane_sparsetensors = []
-    
-    for p in range(3):
-
-        if verbose:
-            print("plane ",p)
-            for b,data in enumerate(batchdata):
-                print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
-
-        coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(DEVICE) for data in batchdata ]
-        feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(DEVICE) for data in batchdata ]
-
-        # hack make random matrix
-        # coord_v = []
-        # feat_v = []
-        # for b in range(config["BATCH_SIZE"]):
-        #     fake_coord = np.random.randint( 0, high=1004, size=(200000,2) )
-        #     coord_v.append( torch.from_numpy(fake_coord).to(DEVICE) )
-        #     fake_feat  = np.random.rand( 200000, 1 )
-        #     feat_v.append( torch.from_numpy(fake_feat.astype(np.float32)).to(DEVICE) )
-
-        for x in coord_v:
-            x.requires_grad = False
-    
-        coords, feats = ME.utils.sparse_collate(coord_v, feat_v)
-        if verbose:
-            print(" coords: ",coords.shape)
-            print(" feats: ",feats.shape)
-        wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
-
-    # we also need the metadata associating possible 3d spacepoints
-    # to the wire image location they project to
-    matchtriplet_v = []
-    for b,data in enumerate(batchdata):
-        matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(DEVICE) )
-        if verbose:
-            print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
-        sys.stdout.flush()
-
-    # # get the truth
-    batch_truth = []
-    batch_weight = []
-    for b,data in enumerate(batchdata):
-        lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
-        lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
-        lm_truth_t.requires_grad = False
-        lm_weight_t.requires_grad = False
-        if verbose:
-            print("  truth: ",lm_truth_t.shape)
-            print("  weight: ",lm_weight_t.shape)
-
-        ssnet_truth_t  = torch.from_numpy(data["ssnet_truth"]).to(DEVICE)
-        ssnet_weight_t = torch.from_numpy(data["ssnet_class_weight"]).to(DEVICE)
-        ssnet_truth_t.requires_grad = False
-        ssnet_weight_t.requires_grad = False
-
-        kp_truth_t  = torch.from_numpy(data["keypoint_truth"]).to(DEVICE)
-        kp_weight_t = torch.from_numpy(data["keypoint_weight"]).to(DEVICE)
-        kp_truth_t.requires_grad = False
-        kp_weight_t.requires_grad = False
-
-        truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
-        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
-    
-        batch_truth.append( truth_data )
-        batch_weight.append( weight_data )
+    if config["USE_HARD_EXAMPLE_TRAINING"] and is_train:
+        # HARD EXAMLPE MINING
+        wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
+            = larmatch_hard_example_mining( model, batchdata, DEVICE, int(config["NUM_TRIPLET_SAMPLES"]), verbose=False )
+        model.train()
+    else:
+        wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
+            = prepare_me_sparsetensor( batchdata, DEVICE )
     
     dt_io = time.time()-dt_io
     if verbose:
@@ -381,6 +334,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         torch.cuda.synchronize()
 
     dt_forward = time.time()
+    optimizer.zero_grad(set_to_none=True)    
 
     # use UNET portion to first get feature vectors
     pred_dict = model( wireplane_sparsetensors, matchtriplet_v, batch_size )
@@ -478,8 +432,7 @@ def save_checkpoint(state, is_best, p, tag=None):
         bestname += ".tar"
         shutil.copyfile(filename, bestname )
 
-#def make_random_images( input_shape, batchsize ):
-    
+
 
 if __name__ == "__main__":
 

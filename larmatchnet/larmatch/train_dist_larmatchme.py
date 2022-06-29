@@ -62,9 +62,6 @@ def run(gpu, args ):
     #========================================================
     torch.manual_seed(0)
     
-    # tensorboardX
-    from torch.utils.tensorboard import SummaryWriter
-    
     # ROOT, larcv
     import ROOT as rt
     from ROOT import std
@@ -75,16 +72,14 @@ def run(gpu, args ):
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
 
-    if rank==0:
-        tb_writer = SummaryWriter()
+    if rank==0 and str(config["WANDB_PROJECT"])!="NONE":
         # log into wandb
         print("RANK-0 THREAD: LOAD WANDB")
         sys.stdout.flush()    
-        wandb.init(project="larmatchme-v3-test2",config=config)
-
+        wandb.init(project=config["WANDB_PROJECT"],config=config)
 
     single_model = engine.get_model( config, dump_model=False )
-    if config["NORM_LAYER"]=="batchnorm":
+    if config["NORM_LAYER"]=="batchnorm" and not args.no_parallel:
         torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model)
         ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(single_model)
 
@@ -123,22 +118,29 @@ def run(gpu, args ):
     param_list = list(model.parameters())
     if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
         param_list += list(criterion.parameters())
-    optimizer = torch.optim.AdamW(param_list,
-                                  lr=float(config["LEARNING_RATE"]), 
-                                  weight_decay=config["WEIGHT_DECAY"])
-    
-    #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
-    #    print("optimizer params")
-    #    for n,par in enumerate(optimizer.param_groups):
-    #        print(n,": ",par)
-    
-    if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
-        print("RESUME OPTIM CHECKPOINT")
-        optimizer.load_state_dict( checkpoint_data["optimizer"] )
-    
+
+    # adjust the learning rate
+    print("------------- ADJUST LEARNING RATES -----------")
+    base_lr = float(config["LEARNING_RATE"])
+    #lower_factor = 1.0e-3
+    lower_factor = 1.0    
+    set_param_list = [
+        {"params":model.stem.parameters(),"lr":base_lr*lower_factor},
+        {"params":model.encoder.parameters(),"lr":base_lr*lower_factor},
+        {"params":model.decoder.parameters(),"lr":base_lr*lower_factor},
+        {"params":criterion.parameters(),"lr":base_lr*1.0e-1}
+    ]
+    if model.run_lm:      set_param_list.append( {"params":model.lm_classifier.parameters(),"lr":base_lr} )
+    if model.run_ssnet:   set_param_list.append( {"params":model.ssnet_head.parameters(),"lr":base_lr} )
+    if model.run_kplabel: set_param_list.append( {"params":model.kplabel_head.parameters(),"lr":base_lr} )    
+
+    num_train_samples = config["NUM_TRIPLET_SAMPLES"]
+    if "USE_HARD_EXAMPLE_TRAINING" in config and config["USE_HARD_EXAMPLE_TRAINING"]==True:
+        num_train_samples *= 2
     train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
                                      random_access=True,
-                                     num_triplet_samples=50000,
+                                     num_triplet_samples=num_train_samples,
+                                     use_keypoint_sampler=config["USE_KEYPOINT_SAMPLER"],
                                      verbose=config["TRAIN_DATASET_VERBOSE"],
                                      return_constant_sample=False,
                                      load_truth=True )
@@ -155,7 +157,7 @@ def run(gpu, args ):
         valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
                                          random_access=True,
                                          load_truth=True,
-                                         num_triplet_samples=50000,
+                                         num_triplet_samples=config["NUM_TRIPLET_SAMPLES"],
                                          return_constant_sample=False,
                                          verbose=config["VALID_DATASET_VERBOSE"],
                                          npairs=None )
@@ -179,7 +181,28 @@ def run(gpu, args ):
                                                    collate_fn=larmatchDataset.collate_fn)
 
         # WATCH
-        wandb.watch(model,log="all",log_freq=100)
+        if config["WANDB_PROJECT"] != "NONE":
+            wandb.watch(model,log="all",log_freq=100)
+
+    # SEUTP OPTIMIZER ===============================================================
+    if not args.no_parallel:
+        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"])
+    else:
+        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"]*args.gpus)
+    optimizer = torch.optim.AdamW(set_param_list,
+                                  lr=float(config["LEARNING_RATE"]), 
+                                  weight_decay=config["WEIGHT_DECAY"])
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=int(0.5*ITERS_PER_EPOCH), eta_min=1.0e-6)
+    
+    #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
+    #    print("optimizer params")
+    #    for n,par in enumerate(optimizer.param_groups):
+    #        print(n,": ",par)
+    
+    if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
+        print("RESUME OPTIM CHECKPOINT")
+        optimizer.load_state_dict( checkpoint_data["optimizer"] )
+        
         
     
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
@@ -196,6 +219,9 @@ def run(gpu, args ):
             engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
                                     acc_meters,loss_meters,time_meters,True,device,
                                     verbose=config["VERBOSE_ITER_LOOP"])
+
+            # increment the LR scheduler
+            scheduler.step()
 
             # periodic checkpoint
             if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
@@ -215,6 +241,7 @@ def run(gpu, args ):
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
             if verbose: print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
+
             if train_iteration%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
@@ -227,14 +254,13 @@ def run(gpu, args ):
                     if config["RUN_KPLABEL"]:
                         print("  kp: ",torch.exp(-criterion.task_weights["kp"].detach()).item())
 
-                # write to tensorboard
+                # write to WANDB
                 # --------------------
 
                 logme = {}
                 
                 # losses go into same plot                
                 loss_scalars = { "loss/"+x:y.avg for x,y in loss_meters.items() }
-                tb_writer.add_scalars('data/train_loss', loss_scalars, train_iteration )
                 logme.update(loss_scalars)
                 
                 # split acc into different types
@@ -244,7 +270,6 @@ def run(gpu, args ):
                     if acc_meters[accname].count>0:
                         acc_scalars["lm/"+accname] = acc_meters[accname].avg
                 if len(acc_scalars)>0:
-                    tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
                     logme.update(acc_scalars)
 
                 # ssnet
@@ -253,7 +278,6 @@ def run(gpu, args ):
                     if acc_meters[accname].count>0:
                         ssnet_scalars["ssnet/"+accname] = acc_meters[accname].avg
                 if len(ssnet_scalars)>0:
-                    tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
                     logme.update(ssnet_scalars)
                 
                 # keypoint
@@ -262,21 +286,21 @@ def run(gpu, args ):
                     if acc_meters[accname].count>0:
                         kp_scalars["kplabel/"+accname] = acc_meters[accname].avg
                 if len(kp_scalars)>0:
-                    tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
                     logme.update(kp_scalars)                    
                 
                 # paf
                 if acc_meters["paf"].count>0:
                     paf_acc_scalars = { "paf/paf":acc_meters["paf"].avg  }
-                    tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
                     logme.update(paf_acc_scalars)                    
 
                 # loss params
                 loss_weight_scalars = {}
                 for k,par in criterion.named_parameters():
                     loss_weight_scalars["loss-weights/"+k] = torch.exp( -par.detach() ).item()
-                tb_writer.add_scalars("data/loss_weights", loss_weight_scalars, train_iteration )
                 logme.update(loss_weight_scalars)
+
+                # add learning rate
+                logme["lr"] = optimizer.param_groups[0]["lr"]
 
                 # log into wandb
                 logme_train = {}
@@ -298,14 +322,13 @@ def run(gpu, args ):
                                                 valid_acc_meters,
                                                 valid_loss_meters,
                                                 valid_time_meters )
-                    # write to tensorboard/wandb
+                    # write to WANDB
                     # --------------------
 
                     logme = {}
                     
                     # losses go into same plot
                     loss_scalars = { "loss/"+x:y.avg for x,y in valid_loss_meters.items() }
-                    tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
                     logme.update(loss_scalars)
                 
                     # split acc into different types
@@ -315,7 +338,6 @@ def run(gpu, args ):
                         if valid_acc_meters[accname].count>0:
                             val_acc_scalars["lm/"+accname] = valid_acc_meters[accname].avg
                     if len(val_acc_scalars)>0:
-                        tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
                         logme.update(val_acc_scalars)
 
                     # ssnet
@@ -324,7 +346,6 @@ def run(gpu, args ):
                         if valid_acc_meters[accname].count>0:
                             val_ssnet_scalars["ssnet/"+accname] = valid_acc_meters[accname].avg
                     if len(val_ssnet_scalars)>0:
-                        tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
                         logme.update( val_ssnet_scalars )
                 
                     # keypoint
@@ -333,13 +354,11 @@ def run(gpu, args ):
                         if valid_acc_meters[accname].count>0:
                             val_kp_scalars["kplabel/"+accname] = valid_acc_meters[accname].avg
                     if len(val_kp_scalars)>0:
-                        tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
                         logme.update( val_kp_scalars )
                 
                     # paf
                     if valid_acc_meters["paf"].count>0:
                         val_paf_acc_scalars = { "paf/paf":valid_acc_meters["paf"].avg  }
-                        tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
                         logme.update( val_paf_acc_scalars )
 
                     logme_valid = {}
@@ -360,11 +379,16 @@ def run(gpu, args ):
                                             fixed_acc_meters,fixed_loss_meters,fixed_time_meters,
                                             False,device,verbose=False)
                     #print("Fixed check")
-                    for k,par in model.module.named_parameters():
-                        #print(k,type(par))
-                        if torch.isnan(par.data).any():
-                            raise ValueError("Found a NAN")
-                        
+                    if not args.no_parallel:
+                        for k,par in model.module.named_parameters():
+                            #print(k,type(par))
+                            if torch.isnan(par.data).any():
+                                raise ValueError("Found a NAN")
+                    else:
+                        for k,par in model.named_parameters():
+                            #print(k,type(par))
+                            if torch.isnan(par.data).any():
+                                raise ValueError("Found a NAN")                        
                         
                     engine.prep_status_message( "Fixed-Iteration", train_iteration,
                                                 fixed_acc_meters,
