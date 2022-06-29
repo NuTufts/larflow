@@ -68,7 +68,8 @@ namespace prep {
 
     void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
     
-    void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v );
+    void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v,
+			    const std::vector<larcv::Image2D>& instance_v );
     void make_instanceid_vector( const std::vector<larcv::Image2D>& instance_v );
     void make_ancestorid_vector( const std::vector<larcv::Image2D>& ancestor_v );    
     void make_segmentid_vector( const std::vector<larcv::Image2D>& segment_img_v,
