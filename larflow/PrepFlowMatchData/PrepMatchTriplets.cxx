@@ -466,7 +466,7 @@ namespace prep {
     fill_daughter2mother_map( *ev_mcshower );
     fill_class_map( *ev_mctrack, *ev_mcshower );
     
-    make_truth_vector( ev_larflow->as_vector() );
+    make_truth_vector( ev_larflow->as_vector(), ev_instance->as_vector() );
     make_instanceid_vector( ev_instance->as_vector() );
     make_ancestorid_vector( ev_ancestor->as_vector() );
     make_segmentid_vector( ev_segment->as_vector(), ev_adc->as_vector() ); // segment image only labels neutrino pixels
@@ -485,15 +485,20 @@ namespace prep {
    *  and (2) for false triplet
    *
    * @param[in] larflow_v Vector of Image2D which contain true flow information between planes.
+   * @param[in] larflow_v Vector of Image2D which contain a Geant4 trackID in each pixel
    *
    */
-  void PrepMatchTriplets::make_truth_vector( const std::vector<larcv::Image2D>& larflow_v )
+  void PrepMatchTriplets::make_truth_vector( const std::vector<larcv::Image2D>& larflow_v,
+					     const std::vector<larcv::Image2D>& instance_v )
   {
 
     for ( auto& matchdata : _match_triplet_v ) {
 
       std::vector< const larcv::Image2D* > plarflow_v
 	= ublarcvapp::recotools::DetUtils::getTPCImages( larflow_v, matchdata._tpcid, matchdata._cryoid );
+      
+      std::vector< const larcv::Image2D* > pinstance_v
+	= ublarcvapp::recotools::DetUtils::getTPCImages( instance_v, matchdata._tpcid, matchdata._cryoid );
       
       LARCV_NORMAL() << " (cryo,tpcid)=" << matchdata._cryoid << "," << matchdata._tpcid << ") num larflow truth images=" << plarflow_v.size() << std::endl;
       
@@ -504,11 +509,15 @@ namespace prep {
       int ntriplets = matchdata._triplet_v.size();
       
       matchdata._truth_v.clear();
-      matchdata._truth_2plane_v.clear();
+      //matchdata._truth_2plane_v.clear();
       matchdata._truth_v.resize( ntriplets, 0 );
-      matchdata._truth_2plane_v.resize( ntriplets );
-      matchdata._match_span_v.clear();
-      matchdata._match_span_v.resize( ntriplets, 0 );    
+      //matchdata._truth_2plane_v.resize( ntriplets );
+      matchdata._match_maxspan_v.clear();
+      matchdata._match_maxspan_v.resize( ntriplets, 0 );    
+      matchdata._match_minspan_v.clear();
+      matchdata._match_minspan_v.resize( ntriplets, 0 );    
+      matchdata._match_cyclespan_v.clear();
+      matchdata._match_cyclespan_v.resize( ntriplets, 0 );    
 
       const int true_match_span = 3;
       const int min_required_connections = 1;
@@ -520,7 +529,7 @@ namespace prep {
 	// for each triplet, we look for truth flows that connect the planes
 	auto const& triplet = matchdata._triplet_v[itrip];
 	larflow::FlowDir_t flow_dir_origin = matchdata._flowdir_v[itrip];
-	matchdata._truth_2plane_v[itrip].resize( (int)larflow::kNumFlows, 0 );
+	//matchdata._truth_2plane_v[itrip].resize( (int)larflow::kNumFlows, 0 );
       
 	// for debug
 	//if ( flow_dir_origin!=kY2V ) continue;
@@ -532,21 +541,109 @@ namespace prep {
 	std::vector< const FlowTriples::PixData_t* > pix_v( matchdata._sparseimg_vv.size() );
 	pix_v[srcplane] = &matchdata._sparseimg_vv[srcplane][ triplet[srcplane] ];
 	pix_v[tarplane] = &matchdata._sparseimg_vv[tarplane][ triplet[tarplane] ];
-	pix_v[othplane] = &matchdata._sparseimg_vv[othplane][ triplet[othplane] ]; 
+	pix_v[othplane] = &matchdata._sparseimg_vv[othplane][ triplet[othplane] ];
+
+	int on_instance_src = 0;
+	if ( pinstance_v[srcplane]->pixel( pix_v[srcplane]->row, pix_v[srcplane]->col )>-1 )
+	  on_instance_src = 1;
+	int on_instance_tar = 0;
+	if ( pinstance_v[tarplane]->pixel( pix_v[tarplane]->row, pix_v[tarplane]->col )>-1 )
+	  on_instance_tar = 1;
+	int on_instance_oth = 0;
+	if ( pinstance_v[othplane]->pixel( pix_v[othplane]->row, pix_v[othplane]->col )>-1 )
+	  on_instance_oth = 1;
 
 	int ngood_connections = 0;
-	float pixflow  = plarflow_v[(int)flow_dir_origin]->pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
-	int target_col = pix_v[srcplane]->col + (int)pixflow;
-	int match_span = abs(target_col-pix_v[tarplane]->col);
-	if ( match_span>10 )
-	  match_span = 10;
+	std::vector<int> match_span(6);
 
-	if ( fabs(pixflow)!=0 && pixflow>-3999 && match_span<true_match_span ) {
+	// [0] we follow the original flow direction: src->target planes --------------------	
+	float pixflow0  = plarflow_v[(int)flow_dir_origin]->pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
+	int target_col0 = pix_v[srcplane]->col + (int)pixflow0;
+	match_span[0] = abs(target_col0-pix_v[tarplane]->col);
+	
+	if ( (fabs(pixflow0)!=0 || (int(pixflow0)==0 && on_instance_src==1)) // checks
+	     && match_span[0]<true_match_span ) {
 	  ngood_connections++;
-	  matchdata._truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
+	  //matchdata._truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
 	  ndoublet_truth[(int)flow_dir_origin]++;
 	}
-	matchdata._match_span_v[itrip] = match_span;
+
+	// [1] other+target swap flow direction: src->other --------------------
+	int flowdir1 = (int)larflow::LArFlowConstants::getFlowDirection( srcplane, othplane );
+	float pixflow1  = plarflow_v[(int)flowdir1]->pixel( pix_v[srcplane]->row, pix_v[srcplane]->col );
+	int target_col1 = pix_v[srcplane]->col + (int)pixflow1;
+	match_span[1] = abs(target_col1-pix_v[othplane]->col);
+	
+	if ( (fabs(pixflow1)!=0 || (int(pixflow1)==0 && on_instance_src==1)) // checks
+	     && match_span[1]<true_match_span ) {
+	  ngood_connections++;
+	  //matchdata._truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
+	  ndoublet_truth[(int)flowdir1]++;
+	}
+
+	// [2] src->(target->other) flow direction --------------------
+	int flowdir2 = (int)larflow::LArFlowConstants::getFlowDirection( tarplane, othplane );
+	float pixflow2  = plarflow_v[(int)flowdir2]->pixel( pix_v[tarplane]->row, pix_v[tarplane]->col );
+	int target_col2 = pix_v[tarplane]->col + (int)pixflow2;
+	match_span[2] = abs(target_col2-pix_v[othplane]->col);
+	
+	if ( (fabs(pixflow2)!=0 || (int(pixflow2)==0 && on_instance_tar==1)) // checks
+	     && match_span[2]<true_match_span ) {
+	  ngood_connections++;
+	  //matchdata._truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
+	  ndoublet_truth[(int)flowdir2]++;
+	}
+
+	// [3] src->(other->target) flow direction --------------------
+	int flowdir3 = (int)larflow::LArFlowConstants::getFlowDirection( othplane, tarplane );
+	float pixflow3  = plarflow_v[(int)flowdir3]->pixel( pix_v[othplane]->row, pix_v[othplane]->col );
+	int target_col3 = pix_v[othplane]->col + (int)pixflow3;
+	match_span[3] = abs(target_col3-pix_v[tarplane]->col);
+	
+	if ( (fabs(pixflow3)!=0 || (int(pixflow3)==0 && on_instance_oth==1)) // checks
+	     && match_span[3]<true_match_span ) {
+	  ngood_connections++;
+	  //matchdata._truth_2plane_v[itrip][(int)flow_dir_origin] = 1;
+	  ndoublet_truth[(int)flowdir3]++;
+	}
+
+	// [4] other->src flow direction --------------------
+	int flowdir4 = (int)larflow::LArFlowConstants::getFlowDirection( othplane, srcplane );
+	float pixflow4  = plarflow_v[(int)flowdir4]->pixel( pix_v[othplane]->row, pix_v[othplane]->col );
+	int target_col4 = pix_v[othplane]->col + (int)pixflow4;
+	match_span[4] = abs(target_col4-pix_v[srcplane]->col);
+	
+	if ( (fabs(pixflow4)!=0 || (int(pixflow4)==0 && on_instance_oth==1)) // checks
+	     && match_span[4]<true_match_span ) {
+	  ngood_connections++;
+	  ndoublet_truth[(int)flowdir4]++;
+	}	
+
+	// [5] target->src flow direction --------------------
+	int flowdir5 = (int)larflow::LArFlowConstants::getFlowDirection( tarplane, srcplane );
+	float pixflow5  = plarflow_v[(int)flowdir5]->pixel( pix_v[tarplane]->row, pix_v[tarplane]->col );
+	int target_col5 = pix_v[tarplane]->col + (int)pixflow5;
+	match_span[5] = abs(target_col5-pix_v[srcplane]->col);
+	
+	if ( (fabs(pixflow5)!=0 || (int(pixflow5)==0 && on_instance_tar==1)) // checks
+	     && match_span[5]<true_match_span ) {
+	  ngood_connections++;
+	  ndoublet_truth[(int)flowdir5]++;
+	}	
+
+	int max_span = 0;
+	int min_span = 2000;
+	for (auto const& span : match_span ) {
+	  if ( span>max_span )
+	    max_span = span;
+	  if ( span<min_span )
+	    min_span = span;
+	}
+	int cycle_span = match_span[0]+match_span[2]+match_span[4];
+	
+	matchdata._match_maxspan_v[itrip]   = max_span;
+	matchdata._match_minspan_v[itrip]   = max_span;
+	matchdata._match_cyclespan_v[itrip] = cycle_span;
 	if ( ngood_connections>=min_required_connections ) {
 	  matchdata._truth_v[itrip] = 1;
 	  ntriplet_truth++;
@@ -563,6 +660,12 @@ namespace prep {
 		     << matchdata._sparseimg_vv[1].size() << ", "
 		     << matchdata._sparseimg_vv[2].size() << " ]"
 		     << std::endl;
+
+      // clear to save disk space.
+      // we'll start with using cyclespan
+      matchdata._match_minspan_v.clear();
+      matchdata._match_maxspan_v.clear();
+
       LARCV_NORMAL() << "  number of true-match triplets: " << ntriplet_truth << std::endl;
       std::stringstream ss;
       ss << "  doublet truth: [";
@@ -570,6 +673,7 @@ namespace prep {
       ss << " ]";
       LARCV_NORMAL() << ss.str() << std::endl;
     }//end of loop over matchtriplet data (from different tpcs)
+
     
   }
 

@@ -38,7 +38,10 @@ namespace prep {
     std::vector< int >                                    _ancestor_id_v;   ///< ancestor ID label for each space point
     std::vector< int >                                    _pdg_v;           ///< PDG label for each space point
     std::vector< int >                                    _origin_v;        ///< 0: unknown, 1:neutrino, 2:cosmic
-    std::vector< int >                                    _match_span_v;    ///< distance from projection intersection to true intersection in wires
+    std::vector< int >                                    _match_maxspan_v;   ///< distance from projection intersection to true intersection in wires
+    std::vector< int >                                    _match_minspan_v;   ///< distance from projection intersection to true intersection in wires
+    std::vector< int >                                    _match_cyclespan_v; ///< distance from projection intersection to true intersection in wires    
+    //std::vector< int >                                    _match_cat_v;       ///< {0: all pixflows move to same pix, 1: 2/3 matching instance, 2: 1 or more-non-instance pixel}
     int                                                   _tpcid;           ///< TPC ID
     int                                                   _cryoid;          ///< CRYO ID    
 
@@ -71,6 +74,8 @@ namespace prep {
                                          int& last_index,
                                          int& num_pairs_filled,
                                          bool with_truth );
+
+    PyObject* get_matchspan_array() const;    
     
   private:
 

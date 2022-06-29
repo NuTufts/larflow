@@ -34,6 +34,10 @@ namespace prep {
     _instance_id_v.clear();
     _ancestor_id_v.clear();
     _pdg_v.clear();
+
+    _match_minspan_v.clear();
+    _match_maxspan_v.clear();    
+    _match_cyclespan_v.clear();
     
   }
   
@@ -331,6 +335,37 @@ namespace prep {
 
   }
   
+  /**
+   * @brief return a numpy array with data from _match_span_v variable
+   *
+   * @return numpy array, 1-dim, dtype=float
+   *
+   */
+  PyObject* MatchTriplets::get_matchspan_array() const
+  {
+
+    if ( !_setup_numpy ) {
+      import_array1(0);
+      _setup_numpy = true;
+    }
+
+    int nd = 2;
+    int ndims = (int)_triplet_v.size(); // (index0, index1, index2, truth, tripindex)
+    npy_intp dims[] = { ndims, 3 };
+
+    // output array
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
+
+    for ( int idx=0; idx<(int)_match_maxspan_v.size(); idx++ ) {
+      *((float*)PyArray_GETPTR2( array, idx, 0 )) = (float)_match_maxspan_v[idx];
+      *((float*)PyArray_GETPTR2( array, idx, 1 )) = (float)_match_minspan_v[idx];
+      *((float*)PyArray_GETPTR2( array, idx, 2 )) = (float)_match_cyclespan_v[idx];
+    }//end of indices loop
+
+    // return the array
+    return (PyObject*)array;
+    
+  }
   
 }
 }
