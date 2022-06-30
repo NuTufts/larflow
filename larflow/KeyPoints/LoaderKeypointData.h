@@ -87,6 +87,7 @@ namespace keypoints {
     PyObject* sample_data( const int& num_max_samples,
                            int& nfilled,
                            bool withtruth,
+			   const float kplabel_sigma,
 			   int tpcid,
 			   int cryoid );
 
@@ -125,7 +126,8 @@ namespace keypoints {
                              std::vector<int>& pos_match_index,
                              PyArrayObject* match_array,
                              PyArrayObject*& kplabel_label,
-                             PyArrayObject*& kplabel_weight );
+                             PyArrayObject*& kplabel_weight,
+			     const float sigma=5.0);
 
     // int make_kpshift_arrays( const int& num_max_samples,
     //                          int& nfilled,
