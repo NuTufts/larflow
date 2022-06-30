@@ -1,15 +1,15 @@
 # TRAINING PARAMETERS
 WANDB_PROJECT: "larmatch-lmonly-cyclictest"
-RESUME_FROM_CHECKPOINT: false
-RESUME_OPTIM_FROM_CHECKPOINT: false
-CHECKPOINT_FILE: "checkpoint.p1cmp075.sampled.26500th.tar"
-LEARNING_RATE: 1.0e-1
+RESUME_FROM_CHECKPOINT: true
+RESUME_OPTIM_FROM_CHECKPOINT: true
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/northern_feather_13/checkpoint.p1cmp075.sampled.4000th.tar"
+LEARNING_RATE: 2.0e-3
 WEIGHT_DECAY: 1.0e-6
 NUM_ITERATIONS: 200000
-START_ITER: 0
+START_ITER: 4001
 DEVICE: cuda
 RUN_PROFILER: false
-BATCH_SIZE: 10
+BATCH_SIZE: 12
 BATCH_TRIPLET_LIMIT: 160000000
 CLIP_GRAD_NORM: false
 TRAIN_ITER_PER_RECORD: 10
@@ -35,9 +35,14 @@ TRAIN_DATASET_VERBOSE: false
 #VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.valid.list"
 VALID_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
 VALID_DATASET_VERBOSE: false
+
+FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
+FIXED_SAMPLE_BATCH_SIZE: 12
+=======
 #FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
 FIXED_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
 FIXED_SAMPLE_BATCH_SIZE: 16
+>>>>>>> ce8101478ea674fd041e1cdbe2f17e8548b4850a
 FIXED_DATASET_VERBOSE: false
 USE_KEYPOINT_SAMPLER: false
 

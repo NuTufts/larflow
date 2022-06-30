@@ -1,4 +1,4 @@
-import os,time,copy
+import os,time,copy,sys
 import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
@@ -193,11 +193,16 @@ class larmatchDataset(torch.utils.data.Dataset):
             if self._num_triplet_samples<ntriplets:
                 sample = sample[:self._num_triplet_samples]
             elif self._num_triplet_samples>ntriplets:
-                sample[ntriplets:] = 0
-
-            print("sample shape: ",sample.shape)
-            data["matchtriplet_v"] = data["matchtriplet_v"][sample,:]
-            data["ntriplets"] = int(ntriplets)
+                nfilled = 0
+                while nfilled<self._num_triplet_samples:
+                    x = np.arange(ntriplets)
+                    np.random.shuffle(x) 
+                    nadd = ntriplets
+                    if int(nfilled+ntriplets)>self._num_triplet_samples:
+                        nadd = self._num_triplet_samples-nfilled
+                    sample[nfilled:nfilled+nadd] = x[:nadd]
+                    nfilled += nadd
+                    
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample]
                 data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample]

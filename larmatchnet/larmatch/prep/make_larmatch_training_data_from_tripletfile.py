@@ -90,6 +90,7 @@ matchtriplet_v = std.vector("larcv::NumpyArrayInt")()
 # ghost/true label for each spacepoint
 lm_truth_v  = std.vector("larcv::NumpyArrayInt")()
 lm_weight_v = std.vector("larcv::NumpyArrayFloat")()
+lm_label_v  = std.vector("larcv::NumpyArrayFloat")()
 
 # SSNet label and loss weights
 ssnet_truth_v  = std.vector("larcv::NumpyArrayInt")()
@@ -108,6 +109,7 @@ outtree.Branch("coord_v",coord_v)
 outtree.Branch("feat_v", feat_v)
 outtree.Branch("matchtriplet_v",matchtriplet_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
+outtree.Branch("larmatch_label_v", lm_label_v)
 outtree.Branch("larmatch_weight_v",lm_weight_v)
 outtree.Branch("ssnet_truth_v", ssnet_truth_v)
 outtree.Branch("ssnet_class_weight_v",ssnet_class_weight_v)
@@ -122,6 +124,7 @@ for ientry in range(nentries):
     feat_v.clear()
     matchtriplet_v.clear()    
     lm_truth_v.clear()
+    lm_label_v.clear()    
     lm_weight_v.clear()
     ssnet_truth_v.clear()
     ssnet_class_weight_v.clear()
@@ -148,13 +151,15 @@ for ientry in range(nentries):
 
     # get 3d spacepoints (to do, function should be kploader function)
     tripdata = kploader.triplet_v.at(0).get_all_triplet_data( True )
+    spandata = kploader.triplet_v.at(0).get_matchspan_array().astype(np.float32)
     #spacepoints = kploader.triplet_v.at(0).make_spacepoint_charge_array()    
     nfilled = c_int(0)
     ntriplets = tripdata.shape[0]    
 
+    kplabel_sigma = 10.0
     TPCID = 0
     CRYOID = 0
-    data = kploader.sample_data( ntriplets, nfilled, True, TPCID, CRYOID )
+    data = kploader.sample_data( ntriplets, nfilled, True, kplabel_sigma, TPCID, CRYOID )
     #data.update(spacepoints)
     #data.update( wireimg_dict )
 
@@ -194,6 +199,21 @@ for ientry in range(nentries):
     # truth data for larmatch tasks
     lm_truth_v.push_back( data["matchtriplet"][:,3].astype(np.int32) )
     lm_weight_v.push_back( data["match_weight"].astype(np.float32) )
+
+    # make larmatch span data
+    SPANINDEX = 2 # cycle span
+    SPAN_HINGE = 2
+    SPAN_LEN = 10.0
+    spanscore = np.clip(spandata[:,0]-SPAN_HINGE,0,200)
+
+    # exponential
+    #spanscore = np.exp(-spanscore/SPAN_LEN )
+    #spanscore = np.clip(spanscore, 0.01, 0.99 )
+
+    # sigmoid -- can use function that matches
+    spanscore = np.clip( 2.0/(1.0+np.exp(spanscore/SPAN_LEN)), 0.00, 0.99 )
+    spanscore[ spanscore<0.01 ] = 0.0
+    lm_label_v.push_back( spanscore.astype(np.float32) )
 
     # ssnet truth data
     ssnet_truth_v.push_back( data["ssnet_label"].astype(np.int32) )
