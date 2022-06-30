@@ -153,6 +153,7 @@ namespace keypoints {
   PyObject* LoaderKeypointData::sample_data( const int& num_max_samples,
                                              int& nfilled,
                                              bool withtruth,
+					     const float kplabel_sigma,
 					     int tpcid,
 					     int cryoid )
   {
@@ -248,7 +249,7 @@ namespace keypoints {
     PyArrayObject* kplabel_label  = nullptr;
     PyArrayObject* kplabel_weight = nullptr;
     make_kplabel_arrays( num_max_samples, imatchdata, nfilled, withtruth, pos_index_v,
-                         matches, kplabel_label, kplabel_weight );
+                         matches, kplabel_label, kplabel_weight, kplabel_sigma );
     PyObject *kp_label_key     = Py_BuildValue("s", "kplabel" );
     PyObject *kp_weight_key    = Py_BuildValue("s", "kplabel_weight" );
 
@@ -440,13 +441,14 @@ namespace keypoints {
 					       std::vector<int>& pos_match_index,
 					       PyArrayObject* match_array,
 					       PyArrayObject*& kplabel_label,
-					       PyArrayObject*& kplabel_weight )
+					       PyArrayObject*& kplabel_weight,
+					       const float sigma )
   {
 
     auto const& kpdata = kpdata_v->at(imatchdata);
     
     int index_col = (withtruth) ? 4 : 3;
-    float sigma = 2.0; // cm
+    //float sigma = 2.0; // cm
     float label_threshold = 0.10;
 
     int kplabel_nd = 2;
