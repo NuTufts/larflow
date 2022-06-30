@@ -156,7 +156,7 @@ for ientry in range(nentries):
     nfilled = c_int(0)
     ntriplets = tripdata.shape[0]    
 
-    kplabel_sigma = 10.0
+    kplabel_sigma = 5.0
     TPCID = 0
     CRYOID = 0
     data = kploader.sample_data( ntriplets, nfilled, True, kplabel_sigma, TPCID, CRYOID )
@@ -200,18 +200,28 @@ for ientry in range(nentries):
     lm_truth_v.push_back( data["matchtriplet"][:,3].astype(np.int32) )
     lm_weight_v.push_back( data["match_weight"].astype(np.float32) )
 
+
+    print("spandata min=",np.min(spandata)," max=",np.max(spandata))
+        
     # make larmatch span data
     SPANINDEX = 2 # cycle span
-    SPAN_HINGE = 2
-    SPAN_LEN = 10.0
+    SPAN_HINGE = 3
+    SPAN_LEN = 20.0
     spanscore = np.clip(spandata[:,0]-SPAN_HINGE,0,200)
-
+    print("spanscore min=",np.min(spanscore)," max=",np.max(spanscore))
+    
     # exponential
     #spanscore = np.exp(-spanscore/SPAN_LEN )
     #spanscore = np.clip(spanscore, 0.01, 0.99 )
 
-    # sigmoid -- can use function that matches
-    spanscore = np.clip( 2.0/(1.0+np.exp(spanscore/SPAN_LEN)), 0.00, 0.99 )
+    # sigmoid -- can use function that matches    
+    #spanscore = np.clip( 2.0/(1.0+np.exp(spanscore/SPAN_LEN)), 0.00, 0.99 )
+
+    # linear
+    spanscore = np.clip( (1.0-spanscore/SPAN_LEN), 0.00, 0.99 )
+    print("spanscore min=",np.min(spanscore)," max=",np.max(spanscore))
+    
+    # provide zero floor
     spanscore[ spanscore<0.01 ] = 0.0
     lm_label_v.push_back( spanscore.astype(np.float32) )
 

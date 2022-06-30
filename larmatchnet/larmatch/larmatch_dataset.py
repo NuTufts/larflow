@@ -202,7 +202,10 @@ class larmatchDataset(torch.utils.data.Dataset):
                         nadd = self._num_triplet_samples-nfilled
                     sample[nfilled:nfilled+nadd] = x[:nadd]
                     nfilled += nadd
-                    
+
+            data["matchtriplet_v"] = data["matchtriplet_v"][sample[:self._num_triplet_samples],:]
+            data["ntriplets"] = int(self._num_triplet_samples)
+
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample]
                 data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample]
