@@ -356,7 +356,7 @@ namespace prep {
     // output array
     PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
-    for ( int idx=0; idx<(int)_match_maxspan_v.size(); idx++ ) {
+    for ( int idx=0; idx<(int)_match_cyclespan_v.size(); idx++ ) {
       //*((float*)PyArray_GETPTR2( array, idx, 0 )) = (float)_match_maxspan_v[idx];
       //*((float*)PyArray_GETPTR2( array, idx, 1 )) = (float)_match_minspan_v[idx];
       *((float*)PyArray_GETPTR2( array, idx, 0 )) = (float)_match_cyclespan_v[idx];
