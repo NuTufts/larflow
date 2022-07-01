@@ -72,7 +72,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( "filtered_MCTracks_opflash_beamONLY_MODTEST.root" )
+iomc.set_out_filename( "filtered_MCTracks_opflash_COMBINED.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -164,10 +164,10 @@ kp_weight_v = std.vector("larcv::NumpyArrayFloat")()
 outtree.Branch("run", run, "run/I")
 outtree.Branch("subrun", subrun, "subrun/I")
 outtree.Branch("event",  event,  "event/I")
-##outtree.Branch("ancestorID",  ancestorID,  "ancestorID/I")
-##outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
-##outtree.Branch("flashTick",  flashTick,  "flashTick/D")
-##outtree.Branch("origin",  origin,  "origin/I")
+outtree.Branch("ancestorID",  ancestorID,  "ancestorID/I")
+outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
+outtree.Branch("flashTick",  flashTick,  "flashTick/D")
+outtree.Branch("origin",  origin,  "origin/I")
 outtree.Branch("coord_v",  coord_v)
 outtree.Branch("feat_v",   feat_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
@@ -522,6 +522,7 @@ for ientry in range(3): # event loop
     subrun[0] = ioll.subrun_id()
     event[0] = ioll.event_id()
 
+    # loop thru all the intxns in the event here
     for i in range(len( iidList )): #loops thru entries in iidList and keyList which should be same
         print("size of the iidList at the END: ",len( iidList ))
         print("i, iidList[i]: ",i, iidList[i])
@@ -538,10 +539,16 @@ for ientry in range(3): # event loop
 
         voxelizeIntrxn(iidList[i])
 
+        # corresponding ancestorid for intrxn, or -9997 for beam intrxn
         key = keyList[i]
+
+        foundFlash = 0
 
         out_mctrack  = iomc.get_data( larlite.data.kMCTrack, "mcreco" )
         out_mcshower  = iomc.get_data( larlite.data.kMCShower, "mcreco" )
+
+        out_opflash_beam  = iomc.get_data( larlite.data.kOpFlash, "simpleFlashBeam" )
+        out_opflash_cosmic  = iomc.get_data( larlite.data.kOpFlash, "simpleFlashCosmic" )
 
         print(intrxnTracks)
         print(intrxnShowers)
@@ -552,11 +559,40 @@ for ientry in range(3): # event loop
                 # save the MCTRACKS
                 out_mctrack.push_back( ev_mctrack.at(j) )
 
+                #grab some flash using first intrxn track for now
+                if foundFlash == 0:
+
+                    foundFlash = foundFlash+1
+                    track_tick = fmutil.grabTickFromMCTrack( ioll, j )
+                    producer = fmutil.producer
+                    op_tick = fmutil.grabTickFromOpflash( opio )
+                    match = fmutil.matchTicks( track_tick, op_tick )
+                    print("match IS: ",match)
+
+                    fmutil.process( ioll )
+                    clusterTick[0] = track_tick
+                    flashTick[0] = match[0]
+                    ancestorID[0] = fmutil.trackAncestorID()
+                    origin[0] = fmutil.trackOrigin()
+
+                    if match[0] != -999.999 and match[0] != 999.999 and track_tick != -999.997:
+                        if (fmutil.isCosmic == 1):
+                            ##    print("ev_opflash_cosmic: ",ev_opflash_cosmic)
+                            out_opflash_cosmic.push_back( ev_opflash_cosmic.at( match[1] ) )
+                        else:
+                            ##print("ev_opflash_beam: ",ev_opflash_beam)
+                            out_opflash_beam.push_back( ev_opflash_beam.at( match[1] ) )
+                    ##else: # there was no matching flash, just write null
+                    ##    out_opflash.push_back( null )
+
         if key in intrxnShowers:
             for j in intrxnShowers[key]:
                 print("These are the corresponding mcshower vector positions according to dict: ",j)
                 # save the MCSHOWERS
                 out_mcshower.push_back( ev_mcshower.at(j) )
+
+        # find the matching flash for the ancestor in the intrxn'
+
 
 
             ##out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
@@ -573,7 +609,7 @@ for ientry in range(3): # event loop
         # (assumes <100 clusters in an event)
         iomc.set_id( ioll.run_id(), ioll.subrun_id(), (ioll.event_id())*100+counter )
         iomc.next_event()
-#            ioop.next_event()
+        #ioop.next_event()
 
             ##print("CHOSEN TICK ACTUAL TIME WAS: ", ((match[0]-3200.0)*0.5) )
 
