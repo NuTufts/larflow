@@ -248,6 +248,9 @@ namespace reco {
 	for (int i=0; i<3; i++)
 	  segdir[i] /= seglen;
       }
+      else {
+        continue;
+      }
 
       float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
       //std::cout << "ipt=" << ipt << " d=" << d << std::endl;
@@ -366,6 +369,9 @@ namespace reco {
       if (seglen>0) {
 	for (int i=0; i<3; i++)
 	  segdir[i] /= seglen;
+      }
+      else {
+        continue;
       }
 
       float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
