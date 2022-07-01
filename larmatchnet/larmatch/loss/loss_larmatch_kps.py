@@ -25,7 +25,8 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.eval_affinity_field = eval_affinity_field
         self.larmatch_softmax = torch.nn.Softmax( dim=1 )
         self.focal_loss_gamma = 2
-        self.larmatch_use_focal_loss = True
+        self.larmatch_use_focal_loss = False
+        self.larmatch_use_regression_loss = True        
         self.ssnet_use_lovasz_loss = False
         self.larmatch_name = larmatch_name
         self.ssnet_name = ssnet_name
@@ -232,15 +233,13 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  larmatch truth: ",larmatch_truth.shape)
             
         # convert int to float for subsequent calculations
-        true_lm = larmatch_truth.eq(1)
-        false_lm = larmatch_truth.eq(0)
+        true_lm = larmatch_truth.gt(0.5)
+        false_lm = larmatch_truth.lt(0.5)
         if verbose:
-            print("  true_lm: ",true_lm.shape)
-
+            print("  true_lm: ",true_lm.shape," sum=",true_lm.sum())
+            
         if self.larmatch_use_focal_loss:
             # p_t for focal loss
-
-            if verbose: print("  larmatch_pred shape: ",larmatch_pred.shape)            
             p = torch.softmax( larmatch_pred, dim=1 )
             if verbose: print("  LM softmaxout shape: ",p.shape)                        
 
@@ -264,6 +263,10 @@ class SparseLArMatchKPSLoss(nn.Module):
             #print("p_t shape: ",p_t.shape)
             #p_t = fmatchlabel*p_t + (1-fmatchlabel)*(1-p_t) # p if y==1; 1-p if y==0        
             #loss = (-larmatch_weight[:npairs]*torch.log( p_t+1.0e-4 )*torch.pow( 1-p_t, self.focal_loss_gamma )).sum()
+        elif self.larmatch_use_regression_loss:
+            fn_lm  = torch.nn.MSELoss( reduction='none' )
+            fn_out = fn_lm( larmatch_pred, larmatch_truth )
+            loss   = (fn_out*larmatch_weight).sum()
         else:
             # calculate loss using binary cross entropy
             bce       = torch.nn.BCEWithLogitsLoss( reduction='none' )

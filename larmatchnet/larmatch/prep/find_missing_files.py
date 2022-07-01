@@ -2,14 +2,14 @@ import os,sys
 
 # NUE
 # files look like: larmatchdata_bnbnue_bnbnue_0490.root
-#outdir="outdir_mcc9_v13_bnbnue_corsika"
-#N = 493
+outdir="outdir_mcc9_v13_bnbnue_corsika_kpreweight_wmatchlabel/"
+N = 493
 
 
 # BNB NU 
 # files look like: larmatchdata_bnb_nu_bnbnue_0490.root
-outdir="outdir_mcc9_v13_bnb_nu_corsika"
-N = 573
+#outdir="outdir_mcc9_v13_bnb_nu_corsika"
+#N = 573
 
 completed = os.listdir(outdir)
 

@@ -30,6 +30,7 @@ niter = 1
 batch_size = 4
 test = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
                         load_truth=True,
+                        random_access=True,
                         num_triplet_samples=config["NUM_TRIPLET_SAMPLES"])
 print("NENTRIES: ",len(test))
 loader = torch.utils.data.DataLoader(test,batch_size=batch_size,collate_fn=larmatchDataset.collate_fn)
@@ -98,7 +99,7 @@ batch_weight = []
 for b,data in enumerate(batch):
     #print("batch [",b,"]")
     
-    lm_truth_t = torch.from_numpy(data["larmatch_truth"]).to(DEVICE)
+    lm_truth_t = torch.from_numpy(data["larmatch_label"]).to(DEVICE)
     lm_weight_t = torch.from_numpy(data["larmatch_weight"]).to(DEVICE)
     #print("  truth: ",lm_truth_t.shape)
     #print("  weight: ",lm_weight_t.shape)

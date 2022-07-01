@@ -123,16 +123,21 @@ def run(gpu, args ):
     print("------------- ADJUST LEARNING RATES -----------")
     base_lr = float(config["LEARNING_RATE"])
     #lower_factor = 1.0e-3
-    lower_factor = 1.0    
+    lower_factor = 1.0
+    if args.no_parallel:
+        xmodel = model
+    else:
+        xmodel = model.module
+        
     set_param_list = [
-        {"params":model.stem.parameters(),"lr":base_lr*lower_factor},
-        {"params":model.encoder.parameters(),"lr":base_lr*lower_factor},
-        {"params":model.decoder.parameters(),"lr":base_lr*lower_factor},
+        {"params":xmodel.stem.parameters(),"lr":base_lr*lower_factor},
+        {"params":xmodel.encoder.parameters(),"lr":base_lr*lower_factor},
+        {"params":xmodel.decoder.parameters(),"lr":base_lr*lower_factor},
         {"params":criterion.parameters(),"lr":base_lr*1.0e-1}
     ]
-    if model.run_lm:      set_param_list.append( {"params":model.lm_classifier.parameters(),"lr":base_lr} )
-    if model.run_ssnet:   set_param_list.append( {"params":model.ssnet_head.parameters(),"lr":base_lr} )
-    if model.run_kplabel: set_param_list.append( {"params":model.kplabel_head.parameters(),"lr":base_lr} )    
+    if xmodel.run_lm:      set_param_list.append( {"params":xmodel.lm_classifier.parameters(),"lr":base_lr} )
+    if xmodel.run_ssnet:   set_param_list.append( {"params":xmodel.ssnet_head.parameters(),"lr":base_lr} )
+    if xmodel.run_kplabel: set_param_list.append( {"params":xmodel.kplabel_head.parameters(),"lr":base_lr} )    
 
     num_train_samples = config["NUM_TRIPLET_SAMPLES"]
     if "USE_HARD_EXAMPLE_TRAINING" in config and config["USE_HARD_EXAMPLE_TRAINING"]==True:

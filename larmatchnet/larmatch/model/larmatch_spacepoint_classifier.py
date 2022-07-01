@@ -5,9 +5,12 @@ import MinkowskiEngine as ME
 
 class LArMatchSpacepointClassifier( nn.Module ):
 
-    def __init__(self, num_input_feats, classifier_nfeatures=[512], ndimensions=2, norm_layer='batchnorm' ):
+    def __init__(self, num_input_feats, classifier_nfeatures=[32,32,32], ndimensions=2, norm_layer='batchnorm' ):
         super(LArMatchSpacepointClassifier,self).__init__()
         assert norm_layer in ['instance','batchnorm','stableinstance']        
+
+        #output_classes = 2 # for classification scheme
+        output_classes = 1 # for score matching
         
         # larmatch classifier
         self.final_vec_nfeats = num_input_feats
@@ -22,9 +25,10 @@ class LArMatchSpacepointClassifier( nn.Module ):
                 elif norm_layer=='batchnorm':
                     lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
             lm_class_layers["lmclassifier_relu%d"%(i)] = torch.nn.ReLU()
-        lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1,bias=True)
+        lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],output_classes,1,bias=True)
         # set bias assuming a 1:2 pos:neg class imbalance
-        #lm_class_layers["lmclassifier_out"].bias.data[0] = 0.0
+        if output_classes == 1:
+            lm_class_layers["lmclassifier_out"].bias.data[:] = 0.0
         #lm_class_layers["lmclassifier_out"].bias.data[1] = -1.0        
         self.lm_classifier = nn.Sequential( lm_class_layers )
 

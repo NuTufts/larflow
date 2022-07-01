@@ -181,28 +181,33 @@ class larmatchDataset(torch.utils.data.Dataset):
         data["matchtriplet_v"] = self.tree.matchtriplet_v.at(0).tonumpy()
         ntriplets = data["matchtriplet_v"].shape[0]
         
-        if ntriplets>self._triplet_limit:
+        if ntriplets>self._triplet_limit or ntriplets==0:
             print("num triplets above the limit: ",data["matchtriplet_v"].shape)
             data = None
             return False
 
-        print("larmatch_label: ",self.tree.larmatch_label_v.at(0).tonumpy().shape)
+        #print("larmatch_label: ",self.tree.larmatch_label_v.at(0).tonumpy().shape)
         if sample_spacepoints:
-            sample = np.arange(ntriplets)
-            np.random.shuffle(sample)            
             if self._num_triplet_samples<ntriplets:
+                sample = np.arange(ntriplets)
+                np.random.shuffle(sample)                            
                 sample = sample[:self._num_triplet_samples]
             elif self._num_triplet_samples>ntriplets:
+                sample = np.zeros( self._num_triplet_samples, dtype=np.long )
                 nfilled = 0
-                while nfilled<self._num_triplet_samples:
+                nadd = 1
+                while nfilled<self._num_triplet_samples and nadd>0:
                     x = np.arange(ntriplets)
                     np.random.shuffle(x) 
                     nadd = ntriplets
                     if int(nfilled+ntriplets)>self._num_triplet_samples:
                         nadd = self._num_triplet_samples-nfilled
-                    sample[nfilled:nfilled+nadd] = x[:nadd]
+                    if nadd>0:
+                        sample[nfilled:nfilled+nadd] = x[:nadd]
                     nfilled += nadd
-
+            else:
+                sample = np.arange(self._num_triplet_samples)
+                
             data["matchtriplet_v"] = data["matchtriplet_v"][sample[:self._num_triplet_samples],:]
             data["ntriplets"] = int(self._num_triplet_samples)
 
@@ -215,7 +220,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()[sample]
                 data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy()[sample,:], (1,0) )
                 data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy()[sample,:], (1,0) )
-                print("post sampling: ",data["larmatch_label"].shape)
+                #print("post sampling: ",data["larmatch_label"].shape)
         else:
             data["ntriplets"] = int(ntriplets)
             if self.load_truth:
@@ -228,8 +233,6 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
                 data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
 
-        print("ntriplets: ",data["ntriplets"])
-        
         if self._verbose:
             tottime = time.time()-t_start            
             print("[larmatchDataset::get_data_tree entry=%d loaded]"%(data["tree_entry"]))
