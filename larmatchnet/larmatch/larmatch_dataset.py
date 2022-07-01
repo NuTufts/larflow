@@ -10,7 +10,8 @@ from ctypes import c_int
 
 class larmatchDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
-                 random_access=True, npairs=None, load_truth=False,
+                 random_access=True, sequential_access=False,
+                 npairs=None, load_truth=False,
                  triplet_limit=2500000, normalize_inputs=True,
                  num_triplet_samples=None,
                  return_constant_sample=False,
@@ -53,6 +54,7 @@ class larmatchDataset(torch.utils.data.Dataset):
 
         # store parameters
         self.random_access = random_access
+        self.sequential_access = sequential_access
         self.partition_index = 0
         self.num_partitions = 1
         self.start_index = 0
@@ -101,8 +103,12 @@ class larmatchDataset(torch.utils.data.Dataset):
                 print("reset shuffled indices list")
                 self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
                 self._current_entry = 0 # current entry in shuffled list
-
-            ientry = int(self._current_entry)
+            elif self.sequential_access:
+                if self._current_entry>=self.nentries:
+                    self._current_entry = 0
+                ientry = int(self._current_entry)
+            else:
+                ientry = idx
         
             if self._random_access:
                 # if random access, get next entry in shuffled index list
@@ -126,28 +132,17 @@ class larmatchDataset(torch.utils.data.Dataset):
                 okentry = self.get_data_from_tree( data, sample_spacepoints=False )
 
             # increment the entry index
-            self._current_entry += 1
+            if self.sequential_access:
+                self._current_entry += 1
                 
             # increment the number of attempts we've made
             num_tries += 1
             if num_tries>=self._max_num_tries:
                 raise RuntimeError("Tried the max num of times (%d) to get an acceptable piece of data"%(num_tries))
 
-        # xlist = np.unique( data["voxcoord"], axis=0, return_counts=True )
-        # indexlist = xlist[0]
-        # counts = xlist[-1]
-        # hasdupe = False
-        # for i in range(indexlist.shape[0]):
-        #     if counts[i]>1:
-        #         print(i," ",indexlist[i,:]," counts=",counts[i])
-        #         hasdupe = True
-        # if hasdupe:
-        #     raise("[larvoxel_dataset::__getitem__] Dupe introduced somehow in batch-index=%d"%(ibatch)," arr=",data["voxcoord"].shape)
 
         self._nloaded += 1
-        #print("data lodaded ntries: ",num_tries)
-        #sys.stdout.flush()
-        #print("data: ",data.keys())
+
         if self._return_constant_sample and self._constant_sample is None:
             self._constant_sample = data
         
@@ -256,6 +251,29 @@ class larmatchDataset(torch.utils.data.Dataset):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         #print(batch)
         return batch
+
+    def collate_fn_singletensor(batchlist):
+        
+        whole_batch_tensors = {}
+        for k in ["larmatch_truth","ssnet_truth","keypoint_truth","larmatch_weight","ssnet_class_weight","keypoint_weight"]:
+            if k not in batchlist[0]:
+                #print(k," not in ",batchlist[0].keys())
+                continue
+            label_batch = []
+            for data in batchlist:
+                if len(data[k].shape)==1:
+                    x = data[k].reshape( 1, 1, data[k].shape[0] ) # (N) -> (1,1,N)
+                elif len(data[k].shape)==2:
+                    x = data[k].reshape( 1, data[k].shape[0], data[k].shape[1] ) # (C,N) -> (1,C,N)
+                label_batch.append( torch.from_numpy(x) )
+            whole_batch_tensors[k] = torch.cat( label_batch, dim=0 )
+        for p in range(3):
+            whole_batch_tensors["coord_%d"%(p)] = [ torch.from_numpy(data["coord_%d"%(p)]) for data in batchlist ]
+            whole_batch_tensors["feat_%d"%(p)]  = [ torch.from_numpy(data["feat_%d"%(p)]) for data in batchlist ]
+        whole_batch_tensors["entry"] = [ data["entry"] for data in batchlist ]
+        whole_batch_tensors["tree_entry"] = [ data["tree_entry"] for data in batchlist ]        
+        return whole_batch_tensors
+
     
 
     def keypoint_sampler(self,data, NALLSAMPLE, NTOTSAMPLE):        
@@ -505,7 +523,7 @@ if __name__ == "__main__":
             print("ITER[%d]:BATCH[%d]"%(iiter,ib))
             print(" keys: ",data.keys())
             for name,d in data.items():
-                if type(d) is np.ndarray:
+                if type(d) is torch.Tensor:
                     print("  ",name,"-[array]: ",d.shape)
                 else:
                     print("  ",name,"-[non-array]: ",type(d))

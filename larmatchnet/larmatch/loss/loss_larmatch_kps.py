@@ -17,8 +17,12 @@ class SparseLArMatchKPSLoss(nn.Module):
                  larmatch_name="lm",
                  ssnet_name="ssnet",
                  keypoint_name="kp",
-                 affinity_name="paf"):
+                 affinity_name="paf",
+                 lm_loss_type='bce'):
         super(SparseLArMatchKPSLoss,self).__init__( )
+        if lm_loss_type not in ['bce','mse']:
+            raise ValueError("lm_loss_type parmater must be 'bce'=binary cross entry or 'mse'=L2 loss")
+        
         self.eval_lm = eval_lm
         self.eval_ssnet = eval_ssnet
         self.eval_keypoint_label = eval_keypoint_label
@@ -26,7 +30,8 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.larmatch_softmax = torch.nn.Softmax( dim=1 )
         self.focal_loss_gamma = 2
         self.larmatch_use_focal_loss = False
-        self.larmatch_use_regression_loss = True        
+        self.larmatch_use_regression_loss = True
+        self.larmatch_loss_type = lm_loss_type
         self.ssnet_use_lovasz_loss = False
         self.larmatch_name = larmatch_name
         self.ssnet_name = ssnet_name
@@ -227,50 +232,57 @@ class SparseLArMatchKPSLoss(nn.Module):
 
         # number of spacepoint goodness predictions to evaluate
         if verbose:
+            # Expect shapes: (B,C,N)
+            # B = batch
+            # C = output channels (2 for binary cross entryp, 1 for regression output)
+            # N = number of spacepoint examples
+            # prediction: (B,C,N)
+            # truth  (B,1,N)
+            # weight (B,1,N)
             print("[SparseLArMatchKPSLoss::larmatch_loss]")
             print("  larmatch pred: ",larmatch_pred.shape)
+            print("  larmatch truth: ",larmatch_truth.shape)            
             print("  larmatch weight: ",larmatch_weight.shape)
-            print("  larmatch truth: ",larmatch_truth.shape)
             
         # convert int to float for subsequent calculations
         true_lm = larmatch_truth.gt(0.5)
         false_lm = larmatch_truth.lt(0.5)
         if verbose:
             print("  true_lm: ",true_lm.shape," sum=",true_lm.sum())
-            
-        if self.larmatch_use_focal_loss:
-            # p_t for focal loss
-            p = torch.softmax( larmatch_pred, dim=1 )
-            if verbose: print("  LM softmaxout shape: ",p.shape)                        
 
-            p_t_true  = p[:,1,:][true_lm.squeeze()]
-            if verbose: print("  p_t_true: ",p_t_true.shape)
-            loss_true = -larmatch_weight[true_lm]*torch.log(p_t_true+1.0e-4)*torch.pow(1-p_t_true,self.focal_loss_gamma)
-            loss_true = loss_true.sum()
+        if self.larmatch_loss_type=='bce':
+            # BINARY CROSS ENTROPY LOSS TYPE
+            if self.larmatch_use_focal_loss:
+                # p_t for focal loss
+                p = torch.softmax( larmatch_pred, dim=1 )
+                if verbose: print("  LM softmaxout shape: ",p.shape)                        
+                
+                p_t_true  = p[:,1,:][true_lm.squeeze()]
+                if verbose: print("  p_t_true: ",p_t_true.shape)
+                loss_true = -larmatch_weight[true_lm]*torch.log(p_t_true+1.0e-4)*torch.pow(1-p_t_true,self.focal_loss_gamma)
+                loss_true = loss_true.sum()
+                
+                p_t_false = p[:,0,:][false_lm.squeeze()]
+                if verbose: print("  p_t_false: ",p_t_false.shape)
+                loss_false = -larmatch_weight[false_lm]*torch.log(p_t_false+1.0e-4)*torch.pow(1-p_t_false,self.focal_loss_gamma)
+                loss_false = loss_false.sum()
 
-            p_t_false = p[:,0,:][false_lm.squeeze()]
-            if verbose: print("  p_t_false: ",p_t_false.shape)
-            loss_false = -larmatch_weight[false_lm]*torch.log(p_t_false+1.0e-4)*torch.pow(1-p_t_false,self.focal_loss_gamma)
-            loss_false = loss_false.sum()
+                loss = (loss_true+loss_false)/float(larmatch_pred.shape[0])
 
-            loss = (loss_true+loss_false)/float(larmatch_pred.shape[0])
-
-            if verbose:
-                print("  true-match loss: ",loss_true.detach().item())
-                print("  false-match loss: ",loss_false.detach().item())            
-                print("  tot focal loss: ",loss.detach().item())
-            
-            #print("p_t shape: ",p_t.shape)
-            #p_t = fmatchlabel*p_t + (1-fmatchlabel)*(1-p_t) # p if y==1; 1-p if y==0        
-            #loss = (-larmatch_weight[:npairs]*torch.log( p_t+1.0e-4 )*torch.pow( 1-p_t, self.focal_loss_gamma )).sum()
-        elif self.larmatch_use_regression_loss:
+                if verbose:
+                    print("larmatch loss, binary cross entry w/ focal loss")
+                    print("  true-match loss: ",loss_true.detach().item())
+                    print("  false-match loss: ",loss_false.detach().item())            
+                    print("  tot focal loss: ",loss.detach().item())
+            else:
+                # calculate loss using standard binary cross entropy, not really used
+                bce       = torch.nn.BCEWithLogitsLoss( reduction='none' )
+                loss      = (bce( larmatch_pred, fmatchlabel )*larmatch_weight[:npairs]).sum()
+        elif self.larmatch_loss_type=='mse':
+            # regressing the score value -- used for soft labels
             fn_lm  = torch.nn.MSELoss( reduction='none' )
             fn_out = fn_lm( larmatch_pred, larmatch_truth )
             loss   = (fn_out*larmatch_weight).sum()
-        else:
-            # calculate loss using binary cross entropy
-            bce       = torch.nn.BCEWithLogitsLoss( reduction='none' )
-            loss      = (bce( larmatch_pred, fmatchlabel )*larmatch_weight[:npairs]).sum()
             
         if verbose:
             lm_floss = loss.detach().item()            
