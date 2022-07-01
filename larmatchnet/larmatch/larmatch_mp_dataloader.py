@@ -133,7 +133,7 @@ if __name__ == "__main__":
     toplevel_config = yaml.load(stream, Loader=yaml.FullLoader)
     config = toplevel_config["TRAIN_DATASET_CONFIG"]
     
-    FAKE_NET_RUNTIME = 5.0
+    FAKE_NET_RUNTIME = 1.0
     niters = 30
     
     loader = larmatchMultiProcessDataloader(config,4,num_workers=1,prefetch_batches=3,

@@ -255,7 +255,8 @@ class larmatchDataset(torch.utils.data.Dataset):
     def collate_fn_singletensor(batchlist):
         
         whole_batch_tensors = {}
-        for k in ["larmatch_truth","ssnet_truth","keypoint_truth","larmatch_weight","ssnet_class_weight","keypoint_weight"]:
+        #for k in ["larmatch_truth","ssnet_truth","keypoint_truth","larmatch_weight","ssnet_class_weight","keypoint_weight"]:
+        for k in ["larmatch_truth","ssnet_truth","keypoint_truth"]:
             if k not in batchlist[0]:
                 #print(k," not in ",batchlist[0].keys())
                 continue
@@ -271,7 +272,65 @@ class larmatchDataset(torch.utils.data.Dataset):
             whole_batch_tensors["coord_%d"%(p)] = [ torch.from_numpy(data["coord_%d"%(p)]) for data in batchlist ]
             whole_batch_tensors["feat_%d"%(p)]  = [ torch.from_numpy(data["feat_%d"%(p)]) for data in batchlist ]
         whole_batch_tensors["entry"] = [ data["entry"] for data in batchlist ]
-        whole_batch_tensors["tree_entry"] = [ data["tree_entry"] for data in batchlist ]        
+        whole_batch_tensors["tree_entry"] = [ data["tree_entry"] for data in batchlist ]
+
+        # class balancing across the batch
+
+        # -- larmatch --
+        lm_pos = (whole_batch_tensors["larmatch_truth"].gt(0.5)).sum().item()
+        lm_neg = (whole_batch_tensors["larmatch_truth"].lt(0.5)).sum().item()
+        lm_weight = torch.zeros( whole_batch_tensors["larmatch_truth"].shape, dtype=torch.float )
+        lm_norm = 0.0
+        if lm_pos>0:
+            lm_norm += 1.0
+        if lm_neg>0:
+            lm_norm += 1.0
+        if lm_pos>0:
+            lm_weight[ whole_batch_tensors["larmatch_truth"].gt(0.5) ] = lm_norm/lm_pos
+        if lm_neg>0:
+            lm_weight[ whole_batch_tensors["larmatch_truth"].gt(0.5) ] = lm_norm/lm_pos
+        whole_batch_tensors["larmatch_weight"] = lm_weight
+
+        # -- ssnet --        
+        ss_norm = 0.0
+        ss_examples = []
+        for c in range(7):
+            if c==0:
+                # bg class: we're ignoring this class
+                ss_examples.append(0)
+                continue
+            c_examples = (whole_batch_tensors["ssnet_truth"].eq(c)).sum().item()
+            if c_examples>0:
+                ss_norm += 1.0
+            ss_examples.append(c_examples)
+            
+        ss_weight = torch.zeros( whole_batch_tensors["ssnet_truth"].shape, dtype=torch.float )
+        for c in range(6):
+            if ss_examples[c]>0:
+                ss_weight[ whole_batch_tensors["ssnet_truth"].eq(c) ] = ss_norm/ss_examples[c]
+        whole_batch_tensors["ssnet_class_weight"] = ss_weight
+
+        # -- kplabel --
+        kptruth = whole_batch_tensors["keypoint_truth"]
+        num_examples = kptruth.shape[0]*kptruth.shape[2] # per class
+        kp_norm = 0.0
+        kp_examples = []
+        for c in range(6):
+            c_examples = (kptruth[:,c,:].gt(0.1)).sum().item()
+            if c_examples>0:
+                kp_norm += 1.0
+            if c_examples<num_examples:
+                kp_norm += 1.0
+            kp_examples.append(c_examples)
+            
+        kp_weight = torch.zeros( whole_batch_tensors["keypoint_truth"].shape, dtype=torch.float )
+        for c in range(6):
+            if kp_examples[c]>0:
+                kp_weight[:,c,:][ kptruth[:,c,:].gt(0.1) ] = kp_norm/kp_examples[c]
+            if kp_examples[c]<num_examples:
+                kp_weight[:,c,:][ kptruth[:,c,:].lt(0.1) ] = 2.0/(num_examples-kp_examples[c])
+        whole_batch_tensors["keypoint_weight"] = kp_weight
+        
         return whole_batch_tensors
 
     
