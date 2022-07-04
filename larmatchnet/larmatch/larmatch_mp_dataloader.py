@@ -1,5 +1,6 @@
 import os,time,copy,sys
-import multiprocessing
+#import multiprocessing
+import torch.multiprocessing as mp
 import queue
 from itertools import cycle
 import torch
@@ -36,7 +37,7 @@ class larmatchMultiProcessDataloader():
         
         self.num_workers = num_workers
         self.prefetch_batches = prefetch_batches
-        self.output_queue = multiprocessing.Queue()
+        self.output_queue = mp.Queue()
         self.index_queues = []
         self.workers = []
         self.loaders = []
@@ -47,19 +48,20 @@ class larmatchMultiProcessDataloader():
 
         self.data_loader_config = data_loader_config
         for iworker in range(num_workers):
-            loader = larmatchDataset( txtfile=config["INPUT_FILE"],
+            loader = larmatchDataset( txtfile=data_loader_config["INPUT_FILE"],
                                       random_access=True,
                                       sequential_access=False,
-                                      num_triplet_samples=config["NUM_TRIPLET_SAMPLES"],
-                                      return_constant_sample=False,
-                                      load_truth=config["LOAD_TRUTH"],
-                                      verbose=config["VERBOSE"] )
+                                      num_triplet_samples=data_loader_config["NUM_TRIPLET_SAMPLES"],
+                                      return_constant_sample=data_loader_config["CONSTANT_SAMPLE"],
+                                      use_keypoint_sampler=data_loader_config["USE_KEYPOINT_SAMPLER"],
+                                      load_truth=data_loader_config["LOAD_TRUTH"],
+                                      verbose=data_loader_config["VERBOSE"] )
             print("worker[%d] loader: "%(iworker),loader)
             if iworker==0:
                 self.nentries = len(loader)                
             self.loaders.append(loader)
-            index_queue = multiprocessing.Queue()
-            worker = multiprocessing.Process(
+            index_queue = mp.Queue()
+            worker = mp.Process(
                 target=worker_fn, args=(loader, index_queue, self.output_queue, iworker)
             )
             worker.daemon = True
@@ -70,10 +72,7 @@ class larmatchMultiProcessDataloader():
         self.prefetch()
 
     def prefetch(self):
-        while (
-                self.prefetch_index < self.nentries
-                and self.prefetch_index < self.index + 2 * self.num_workers * self.batch_size
-        ):
+        while (self.prefetch_index < self.prefetch_batches*self.batch_size):
             # if the prefetch_index hasn't reached the end of the dataset
             # and it is not 2 batches ahead, add indexes to the index queues
             self.index_queues[next(self.worker_cycle)].put(self.prefetch_index)
@@ -89,14 +88,18 @@ class larmatchMultiProcessDataloader():
     def __next__(self):
         if self.index >= self.nentries:
             raise StopIteration
-        return self.collate_fn([self.get() for _ in range(self.batch_size)])
+        out = self.collate_fn([self.get() for _ in range(self.batch_size)])        
+        return out
 
     def get(self):
+        #print("start prefetch")
         self.prefetch()
+        #print("check cache")        
         if self.index in self.cache:
             item = self.cache[self.index]
             del self.cache[self.index]
         else:
+            #print("check queue")            
             while True:
                 try:
                     (index, data) = self.output_queue.get(timeout=0)
@@ -107,7 +110,7 @@ class larmatchMultiProcessDataloader():
                     break
                 else:  # item isn't the one we want, cache for later
                     self.cache[index] = data
-
+        #print("increment index")            
         self.index += 1
         return item
 
@@ -131,12 +134,12 @@ if __name__ == "__main__":
     import yaml
     stream = open("config/test_loader.yaml", 'r')
     toplevel_config = yaml.load(stream, Loader=yaml.FullLoader)
-    config = toplevel_config["TRAIN_DATASET_CONFIG"]
+    config = toplevel_config["TRAIN_DATALOADER_CONFIG"]
     
     FAKE_NET_RUNTIME = 1.0
-    niters = 30
+    niters = 10
     
-    loader = larmatchMultiProcessDataloader(config,4,num_workers=1,prefetch_batches=3,
+    loader = larmatchMultiProcessDataloader(config,4,num_workers=2,prefetch_batches=1,
                                             collate_fn=larmatchDataset.collate_fn_singletensor)
     print("START LOOP")
     print("[enter] to continue")

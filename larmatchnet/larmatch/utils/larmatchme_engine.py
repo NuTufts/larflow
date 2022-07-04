@@ -65,6 +65,7 @@ def make_loss_fn( config ):
                                        eval_keypoint_label=config["RUN_KPLABEL"],
                                        eval_keypoint_shift=config["RUN_KPSHIFT"],
                                        eval_affinity_field=config["RUN_PAF"],
+                                       lm_loss_type='focal-soft-bse',
                                        init_lm_weight=lm_loss_weight,
                                        init_kp_weight=kp_loss_weight).to(device)
         
@@ -194,27 +195,25 @@ def accuracy(predictions, truthdata,
     for ibatch in range(batchsize):
 
         data = {}
-        labels = truthdata[ibatch]
+        labels = truthdata
         for k in predictions.keys():
             data[k] = predictions[k][ibatch]
             if verbose: print("accuracy calc [",ibatch,"] key=",k,": ",data[k].shape)
 
         # get the data from the dictionaries
         if "lm" in data:
-            match_pred_t  = torch.softmax( data["lm"].detach().squeeze(), dim=0 )
-            match_label_t = labels["lm"]
+            match_pred  = torch.softmax( data["lm"].detach(), dim=0 )[1].squeeze()
+            match_label_t = labels["lm"][ibatch].squeeze()
             
             # LARMATCH METRICS
-            match_pred = match_pred_t.detach()
-            npairs = match_pred.shape[1]
             if verbose:
                 print("match_pred: ",match_pred.shape)
-                print("npairs: ",npairs)
+                print("match_label: ",match_label_t.shape)
     
-            pos_correct = (match_pred[1,:].gt(0.5)*match_label_t[:npairs].eq(1)).sum().to(torch.device("cpu")).item()
-            neg_correct = (match_pred[1,:].lt(0.5)*match_label_t[:npairs].eq(0)).sum().to(torch.device("cpu")).item()
-            npos = float(match_label_t[:npairs].eq(1).sum().to(torch.device("cpu")).item())
-            nneg = float(match_label_t[:npairs].eq(0).sum().to(torch.device("cpu")).item())
+            pos_correct = (match_pred.gt(0.5)*match_label_t.gt(0.5)).sum().to(torch.device("cpu")).item()
+            neg_correct = (match_pred.lt(0.5)*match_label_t.lt(0.5)).sum().to(torch.device("cpu")).item()
+            npos = float(match_label_t.gt(0.5).sum().to(torch.device("cpu")).item())
+            nneg = float(match_label_t.lt(0.5).sum().to(torch.device("cpu")).item())
             if verbose:
                 print("npos: ",npos)
                 print("nneg: ",nneg)
@@ -231,7 +230,7 @@ def accuracy(predictions, truthdata,
         # SSNET METRICS
         if "ssnet" in data:
             ssnet_pred_t  = data["ssnet"].detach().squeeze()
-            ssnet_label_t = labels["ssnet"]
+            ssnet_label_t = labels["ssnet"][ibatch]
             ssnet_class   = torch.argmax( ssnet_pred_t, 0 )
             ssnet_correct = ssnet_class.eq( ssnet_label_t )
             ssnet_tot_correct = 0
@@ -251,7 +250,7 @@ def accuracy(predictions, truthdata,
         # KP METRIC
         if "kp" in data:
             kp_pred  = data["kp"].detach()
-            kp_label = labels["kp"].detach().squeeze()
+            kp_label = labels["kp"][ibatch].detach().squeeze()
             #print("kp_pred=",kp_pred.shape)
             #print("kp_label=",kp_label.shape)
             for c,kpname in enumerate(KP_CLASS_NAMES):
@@ -302,6 +301,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     else:
         model.eval()
 
+    if verbose: print("larmatchme_engine.do_one_iteration: start loading data")
     dt_io = time.time()
 
     npts = None
@@ -309,34 +309,38 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     while (npts is None or npts>config["BATCH_TRIPLET_LIMIT"]) and ntries<20:
         batchdata = next(iter(data_loader))
         npts = 0
-        for data in batchdata:
-            npts += data["matchtriplet_v"].shape[0]
+        for data in batchdata["matchtriplet_v"]:
+            npts += data.shape[0]*data.shape[1]
         #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
         sys.stdout.flush()
         ntries+=1
-    batch_size = len(batchdata)
+    batch_size = len(batchdata["matchtriplet_v"])
 
+    if verbose: print("larmatchme_engine.do_one_iteration: prep batch and transfer to gpu")
     if config["USE_HARD_EXAMPLE_TRAINING"] and is_train:
         # HARD EXAMLPE MINING
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = larmatch_hard_example_mining( model, batchdata, DEVICE, int(config["NUM_TRIPLET_SAMPLES"]), verbose=False )
+            = larmatch_hard_example_mining( model, batchdata, DEVICE, int(config["NUM_TRIPLET_SAMPLES"]), verbose=verbose )
         model.train()
     else:
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = prepare_me_sparsetensor( batchdata, DEVICE )
+            = prepare_me_sparsetensor( batchdata, DEVICE, verbose=verbose )
     
     dt_io = time.time()-dt_io
     if verbose:
-        print("loaded data. %.2f secs"%(dt_io)," iteration=",entry," root-tree-entry=",flowdata["tree_entry"]," npairs=",npairs)
+        print("larmatchme_engine.do_one_iteration: loaded data. %.2f secs"%(dt_io)," root-tree-entry=",batchdata["tree_entry"])
     time_meters["data"].update(dt_io)
 
+    if verbose: print("larmatchme_engine.do_one_iteration: sync")    
     if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
 
+    if verbose: print("larmatchme_engine.do_one_iteration: zero gradients")            
     dt_forward = time.time()
     optimizer.zero_grad(set_to_none=True)    
 
     # use UNET portion to first get feature vectors
+    if verbose: print("larmatchme_engine.do_one_iteration: run forward")    
     pred_dict = model( wireplane_sparsetensors, matchtriplet_v, batch_size )
     #if not args.no_parallel:
     #    torch.distributed.barrier()
@@ -348,6 +352,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     dt_loss = time.time()
         
     # Calculate the loss
+    if verbose: print("larmatchme_engine.do_one_iteration: calc loss")        
     loss_dict = criterion( pred_dict, batch_truth, batch_weight,
                            batch_size, DEVICE,
                            verbose=config["VERBOSE_LOSS"] )
@@ -359,7 +364,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     if is_train:
         # calculate gradients for this batch
         dt_backward = time.time()
-        
+        if verbose: print("larmatchme_engine.do_one_iteration: run backward")                
         loss_dict["tot"].backward()
 
         # dump par and/or grad for debug
@@ -387,6 +392,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         
     # measure accuracy and update accuracy meters
     dt_acc = time.time()
+    if verbose: print("larmatchme_engine.do_one_iteration: calc accuracies")                    
     acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=config["VERBOSE_ACCURACY"] )
 
     # update time meter
@@ -396,6 +402,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     time_meters["batch"].update(time.time()-dt_all)
 
     # done with iteration
+    if verbose: print("larmatchme_engine.do_one_iteration: iteration complete")                        
     return 0
     
     

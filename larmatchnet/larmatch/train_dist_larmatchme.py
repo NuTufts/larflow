@@ -41,12 +41,13 @@ def run(gpu, args ):
     """
     This is the function run by each worker process
     """
-    ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
+    #ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
 
     # larmatch imports
     import larmatch
     import larmatch.utils.larmatchme_engine as engine
     from larmatch_dataset import larmatchDataset
+    from larmatch_mp_dataloader import larmatchMultiProcessDataloader
 
     # load config
     config = engine.load_config_file( args )
@@ -139,51 +140,34 @@ def run(gpu, args ):
     if xmodel.run_ssnet:   set_param_list.append( {"params":xmodel.ssnet_head.parameters(),"lr":base_lr} )
     if xmodel.run_kplabel: set_param_list.append( {"params":xmodel.kplabel_head.parameters(),"lr":base_lr} )    
 
-    num_train_samples = config["NUM_TRIPLET_SAMPLES"]
-    if "USE_HARD_EXAMPLE_TRAINING" in config and config["USE_HARD_EXAMPLE_TRAINING"]==True:
-        num_train_samples *= 2
-    train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
-                                     random_access=True,
-                                     num_triplet_samples=num_train_samples,
-                                     use_keypoint_sampler=config["USE_KEYPOINT_SAMPLER"],
-                                     verbose=config["TRAIN_DATASET_VERBOSE"],
-                                     return_constant_sample=False,
-                                     load_truth=True )
-    if args.world_size>0:
-        train_dataset.set_partition( rank, args.world_size )
-    TRAIN_NENTRIES = len(train_dataset)
-    print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=config["BATCH_SIZE"],
-                                               collate_fn=larmatchDataset.collate_fn)
+        
+
+    train_loader = larmatchMultiProcessDataloader(config["TRAIN_DATALOADER_CONFIG"],
+                                                  config["TRAIN_DATALOADER_CONFIG"]["BATCHSIZE"],
+                                                  num_workers=4,
+                                                  prefetch_batches=1,
+                                                  collate_fn=larmatchDataset.collate_fn)
+    TRAIN_NENTRIES = train_loader.nentries
+    print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")    
     sys.stdout.flush()
 
     if rank==0:
-        valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
-                                         random_access=True,
-                                         load_truth=True,
-                                         num_triplet_samples=config["NUM_TRIPLET_SAMPLES"],
-                                         return_constant_sample=False,
-                                         verbose=config["VALID_DATASET_VERBOSE"],
-                                         npairs=None )
-        VALID_NENTRIES = len(valid_dataset)
+        valid_loader = larmatchMultiProcessDataloader(config["VALID_DATALOADER_CONFIG"],
+                                                      config["VALID_DATALOADER_CONFIG"]["BATCHSIZE"],
+                                                      num_workers=1,
+                                                      prefetch_batches=2,
+                                                      collate_fn=larmatchDataset.collate_fn)
+        VALID_NENTRIES = valid_loader.nentries                
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
-        valid_loader = torch.utils.data.DataLoader(valid_dataset,
-                                                   batch_size=config["BATCH_SIZE"],
-                                                   collate_fn=larmatchDataset.collate_fn)
 
-        fixed_dataset = larmatchDataset( txtfile=config["FIXED_DATASET_INPUT_TXTFILE"],
-                                         random_access=True,
-                                         load_truth=True,
-                                         num_triplet_samples=20000,
-                                         return_constant_sample=True,                                         
-                                         verbose=config["FIXED_DATASET_VERBOSE"],
-                                         npairs=None )
-        FIXED_NENTRIES = len(fixed_dataset)
+
+        fixed_loader = larmatchMultiProcessDataloader(config["FIXED_DATALOADER_CONFIG"],
+                                                      config["FIXED_DATALOADER_CONFIG"]["BATCHSIZE"],
+                                                      num_workers=1,
+                                                      prefetch_batches=2,
+                                                      collate_fn=larmatchDataset.collate_fn)
+        FIXED_NENTRIES = fixed_loader.nentries
         print("RANK-%d: LOAD FIXED DATASET NENTRIES: "%(rank),FIXED_NENTRIES)
-        fixed_loader = torch.utils.data.DataLoader(fixed_dataset,
-                                                   batch_size=config["FIXED_SAMPLE_BATCH_SIZE"],
-                                                   collate_fn=larmatchDataset.collate_fn)
 
         # WATCH
         if config["WANDB_PROJECT"] != "NONE":
@@ -197,7 +181,7 @@ def run(gpu, args ):
     optimizer = torch.optim.AdamW(set_param_list,
                                   lr=float(config["LEARNING_RATE"]), 
                                   weight_decay=config["WEIGHT_DECAY"])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=int(0.5*ITERS_PER_EPOCH), eta_min=1.0e-6)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=int(ITERS_PER_EPOCH), eta_min=config["LEARNING_RATE_MIN"])
     
     #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
     #    print("optimizer params")
@@ -221,9 +205,11 @@ def run(gpu, args ):
             torch.cuda.empty_cache() # clear cache and avoid fragmentation + memory overflow issues
             gc.collect()
             loss_meters,acc_meters,time_meters = engine.make_meters(config)
+            #iter_verbose = True
+            iter_verbose = config["VERBOSE_ITER_LOOP"]
             engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
                                     acc_meters,loss_meters,time_meters,True,device,
-                                    verbose=config["VERBOSE_ITER_LOOP"])
+                                    verbose=iter_verbose)
 
             # increment the LR scheduler
             scheduler.step()
@@ -311,7 +297,8 @@ def run(gpu, args ):
                 logme_train = {}
                 for x,y in logme.items():
                     logme_train["train/"+x] = y
-                wandb.log(logme_train,step=train_iteration)
+                if config["WANDB_PROJECT"]!="NONE":                    
+                    wandb.log(logme_train,step=train_iteration)
 
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and train_iteration%int(config["TRAIN_ITER_PER_VALIDPT"])==0 and iiter>0:
@@ -370,7 +357,8 @@ def run(gpu, args ):
                     for x,y in logme.items():
                         logme_valid["valid/"+x] = y
                     # log into wandb
-                    wandb.log(logme_valid,step=train_iteration)
+                    if config["WANDB_PROJECT"]!="NONE":                    
+                        wandb.log(logme_valid,step=train_iteration)
                     
 
                 else:
@@ -442,7 +430,8 @@ def run(gpu, args ):
                     for x,y in logme.items():
                         logme_fixed["fixed/"+x] = y
                         # log into wandb
-                    wandb.log(logme_fixed,step=train_iteration)
+                    if config["WANDB_PROJECT"]!="NONE":                           
+                        wandb.log(logme_fixed,step=train_iteration)
 
 
         if verbose: print("RANK-%d process finished. Waiting to sync."%(rank))
