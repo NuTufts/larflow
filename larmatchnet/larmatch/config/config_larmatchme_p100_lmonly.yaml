@@ -3,9 +3,9 @@ WANDB_PROJECT: "larmatchme-softlabels-v1"
 #WANDB_PROJECT: "NONE"
 RESUME_FROM_CHECKPOINT: false
 RESUME_OPTIM_FROM_CHECKPOINT: false
-CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/checkpoints_lmonly/bumbling_snowball_26/checkpoint.p1cmp075.sampled.35500th.tar"
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/checkpoint_softlabels_v1/spring-water-11/checkpoint.p1cmp075.sampled.18000th.tar"
 LEARNING_RATE: 5.0e-2
-LEARNING_RATE_MIN: 1.0e-2
+LEARNING_RATE_MIN: 1.0e-4
 WEIGHT_DECAY: 1.0e-6
 NUM_ITERATIONS: 200000
 START_ITER: 0
@@ -32,27 +32,28 @@ USE_HARD_EXAMPLE_TRAINING: false
 # DATASET PARAMETERS
 TRAIN_DATALOADER_CONFIG:
   NUM_TRIPLET_SAMPLES: 50000
-  #INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.train.list"
-  INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
+  INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.train.list"
+  #INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
   VERBOSE: false
   LOAD_TRUTH: true
   BATCHSIZE: 12
   USE_KEYPOINT_SAMPLER: false
   CONSTANT_SAMPLE: false
+  NUM_WORKERS: 1
 VALID_DATALOADER_CONFIG:
   NUM_TRIPLET_SAMPLES: 50000
-  BATCHSIZE: 16
+  BATCHSIZE: 12
   LOAD_TRUTH: true  
-  #INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.valid.list"
-  INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
+  INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.valid.list"
+  #INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
   VERBOSE: false
   USE_KEYPOINT_SAMPLER: false
   CONSTANT_SAMPLE: false  
 FIXED_DATALOADER_CONFIG:
   NUM_TRIPLET_SAMPLES: 50000
-  #INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.fixed.list"
-  INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"  
-  BATCHSIZE: 16
+  INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.fixed.list"
+  #INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"  
+  BATCHSIZE: 12
   LOAD_TRUTH: true  
   VERBOSE: false
   USE_KEYPOINT_SAMPLER: false
@@ -61,6 +62,7 @@ FIXED_DATALOADER_CONFIG:
 # MODEL PARAMETERS
 NUM_STEM_FEATURES: 32
 NORM_LAYER: "batchnorm"
+#NORM_LAYER: "instance"
 
 # LOSS PARAMETERS
 USE_LEARNABLE_LOSS_WEIGHTS: false

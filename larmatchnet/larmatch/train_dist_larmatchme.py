@@ -80,9 +80,6 @@ def run(gpu, args ):
         wandb.init(project=config["WANDB_PROJECT"],config=config)
 
     single_model = engine.get_model( config, dump_model=False )
-    if config["NORM_LAYER"]=="batchnorm" and not args.no_parallel:
-        torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model)
-        ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(single_model)
 
     criterion = engine.make_loss_fn( config )
     num_loss_pars = len(list(criterion.parameters()))
@@ -101,6 +98,10 @@ def run(gpu, args ):
             print("RESUME LOSS-WEIGHT VALUES")
             criterion.load_state_dict( checkpoint_data["state_lossweights"] )
 
+    if config["NORM_LAYER"]=="batchnorm" and not args.no_parallel:
+        torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model)
+        ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm(single_model)
+            
     single_model.to(device)
 
 
@@ -144,7 +145,7 @@ def run(gpu, args ):
 
     train_loader = larmatchMultiProcessDataloader(config["TRAIN_DATALOADER_CONFIG"],
                                                   config["TRAIN_DATALOADER_CONFIG"]["BATCHSIZE"],
-                                                  num_workers=4,
+                                                  num_workers=config["TRAIN_DATALOADER_CONFIG"]["NUM_WORKERS"],
                                                   prefetch_batches=1,
                                                   collate_fn=larmatchDataset.collate_fn)
     TRAIN_NENTRIES = train_loader.nentries
@@ -174,7 +175,7 @@ def run(gpu, args ):
             wandb.watch(model,log="all",log_freq=100)
 
     # SEUTP OPTIMIZER ===============================================================
-    if not args.no_parallel:
+    if args.no_parallel:
         ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"])
     else:
         ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"]*args.gpus)

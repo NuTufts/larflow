@@ -98,11 +98,13 @@ class larmatchDataset(torch.utils.data.Dataset):
 
         while not okentry:
 
-            if self._random_access and self._current_entry>=self.nentries:
-                # if random access and we've used all possible indices we reset the shuffled index list
-                print("reset shuffled indices list")
-                self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
-                self._current_entry = 0 # current entry in shuffled list
+            if self._random_access:
+                if self._current_entry>=self.nentries:
+                    # if random access and we've used all possible indices we reset the shuffled index list
+                    print("reset shuffled indices list")
+                    self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
+                    self._current_entry = 0 # current entry in shuffled list
+                ientry = int(self._current_entry)
             elif self.sequential_access:
                 if self._current_entry>=self.nentries:
                     self._current_entry = 0
@@ -132,8 +134,8 @@ class larmatchDataset(torch.utils.data.Dataset):
                 okentry = self.get_data_from_tree( data, sample_spacepoints=False )
 
             # increment the entry index
-            if self.sequential_access:
-                self._current_entry += 1
+            #if self.sequential_access:
+            self._current_entry += 1
                 
             # increment the number of attempts we've made
             num_tries += 1

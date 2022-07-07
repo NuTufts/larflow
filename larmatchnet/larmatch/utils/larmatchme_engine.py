@@ -88,13 +88,13 @@ def load_model_weights( model, checkpoint_file ):
     # change names if we saved the distributed data parallel model state
     rename_distributed_checkpoint_par_names(checkpoint)
 
-    missing, extra = model.load_state_dict( checkpoint["state_larmatch"], strict=False )
-    #print("MISSING KEYS WHEN LOADING ============")
-    #for k in missing:
-    #    print("  ",k)
-    #print("EXTRA KEYS WHEN LOADING ============")        
-    #for k in extra:        
-    #    print("  ",k)
+    missing, extra = model.load_state_dict( checkpoint["state_larmatch"], strict=True )
+    print("MISSING KEYS WHEN LOADING ============")
+    for k in missing:
+        print("  ",k)
+    print("EXTRA KEYS WHEN LOADING ============")        
+    for k in extra:        
+        print("  ",k)
 
     return checkpoint
 
@@ -117,8 +117,8 @@ def rename_distributed_checkpoint_par_names(checkpoint):
     for name,arr in checkpoint["state_larmatch"].items():
         if "module." in name and name[:len("module.")]=="module.":
             if not notified:
-                print("renaming parameter by removing 'module.'")
-                notified = True
+                print("renaming parameter by removing 'module': ",name)
+                notified = False
             replacement[name[len("module."):]] = arr
         else:
             replacement[name] = arr

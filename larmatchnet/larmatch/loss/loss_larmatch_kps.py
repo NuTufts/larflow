@@ -312,12 +312,15 @@ class SparseLArMatchKPSLoss(nn.Module):
         #loss_false = -larmatch_weight[false_lm]*torch.log(p_t_false+1.0e-4)*torch.pow(1-p_t_false,self.focal_loss_gamma)
         loss_false = (1.0-larmatch_truth)*torch.log(p_t_false+1.0e-9)
 
-        loss = -(torch.pow(larmatch_truth-p_t_true,self.focal_loss_gamma)*(loss_false+loss_true)*larmatch_weight).sum()/float(larmatch_pred.shape[0])
+        #loss = -(torch.pow(larmatch_truth-p_t_true,self.focal_loss_gamma)*(loss_false+loss_true)*larmatch_weight).sum()/float(larmatch_pred.shape[0])
+        loss = -(torch.pow(larmatch_truth-p_t_true,self.focal_loss_gamma)*(loss_false+loss_true)*larmatch_weight).sum()
 
         if verbose:
             print("larmatch loss, binary cross entry w/ focal loss")
-            print("  true-match loss: ",(loss_true.detach()*larmatch_weight).sum().item()/float(larmatch_pred.shape[0]))
-            print("  false-match loss: ",(loss_false.detach()*larmatch_weight).sum().item()/float(larmatch_pred.shape[0]))
+            #print("  true-match loss: ",(loss_true.detach()*larmatch_weight).sum().item()/float(larmatch_pred.shape[0]))
+            #print("  false-match loss: ",(loss_false.detach()*larmatch_weight).sum().item()/float(larmatch_pred.shape[0]))
+            print("  true-match loss: ",(loss_true.detach()*larmatch_weight).sum().item())
+            print("  false-match loss: ",(loss_false.detach()*larmatch_weight).sum().item())
             print("  tot focal loss: ",loss.detach().item())
             
         return loss

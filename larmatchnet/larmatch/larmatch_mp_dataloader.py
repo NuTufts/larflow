@@ -13,7 +13,7 @@ def worker_fn(dataset, index_queue, output_queue, worker_idx):
         # Worker function, simply reads indices from index_queue, and adds the
         # dataset element to the output_queue
         try:
-            index = index_queue.get(timeout=0)
+            index = index_queue.get(timeout=60)
         except queue.Empty:
             continue
         if index is None:
@@ -102,7 +102,7 @@ class larmatchMultiProcessDataloader():
             #print("check queue")            
             while True:
                 try:
-                    (index, data) = self.output_queue.get(timeout=0)
+                    (index, data) = self.output_queue.get(timeout=60)
                 except queue.Empty:  # output queue empty, keep trying
                     continue
                 if index == self.index:  # found our item, ready to return
