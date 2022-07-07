@@ -114,9 +114,9 @@ def make_figures(ientry,loader,minprob=0.0):
         mctrack = ev_mctrack.at(0)
         mcshower = ev_mcshower.at(0)
 
-        print("shower INFO X: ", mcshower.Start().X())
+        print("shower INFO X (used in lardly code): ", mcshower.Start().X())
         #print("mcshower.at(0).X() ", mcshower.at(0).X())
-        #print("First mcstep Y:", mctrack.at(0).Y() )
+        print("First mctrack mcstep X:", mctrack.at(0).X() )
         #print("First mcstep Z:", mctrack.at(0).Z() )
 
         print("Drift velocity is: ",dv)
@@ -128,7 +128,7 @@ def make_figures(ientry,loader,minprob=0.0):
 
         print("VISUALIZE MCTRACKS")
         #mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack, do_sce_correction=False )
-        mctrack_v = lardly.data.visualize_larlite_event_mctrack( ev_mctrack, do_sce_correction=True )
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( ev_mctrack, do_sce_correction=False, no_offset=True )
         #mcshower_v = lardly.data.visualize_larlite_event_mcshower( ev_mcshower )
         ##mcshower_lardly = lardly.data.visualize3d_larlite_mcshower( mcshower ) # returns an array of objects
         ##for x in mcshower_lardly:
@@ -157,7 +157,9 @@ def make_figures(ientry,loader,minprob=0.0):
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv, #subtract 3200 from 2399 for shift
+        "x":batch["voxcoord"][:,1]*0.3+(2399-3200-(-761.25-3200))*0.5*dv, #subtract 3200 from 2399 for shift
+        #"x":batch["voxcoord"][:,1]*0.3+(2399-1744.5)*0.5*dv, #subtract 3200 from 2399 for shift
+        #"x":batch["voxcoord"][:,1]*0.3+(2399)*0.5*dv, #subtract 3200 from 2399 for shift
         "y":batch["voxcoord"][:,2]*0.3-120.0,
         "z":batch["voxcoord"][:,3]*0.3,
         "mode":"markers",
