@@ -53,7 +53,10 @@ def make_batch_truth( batchdata, DEVICE, verbose ):
                 x = data.reshape( 1, 1, data.shape[0] ) # (N) -> (1,1,N)
             elif len(data.shape)==2:
                 x = data.reshape( 1, data.shape[0], data.shape[1] ) # (C,N) -> (1,C,N)
-            x = torch.from_numpy(x).to(DEVICE)
+            if type(x) is np.ndarray:
+                x = torch.from_numpy(x).to(DEVICE)
+            else:
+                x = x.to(DEVICE)
             x.requires_grad = False
             label_batch.append( x )
         truth_tensors[k] = torch.cat( label_batch, dim=0 )
@@ -70,7 +73,7 @@ def make_batch_weights( batch_truth, DEVICE, verbose ):
     # -- larmatch, hard labels --
     lm_truth = batch_truth["lm"]
     lm_weight = torch.zeros( lm_truth.shape, dtype=torch.float ).to(DEVICE)
-    lm_pos = lm_truth.gt(0.5)
+    lm_pos = lm_truth.ge(0.5)
     lm_neg = lm_truth.lt(0.5)    
     num_lm_pos = lm_pos.sum().cpu().item()
     num_lm_neg = lm_neg.sum().cpu().item()
@@ -81,9 +84,9 @@ def make_batch_weights( batch_truth, DEVICE, verbose ):
     if num_lm_neg>0:
         lm_norm += 1.0
     if num_lm_pos>0:
-        lm_weight[ lm_pos ] = lm_norm/num_lm_pos
+        lm_weight[ lm_pos ] = 1.0/(lm_norm*num_lm_pos)
     if num_lm_neg>0:
-        lm_weight[ lm_neg ] = lm_norm/num_lm_neg        
+        lm_weight[ lm_neg ] = 1.0/(lm_norm*num_lm_neg)
     weight_tensors["lm"] = lm_weight
     
     # -- ssnet --
@@ -102,32 +105,34 @@ def make_batch_weights( batch_truth, DEVICE, verbose ):
         ss_examples.append(c_examples)
     
     ss_weight = torch.zeros( ss_truth.shape, dtype=torch.float )
-    for c in range(6):
+    for c in range(7):
         if ss_examples[c]>0:
-            ss_weight[ ss_class[c] ] = ss_norm/ss_examples[c]
+            ss_weight[ ss_class[c] ] = 1.0/(ss_norm*ss_examples[c])
     weight_tensors["ssnet"] = ss_weight
     
     # -- kplabel --
     kptruth = batch_truth["kp"]
-    num_examples = kptruth.shape[0]*kptruth.shape[2] # per class
-    kp_norm = 0.0
-    kp_pos = [ kptruth[:,c,:].gt(0.1) for c in range(6) ]
+    num_examples = kptruth.shape[0]*kptruth.shape[2] # per class (B,C,N)
+    kp_pos = [ kptruth[:,c,:].ge(0.1) for c in range(6) ]
     kp_neg = [ kptruth[:,c,:].lt(0.1) for c in range(6) ]    
     kp_examples = []
+    kp_norms = []
     for c in range(6):
         c_examples = kp_pos[c].sum().cpu().item()
+        kp_norm = 0.0
         if c_examples>0:
             kp_norm += 1.0
         if c_examples<num_examples:
             kp_norm += 1.0
         kp_examples.append(c_examples)
+        kp_norms.append(kp_norm)
     
     kp_weight = torch.zeros( kptruth.shape, dtype=torch.float )
     for c in range(6):
         if kp_examples[c]>0:
-            kp_weight[:,c,:][ kp_pos[c] ] = kp_norm/kp_examples[c]
+            kp_weight[:,c,:][ kp_pos[c] ] = 1.0/(kp_norms[c]*kp_examples[c])
         if kp_examples[c]<num_examples:
-            kp_weight[:,c,:][ kp_neg[c] ] = 2.0/(num_examples-kp_examples[c])
+            kp_weight[:,c,:][ kp_neg[c] ] = 1.0/(kp_norms[c]*(num_examples-kp_examples[c]))
     weight_tensors["kp"] = kp_weight
     return weight_tensors
 
