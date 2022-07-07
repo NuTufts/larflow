@@ -249,11 +249,16 @@ for ientry in range(NENTRIES):
     
         # check
         #print("matchtriplet_np: ",matchtriplet_np[:20,:])
+        idxlist = np.arange(ntriplets)
+        np.random.shuffle(idxlist)
+        #matchtriplet_np = matchtriplet_np[idxlist[:50000],:]
+        print("matchtriplet_np (post-sample): ",matchtriplet_np.shape," ",matchtriplet_np.dtype)
+                
         matchtriplet_v = [ torch.from_numpy(matchtriplet_np).to(DEVICE) ]
 
         print("Number of triplets: ",ntriplets)
         with torch.no_grad():
-            pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
+            pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )
         print("Ran model: ",pred_dict.keys())
         
         if args.device_name != "cpu":
@@ -263,8 +268,9 @@ for ientry in range(NENTRIES):
         # EVALUATE LARMATCH SCORES
         tstart = time.time()
         with torch.no_grad():
-            lm_prob_t = torch.transpose(  pred_dict["lm"].squeeze(), 1, 0 )
-            lm_prob_t = 1.0-torch.softmax( lm_prob_t, dim=1 )
+            print("pred_dict: ",pred_dict["lm"].shape)
+            lm_prob_t = pred_dict["lm"]
+            lm_prob_t = torch.softmax( lm_prob_t, dim=1 )
             print("  lm_prob_t=",lm_prob_t.shape)
         #print(lm_prob_t[:10,:])
 
@@ -277,10 +283,11 @@ for ientry in range(NENTRIES):
                 print("  ssnet_pred_t: ",ssnet_pred_t.shape)
 
         # EVALUATE KP-LABEL SCORES
-        with torch.no_grad():
-            #print("  pred_dict[kplabel]: ",pred_dict["kp"].shape)
-            kplabel_pred_t = torch.transpose( pred_dict["kp"].squeeze(), 1, 0 )
-            print("  kplabel_pred_t: ",kplabel_pred_t.shape)
+        if config["RUN_KPLABEL"]:
+            with torch.no_grad():
+                #print("  pred_dict[kplabel]: ",pred_dict["kp"].shape)
+                kplabel_pred_t = torch.transpose( pred_dict["kp"].squeeze(), 1, 0 )
+                print("  kplabel_pred_t: ",kplabel_pred_t.shape)
 
         print("prepare score arrays: ",time.time()-tstart," sec")
     
@@ -292,7 +299,10 @@ for ientry in range(NENTRIES):
         #print("  paf-pred: ",paf_pred_t.shape)
         
         tstart = time.time()
-        prob_np = lm_prob_t.to(torch.device("cpu")).detach().numpy()
+        prob_np = lm_prob_t[0,1,:].to(torch.device("cpu")).detach().numpy().astype(np.float32)
+        print("prob_np: ",prob_np.shape)
+        print("np.min: ",np.min(prob_np))
+        print("np.max: ",np.max(prob_np))
         #prob_np[:] = 1.0 # hack to check
 
         hitmaker.add_triplet_match_data( prob_np,
@@ -314,16 +324,16 @@ for ientry in range(NENTRIES):
                                                 sparse_np_v[2],
                                                 adc_v.front().meta(),
                                                 ssnet_np )                                      
-
-        print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
-        kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
-        hitmaker.add_triplet_keypoint_scores(  matchtriplet_np,
-                                               sparse_np_v[0],
-                                               sparse_np_v[1],
-                                               sparse_np_v[2],
-                                               adc_v.front().meta(),
-                                               kplabel_np,
-                                               tpcid, cryoid )
+        if config["RUN_KPLABEL"]:
+            print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
+            kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
+            hitmaker.add_triplet_keypoint_scores(  matchtriplet_np,
+                                                   sparse_np_v[0],
+                                                   sparse_np_v[1],
+                                                   sparse_np_v[2],
+                                                   adc_v.front().meta(),
+                                                   kplabel_np,
+                                                   tpcid, cryoid )
         
         # deprecated
         #print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
