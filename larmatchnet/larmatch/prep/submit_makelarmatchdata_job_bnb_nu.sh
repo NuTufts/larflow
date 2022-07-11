@@ -6,7 +6,7 @@
 #SBATCH --output=lmdata_bnb_nu.log
 #SBATCH --mem-per-cpu=8000
 #SBATCH --time=2:00:00
-#SBATCH --array=68,69,70,71,175,176,177,178
+#SBATCH --array=0-99
 ##SBATCH --partition=preempt
 #SBATCH --partition=batch
 #SBATCH --error=gridlog_makelarmatchdata_bnb_nu.%j.%N.err
@@ -19,6 +19,6 @@ cd /cluster/tufts/
 
 # mcc9_v13_bnb_nu_corsika: 573 files
 # running 5 files per job: 114 jobs needed
-srun singularity exec ${container} bash -c "cd ${DATA_PREP_DIR} && source run_larmatchdata_mcc9_v13_bnb_nu_corsika.sh"
+singularity exec ${container} bash -c "cd ${DATA_PREP_DIR} && source run_larmatchdata_mcc9_v13_bnb_nu_corsika.sh"
 
 

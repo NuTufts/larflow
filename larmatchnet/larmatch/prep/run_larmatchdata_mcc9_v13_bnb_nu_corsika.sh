@@ -11,7 +11,7 @@ PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_da
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
 
-stride=1
+stride=5
 jobid=${SLURM_ARRAY_TASK_ID}
 let startline=$(expr "${stride}*${jobid}")
 

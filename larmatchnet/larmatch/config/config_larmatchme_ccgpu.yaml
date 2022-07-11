@@ -1,0 +1,41 @@
+# TRAINING PARAMETERS
+RESUME_FROM_CHECKPOINT: true
+RESUME_OPTIM_FROM_CHECKPOINT: true
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/checkpoint.p1cmp075.44500th.tar"
+LEARNING_RATE: 1.0e-4
+WEIGHT_DECAY: 1.0e-4
+NUM_ITERATIONS: 100000
+START_ITER: 44501
+DEVICE: cuda
+RUN_PROFILER: false
+BATCH_SIZE: 8
+BATCH_TRIPLET_LIMIT: 4000000
+CLIP_GRAD_NORM: false
+TRAIN_ITER_PER_RECORD: 1
+TRAIN_ITER_PER_VALIDPT: 10
+NUM_VALID_ITERS: 1
+ITER_PER_CHECKPOINT: 500
+ITER_PER_CACHECLEAR: 1
+VERBOSE_MAIN_LOOP: false
+VERBOSE_ITER_LOOP: false
+VERBOSE_LOSS: false
+VERBOSE_ACCURACY: false
+CHECKPOINT_TAG: "cc1gpu"
+
+# DATASET PARAMETERS
+TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
+TRAIN_DATASET_VERBOSE: false
+VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
+VALID_DATASET_VERBOSE: false
+
+# MODEL PARAMETERS
+
+# LOSS PARAMETERS
+USE_LEARNABLE_LOSS_WEIGHTS: true
+INIT_LM_LOSS_WEIGHT: -2.9
+INIT_KP_LOSS_WEIGHT: -2.1
+RUN_LARMATCH: true
+RUN_SSNET: false
+RUN_KPLABEL: true
+RUN_KPSHIFT: false
+RUN_PAF: false
