@@ -1,3 +1,5 @@
+
+
 from collections import OrderedDict
 import torch
 import torch.nn as nn
@@ -13,17 +15,17 @@ class LArMatchSpacepointClassifier( nn.Module ):
         #output_classes = 1 # for score matching
         
         # larmatch classifier
-        self.final_vec_nfeats = num_input_feats
+        self.final_vec_nfeats = num_input_feats+3
         lm_class_layers = OrderedDict()
         for i,nfeat in enumerate(classifier_nfeatures):
             if i==0:
-                lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(num_input_feats,nfeat,1,bias=False)
+                lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(self.final_vec_nfeats,nfeat,1,bias=False)
             else:
                 lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(classifier_nfeatures[i-1],nfeat,1,bias=False)
-                if norm_layer in ['instance','stableinstance']:
-                    lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
-                elif norm_layer=='batchnorm':
-                    lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
+            if norm_layer in ['instance','stableinstance']:
+                lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
+            elif norm_layer=='batchnorm':
+                lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
             lm_class_layers["lmclassifier_relu%d"%(i)] = torch.nn.ReLU()
         lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],output_classes,1,bias=True)
         # set bias assuming a 1:2 pos:neg class imbalance

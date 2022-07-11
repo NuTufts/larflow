@@ -12,7 +12,7 @@ class larmatchDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, sequential_access=False,
                  npairs=None, load_truth=False,
-                 triplet_limit=2500000, normalize_inputs=True,
+                 triplet_limit=10000000, normalize_inputs=True,
                  num_triplet_samples=None,
                  return_constant_sample=False,
                  use_keypoint_sampler=False,

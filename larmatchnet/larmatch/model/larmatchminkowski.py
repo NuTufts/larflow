@@ -97,10 +97,15 @@ class LArMatchMinkowski(nn.Module):
             #print("output features plane[",p,"] ",x_decode.shape)
             #print(x_decode)
             #print("------------------------------------------------------------")
+            x_decode = ME.cat(x_decode,x_input)
+            #print("------------------------------------------------------------")
+            #print("decoder out + input cat")
+            #print(x_decode)
+            #print("------------------------------------------------------------")            
             x_feat_v.append( x_decode )
 
         # then we have to extract a feature tensor
-        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, batch_size )
+        batch_spacepoint_feat   = self.extract_features(x_feat_v, matchtriplets, batch_size )
         #with torch.no_grad():
         #    for b in range(batch_spacepoint_feat.shape[0]):
         #        spacepoint_feat = batch_spacepoint_feat[b]
@@ -194,4 +199,3 @@ class LArMatchMinkowski(nn.Module):
         batch_feats_cat = torch.cat( batch_feats, dim=0 )
             
         return batch_feats_cat
-    

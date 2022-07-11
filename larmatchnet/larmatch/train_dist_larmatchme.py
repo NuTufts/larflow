@@ -94,9 +94,9 @@ def run(gpu, args ):
         checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
         
         # resume criterion weights
-        if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
-            print("RESUME LOSS-WEIGHT VALUES")
-            criterion.load_state_dict( checkpoint_data["state_lossweights"] )
+        #if config["USE_LEARNABLE_LOSS_WEIGHTS"] and "state_lossweights" in checkpoint_data:
+        #    print("RESUME LOSS-WEIGHT VALUES")
+        #    criterion.load_state_dict( checkpoint_data["state_lossweights"] )
 
     if config["NORM_LAYER"]=="batchnorm" and not args.no_parallel:
         torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model)
@@ -275,8 +275,9 @@ def run(gpu, args ):
                 # keypoint
                 kp_scalars = {}
                 for accname in engine.KP_CLASS_NAMES:
-                    if acc_meters[accname].count>0:
-                        kp_scalars["kplabel/"+accname] = acc_meters[accname].avg
+                    for x in ["_pos","_neg"]:
+                        if acc_meters[accname+x].count>0:
+                            kp_scalars["kplabel/"+accname+x] = acc_meters[accname+x].avg
                 if len(kp_scalars)>0:
                     logme.update(kp_scalars)                    
                 
@@ -344,8 +345,9 @@ def run(gpu, args ):
                     # keypoint
                     val_kp_scalars = {}
                     for accname in engine.KP_CLASS_NAMES:
-                        if valid_acc_meters[accname].count>0:
-                            val_kp_scalars["kplabel/"+accname] = valid_acc_meters[accname].avg
+                        for x in ["_pos","_neg"]:                        
+                            if valid_acc_meters[accname+x].count>0:
+                                val_kp_scalars["kplabel/"+accname+x] = valid_acc_meters[accname+x].avg
                     if len(val_kp_scalars)>0:
                         logme.update( val_kp_scalars )
                 
@@ -417,8 +419,9 @@ def run(gpu, args ):
                     # keypoint
                     fixed_kp_scalars = {}
                     for accname in engine.KP_CLASS_NAMES:
-                        if fixed_acc_meters[accname].count>0:
-                            fixed_kp_scalars["kplabel/"+accname] = fixed_acc_meters[accname].avg
+                        for x in ["_pos","_neg"]:
+                            if fixed_acc_meters[accname+x].count>0:
+                                fixed_kp_scalars["kplabel/"+accname+x] = fixed_acc_meters[accname+x].avg
                     if len(fixed_kp_scalars)>0:
                         logme.update( fixed_kp_scalars )
                         

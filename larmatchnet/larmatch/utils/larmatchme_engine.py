@@ -13,7 +13,7 @@ from larmatch.utils.common import prepare_me_sparsetensor
 from larmatch.utils.larmatch_hard_examples import larmatch_hard_example_mining
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
-KP_CLASS_NAMES=["kp_nu_pos",
+KP_CLASS_NAMES=["kp_nu",
                 "kp_trackstart",
                 "kp_trackend",
                 "kp_shower",
@@ -91,7 +91,7 @@ def load_model_weights( model, checkpoint_file ):
     # change names if we saved the distributed data parallel model state
     rename_distributed_checkpoint_par_names(checkpoint)
 
-    missing, extra = model.load_state_dict( checkpoint["state_larmatch"], strict=True )
+    missing, extra = model.load_state_dict( checkpoint["state_larmatch"], strict=False )
     print("MISSING KEYS WHEN LOADING ============")
     for k in missing:
         print("  ",k)
@@ -177,7 +177,11 @@ def make_meters(config):
     for n in ("total","lm","ssnet","kp","paf"):
         loss_meters[n] = AverageMeter()
     
-    accnames = LM_CLASS_NAMES+KP_CLASS_NAMES+["paf"]+SSNET_CLASS_NAMES+["ssnet-all"]
+    accnames = LM_CLASS_NAMES+["paf"]+SSNET_CLASS_NAMES+["ssnet-all"]
+    for kpclass in KP_CLASS_NAMES:
+        accnames.append( kpclass+"_pos" )
+        accnames.append( kpclass+"_neg" )
+        
     acc_meters  = {}
     for n in accnames:
         acc_meters[n] = AverageMeter()
@@ -255,11 +259,16 @@ def accuracy(predictions, truthdata,
             #print("kp_pred=",kp_pred.shape)
             #print("kp_label=",kp_label.shape)
             for c,kpname in enumerate(KP_CLASS_NAMES):
-                kp_n_pos = float(kp_label[c,:].gt(0.05).sum().item())
-                kp_pos   = float(kp_pred[c,:].gt(0.05)[ kp_label[c,:].gt(0.05) ].sum().item())
-                if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_pos)
+                kp_n_pos    = float(kp_label[c,:].ge(0.1).sum().item())
+                kp_corr_pos = float(kp_pred[c,:].ge(0.1)[ kp_label[c,:].ge(0.1) ].sum().item())
+                if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.1]: ",kp_n_pos," pred[>0.1]: ",kp_corr_pos)
+                kp_n_neg    = float(kp_label[c,:].lt(0.1).sum().item())
+                kp_corr_neg = float(kp_pred[c,:].lt(0.1)[ kp_label[c,:].lt(0.1) ].sum().item())
+                if verbose: print("kp[",c,"-",kpname,"] n_pos[<0.1]: ",kp_n_neg," pred[<0.1]: ",kp_corr_neg)
                 if kp_n_pos>0:
-                    acc_meters[kpname].update( kp_pos/kp_n_pos )
+                    acc_meters[kpname+"_pos"].update( kp_corr_pos/kp_n_pos )
+                if kp_n_neg>0:
+                    acc_meters[kpname+"_neg"].update( kp_corr_neg/kp_n_neg )
 
     # # PARTICLE AFFINITY FLOW
     # if paf_pred_t is not None:
