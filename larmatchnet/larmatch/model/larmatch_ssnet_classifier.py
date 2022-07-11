@@ -6,7 +6,7 @@ import torch.nn as nn
 class LArMatchSSNetClassifier(nn.Module):
 
     def __init__(self,features_per_layer=16,
-                 ssnet_classifier_nfeatures=[512],
+                 ssnet_classifier_nfeatures=[64,64],
                  ninput_planes=3,
                  num_classes=7,
                  norm_layer='batchnorm'):
@@ -30,7 +30,8 @@ class LArMatchSSNetClassifier(nn.Module):
                 ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats)
             ssnet_classifier_layers["ssnet%drelu"%(ilayer+1)] = torch.nn.ReLU()
             last_layer_nfeats = nfeats
-        ssnet_classifier_layers["ssnetout"] = torch.nn.Conv1d(last_layer_nfeats,num_classes,1, bias=False)
+        ssnet_classifier_layers["ssnetout"] = torch.nn.Conv1d(last_layer_nfeats,num_classes,1, bias=True)
+        ssnet_classifier_layers["ssnetout"].bias.data.fill_(0.0)
         self.ssnet_classifier = torch.nn.Sequential( ssnet_classifier_layers )
         
     def forward(self,triplet_feat_t):

@@ -37,6 +37,9 @@ class SparseLArMatchKPSLoss(nn.Module):
             self.use_this_lm_loss = self.larmatch_loss
         elif lm_loss_type in ['focal-soft-bse']:
             self.use_this_lm_loss = self.larmatch_focal_softclassifier
+
+        self.use_this_ssnet_loss = self.ssnet_loss_focal
+        self.use_this_kp_loss    = self.keypoint_loss_focal_relative_entropy
             
         self.ssnet_use_lovasz_loss = False
         self.larmatch_name = larmatch_name
@@ -155,8 +158,8 @@ class SparseLArMatchKPSLoss(nn.Module):
             ssnet_pred   = predictions[self.ssnet_name]
             ssnet_label  = truthlabels[self.ssnet_name]
             ssnet_weight = weights[self.ssnet_name]
-            #truematch_index  = truthlabels[self.larmatch_name]                    
-            ssloss = self.ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, larmatch_label, verbose=verbose )
+            larmatch_label = truthlabels[self.larmatch_name]
+            ssloss = self.use_this_ssnet_loss( ssnet_pred, ssnet_label, ssnet_weight, larmatch_label, verbose=verbose )
             if not self.learnable_weights:
                 if loss["tot"] is None:
                     loss["tot"] = ssloss
@@ -182,7 +185,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             kplabel_pred = predictions[self.keypoint_name]
             kp_label     = truthlabels[self.keypoint_name]
             kp_weight    = weights[self.keypoint_name]
-            kploss = self.keypoint_loss( kplabel_pred, kp_label, kp_weight, verbose=verbose )
+            kploss = self.use_this_kp_loss( kplabel_pred, kp_label, kp_weight, verbose=verbose )
             if not self.learnable_weights:
                 if loss["tot"] is None:
                     loss["tot"] = kploss
@@ -355,6 +358,39 @@ class SparseLArMatchKPSLoss(nn.Module):
 
         return kp_loss
 
+    def keypoint_loss_focal_relative_entropy( self, keypoint_score_pred,
+                                              keypoint_score_truth,
+                                              keypoint_weight,
+                                              verbose=False):
+        """
+        keypoint_score_pred:   (B,C,N)
+        keypoint_score_truth:  (B,C,N)
+        keypoint_score_weight: (B,C,N)
+        """
+        npairs = keypoint_score_pred.shape[0]
+        # only evaluate on true match points
+        # if keypoint_score_truth.shape[0]!=keypoint_score_pred.shape[0]:
+        #     # when truth and prediction have different lengths,
+        #     # the truth already has removed bad points
+        #     raise RuntimeError("dont trust this mode of calculation right now")
+        #     sel_kplabel_pred = torch.index_select( keypoint_score_pred, 0, truematch_index )
+        #     sel_kpweight     = torch.index_select( keypoint_weight, 0, truematch_index )
+        #     sel_kplabel      = torch.index_select( keypoint_score_truth, 0, truematch_index )
+        # else:
+        if verbose:
+            print("  keypoint_score_pred:  ",keypoint_score_pred.shape)
+            print("  keypoint_score_truth: ",keypoint_score_truth.shape)
+            print("  keypoint_weight: ",keypoint_weight.shape)
+
+        loss_true  = keypoint_score_truth*torch.log(keypoint_score_pred+1.0e-9)
+        loss_false = (1.0-keypoint_score_truth)*torch.log(1.0-keypoint_score_pred+1.0e-9)
+        loss_focal = torch.pow( keypoint_score_truth-keypoint_score_pred, self.focal_loss_gamma )
+        kp_loss = (-loss_focal*(loss_true+loss_false)*keypoint_weight).sum()
+        if verbose:
+            kp_floss = loss.detach().item()            
+            print(" loss-kplabel (focal relative entropy): ",kp_floss)
+        return kp_loss
+    
     def keypoint_shift_loss( self, keypoint_shift_pred,
                              shift_truth,
                              shift_weight,
@@ -410,8 +446,62 @@ class SparseLArMatchKPSLoss(nn.Module):
             print(" loss-ssnet: ",ssnet_floss)
 
         return ssnet_loss
-                    
-    
+
+
+    def ssnet_loss_focal( self, ssnet_pred,
+                          ssnet_truth,
+                          ssnet_weight,
+                          larmatch_label,
+                          verbose=False):
+        """
+        ssnet_pred: (B,C,N)
+        ssnet_truth: (B,1,N)
+        """
+        npairs = ssnet_pred.shape[0]
+        nclasses = ssnet_pred.shape[1]
+        # # only evalulate loss on pixels where true label
+        # if ssnet_truth.shape[0]!=ssnet_pred.shape[0]:
+        #     raise RuntimeError("dont trust this mode of calculation right now")            
+        #     sel_ssnet_pred   = torch.index_select( ssnet_pred, 0, truematch_index )
+        # else:
+        #     sel_ssnet_pred   = ssnet_pred
+
+        if verbose:
+            print("  ssnet_pred: ",ssnet_pred.shape)
+            print("  ssnet_truth: ",ssnet_truth.shape)
+            print("  ssnet_weight: ",ssnet_weight.shape)
+            
+        pred = torch.softmax( ssnet_pred, dim=1 )
+
+        loss = None
+        for c in range(1,ssnet_pred.shape[1]):
+            c_mask = ssnet_truth[:,0,:]==c
+            #print("c mask: ",c_mask.shape," ",c_mask.sum())
+            if c_mask.sum()==0:
+                continue
+            
+            c_pred = pred[:,c,:]
+            #print("class_pred[",c,"]: ",c_pred.shape)
+            c_true_pred = c_pred[ c_mask ]
+            #print("c_truth_pred[",c,"]: ",c_true_pred.shape)
+            c_true_w    = ssnet_weight[:,0,:][c_mask ]
+            #print("c_true_w: ",c_true_w.shape)
+            loss_entropy = -torch.log( c_true_pred+1.0e-9 )
+            if verbose: print("  entropy[",c,"]: ",loss_entropy.shape," sum=",loss_entropy.detach().sum().item())
+            loss_focal   = torch.pow( 1.0-c_true_pred, self.focal_loss_gamma )
+            if verbose: print("  focal[",c,"]: ",loss_focal.shape," sum=",loss_focal.detach().sum().item())
+            if loss is None:
+                loss = (loss_entropy*loss_focal*c_true_w).sum()
+            else:
+                loss += (loss_entropy*loss_focal*c_true_w).sum()
+            #print("class[",c,"] loss: ",loss.detach().item())
+        
+        if verbose:
+            ssnet_floss = loss.detach().item()            
+            print("TOTAL loss-ssnet (focal): ",ssnet_floss)
+        #print("[enter to keep going]")
+        #input()
+        return loss
 
     def affinity_field_loss( self, affinity_field_pred,
                              affinity_field_truth,

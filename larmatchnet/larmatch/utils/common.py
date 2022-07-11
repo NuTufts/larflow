@@ -104,7 +104,7 @@ def make_batch_weights( batch_truth, DEVICE, verbose ):
             ss_norm += 1.0
         ss_examples.append(c_examples)
     
-    ss_weight = torch.zeros( ss_truth.shape, dtype=torch.float )
+    ss_weight = torch.zeros( ss_truth.shape, dtype=torch.float ).to(DEVICE)
     for c in range(7):
         if ss_examples[c]>0:
             ss_weight[ ss_class[c] ] = 1.0/(ss_norm*ss_examples[c])
@@ -127,7 +127,7 @@ def make_batch_weights( batch_truth, DEVICE, verbose ):
         kp_examples.append(c_examples)
         kp_norms.append(kp_norm)
     
-    kp_weight = torch.zeros( kptruth.shape, dtype=torch.float )
+    kp_weight = torch.zeros( kptruth.shape, dtype=torch.float ).to(DEVICE)
     for c in range(6):
         if kp_examples[c]>0:
             kp_weight[:,c,:][ kp_pos[c] ] = 1.0/(kp_norms[c]*kp_examples[c])

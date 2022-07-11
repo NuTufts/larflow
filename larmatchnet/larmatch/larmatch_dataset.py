@@ -263,6 +263,7 @@ class larmatchDataset(torch.utils.data.Dataset):
         """
         Takes the output of 'get_data_from_tree' and downsamples to emphasize keypoint spacepoints
         """
+
         # Keypoint sampler
         idxlist = np.arange( len(data["matchtriplet_v"]) )
         kptruth = data["keypoint_truth"]
@@ -272,7 +273,7 @@ class larmatchDataset(torch.utils.data.Dataset):
 
         # all sample index
         kpallidx = np.zeros(NALLSAMPLE,dtype=np.int64)
-        kpweightall = np.zeros( (6,NALLSAMPLE) )
+        #kpweightall = np.zeros( (6,NALLSAMPLE) )
 
         NUSED = 0
         class_limits = {0:2000,1:5000,2:5000,3:2000,4:2000,5:5000}
@@ -300,32 +301,42 @@ class larmatchDataset(torch.utils.data.Dataset):
                 nfilled = classidx.shape[0]
             #print("class[",c,"] abovezero=",abovezero," filled ",nfilled," NUSED=",NUSED)
             sampleidx[NUSED:NUSED+nfilled][:] = classidx[:nfilled]
-            if nfilled>0:
-                kpweightall[c,NUSED:NUSED+nfilled] = 0.5/nfilled
-                kpweightall[c,0:NUSED] = 0.5/(NALLSAMPLE-nfilled)
-                kpweightall[c,NUSED+nfilled:] = 0.5/(NALLSAMPLE-nfilled)
-            else:
-                kpweightall[c,:] = 1.0/float(NALLSAMPLE)
+            # if nfilled>0:
+            #     kpweightall[c,NUSED:NUSED+nfilled] = 0.5/nfilled
+            #     kpweightall[c,0:NUSED] = 0.5/(NALLSAMPLE-nfilled)
+            #     kpweightall[c,NUSED+nfilled:] = 0.5/(NALLSAMPLE-nfilled)
+            # else:
+            #     kpweightall[c,:] = 1.0/float(NALLSAMPLE)
         
-                #print("class[",c,"] abovezero=",abovezero," filled ",nfilled," NUSED=",NUSED)
-                #print("class[",c,"] minweight=",np.min(kpweightall[c])," maxweight=",np.max(kpweightall[c]), 
-                #      " sum=",np.sum(kpweightall[c]))
+            #     #print("class[",c,"] abovezero=",abovezero," filled ",nfilled," NUSED=",NUSED)
+            #     #print("class[",c,"] minweight=",np.min(kpweightall[c])," maxweight=",np.max(kpweightall[c]), 
+            #     #      " sum=",np.sum(kpweightall[c]))
             NUSED += nfilled
 
         kpallidx[:NUSED] = sampleidx[:NUSED]
-        if NALLSAMPLE-NUSED>0:
-            np.random.shuffle( idxlist )
-            kpallidx[NUSED:] = idxlist[:NALLSAMPLE-NUSED]
+        while NUSED<NALLSAMPLE:
+            np.random.shuffle( idxlist )            
+            NFILL = NALLSAMPLE-NUSED
+            if NFILL>idxlist.shape[0]:
+                NFILL = idxlist.shape[0]
+            kpallidx[NUSED:NUSED+NFILL] = idxlist[:NFILL]
+            NUSED += NFILL
 
         # downsample all tensors
         data["matchtriplet_v"]  = data["matchtriplet_v"][kpallidx,:]
         data["larmatch_truth"]  = data["larmatch_truth"][kpallidx]
+        data["larmatch_label"]  = data["larmatch_label"][kpallidx]
         data["larmatch_weight"] = data["larmatch_weight"][kpallidx]
         data["ssnet_truth"]     = data["ssnet_truth"][kpallidx]
         data["ssnet_top_weight"]   = data["ssnet_top_weight"][kpallidx]
         data["ssnet_class_weight"] = data["ssnet_class_weight"][kpallidx]
         data["keypoint_truth"]     = data["keypoint_truth"][:,kpallidx[:]]
-        data["keypoint_weight"]    = kpweightall
+        data["keypoint_weight"]    = data["keypoint_weight"][:,kpallidx[:]]
+
+        #for arr in data:
+        #    if type(data[arr]) is np.ndarray:
+        #        print(arr,": ",data[arr].shape)
+        #data["keypoint_weight"]    = kpweightall
         return
 
             

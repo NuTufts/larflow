@@ -25,7 +25,10 @@ def load_config_file( args, dump_to_stdout=False ):
     """
     opens file in YAML format and returns parameters
     """
-    stream = open(args.config_file, 'r')
+    if type(args)==str and os.path.exists(args):
+        stream = open(args, 'r')
+    else:
+        stream = open(args.config_file, 'r')
     dictionary = yaml.load(stream, Loader=yaml.FullLoader)
     if dump_to_stdout:
         for key, value in dictionary.items():
@@ -111,12 +114,12 @@ def reshape_old_sparseconvnet_weights(checkpoint):
 
     return
 
-def rename_distributed_checkpoint_par_names(checkpoint):
+def rename_distributed_checkpoint_par_names(checkpoint,verbose=False):
     replacement = OrderedDict()
     notified = False
     for name,arr in checkpoint["state_larmatch"].items():
         if "module." in name and name[:len("module.")]=="module.":
-            if not notified:
+            if verbose and not notified:
                 print("renaming parameter by removing 'module': ",name)
                 notified = False
             replacement[name[len("module."):]] = arr
@@ -186,11 +189,9 @@ def make_meters(config):
     return loss_meters,acc_meters,time_meters
         
 def accuracy(predictions, truthdata, 
-             acc_meters,
+             acc_meters, batchsize,
              verbose=False):
     """Computes the accuracy metrics."""
-
-    batchsize = len(truthdata)
 
     for ibatch in range(batchsize):
 
@@ -210,9 +211,9 @@ def accuracy(predictions, truthdata,
                 print("match_pred: ",match_pred.shape)
                 print("match_label: ",match_label_t.shape)
     
-            pos_correct = (match_pred.gt(0.5)*match_label_t.gt(0.5)).sum().to(torch.device("cpu")).item()
+            pos_correct = (match_pred.ge(0.5)*match_label_t.ge(0.5)).sum().to(torch.device("cpu")).item()
             neg_correct = (match_pred.lt(0.5)*match_label_t.lt(0.5)).sum().to(torch.device("cpu")).item()
-            npos = float(match_label_t.gt(0.5).sum().to(torch.device("cpu")).item())
+            npos = float(match_label_t.ge(0.5).sum().to(torch.device("cpu")).item())
             nneg = float(match_label_t.lt(0.5).sum().to(torch.device("cpu")).item())
             if verbose:
                 print("npos: ",npos)
@@ -310,8 +311,9 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         batchdata = next(iter(data_loader))
         npts = 0
         for data in batchdata["matchtriplet_v"]:
-            npts += data.shape[0]*data.shape[1]
-        #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+            npts += data.shape[0]
+        if npts>config["BATCH_TRIPLET_LIMIT"]:
+            print("Over limit. Re-draw total spacepoints [tries=%d]: "%(ntries),npts)
         sys.stdout.flush()
         ntries+=1
     batch_size = len(batchdata["matchtriplet_v"])
@@ -319,9 +321,11 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     if verbose: print("larmatchme_engine.do_one_iteration: prep batch and transfer to gpu")
     if config["USE_HARD_EXAMPLE_TRAINING"] and is_train:
         # HARD EXAMLPE MINING
+        NTRAIN_EXAMPLES = int(config["HARD_EXAMPLE_SAMPLES"])
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = larmatch_hard_example_mining( model, batchdata, DEVICE, int(config["NUM_TRIPLET_SAMPLES"]), verbose=verbose )
+            = larmatch_hard_example_mining( model, batchdata, DEVICE, NTRAIN_EXAMPLES, verbose=False )
         model.train()
+        optimizer.zero_grad(set_to_none=True)        
     else:
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
             = prepare_me_sparsetensor( batchdata, DEVICE, verbose=verbose )
@@ -393,7 +397,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     # measure accuracy and update accuracy meters
     dt_acc = time.time()
     if verbose: print("larmatchme_engine.do_one_iteration: calc accuracies")                    
-    acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=config["VERBOSE_ACCURACY"] )
+    acc = accuracy( pred_dict, batch_truth, acc_meters, batch_size, verbose=config["VERBOSE_ACCURACY"] )
 
     # update time meter
     time_meters["accuracy"].update(time.time()-dt_acc)

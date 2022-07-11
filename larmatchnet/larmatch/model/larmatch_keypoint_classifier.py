@@ -38,7 +38,7 @@ class LArMatchKeypointClassifier(nn.Module):
                 last_layer_nfeats = nfeats
             keypoint_layers["keypointout_class%d"%(iclass)] = torch.nn.Conv1d(last_layer_nfeats,1,1,bias=True)
             # set the bias to zero so that initial output is zero
-            keypoint_layers["keypointout_class%d"%(iclass)].bias.data[0] = 0.0
+            #keypoint_layers["keypointout_class%d"%(iclass)].bias.data[0] = 0.0
             
             self.class_layers[iclass] = torch.nn.Sequential( keypoint_layers )
             setattr( self, "keypoint_class%d_layers"%(iclass), self.class_layers[iclass] )
@@ -56,6 +56,6 @@ class LArMatchKeypointClassifier(nn.Module):
             classpred = layers(triplet_feat_t)
             classout.append(classpred)
         pred = torch.cat( classout, dim=1 )
-        #pred = torch.sigmoid(pred) # not good for gradients?
+        pred = torch.sigmoid(pred) # not good for gradients?
         return pred
     

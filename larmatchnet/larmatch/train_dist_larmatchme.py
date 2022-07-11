@@ -141,8 +141,8 @@ def run(gpu, args ):
     if xmodel.run_ssnet:   set_param_list.append( {"params":xmodel.ssnet_head.parameters(),"lr":base_lr} )
     if xmodel.run_kplabel: set_param_list.append( {"params":xmodel.kplabel_head.parameters(),"lr":base_lr} )    
 
+    
         
-
     train_loader = larmatchMultiProcessDataloader(config["TRAIN_DATALOADER_CONFIG"],
                                                   config["TRAIN_DATALOADER_CONFIG"]["BATCHSIZE"],
                                                   num_workers=config["TRAIN_DATALOADER_CONFIG"]["NUM_WORKERS"],
@@ -176,9 +176,9 @@ def run(gpu, args ):
 
     # SEUTP OPTIMIZER ===============================================================
     if args.no_parallel:
-        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"])
+        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["TRAIN_DATALOADER_CONFIG"]["BATCHSIZE"])
     else:
-        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["BATCH_SIZE"]*args.gpus)
+        ITERS_PER_EPOCH = TRAIN_NENTRIES/(config["TRAIN_DATALOADER_CONFIG"]["BATCHSIZE"]*args.gpus)
     optimizer = torch.optim.AdamW(set_param_list,
                                   lr=float(config["LEARNING_RATE"]), 
                                   weight_decay=config["WEIGHT_DECAY"])
