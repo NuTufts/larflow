@@ -1,22 +1,23 @@
 # TRAINING PARAMETERS
+WANDB_PROJECT: "larmatchme-nosample-kp+lm"
+#WANDB_PROJECT: "NONE"
 RESUME_FROM_CHECKPOINT: false
 RESUME_OPTIM_FROM_CHECKPOINT: false
-CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/checkpoint_previous/checkpoint.cc1gpu.78500th.tar"
-LEARNING_RATE: 1.0e-3
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/checkpoint_softlabels_v1/spring-water-11/checkpoint.p1cmp075.sampled.18000th.tar"
+LEARNING_RATE: 5.0e-4
+LEARNING_RATE_MIN: 1.0e-6
 WEIGHT_DECAY: 1.0e-6
 NUM_ITERATIONS: 200000
 START_ITER: 0
 DEVICE: cuda
 RUN_PROFILER: false
-BATCH_SIZE: 4
-BATCH_TRIPLET_LIMIT: 160000000
-NUM_TRIPLET_SAMPLES: 50000
-CLIP_GRAD_NORM: true
-TRAIN_ITER_PER_RECORD: 10
+BATCH_TRIPLET_LIMIT: 300000000
+CLIP_GRAD_NORM: false
+TRAIN_ITER_PER_RECORD: 1
 TRAIN_ITER_PER_VALIDPT: 50
 TRAIN_ITER_PER_FIXEDPT: 50
 NUM_VALID_ITERS: 1
-ITER_PER_CHECKPOINT: 500
+ITER_PER_CHECKPOINT: 1000
 ITER_PER_CACHECLEAR: 1
 VERBOSE_MAIN_LOOP: false
 VERBOSE_ITER_LOOP: false
@@ -24,25 +25,53 @@ VERBOSE_LOSS: false
 VERBOSE_ACCURACY: false
 MULTIPROCESS_BACKEND: "nccl"
 MASTER_PORT: "12355"
-CHECKPOINT_TAG: "p1cmp075.sampled"
-
-# DATASET PARAMETERS
-TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.train.list"
-TRAIN_DATASET_VERBOSE: false
-VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_reweight.valid.list"
-VALID_DATASET_VERBOSE: false
-FIXED_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.fixed.list"
-FIXED_SAMPLE_BATCH_SIZE: 16
-FIXED_DATASET_VERBOSE: false
+CHECKPOINT_TAG: "p1cmp075.notsampled"
+USE_HARD_EXAMPLE_TRAINING: false
+WHOLE_BATCH: false
 
 # MODEL PARAMETERS
-NUM_STEM_FEATURES: 32
-NORM_LAYER: "batchnorm"
+NUM_STEM_FEATURES: 16
+#NORM_LAYER: "batchnorm"
+NORM_LAYER: "instance"
+
+# DATASET PARAMETERS
+TRAIN_DATALOADER_CONFIG:
+  #NUM_TRIPLET_SAMPLES: 50000
+  #INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.train.list"
+  INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
+  VERBOSE: false
+  LOAD_TRUTH: true
+  BATCHSIZE: 2
+  USE_KEYPOINT_SAMPLER: false
+  CONSTANT_SAMPLE: false
+  NUM_WORKERS: 1
+  RANDOM_ACCESS: true
+VALID_DATALOADER_CONFIG:
+  #NUM_TRIPLET_SAMPLES: 50000
+  BATCHSIZE: 2
+  LOAD_TRUTH: true  
+  #INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.valid.list"
+  INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"
+  VERBOSE: false
+  USE_KEYPOINT_SAMPLER: false
+  CONSTANT_SAMPLE: false
+  RANDOM_ACCESS: true  
+FIXED_DATALOADER_CONFIG:
+  #NUM_TRIPLET_SAMPLES: 50000
+  #INPUT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/icdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned_lmsoftlabels.fixed.list"
+  INPUT_FILE: "/home/twongjirad/working/larbys/icarus/icdl/larflow/larmatchnet/larmatch/test.list"  
+  BATCHSIZE: 2
+  LOAD_TRUTH: true  
+  VERBOSE: false
+  USE_KEYPOINT_SAMPLER: false
+  CONSTANT_SAMPLE: true
+  RANDOM_ACCESS: true  
+
 
 # LOSS PARAMETERS
-USE_LEARNABLE_LOSS_WEIGHTS: true
+USE_LEARNABLE_LOSS_WEIGHTS: false
 RUN_LARMATCH: true
-RUN_SSNET: true
+RUN_SSNET: false
 RUN_KPLABEL: true
 RUN_KPSHIFT: false
 RUN_PAF: false

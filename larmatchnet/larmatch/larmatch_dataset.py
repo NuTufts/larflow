@@ -194,9 +194,9 @@ class larmatchDataset(torch.utils.data.Dataset):
                 q = np.sum( (q>=self._qcut_threshold/50.0).astype(np.int32), axis=1 ).squeeze()
             else:
                 q = np.sum( (q>=self._qcut_threshold).astype(np.int32), axis=1 ).squeeze()
-            print("pre-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)                
+            #print("pre-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)                
             data['matchtriplet_v'] = data['matchtriplet_v'][q>=2,:]
-            print("post-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)
+            #print("post-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)
 
         ntriplets = data["matchtriplet_v"].shape[0]            
         
@@ -252,6 +252,10 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
                 data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
 
+                # we recalc keypoint to provide logit, not scaled score
+                #data["keypoint_truth"] = np.clip( data["keypoint_truth"]+0.01, 0.01, 0.99 )
+                #data["keypoint_truth"] = self.calc_keypoint_label_logit( data["keypoint_truth"] )
+
         if self._use_qcut_sampler:
             qsample = q>=2
             data["larmatch_truth"]   = data["larmatch_truth"][qsample]
@@ -262,6 +266,9 @@ class larmatchDataset(torch.utils.data.Dataset):
             data["ssnet_class_weight"] = data["ssnet_class_weight"][qsample]
             data["keypoint_truth"]   = data["keypoint_truth"][:,qsample]
             data["keypoint_weight"]  = data["keypoint_weight"][:,qsample]
+            #for c in range(6):
+            #    print("post-qcut min keypoint_truth class=",c,": ",np.min( data["keypoint_truth"][c,:] ))
+            #    print("post-qcut max keypoint_truth class=",c,": ",np.max( data["keypoint_truth"][c,:] ))
             
                 
         if self._verbose:
@@ -270,9 +277,8 @@ class larmatchDataset(torch.utils.data.Dataset):
             print("  io time: %.3f secs"%(dtio))
             print("  tot time: %.3f secs"%(tottime))
             
-        return True
-
-
+        return True    
+    
     def print_status(self):
         print("worker: entry=%d nloaded=%d"%(self._current_entry,self._nloaded))
 
@@ -372,9 +378,10 @@ class larmatchDataset(torch.utils.data.Dataset):
         #        print(arr,": ",data[arr].shape)
         #data["keypoint_weight"]    = kpweightall
         return
-
             
-                
+    def calc_keypoint_label_logit( self, p ):
+        label_logit = -0.5*( np.log( 1-p + 1.0e-9 ) - np.log( p + 1.0e-9 ) )
+        return label_logit
     
 if __name__ == "__main__":
 

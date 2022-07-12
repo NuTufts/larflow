@@ -37,6 +37,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             self.use_this_lm_loss = self.larmatch_loss
         elif lm_loss_type in ['focal-soft-bse']:
             self.use_this_lm_loss = self.larmatch_focal_softclassifier
+        self.use_this_lm_loss = self.larmatch_loss_mse
 
         self.use_this_ssnet_loss = self.ssnet_loss_focal
         #self.use_this_kp_loss    = self.keypoint_loss_focal_relative_entropy
@@ -338,6 +339,39 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  tot focal loss: ",loss.detach().item())
             
         return loss
+
+    def larmatch_loss_mse( self, larmatch_pred,
+                           larmatch_truth,
+                           larmatch_weight,
+                           verbose=False ):
+
+        # number of spacepoint goodness predictions to evaluate
+        if verbose:
+            # Expect shapes: (B,C,N)
+            # B = batch
+            # C = output channels (2 for binary cross entryp, 1 for regression output)
+            # N = number of spacepoint examples
+            # prediction: (B,C,N)
+            # truth  (B,1,N)
+            # weight (B,1,N)
+            print("[SparseLArMatchKPSLoss::larmatch_focal_softclassifier]")
+            print("  larmatch pred: ",larmatch_pred.shape)
+            print("  larmatch truth: ",larmatch_truth.shape)            
+            print("  larmatch weight: ",larmatch_weight.shape)
+            
+        # p_t for focal loss
+        p = torch.softmax( larmatch_pred, dim=1 )
+        if verbose: print("  LM softmaxout shape: ",p.shape)                        
+
+        fn_lm_mse = torch.nn.MSELoss( reduction='none' )
+        fnout = fn_lm_mse( p[:,1,:], larmatch_truth.squeeze(1) )
+        
+        loss = (fnout*larmatch_weight).sum()
+
+        if verbose:
+            print("larmatch MSE-loss: ",loss.detach().item())
+            
+        return loss
     
 
     def keypoint_loss( self, keypoint_score_pred,
@@ -358,11 +392,12 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  keypoint_score_pred:  ",keypoint_score_pred.shape)
             print("  keypoint_score_truth: ",keypoint_score_truth.shape)
             print("  keypoint_weight: ",keypoint_weight.shape)
-        fn_kp    = torch.nn.MSELoss( reduction='none' )
+        fn_kp = torch.nn.MSELoss( reduction='none' )
         fnout = fn_kp( keypoint_score_pred, keypoint_score_truth )
         if verbose:
             print("  fnout shape: ",fnout.shape)
-        kp_loss  = (fnout*keypoint_weight).sum()/float(keypoint_score_pred.shape[0])
+        #kp_loss  = (fnout*keypoint_weight).sum()/float(keypoint_score_pred.shape[0])
+        kp_loss  = (fnout*keypoint_weight).sum()
         kp_floss = kp_loss.detach().item()
         if verbose:
             print(" loss-kplabel: ",kp_floss)

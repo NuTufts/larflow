@@ -259,8 +259,12 @@ def accuracy(predictions, truthdata,
         if "kp" in data:
             kp_pred  = data["kp"].detach()
             kp_label = labels["kp"][ibatch].detach().squeeze()
-            #print("kp_pred=",kp_pred.shape)
+            #print("kp_pred=",kp_pred.shape)            
             #print("kp_label=",kp_label.shape)
+
+            #kp_pred = torch.softmax( kp_pred, dim=0 )
+            #kp_label = torch.softmax( kp_label, dim=0 )
+            
             for c,kpname in enumerate(KP_CLASS_NAMES):
                 kp_n_pos    = float(kp_label[c,:].ge(0.5).sum().item())
                 kp_corr_pos = float(kp_pred[c,:].ge(0.5)[ kp_label[c,:].ge(0.5) ].sum().item())

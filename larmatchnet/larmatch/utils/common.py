@@ -217,7 +217,7 @@ def make_list_weights( batch_truth, DEVICE, verbose ):
     num_examples = 0
     for b,kptruth in enumerate(batch_truth["kp"]):
         num_examples += kptruth.shape[-1]
-        print("kptruth[",b,"]: ",kptruth.shape)
+        #print("kptruth[",b,"]: ",kptruth.shape)
     for b,kptruth in enumerate(batch_truth["kp"]):
         kp_pos = [ kptruth[c,:].ge(0.1) for c in range(6) ]
         kp_neg = [ kptruth[c,:].lt(0.1) for c in range(6) ]    
