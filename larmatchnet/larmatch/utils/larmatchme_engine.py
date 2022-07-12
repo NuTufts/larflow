@@ -202,7 +202,10 @@ def accuracy(predictions, truthdata,
         data = {}
         labels = truthdata
         for k in predictions.keys():
-            data[k] = predictions[k][ibatch]
+            if len(predictions[k][ibatch].shape)==3:
+                data[k] = predictions[k][ibatch].squeeze(0)
+            else:
+                data[k] = predictions[k][ibatch]
             if verbose: print("accuracy calc [",ibatch,"] key=",k,": ",data[k].shape)
 
         # get the data from the dictionaries
@@ -259,12 +262,12 @@ def accuracy(predictions, truthdata,
             #print("kp_pred=",kp_pred.shape)
             #print("kp_label=",kp_label.shape)
             for c,kpname in enumerate(KP_CLASS_NAMES):
-                kp_n_pos    = float(kp_label[c,:].ge(0.1).sum().item())
-                kp_corr_pos = float(kp_pred[c,:].ge(0.1)[ kp_label[c,:].ge(0.1) ].sum().item())
-                if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.1]: ",kp_n_pos," pred[>0.1]: ",kp_corr_pos)
-                kp_n_neg    = float(kp_label[c,:].lt(0.1).sum().item())
-                kp_corr_neg = float(kp_pred[c,:].lt(0.1)[ kp_label[c,:].lt(0.1) ].sum().item())
-                if verbose: print("kp[",c,"-",kpname,"] n_pos[<0.1]: ",kp_n_neg," pred[<0.1]: ",kp_corr_neg)
+                kp_n_pos    = float(kp_label[c,:].ge(0.5).sum().item())
+                kp_corr_pos = float(kp_pred[c,:].ge(0.5)[ kp_label[c,:].ge(0.5) ].sum().item())
+                if verbose: print("kp[",c,"-",kpname,"] n_pos[>0.5]: ",kp_n_pos," pred[>0.5]: ",kp_corr_pos)
+                kp_n_neg    = float(kp_label[c,:].lt(0.5).sum().item())
+                kp_corr_neg = float(kp_pred[c,:].lt(0.5)[ kp_label[c,:].lt(0.5) ].sum().item())
+                if verbose: print("kp[",c,"-",kpname,"] n_pos[<0.5]: ",kp_n_neg," pred[<0.5]: ",kp_corr_neg)
                 if kp_n_pos>0:
                     acc_meters[kpname+"_pos"].update( kp_corr_pos/kp_n_pos )
                 if kp_n_neg>0:
@@ -332,12 +335,12 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         # HARD EXAMLPE MINING
         NTRAIN_EXAMPLES = int(config["HARD_EXAMPLE_SAMPLES"])
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = larmatch_hard_example_mining( model, batchdata, DEVICE, NTRAIN_EXAMPLES, verbose=False )
+            = larmatch_hard_example_mining( model, batchdata, DEVICE, NTRAIN_EXAMPLES, verbose=False, make_batch_tensor=config["WHOLE_BATCH"] )
         model.train()
         optimizer.zero_grad(set_to_none=True)        
     else:
         wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = prepare_me_sparsetensor( batchdata, DEVICE, verbose=verbose )
+            = prepare_me_sparsetensor( batchdata, DEVICE, verbose=verbose, make_batch_tensor=config["WHOLE_BATCH"] )
     
     dt_io = time.time()-dt_io
     if verbose:
@@ -368,7 +371,8 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     if verbose: print("larmatchme_engine.do_one_iteration: calc loss")        
     loss_dict = criterion( pred_dict, batch_truth, batch_weight,
                            batch_size, DEVICE,
-                           verbose=config["VERBOSE_LOSS"] )
+                           verbose=config["VERBOSE_LOSS"],
+                           whole_batch=config["WHOLE_BATCH"])
 
     if config["RUN_PROFILER"]:
         torch.cuda.synchronize()

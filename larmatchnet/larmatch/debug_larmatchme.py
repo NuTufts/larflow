@@ -9,7 +9,7 @@ import numpy as np
 from larmatch.model.larmatchminkowski import LArMatchMinkowski
 from larmatch.utils.larmatchme_engine import get_model, load_config_file
 from larmatch.utils.common import prepare_me_sparsetensor
-from larmatch.utils.perfect_pred_maker import make_perfect_ssnet,make_perfect_larmatch
+from larmatch.utils.perfect_pred_maker import make_perfect_ssnet,make_perfect_larmatch,make_perfect_kplabel
 
 class argstest:
     def __init__(self):
@@ -117,6 +117,10 @@ if config["RUN_SSNET"]:
     ssnet_perfect = make_perfect_ssnet( batch_truth["ssnet"], DEVICE, logitval=3.0 )
     batch_perfect["ssnet"] = ssnet_perfect
     print("ssnet weight sum: ",batch_weight["ssnet"].sum())
+
+if config["RUN_KPLABEL"]:
+    kp_perfect = make_perfect_kplabel( batch_truth["kp"], DEVICE )
+    batch_perfect["kp"] = kp_perfect
 
 with torch.autograd.detect_anomaly():        
     perfect_loss = loss_fn( batch_perfect, batch_truth, batch_weight, batch_size, DEVICE, verbose=True )

@@ -39,7 +39,8 @@ class SparseLArMatchKPSLoss(nn.Module):
             self.use_this_lm_loss = self.larmatch_focal_softclassifier
 
         self.use_this_ssnet_loss = self.ssnet_loss_focal
-        self.use_this_kp_loss    = self.keypoint_loss_focal_relative_entropy
+        #self.use_this_kp_loss    = self.keypoint_loss_focal_relative_entropy
+        self.use_this_kp_loss    = self.keypoint_loss # MSE loss        
             
         self.ssnet_use_lovasz_loss = False
         self.larmatch_name = larmatch_name
@@ -86,9 +87,9 @@ class SparseLArMatchKPSLoss(nn.Module):
                 for k in predictions:
                     batch_predicts[k] = predictions[k][ib]
                 for k in truthlabels:
-                    batch_truth[k] = truthlabels[k][ib]
+                    batch_truth[k] = truthlabels[k][ib].unsqueeze(0)
                 for k in weights:
-                    batch_weight[k] = weights[k][ib]
+                    batch_weight[k] = weights[k][ib].unsqueeze(0)
                 
                 losses = self.forward_onebatch( batch_predicts, batch_truth, batch_weight, device, verbose=verbose, whole_batch=whole_batch )
                 for k in losses:
@@ -358,7 +359,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  keypoint_score_truth: ",keypoint_score_truth.shape)
             print("  keypoint_weight: ",keypoint_weight.shape)
         fn_kp    = torch.nn.MSELoss( reduction='none' )
-        fnout = fn_kp( keypoint_score_pred.squeeze(), keypoint_score_truth )
+        fnout = fn_kp( keypoint_score_pred, keypoint_score_truth )
         if verbose:
             print("  fnout shape: ",fnout.shape)
         kp_loss  = (fnout*keypoint_weight).sum()/float(keypoint_score_pred.shape[0])
