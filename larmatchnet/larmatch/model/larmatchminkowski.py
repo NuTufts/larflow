@@ -105,7 +105,7 @@ class LArMatchMinkowski(nn.Module):
             x_feat_v.append( x_decode )
 
         # then we have to extract a feature tensor
-        batch_spacepoint_feat   = self.extract_features(x_feat_v, matchtriplets, batch_size )
+        batch_spacepoint_feat   = self.extract_features(x_feat_v, matchtriplets, batch_size, verbose=False )
         #with torch.no_grad():
         #    for b in range(batch_spacepoint_feat.shape[0]):
         #        spacepoint_feat = batch_spacepoint_feat[b]
@@ -115,16 +115,22 @@ class LArMatchMinkowski(nn.Module):
         #    print("--------------------------------------------------------")            
 
         # we pass the features through the different classifiers
-        output = {}        
-        if self.run_lm:
-            #print("batch ",b," spacepoint feats: ",x.shape)
-            output["lm"] = self.lm_classifier( batch_spacepoint_feat )
-
-        if self.run_ssnet:
-            output["ssnet"] = self.ssnet_head( batch_spacepoint_feat )
-
-        if self.run_kplabel:
-            output["kp"] = self.kplabel_head( batch_spacepoint_feat )
+        output = {}
+        if type(batch_spacepoint_feat) is list:
+            if self.run_lm:
+                output["lm"] = [self.lm_classifier( x ) for x in batch_spacepoint_feat ]
+            if self.run_ssnet:
+                output["ssnet"] = [ self.ssnet_head( x ) for x in batch_spacepoint_feat ]
+            if self.run_kplabel:
+                output["kp"] = [ self.kplabel_head( x ) for x in batch_spacepoint_feat ]
+        else:
+            if self.run_lm:
+                #print("batch ",b," spacepoint feats: ",x.shape)
+                output["lm"] = self.lm_classifier( batch_spacepoint_feat )                
+            if self.run_ssnet:
+                output["ssnet"] = self.ssnet_head( batch_spacepoint_feat )
+            if self.run_kplabel:
+                output["kp"] = self.kplabel_head( batch_spacepoint_feat )
             
         return output
                                         
@@ -196,6 +202,9 @@ class LArMatchMinkowski(nn.Module):
             batch_feats.append( spacepoint_feats_t.unsqueeze(0) )
         
         # contact
-        batch_feats_cat = torch.cat( batch_feats, dim=0 )
+        if type(index_t) is torch.Tensor:
+            batch_feats_cat = torch.cat( batch_feats, dim=0 )
+        else:
+            batch_feats_cat = batch_feats
             
         return batch_feats_cat

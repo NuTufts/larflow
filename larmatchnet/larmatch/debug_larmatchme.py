@@ -30,7 +30,7 @@ from larmatch_mp_dataloader import larmatchMultiProcessDataloader
 import MinkowskiEngine as ME
 
 niter = 1
-batch_size = 4
+batch_size = 1
 
 dataloader_config = config["TRAIN_DATALOADER_CONFIG"]
 dataloader_config["BATCHSIZE"] = batch_size
@@ -47,7 +47,18 @@ batch = next(iter(loader))
 batch = next(iter(loader))
 print(batch.keys())
 wireplane_sparsetensors, matchtriplet_v, batch_truth, batch_weight \
-            = prepare_me_sparsetensor( batch, DEVICE, verbose=True )
+            = prepare_me_sparsetensor( batch, DEVICE, make_batch_tensor=False, verbose=True )
+print("made batch truth:")
+for k in batch_truth:
+    print(k,": ",type(batch_truth[k]))
+    if type(batch_truth[k]) is list:
+        print(type(batch_truth[k][0]))
+        if type(batch_truth[k][0]) is torch.Tensor:
+            for x in batch_truth[k]:
+                print("  ",x.shape)
+print("[ENTER] to continue")
+input()
+
 # running the model requires the wire plane image (in sparsetensor format)
 # and the 3D-to-2D correspondence
 with torch.autograd.detect_anomaly():
@@ -76,7 +87,7 @@ print("=========================")
 print("RUN LOSS FUNCTION")
 print("=========================")
 with torch.autograd.detect_anomaly():    
-    loss = loss_fn( out, batch_truth, batch_weight, batch_size, DEVICE, verbose=True )
+    loss = loss_fn( out, batch_truth, batch_weight, batch_size, DEVICE, verbose=True, whole_batch=False )
 
 print("LOSS: ",loss)
 print("[ENTER] to continue to backward pass")

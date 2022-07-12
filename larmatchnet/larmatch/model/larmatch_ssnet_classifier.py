@@ -14,7 +14,7 @@ class LArMatchSSNetClassifier(nn.Module):
 
         # CLASSIFER: SSNET (background,track,shower)
         ssnet_classifier_layers = OrderedDict()
-        ssnet_classifier_layers["ssnet0conv"] = torch.nn.Conv1d(ninput_planes*features_per_layer,
+        ssnet_classifier_layers["ssnet0conv"] = torch.nn.Conv1d(ninput_planes*(features_per_layer+1),
                                                                 ssnet_classifier_nfeatures[0],1)
         if norm_layer in ['instance','stableinstance']:
             ssnet_classifier_layers["ssnet0bn"]   = torch.nn.InstanceNorm1d(ssnet_classifier_nfeatures[0])

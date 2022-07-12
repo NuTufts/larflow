@@ -47,13 +47,20 @@ class larmatchMultiProcessDataloader():
         self.nentries = 0
 
         self.data_loader_config = data_loader_config
+        
+        num_triplet_samples = None
+        if "NUM_TRIPLET_SAMPLES" in data_loader_config:
+            num_triplet_samples = data_loader_config["NUM_TRIPLET_SAMPLES"]
+            print("NUM TRIPLET SAMPLES: ",num_triplet_samples)
+        
         for iworker in range(num_workers):
             loader = larmatchDataset( txtfile=data_loader_config["INPUT_FILE"],
-                                      random_access=True,
-                                      sequential_access=False,
-                                      num_triplet_samples=data_loader_config["NUM_TRIPLET_SAMPLES"],
+                                      random_access=data_loader_config["RANDOM_ACCESS"],
+                                      sequential_access=False,                                      
+                                      num_triplet_samples=num_triplet_samples,
                                       return_constant_sample=data_loader_config["CONSTANT_SAMPLE"],
                                       use_keypoint_sampler=data_loader_config["USE_KEYPOINT_SAMPLER"],
+                                      use_qcut_sampler=True,
                                       load_truth=data_loader_config["LOAD_TRUTH"],
                                       verbose=data_loader_config["VERBOSE"] )
             print("worker[%d] loader: "%(iworker),loader)

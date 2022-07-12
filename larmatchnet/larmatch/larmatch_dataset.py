@@ -16,6 +16,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                  num_triplet_samples=None,
                  return_constant_sample=False,
                  use_keypoint_sampler=False,
+                 use_qcut_sampler=False,
                  verbose=False):
         """
         Parameters:
@@ -72,6 +73,8 @@ class larmatchDataset(torch.utils.data.Dataset):
         self._return_constant_sample = return_constant_sample
         self._constant_sample = None
         self._use_keypoint_sampler = use_keypoint_sampler
+        self._use_qcut_sampler = use_qcut_sampler
+        self._qcut_threshold = 30.0
         if self._random_access:
             self._rng = np.random.default_rng(None)
             self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
@@ -123,10 +126,14 @@ class larmatchDataset(torch.utils.data.Dataset):
 
             if self._num_triplet_samples is not None:
                 # we want to sample
-                if not self._use_keypoint_sampler:
+                if not self._use_keypoint_sampler and not self._use_qcut_sampler:
                     # unguided sampling
                     okentry = self.get_data_from_tree( data, sample_spacepoints=True )
-                else:
+                elif self._use_keypoint_sampler:
+                    # guided sampling by keypoint truth
+                    okentry = self.get_data_from_tree( data, sample_spacepoints=False )
+                    self.keypoint_sampler( data, self._num_triplet_samples, int(self._num_triplet_samples/2) )
+                elif self._use_qcut_sampler:
                     # guided sampling by keypoint truth
                     okentry = self.get_data_from_tree( data, sample_spacepoints=False )
                     self.keypoint_sampler( data, self._num_triplet_samples, int(self._num_triplet_samples/2) )
@@ -176,7 +183,22 @@ class larmatchDataset(torch.utils.data.Dataset):
                 data["feat_%d"%(p)] = np.clip( data["feat_%d"%(p)], 0, 10.0 )
         # get the 2D-3D correspondence data
         data["matchtriplet_v"] = self.tree.matchtriplet_v.at(0).tonumpy()
-        ntriplets = data["matchtriplet_v"].shape[0]
+
+        if self._use_qcut_sampler:
+            # apply a q-cut threshold
+            # need charge array
+            q = np.zeros( (data['matchtriplet_v'].shape[0], 3), dtype=np.float32 )
+            for p in range(nimgs):
+                q[:,p] = data["feat_%d"%(p)][ data['matchtriplet_v'][:,p], 0]
+            if self._normalize_inputs:
+                q = np.sum( (q>=self._qcut_threshold/50.0).astype(np.int32), axis=1 ).squeeze()
+            else:
+                q = np.sum( (q>=self._qcut_threshold).astype(np.int32), axis=1 ).squeeze()
+            print("pre-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)                
+            data['matchtriplet_v'] = data['matchtriplet_v'][q>=2,:]
+            print("post-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)
+
+        ntriplets = data["matchtriplet_v"].shape[0]            
         
         if ntriplets>self._triplet_limit or ntriplets==0:
             print("num triplets above the limit: ",data["matchtriplet_v"].shape)
@@ -206,7 +228,7 @@ class larmatchDataset(torch.utils.data.Dataset):
                 sample = np.arange(self._num_triplet_samples)
                 
             data["matchtriplet_v"] = data["matchtriplet_v"][sample[:self._num_triplet_samples],:]
-            data["ntriplets"] = int(self._num_triplet_samples)
+            data["ntriplets"] = int(ntriplets)
 
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample]
@@ -223,13 +245,25 @@ class larmatchDataset(torch.utils.data.Dataset):
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
                 data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
-                data["larmatch_label"]  = self.tree.larmatch_label_v.at(0).tonumpy()                
+                data["larmatch_label"]  = self.tree.larmatch_label_v.at(0).tonumpy()
                 data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)
                 data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
                 data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()
                 data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
                 data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
 
+        if self._use_qcut_sampler:
+            qsample = q>=2
+            data["larmatch_truth"]   = data["larmatch_truth"][qsample]
+            data["larmatch_weight"]  = data["larmatch_weight"][qsample]
+            data["larmatch_label"]   = data["larmatch_label"][qsample]
+            data["ssnet_truth"]      = data["ssnet_truth"][qsample]
+            data["ssnet_top_weight"] = data["ssnet_top_weight"][qsample]
+            data["ssnet_class_weight"] = data["ssnet_class_weight"][qsample]
+            data["keypoint_truth"]   = data["keypoint_truth"][:,qsample]
+            data["keypoint_weight"]  = data["keypoint_weight"][:,qsample]
+            
+                
         if self._verbose:
             tottime = time.time()-t_start            
             print("[larmatchDataset::get_data_tree entry=%d loaded]"%(data["tree_entry"]))

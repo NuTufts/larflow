@@ -67,7 +67,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             setattr(self,k,w)
         
 
-    def forward( self, predictions, truthlabels, weights, batch_size, device, verbose=False  ):
+    def forward( self, predictions, truthlabels, weights, batch_size, device, verbose=False, whole_batch=False  ):
         loss = {"tot":None,
                 self.larmatch_name:0.0,
                 self.ssnet_name:0.0,
@@ -77,10 +77,20 @@ class SparseLArMatchKPSLoss(nn.Module):
         if verbose:
             print("type(predictions)=",type(predictions))
             
-        if type(predictions) is list:
-            whole_batch = False
+        if not whole_batch:
             for ib in range(batch_size):
-                losses = self.forward_onebatch( predictions[ib], truthlabels[ib], weights[ib], device, verbose=verbose )
+                # get the batch
+                batch_predicts = {}
+                batch_truth = {}
+                batch_weight = {}
+                for k in predictions:
+                    batch_predicts[k] = predictions[k][ib]
+                for k in truthlabels:
+                    batch_truth[k] = truthlabels[k][ib]
+                for k in weights:
+                    batch_weight[k] = weights[k][ib]
+                
+                losses = self.forward_onebatch( batch_predicts, batch_truth, batch_weight, device, verbose=verbose, whole_batch=whole_batch )
                 for k in losses:
                     if loss[k] is None:
                         loss[k] = losses[k]
@@ -387,7 +397,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         loss_focal = torch.pow( keypoint_score_truth-keypoint_score_pred, self.focal_loss_gamma )
         kp_loss = (-loss_focal*(loss_true+loss_false)*keypoint_weight).sum()
         if verbose:
-            kp_floss = loss.detach().item()            
+            kp_floss = kp_loss.detach().item()            
             print(" loss-kplabel (focal relative entropy): ",kp_floss)
         return kp_loss
     
@@ -470,22 +480,24 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_pred: ",ssnet_pred.shape)
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
-            
+        if len(ssnet_truth.shape)==2:
+            ssnet_truth = ssnet_truth.unsqueeze(0)
+
         pred = torch.softmax( ssnet_pred, dim=1 )
 
         loss = None
         for c in range(1,ssnet_pred.shape[1]):
-            c_mask = ssnet_truth[:,0,:]==c
-            #print("c mask: ",c_mask.shape," ",c_mask.sum())
+            c_mask = ssnet_truth[:,0,:]
+            print("c mask: ",c_mask.shape," sum=",c_mask.sum())
             if c_mask.sum()==0:
                 continue
             
             c_pred = pred[:,c,:]
-            #print("class_pred[",c,"]: ",c_pred.shape)
+            print("class_pred[",c,"]: ",c_pred.shape)
             c_true_pred = c_pred[ c_mask ]
-            #print("c_truth_pred[",c,"]: ",c_true_pred.shape)
+            print("c_truth_pred[",c,"]: ",c_true_pred.shape)
             c_true_w    = ssnet_weight[:,0,:][c_mask ]
-            #print("c_true_w: ",c_true_w.shape)
+            print("c_true_w: ",c_true_w.shape)
             loss_entropy = -torch.log( c_true_pred+1.0e-9 )
             if verbose: print("  entropy[",c,"]: ",loss_entropy.shape," sum=",loss_entropy.detach().sum().item())
             loss_focal   = torch.pow( 1.0-c_true_pred, self.focal_loss_gamma )
@@ -494,7 +506,7 @@ class SparseLArMatchKPSLoss(nn.Module):
                 loss = (loss_entropy*loss_focal*c_true_w).sum()
             else:
                 loss += (loss_entropy*loss_focal*c_true_w).sum()
-            #print("class[",c,"] loss: ",loss.detach().item())
+            print("class[",c,"] loss: ",loss.detach().item())
         
         if verbose:
             ssnet_floss = loss.detach().item()            
