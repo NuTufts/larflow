@@ -536,8 +536,10 @@ namespace keypoints {
 	int cryoid = CT[0];
 
         std::vector<double> offsets = {0.7,0,0};
-	if ( psce )
-	  psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
+	if ( psce ) {
+	  offsets = psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
+	  std::cout << "Calculated SCE offsets" << std::endl;
+	}
         nupos[0] = nupos[0] - offsets[0] + 0.7;
         nupos[1] += offsets[1];
         nupos[2] += offsets[2];
