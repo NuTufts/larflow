@@ -12,7 +12,7 @@ class larmatchDataset(torch.utils.data.Dataset):
     def __init__(self, filelist=None, filefolder=None, txtfile=None,
                  random_access=True, sequential_access=False,
                  npairs=None, load_truth=False,
-                 triplet_limit=10000000, normalize_inputs=True,
+                 triplet_limit=300000, normalize_inputs=True,
                  num_triplet_samples=None,
                  return_constant_sample=False,
                  use_keypoint_sampler=False,
@@ -198,13 +198,13 @@ class larmatchDataset(torch.utils.data.Dataset):
             data['matchtriplet_v'] = data['matchtriplet_v'][q>=2,:]
             #print("post-qcut matchtriplet_v: ",data['matchtriplet_v'].shape)
 
-        ntriplets = data["matchtriplet_v"].shape[0]            
-        
-        if ntriplets>self._triplet_limit or ntriplets==0:
-            print("num triplets above the limit: ",data["matchtriplet_v"].shape)
+        ntriplets = data["matchtriplet_v"].shape[0]
+
+        if ntriplets==0:
+            print("num triplets is zero: ",data["matchtriplet_v"].shape)
             data = None
             return False
-
+        
         #print("larmatch_label: ",self.tree.larmatch_label_v.at(0).tonumpy().shape)
         if sample_spacepoints:
             if self._num_triplet_samples<ntriplets:
@@ -269,7 +269,10 @@ class larmatchDataset(torch.utils.data.Dataset):
             #for c in range(6):
             #    print("post-qcut min keypoint_truth class=",c,": ",np.min( data["keypoint_truth"][c,:] ))
             #    print("post-qcut max keypoint_truth class=",c,": ",np.max( data["keypoint_truth"][c,:] ))
-            
+
+        if self._triplet_limit is not None and ntriplets>self._triplet_limit:
+            print("num triplets above the limit: ",data["matchtriplet_v"].shape,". sample down to ",self._triplet_limit)
+            self.sample_triplet_subset( data, self._triplet_limit )
                 
         if self._verbose:
             tottime = time.time()-t_start            
@@ -378,6 +381,28 @@ class larmatchDataset(torch.utils.data.Dataset):
         #        print(arr,": ",data[arr].shape)
         #data["keypoint_weight"]    = kpweightall
         return
+
+    def sample_triplet_subset( self, data, num_samples ):
+        if data['matchtriplet_v'].shape[0]<num_samples:
+            # don't bother to sample if below the num requested of samples
+            return
+        ntriplets = data['matchtriplet_v'].shape[0]
+        sample = np.arange(ntriplets)
+        np.random.shuffle(sample)
+        sample = sample[:num_samples]
+
+        data["matchtriplet_v"] = data["matchtriplet_v"][sample,:]
+        data["ntriplets"] = int(num_samples)
+        data["larmatch_truth"]  = data["larmatch_truth"][sample]
+        data["larmatch_weight"] = data["larmatch_weight"][sample]
+        data["larmatch_label"]  = data["larmatch_label"][sample]
+        data["ssnet_truth"]     = data["ssnet_truth"][sample]
+        data["ssnet_top_weight"]   = data["ssnet_top_weight"][sample]
+        data["ssnet_class_weight"] = data["ssnet_class_weight"][sample]
+        data["keypoint_truth"]  = data["keypoint_truth"][:,sample]
+        data["keypoint_weight"] = data["keypoint_weight"][:,sample]
+        return
+        
             
     def calc_keypoint_label_logit( self, p ):
         label_logit = -0.5*( np.log( 1-p + 1.0e-9 ) - np.log( p + 1.0e-9 ) )

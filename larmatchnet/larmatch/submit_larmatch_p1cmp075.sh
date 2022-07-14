@@ -2,8 +2,8 @@
 
 #SBATCH --job-name=larmatch
 #SBATCH --output=gridlog_train_larmatch_nossnet_p1cmp075.log
-#SBATCH --mem-per-cpu=8000
-#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=4g
+#SBATCH --cpus-per-task=32
 #SBATCH --time=5-00:00:00
 #SBATCH --gres=gpu:p100:6
 #SBATCH --partition=wongjiradlab
