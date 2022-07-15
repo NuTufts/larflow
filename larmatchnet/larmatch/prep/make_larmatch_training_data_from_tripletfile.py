@@ -110,12 +110,12 @@ outtree.Branch("feat_v", feat_v)
 outtree.Branch("matchtriplet_v",matchtriplet_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
 outtree.Branch("larmatch_label_v", lm_label_v)
-outtree.Branch("larmatch_weight_v",lm_weight_v)
+#outtree.Branch("larmatch_weight_v",lm_weight_v)
 outtree.Branch("ssnet_truth_v", ssnet_truth_v)
-outtree.Branch("ssnet_class_weight_v",ssnet_class_weight_v)
-outtree.Branch("ssnet_top_weight_v",ssnet_top_weight_v)
+#outtree.Branch("ssnet_class_weight_v",ssnet_class_weight_v)
+#outtree.Branch("ssnet_top_weight_v",ssnet_top_weight_v)
 outtree.Branch("kp_truth_v", kp_truth_v)
-outtree.Branch("kp_weight_v",kp_weight_v)
+#outtree.Branch("kp_weight_v",kp_weight_v)
 
 for ientry in range(nentries):
 
