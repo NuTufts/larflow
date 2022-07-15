@@ -79,15 +79,18 @@ class larmatchDataset(torch.utils.data.Dataset):
             self._rng = np.random.default_rng(None)
             self._random_entry_list = self._rng.choice( self.nentries, size=self.nentries )
 
+        # self.triplet_array_names = ["matchtriplet_v",
+        #                             "larmatch_weight",
+        #                             "larmatch_label",
+        #                             "ssnet_truth",
+        #                             "ssnet_top_weight",
+        #                             "ssnet_class_weight",
+        #                             "keypoint_truth",
+        #                             "keypoint_weight"]
         self.triplet_array_names = ["matchtriplet_v",
-                                    "larmatch_weight",
                                     "larmatch_label",
                                     "ssnet_truth",
-                                    "ssnet_top_weight",
-                                    "ssnet_class_weight",
-                                    "keypoint_truth",
-                                    "keypoint_weight"]
-                                 
+                                    "keypoint_truth"]
 
     def __getitem__(self, idx):
         
@@ -232,25 +235,25 @@ class larmatchDataset(torch.utils.data.Dataset):
 
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()[sample]
-                data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample]
+                #data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()[sample]
                 data["larmatch_label"]  = self.tree.larmatch_label_v.at(0).tonumpy()[sample]
                 data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)[sample]
-                data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()[sample]
-                data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()[sample]
+                #data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()[sample]
+                #data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()[sample]
                 data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy()[sample,:], (1,0) )
-                data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy()[sample,:], (1,0) )
+                #data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy()[sample,:], (1,0) )
                 #print("post sampling: ",data["larmatch_label"].shape)
         else:
             data["ntriplets"] = int(ntriplets)
             if self.load_truth:
                 data["larmatch_truth"]  = self.tree.larmatch_truth_v.at(0).tonumpy()
-                data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
+                #data["larmatch_weight"] = self.tree.larmatch_weight_v.at(0).tonumpy()
                 data["larmatch_label"]  = self.tree.larmatch_label_v.at(0).tonumpy()
                 data["ssnet_truth"]   = self.tree.ssnet_truth_v.at(0).tonumpy().astype(np.long)
-                data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
-                data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()
+                #data["ssnet_top_weight"] = self.tree.ssnet_top_weight_v.at(0).tonumpy()
+                #data["ssnet_class_weight"] = self.tree.ssnet_class_weight_v.at(0).tonumpy()
                 data["keypoint_truth"]  = np.transpose( self.tree.kp_truth_v.at(0).tonumpy(), (1,0) )
-                data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
+                #data["keypoint_weight"] = np.transpose( self.tree.kp_weight_v.at(0).tonumpy(), (1,0) )
 
                 # we recalc keypoint to provide logit, not scaled score
                 #data["keypoint_truth"] = np.clip( data["keypoint_truth"]+0.01, 0.01, 0.99 )
@@ -259,13 +262,13 @@ class larmatchDataset(torch.utils.data.Dataset):
         if self._use_qcut_sampler:
             qsample = q>=2
             data["larmatch_truth"]   = data["larmatch_truth"][qsample]
-            data["larmatch_weight"]  = data["larmatch_weight"][qsample]
+            #data["larmatch_weight"]  = data["larmatch_weight"][qsample]
             data["larmatch_label"]   = data["larmatch_label"][qsample]
             data["ssnet_truth"]      = data["ssnet_truth"][qsample]
-            data["ssnet_top_weight"] = data["ssnet_top_weight"][qsample]
-            data["ssnet_class_weight"] = data["ssnet_class_weight"][qsample]
+            #data["ssnet_top_weight"] = data["ssnet_top_weight"][qsample]
+            #data["ssnet_class_weight"] = data["ssnet_class_weight"][qsample]
             data["keypoint_truth"]   = data["keypoint_truth"][:,qsample]
-            data["keypoint_weight"]  = data["keypoint_weight"][:,qsample]
+            #data["keypoint_weight"]  = data["keypoint_weight"][:,qsample]
             #for c in range(6):
             #    print("post-qcut min keypoint_truth class=",c,": ",np.min( data["keypoint_truth"][c,:] ))
             #    print("post-qcut max keypoint_truth class=",c,": ",np.max( data["keypoint_truth"][c,:] ))
@@ -369,12 +372,12 @@ class larmatchDataset(torch.utils.data.Dataset):
         data["matchtriplet_v"]  = data["matchtriplet_v"][kpallidx,:]
         data["larmatch_truth"]  = data["larmatch_truth"][kpallidx]
         data["larmatch_label"]  = data["larmatch_label"][kpallidx]
-        data["larmatch_weight"] = data["larmatch_weight"][kpallidx]
+        #data["larmatch_weight"] = data["larmatch_weight"][kpallidx]
         data["ssnet_truth"]     = data["ssnet_truth"][kpallidx]
-        data["ssnet_top_weight"]   = data["ssnet_top_weight"][kpallidx]
-        data["ssnet_class_weight"] = data["ssnet_class_weight"][kpallidx]
+        #data["ssnet_top_weight"]   = data["ssnet_top_weight"][kpallidx]
+        #data["ssnet_class_weight"] = data["ssnet_class_weight"][kpallidx]
         data["keypoint_truth"]     = data["keypoint_truth"][:,kpallidx[:]]
-        data["keypoint_weight"]    = data["keypoint_weight"][:,kpallidx[:]]
+        #data["keypoint_weight"]    = data["keypoint_weight"][:,kpallidx[:]]
 
         #for arr in data:
         #    if type(data[arr]) is np.ndarray:
@@ -394,13 +397,13 @@ class larmatchDataset(torch.utils.data.Dataset):
         data["matchtriplet_v"] = data["matchtriplet_v"][sample,:]
         data["ntriplets"] = int(num_samples)
         data["larmatch_truth"]  = data["larmatch_truth"][sample]
-        data["larmatch_weight"] = data["larmatch_weight"][sample]
+        #data["larmatch_weight"] = data["larmatch_weight"][sample]
         data["larmatch_label"]  = data["larmatch_label"][sample]
         data["ssnet_truth"]     = data["ssnet_truth"][sample]
-        data["ssnet_top_weight"]   = data["ssnet_top_weight"][sample]
-        data["ssnet_class_weight"] = data["ssnet_class_weight"][sample]
+        #data["ssnet_top_weight"]   = data["ssnet_top_weight"][sample]
+        #data["ssnet_class_weight"] = data["ssnet_class_weight"][sample]
         data["keypoint_truth"]  = data["keypoint_truth"][:,sample]
-        data["keypoint_weight"] = data["keypoint_weight"][:,sample]
+        #data["keypoint_weight"] = data["keypoint_weight"][:,sample]
         return
         
             

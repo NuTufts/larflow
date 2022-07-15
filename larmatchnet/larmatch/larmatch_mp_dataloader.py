@@ -60,7 +60,7 @@ class larmatchMultiProcessDataloader():
                                       num_triplet_samples=num_triplet_samples,
                                       return_constant_sample=data_loader_config["CONSTANT_SAMPLE"],
                                       use_keypoint_sampler=data_loader_config["USE_KEYPOINT_SAMPLER"],
-                                      use_qcut_sampler=True,
+                                      use_qcut_sampler=data_loader_config["USE_QCUT_SAMPLER"],
                                       load_truth=data_loader_config["LOAD_TRUTH"],
                                       verbose=data_loader_config["VERBOSE"] )
             print("worker[%d] loader: "%(iworker),loader)
