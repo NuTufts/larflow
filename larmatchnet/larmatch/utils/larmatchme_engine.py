@@ -118,6 +118,8 @@ def rename_distributed_checkpoint_par_names(checkpoint,verbose=False):
     replacement = OrderedDict()
     notified = False
     for name,arr in checkpoint["state_larmatch"].items():
+        if "kplabel_head" in name:
+            continue
         if "module." in name and name[:len("module.")]=="module.":
             if verbose and not notified:
                 print("renaming parameter by removing 'module': ",name)

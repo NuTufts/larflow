@@ -24,7 +24,7 @@ class LArMatchKeypointClassifier(nn.Module):
             elif norm_layer in ['instance','stableinstance']:
                 keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.InstanceNorm1d(keypoint_nfeatures[0])
                 
-            keypoint_layers["keypoint0relu_class%d"%(iclass)] = torch.nn.LeakyReLU()
+            keypoint_layers["keypoint0relu_class%d"%(iclass)] = torch.nn.ReLU()
             last_layer_nfeats = keypoint_nfeatures[0]
             for ilayer,nfeats in enumerate(keypoint_nfeatures[1:]):
                 keypoint_layers["keypoint%dconv_class%d"%(ilayer+1,iclass)] = torch.nn.Conv1d(nfeats,nfeats,1,bias=False)
@@ -34,7 +34,7 @@ class LArMatchKeypointClassifier(nn.Module):
                 elif norm_layer in ['instance','stableinstance']:
                     keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.InstanceNorm1d(nfeats)
                     
-                keypoint_layers["keypoint%drelu_class%d"%(ilayer+1,iclass)] = torch.nn.LeakyReLU()
+                keypoint_layers["keypoint%drelu_class%d"%(ilayer+1,iclass)] = torch.nn.ReLU()
                 last_layer_nfeats = nfeats
             keypoint_layers["keypointout_class%d"%(iclass)] = torch.nn.Conv1d(last_layer_nfeats,1,1,bias=True)
             # set the bias to zero so that initial output is zero
@@ -56,6 +56,6 @@ class LArMatchKeypointClassifier(nn.Module):
             classpred = layers(triplet_feat_t)
             classout.append(classpred)
         pred = torch.cat( classout, dim=1 )
-        pred = torch.sigmoid(pred) # not good for gradients?
+        #pred = torch.sigmoid(pred) # not good for gradients?
         return pred
     
