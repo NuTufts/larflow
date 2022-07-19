@@ -94,9 +94,9 @@ def run(gpu, args ):
         checkpoint_data = engine.load_model_weights( single_model, config["CHECKPOINT_FILE"] )
         
         # resume criterion weights
-        #if config["USE_LEARNABLE_LOSS_WEIGHTS"] and "state_lossweights" in checkpoint_data:
-        #    print("RESUME LOSS-WEIGHT VALUES")
-        #    criterion.load_state_dict( checkpoint_data["state_lossweights"] )
+        if config["USE_LEARNABLE_LOSS_WEIGHTS"] and "state_lossweights" in checkpoint_data:
+            print("RESUME LOSS-WEIGHT VALUES")
+            criterion.load_state_dict( checkpoint_data["state_lossweights"] )
 
     if config["NORM_LAYER"]=="batchnorm" and not args.no_parallel:
         torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model)
@@ -182,7 +182,7 @@ def run(gpu, args ):
     optimizer = torch.optim.AdamW(set_param_list,
                                   lr=float(config["LEARNING_RATE"]), 
                                   weight_decay=config["WEIGHT_DECAY"])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=int(ITERS_PER_EPOCH), eta_min=config["LEARNING_RATE_MIN"])
+    #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=int(ITERS_PER_EPOCH), eta_min=config["LEARNING_RATE_MIN"])
     
     #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
     #    print("optimizer params")
@@ -213,7 +213,7 @@ def run(gpu, args ):
                                     verbose=iter_verbose)
 
             # increment the LR scheduler
-            scheduler.step()
+            #scheduler.step()
 
             # periodic checkpoint
             if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:

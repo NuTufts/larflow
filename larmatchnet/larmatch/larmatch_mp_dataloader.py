@@ -58,6 +58,7 @@ class larmatchMultiProcessDataloader():
                                       random_access=data_loader_config["RANDOM_ACCESS"],
                                       sequential_access=False,                                      
                                       num_triplet_samples=num_triplet_samples,
+                                      triplet_limit=data_loader_config["TRIPLET_LIMIT"],
                                       return_constant_sample=data_loader_config["CONSTANT_SAMPLE"],
                                       use_keypoint_sampler=data_loader_config["USE_KEYPOINT_SAMPLER"],
                                       use_qcut_sampler=data_loader_config["USE_QCUT_SAMPLER"],
