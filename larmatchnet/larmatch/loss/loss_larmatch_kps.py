@@ -360,11 +360,14 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  larmatch weight: ",larmatch_weight.shape)
             
         # p_t for focal loss
-        p = torch.softmax( larmatch_pred, dim=1 )
-        if verbose: print("  LM softmaxout shape: ",p.shape)                        
-
+        p = torch.softmax( larmatch_pred, dim=1 )        
+        #p = larmatch_pred # no softmax applied
+        if verbose:
+            print("  LM softmaxout shape: ",p.shape)
+            
         fn_lm_mse = torch.nn.MSELoss( reduction='none' )
         fnout = fn_lm_mse( p[:,1,:], larmatch_truth.squeeze(1) )
+        #fnout = fn_lm_mse( p[:,0,:], larmatch_truth.squeeze(1) ) # non-softmax output
         
         loss = (fnout*larmatch_weight).sum()
 

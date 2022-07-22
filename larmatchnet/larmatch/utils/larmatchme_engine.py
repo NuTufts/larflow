@@ -118,8 +118,9 @@ def rename_distributed_checkpoint_par_names(checkpoint,verbose=False):
     replacement = OrderedDict()
     notified = False
     for name,arr in checkpoint["state_larmatch"].items():
-        if "kplabel_head" in name:
-            continue
+        # used this clear out keypoint weights
+        #if "kplabel_head" in name:
+        #    continue
         if "module." in name and name[:len("module.")]=="module.":
             if verbose and not notified:
                 print("renaming parameter by removing 'module': ",name)
@@ -213,6 +214,7 @@ def accuracy(predictions, truthdata,
         # get the data from the dictionaries
         if "lm" in data:
             match_pred  = torch.softmax( data["lm"].detach(), dim=0 )[1].squeeze()
+            #match_pred    = data["lm"].detach().squeeze() # direct score prediction
             match_label_t = labels["lm"][ibatch].squeeze()
             
             # LARMATCH METRICS
