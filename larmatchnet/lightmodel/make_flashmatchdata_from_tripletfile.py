@@ -25,6 +25,7 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
+from larlite import larutil
 
 if not os.path.exists(args.input_list):
     print("Could not find input list: ",args.input_list)
@@ -99,8 +100,11 @@ for f in input_triplet_v:
     f_v.push_back(f)
 labeler = larflow.keypoints.LoaderKeypointData( f_v )
 
+voxelsize = 0.3
+dv = larutil.LArProperties.GetME().DriftVelocity()
+
 #dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=0.3 )
-dataset = larvoxelDataset( filelist=input_triplet_v, random_access=False, voxelsize_cm=0.3 )
+dataset = larvoxelDataset( filelist=input_triplet_v, random_access=False, voxelsize_cm=voxelsize )
 loader = torch.utils.data.DataLoader(dataset,batch_size=1,collate_fn=collate_fn)
 
 # c++ class that provides voxels and labels using data in the labeler class
@@ -183,7 +187,7 @@ outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 
 #listy = []
 
-def voxelizeIntrxn(iid_v):
+def voxelizeIntrxn(iid_v, flashtick=0):
     print("This is iid_v: ",iid_v)
 
     # create array with T/F boolean
@@ -222,14 +226,34 @@ def voxelizeIntrxn(iid_v):
     iiorigin_weight = np.concatenate( iiorigin_weight_v )
 
     print("iicoord",iicoord)
-    print("iicoord.shape",iicoord.shape)
-    print("iifeat",iifeat)
-    print("iifeat.shape",iifeat.shape)
-    print("iilm_truth",iilm_truth)
-    print("iilm_truth.shape",iilm_truth.shape)
+    print("type(iicoord): ",type(iicoord))
+    print("Now operate on iicoord to scale")
+
+    iicoord = iicoord*voxelsize
+    print("iicoord",iicoord)
+
+    #print("type(iicoord) after scaling: ",type(iicoord))
+
+    ##print("Now operate on iicoord to shift offset by flashtick")
+    ##print("flashtick is :",flashtick)
+    ##print("the offset to subtract by is: ", (flashtick-3200)*0.5*dv)
+
+    if flashtick!=0:
+        iicoord[:,0] = (iicoord[:,0] - (flashtick-3200)*0.5*dv).round(0)
+
+    iicoord = iicoord.astype(int)
+
+    print("iicoord",iicoord)
+    #print("iicoord.shape",iicoord.shape)
+    #print("iifeat",iifeat)
+    #print("iifeat.shape",iifeat.shape)
+    #print("iilm_truth",iilm_truth)
+    #print("iilm_truth.shape",iilm_truth.shape)
 
     coord_v.push_back( larcv.NumpyArrayInt(iicoord.astype(np.int32)))
     feat_v.push_back( larcv.NumpyArrayFloat(iifeat))
+
+    #print("type(coord_v): ",type(coord_v))
 
     lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.astype(np.int32) ) )
     #lm_truth_v.push_back( larcv.NumpyArrayInt( iilm_truth.squeeze().astype(np.int32) ) )
@@ -252,7 +276,7 @@ def voxelizeIntrxn(iid_v):
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(3): # event loop
+for ientry in range(1): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []
@@ -537,7 +561,7 @@ for ientry in range(3): # event loop
                  ancestor_truth_v, ancestor_weight_v ]:
                  vec.clear()
 
-        voxelizeIntrxn(iidList[i])
+        ##voxelizeIntrxn(iidList[i])
 
         # corresponding ancestorid for intrxn, or -9997 for beam intrxn
         key = keyList[i]
@@ -552,6 +576,8 @@ for ientry in range(3): # event loop
 
         print(intrxnTracks)
         print(intrxnShowers)
+
+        matchingFlashTick = 0
 
         if key in intrxnTracks:
             for j in intrxnTracks[key]:
@@ -568,6 +594,7 @@ for ientry in range(3): # event loop
                     op_tick = fmutil.grabTickFromOpflash( opio )
                     match = fmutil.matchTicks( track_tick, op_tick )
                     print("match IS: ",match)
+                    matchingFlashTick = match[0]
 
                     fmutil.process( ioll )
                     clusterTick[0] = track_tick
@@ -579,6 +606,7 @@ for ientry in range(3): # event loop
                         if (fmutil.isCosmic == 1):
                             ##    print("ev_opflash_cosmic: ",ev_opflash_cosmic)
                             out_opflash_cosmic.push_back( ev_opflash_cosmic.at( match[1] ) )
+                            #coord_v[:,1]-int((match[0]-3200)*0.5*dv)
                         else:
                             ##print("ev_opflash_beam: ",ev_opflash_beam)
                             out_opflash_beam.push_back( ev_opflash_beam.at( match[1] ) )
@@ -593,7 +621,7 @@ for ientry in range(3): # event loop
 
         # find the matching flash for the ancestor in the intrxn'
 
-
+        voxelizeIntrxn(iidList[i], matchingFlashTick)
 
             ##out_opflash  = iomc.get_data( larlite.data.kOpFlash, producer )
             ##if (fmutil.isCosmic == 1):
@@ -602,6 +630,8 @@ for ientry in range(3): # event loop
             ##else:
             ##    print("ev_opflash_beam: ",ev_opflash_beam)
             ##    out_opflash.push_back( ev_opflash_beam.at( match[1] ) )
+
+        ##voxelizeIntrxn(iidList[i], )
 
         counter = counter + 1
 
