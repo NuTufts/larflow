@@ -73,7 +73,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( "filtered_MCTracks_opflash_COMBINED.root" )
+iomc.set_out_filename( "filtered_MCTracks_opflash_083022.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -129,7 +129,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("test_COMBINED.root","recreate")
+outfile = rt.TFile("fullSample_083022.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -229,17 +229,23 @@ def voxelizeIntrxn(iid_v, flashtick=0):
     print("type(iicoord): ",type(iicoord))
     print("Now operate on iicoord to scale")
 
-    iicoord = iicoord*voxelsize
-    print("iicoord",iicoord)
+    #iicoord = iicoord*voxelsize
+    #print("iicoord",iicoord)
 
     #print("type(iicoord) after scaling: ",type(iicoord))
 
-    ##print("Now operate on iicoord to shift offset by flashtick")
-    ##print("flashtick is :",flashtick)
-    ##print("the offset to subtract by is: ", (flashtick-3200)*0.5*dv)
+    print("Now operate on iicoord to shift offset by flashtick")
+    print("flashtick is :",flashtick)
+    print("the offset to subtract by is: ", (flashtick-3200)*0.5*dv)
 
     if flashtick!=0:
-        iicoord[:,0] = (iicoord[:,0] - (flashtick-3200)*0.5*dv).round(0)
+        iicoord[:,0] = (iicoord[:,0] - (flashtick-3200)*0.5*dv*(1/voxelsize)).round(0)
+
+    #dummy shift for debugging
+    #iicoord[:,0] = iicoord[:,0] + 1
+
+    #dummy scale for debugging
+    #iicoord = np.multiply(iicoord, voxelsize)
 
     iicoord = iicoord.astype(int)
 
@@ -276,7 +282,7 @@ def voxelizeIntrxn(iid_v, flashtick=0):
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(1): # event loop
+for ientry in range(5): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []
