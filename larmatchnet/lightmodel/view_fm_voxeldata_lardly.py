@@ -52,7 +52,7 @@ for opt in color_by_options:
 
 # DATA LOADER
 batch_size = 1
-dataset = LMDataset( filelist=["test_COMBINED_062722.root"], is_voxeldata=True, random_access=False )
+dataset = LMDataset( filelist=["test_082522.root"], is_voxeldata=True, random_access=False )
 nentries = len(dataset)
 
 print("NENTRIES: ",nentries)
@@ -112,9 +112,13 @@ def make_figures(ientry,loader,minprob=0.0):
         ev_opflash_beam = io_ll.get_data(larlite.data.kOpFlash, "simpleFlashBeam")
 
         mctrack = ev_mctrack.at(0)
-        mcshower = ev_mcshower.at(0)
 
-        print("shower INFO X (used in lardly code): ", mcshower.Start().X())
+        print("ev_mcshower.size(): ", ev_mcshower.size())
+
+        if ev_mcshower.size()!=0:
+            mcshower = ev_mcshower.at(0)
+
+        #print("shower INFO X (used in lardly code): ", mcshower.Start().X())
         #print("mcshower.at(0).X() ", mcshower.at(0).X())
         print("First mctrack mcstep X:", mctrack.at(0).X() )
         #print("First mcstep Z:", mctrack.at(0).Z() )
@@ -148,7 +152,10 @@ def make_figures(ientry,loader,minprob=0.0):
         #traces3d.append( mctrack_v )
         #traces3d.append( mcshower_v )
 
+    flashTemp = -530.25
     print("voxel entries: ",batch["voxcoord"].shape)
+    print("voxel entries X before: ",batch["voxcoord"][:,1])
+    print("calculated X after: ",batch["voxcoord"][:,1]*0.3+(2399-3200-(flashTemp-3200))*0.5*dv)
 
     traces_v = []
 
@@ -157,9 +164,7 @@ def make_figures(ientry,loader,minprob=0.0):
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":batch["voxcoord"][:,1]*0.3+(2399-3200-(-761.25-3200))*0.5*dv, #subtract 3200 from 2399 for shift
-        #"x":batch["voxcoord"][:,1]*0.3+(2399-1744.5)*0.5*dv, #subtract 3200 from 2399 for shift
-        #"x":batch["voxcoord"][:,1]*0.3+(2399)*0.5*dv, #subtract 3200 from 2399 for shift
+        "x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv,
         "y":batch["voxcoord"][:,2]*0.3-120.0,
         "z":batch["voxcoord"][:,3]*0.3,
         "mode":"markers",
@@ -168,6 +173,11 @@ def make_figures(ientry,loader,minprob=0.0):
                   "size":10,
                   "opacity":1}}
     traces_v.append(voxtrace)
+
+    #"x":batch["voxcoord"][:,1]*0.3+(2399-3200-(flashTemp-3200))*0.5*dv,
+    ##"x":batch["voxcoord"][:,1]+(2399-3200)*0.5*dv,
+    #"x":batch["voxcoord"][:,1]*0.3+(2399-1744.5)*0.5*dv,
+    #"x":batch["voxcoord"][:,1]*0.3+(2399)*0.5*dv,
 
     if args.larlite!="":
         #traces_v.append(mctrack_v)
