@@ -24,6 +24,8 @@ lib_dir = os.environ['LARFLOW_LIBDIR']
 
 # LOAD LIBS
 for l in [x for x in os.listdir(lib_dir) if x.endswith('.so')]:
+    if "LARFLOW_PYTHONLOAD_DEBUG" in os.environ and os.environ["LARFLOW_PYTHONLOAD_DEBUG"]!='0':
+        print("loading: ",l)
     ROOT.gSystem.Load(l)
 
 import ROOT.larflow as larflow
