@@ -624,5 +624,112 @@ namespace prep {
     return sparseimg_vv;
   }
 
+  /**
+   * @brief convert the wire image data into a sparse represntation of input prong
+   *
+   * we convert the image into a vector of PixData_t objects.
+   * ignore all pixels not belonging to the input reco cluster
+   *
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] prong  larflowcluster object with reco prong hits
+   * @param[in] cropCenter  point to center crop if input prong exceeds rowSpan or colSpan
+   * @param[in] threshold  Keep only pixels with value above this threshold
+   * @param[in] rowSpan  number of rows in cropped image
+   * @param[in] colSpan  number of columns in cropped image
+   * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
+   */        
+  std::vector< std::vector<FlowTriples::PixData_t> >
+  FlowTriples::make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v,
+                                                             const larlite::larflowcluster& prong,
+                                                             const TVector3& cropCenter, 
+                                                             float threshold, int rowSpan, int colSpan ) {
+
+    // sparsify planes: pixels must be above threshold
+    std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv(adc_v.size());
+    
+    std::vector< std::vector<int> > prongBounds;
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      std::vector<int> planeProngBounds{9999999,-9999999,9999999,-9999999};
+      for( const auto& hit : prong ){
+        int row = (hit.tick - 2400)/6;
+        int col = hit.targetwire[p];
+        if(row < planeProngBounds[0]) planeProngBounds[0] = row;
+        if(row > planeProngBounds[1]) planeProngBounds[1] = row;
+        if(col < planeProngBounds[2]) planeProngBounds[2] = col;
+        if(col > planeProngBounds[3]) planeProngBounds[3] = col;
+      }
+      prongBounds.push_back(planeProngBounds);
+    }
+
+    bool reCenterAny = false;
+    std::vector<bool> reCenter;
+    std::vector< std::vector<int> > imgBounds;
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      std::vector<int> imgPlaneBounds{0, 0, 0, 0};
+      if( (prongBounds[p][1] - prongBounds[p][0]) < rowSpan && 
+          (prongBounds[p][3] - prongBounds[p][2]) < colSpan    ){
+        reCenter.push_back(false);
+        imgPlaneBounds[0] = (prongBounds[p][0] + prongBounds[p][1])/2 - rowSpan/2;
+        imgPlaneBounds[2] = (prongBounds[p][2] + prongBounds[p][3])/2 - colSpan/2;
+      } else{
+        reCenterAny = true;
+        reCenter.push_back(true);
+      }
+      imgBounds.push_back(imgPlaneBounds);
+    }
+
+    if(reCenterAny){
+
+      for ( size_t p=0; p<adc_v.size(); p++ ) {
+       if(!reCenter[p]) continue;
+       auto center2D = larutil::GeometryHelper::GetME()->Point_3Dto2D(cropCenter.X(),cropCenter.Y(),cropCenter.Z(),p);
+       int center2Dr = (int)((center2D.t/larutil::GeometryHelper::GetME()->TimeToCm() + 800.)/6.);
+       int center2Dc = (int)(center2D.w/larutil::GeometryHelper::GetME()->WireToCm());
+       imgBounds[p][0] = center2Dr - rowSpan/2;
+       imgBounds[p][2] = center2Dc - colSpan/2;
+      }
+
+    }
+
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      if(imgBounds[p][0] < 0) imgBounds[p][0] = 0;
+      if(imgBounds[p][0] + rowSpan > adc_v[p].meta().rows())
+        imgBounds[p][0] = adc_v[p].meta().rows() - rowSpan;
+      imgBounds[p][1] = imgBounds[p][0] + rowSpan;
+      if(imgBounds[p][2] < 0) imgBounds[p][2] = 0;
+      if(imgBounds[p][2] + colSpan > adc_v[p].meta().cols())
+        imgBounds[p][2] = adc_v[p].meta().cols() - colSpan;
+      imgBounds[p][3] = imgBounds[p][2] + colSpan;
+    }
+
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+
+      for( const auto& hit : prong ){
+        // TO DO: REPLACE HARD-CODED VALUES!!!
+        int row = (hit.tick - 2400)/6;
+        int col = hit.targetwire[p];
+        float val = adc_v[p].pixel(row, col);
+          if ( val>=threshold && 
+               row >= imgBounds[p][0] && row < imgBounds[p][1] &&
+               col >= imgBounds[p][2] && col < imgBounds[p][3] ) {
+            sparseimg_vv[p].push_back( PixData_t((int)row - imgBounds[p][0],
+                                                 (int)col - imgBounds[p][2], val) );
+          }
+      }
+
+      // should be sorted in (r,c). do i pull the trigger and sort?
+      // std::sort( sparseimg_vv[p].begin(), sparseimg_vv[p].end() );
+      int idx=0;
+      for ( auto& pix : sparseimg_vv[p] ) {
+        pix.idx = idx;
+        idx++;
+      }
+      std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
+    }
+
+    return sparseimg_vv;
+  }
+
 }
 }

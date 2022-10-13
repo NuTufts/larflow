@@ -7,6 +7,7 @@
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larcv/core/DataFormat/Image2D.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "TH2D.h"
 
@@ -116,6 +117,12 @@ namespace prep {
                                                int trackid, float threshold,
                                                int rowSpan, int colSpan,
                                                bool shower=true );
+
+    static std::vector< std::vector<FlowTriples::PixData_t> >
+      make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v, 
+                                                    const larlite::larflowcluster& prong,
+                                                    const TVector3& cropCenter, 
+                                                    float threshold, int rowSpan, int colSpan );
 
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };
