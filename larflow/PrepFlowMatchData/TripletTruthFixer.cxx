@@ -46,7 +46,8 @@ namespace prep {
     // get the mc pixel graph
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     mcpg.buildgraphonly( ioll );
-    mcpg.printGraph(nullptr,false);
+    if ( logger().level()==larcv::msg::kDEBUG )
+      mcpg.printGraph(nullptr,false);
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> nu_v = mcpg.getNeutrinoParticles();
 
     larlite::event_mcshower* ev_mcshower
@@ -113,19 +114,21 @@ namespace prep {
                                                                bool reassign_instance_labels )
   {
     
-    std::cout << "[TripletTruthFixer::_cluster_same_showerpid_spacepoints.L" << __LINE__ << "] "
-	      << " protected instances: ";
+    std::stringstream msg;
+    msg << " protected instances: ";
     std::set<int> mcshower_instances;
     std::map<int,larflow::reco::cluster_t> mcshower_fragments;
     for ( auto const& info : shower_info_v ) {
       mcshower_instances.insert( info.trackid );
       mcshower_fragments[info.trackid] = larflow::reco::cluster_t();
-      std::cout << info.trackid << " ";
+      msg << info.trackid << " ";
     }
-    std::cout << std::endl;
+    msg << std::endl;
     cluster_v.clear();
     pid_v.clear();
     shower_instance_v.clear();
+
+    LARCV_INFO() << msg.str();
     
     for ( auto& matchdata : tripmaker._match_triplet_v ) {    
       
@@ -171,7 +174,7 @@ namespace prep {
 	std::vector< larflow::reco::cluster_t > pid_cluster_v;
 	larflow::reco::cluster_sdbscan_spacepoints( point_v, pid_cluster_v, maxdist, minsize, maxkd );
 
-	std::cout << "PID[" << pid << "] has " << pid_cluster_v.size() << " dbscan clusters" << std::endl;
+	LARCV_INFO() << "PID[" << pid << "] has " << pid_cluster_v.size() << " dbscan clusters" << std::endl;
 
 	for (auto & cluster : pid_cluster_v ) {
 	  // for each cluster, we decide which label to use based on majority vote
@@ -210,10 +213,9 @@ namespace prep {
       // add mcshower fragments into cluster list                
       for ( auto const& info : shower_info_v ) {
 	auto& mcshower_fragment = mcshower_fragments[info.trackid];
-	std::cout << "[TripletTruthFixer.L" << __LINE__ << "] "
-		  << "mcshower fragment trackid[" << info.trackid << "] "
-		  << "size=" << mcshower_fragment.points_v.size()
-		  << std::endl;
+	LARCV_INFO() << "mcshower fragment trackid[" << info.trackid << "] "
+		     << "size=" << mcshower_fragment.points_v.size()
+		     << std::endl;
 	cluster_v.emplace_back( std::move(mcshower_fragment) );
 	switch (info.pid) {
 	case -11:
@@ -352,11 +354,10 @@ namespace prep {
 	}
 	replace_trackid[it->first] = max_replacement_id;
 	if ( max_replacement_id>0 ) {
-	  std::cout << "TripletTruthFixer::_reassignSmallTrackClusters.L:" << __LINE__ << "] "
-		    << "successfully replace trackid=" << it->first
-		    << "( w/ " << it->second << " counts)"
-		    << " with " << max_replacement_id << " (w/ " << max_nhits << ")"
-		    << std::endl;
+	  LARCV_INFO() << "successfully replace trackid=" << it->first
+		       << "( w/ " << it->second << " counts)"
+		       << " with " << max_replacement_id << " (w/ " << max_nhits << ")"
+		       << std::endl;
 	  track_instance_count[max_replacement_id] += it->second;
 	  it->second = 0;
 	  // need to propagate this reassignment to past reassignments

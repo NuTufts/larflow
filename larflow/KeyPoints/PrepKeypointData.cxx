@@ -165,8 +165,9 @@ namespace keypoints {
       LARCV_CRITICAL() << "Error running mcpg: " << err.what() << std::endl;
       throw std::runtime_error("error running mcpg");
     }
-    LARCV_DEBUG() << "finished graph" << std::endl;        
-    mcpg.printGraph();
+    LARCV_DEBUG() << "finished graph" << std::endl;
+    if ( logger().level()==larcv::msg::kDEBUG )
+      mcpg.printGraph();
 
     // build key-point containers
     _kpd_v.clear();
@@ -179,18 +180,18 @@ namespace keypoints {
     std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
 
-    std::cout << "[Track Endpoint Results]" << std::endl;
+    LARCV_INFO() << "[Track Endpoint Results]" << std::endl;
     for ( auto const& kpd : track_kpd ) {
-      std::cout << "  " << kpd.str() << std::endl;
+      LARCV_INFO() << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
     // add points for shower starts
     std::vector<KPdata> shower_kpd
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
-    std::cout << "[Shower Endpoint Results]" << std::endl;
+    LARCV_INFO() << "[Shower Endpoint Results]" << std::endl;
     for ( auto const& kpd : shower_kpd ) {
-      std::cout << "  " << kpd.str() << std::endl;
+      LARCV_INFO() << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
