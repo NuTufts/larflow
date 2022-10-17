@@ -68,6 +68,45 @@ namespace prep {
       };
     };
     
+    /** 
+     * @struct CropPixData_t
+     *
+     * @brief internal struct to represent to a pixel in cropped image and provide sorting method
+     *
+     */
+    struct CropPixData_t {
+      int row; ///< row of pixel in cropped image
+      int col; ///< col of pixel in cropped image
+      int rawRow; ///< row of pixel in original image
+      int rawCol; ///< col of pixel in original image
+      float val; ///< value of pixel
+      int idx;   ///< index in container
+      
+      CropPixData_t()
+      : row(0),col(0),rawRow(0),rawCol(0),val(0.0),idx(0)
+      {};
+
+      /** @brief constructor with row, col, value 
+       *  @param[in] r row of pixel
+       *  @param[in] c col of pixel
+       *  @param[in] v value of pixel
+       */      
+      CropPixData_t( int r, int c, int rr, int rc, float v)
+      : row(r),col(c),rawRow(rr),rawCol(rc),val(v),idx(0) {};
+
+      /** @brief comparator based on row then col then value */
+      bool operator<( const CropPixData_t& rhs ) const {
+        if (row<rhs.row) return true;
+        if ( row==rhs.row ) {
+          if ( col<rhs.col ) return true;
+          if ( col==rhs.col ) {
+            if ( val<rhs.val ) return true;
+          }
+        }
+        return false;
+      };
+    };
+    
     FlowTriples()
       : _source_plane(-1),
       _target_plane(-1),
@@ -118,7 +157,7 @@ namespace prep {
                                                int rowSpan, int colSpan,
                                                bool shower=true );
 
-    static std::vector< std::vector<FlowTriples::PixData_t> >
+    static std::vector< std::vector<FlowTriples::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v, 
                                                     const larlite::larflowcluster& prong,
                                                     const TVector3& cropCenter, 
@@ -143,6 +182,10 @@ namespace prep {
 
     std::vector<TH2D> plot_cropped_sparse_data( int rowSpan, int colSpan,
                                         const std::vector< std::vector<PixData_t> >& sparseimg_vv,
+                                        std::string hist_stem_name );
+
+    std::vector<TH2D> plot_cropped_sparse_data( int rowSpan, int colSpan,
+                                        const std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
                                         std::string hist_stem_name );
 
     /** @brief get pixels in each plane that are dead */

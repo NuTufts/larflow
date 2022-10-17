@@ -395,6 +395,32 @@ namespace prep {
     return out_v;
   }
 
+
+  std::vector<TH2D> FlowTriples::plot_cropped_sparse_data( int rowSpan, int colSpan,
+                                        const std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
+                                        std::string hist_stem_name ) {
+
+    std::vector<TH2D> out_v;
+    
+    for ( int p=0; p<(int)sparseimg_vv.size(); p++ ) {
+      std::stringstream ss;
+      ss << "htriples_plane" << p << "_" << hist_stem_name;
+      TH2D hist( ss.str().c_str(), "",
+                 colSpan, 0, colSpan,
+                 rowSpan, 0, rowSpan );
+
+      for ( auto const& pix : sparseimg_vv[p] ) {
+        if (pix.val>=10 )
+          hist.SetBinContent( pix.col, pix.row, pix.val );
+      }
+      
+      out_v.emplace_back(std::move(hist));
+    }
+
+
+    return out_v;
+  }
+
   
   /**
    * @brief convert the wire image data into a sparse represntation
@@ -479,7 +505,7 @@ namespace prep {
         pix.idx = idx;
         idx++;
       }
-      std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
+      //std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
     }
 
     return sparseimg_vv;
@@ -618,7 +644,7 @@ namespace prep {
         pix.idx = idx;
         idx++;
       }
-      std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
+      //std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
     }
 
     return sparseimg_vv;
@@ -627,7 +653,7 @@ namespace prep {
   /**
    * @brief convert the wire image data into a sparse represntation of input prong
    *
-   * we convert the image into a vector of PixData_t objects.
+   * we convert the image into a vector of CropPixData_t objects.
    * ignore all pixels not belonging to the input reco cluster
    *
    * @param[in] adc_v  Vector of image pixel values
@@ -638,14 +664,14 @@ namespace prep {
    * @param[in] colSpan  number of columns in cropped image
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::PixData_t> >
+  std::vector< std::vector<FlowTriples::CropPixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v,
                                                              const larlite::larflowcluster& prong,
                                                              const TVector3& cropCenter, 
                                                              float threshold, int rowSpan, int colSpan ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv(adc_v.size());
+    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v.size());
     
     std::vector< std::vector<int> > prongBounds;
     for ( size_t p=0; p<adc_v.size(); p++ ) {
@@ -713,8 +739,8 @@ namespace prep {
           if ( val>=threshold && 
                row >= imgBounds[p][0] && row < imgBounds[p][1] &&
                col >= imgBounds[p][2] && col < imgBounds[p][3] ) {
-            sparseimg_vv[p].push_back( PixData_t((int)row - imgBounds[p][0],
-                                                 (int)col - imgBounds[p][2], val) );
+            sparseimg_vv[p].push_back( CropPixData_t((int)row - imgBounds[p][0],
+                                                     (int)col - imgBounds[p][2], row, col, val) );
           }
       }
 
@@ -725,7 +751,7 @@ namespace prep {
         pix.idx = idx;
         idx++;
       }
-      std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
+      //std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
     }
 
     return sparseimg_vv;
