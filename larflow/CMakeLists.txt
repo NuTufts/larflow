@@ -1,7 +1,7 @@
 add_subdirectory(LArFlowConstants)
 add_subdirectory(PrepFlowMatchData)
 add_subdirectory(KeyPoints)
-#add_subdirectory(Voxelizer)
+add_subdirectory(Voxelizer)
 #add_subdirectory(Reco)
 #add_subdirectory(MCTools)
 #add_subdirectory(SCBoundary)
