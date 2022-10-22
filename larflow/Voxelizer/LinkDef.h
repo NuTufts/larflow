@@ -14,7 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ namespace std;
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::voxelizer;
 #pragma link C++ class larflow::voxelizer::VoxelizeTriplets+;
