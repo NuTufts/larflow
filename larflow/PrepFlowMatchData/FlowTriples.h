@@ -157,6 +157,14 @@ namespace prep {
                                                int rowSpan, int colSpan,
                                                bool shower=true );
 
+    static std::vector< std::vector<FlowTriples::PixData_t> >
+      make_cropped_initial_sparse_prong_image_wMask( const std::vector<larcv::Image2D>& adc_v, 
+                                                     ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                     larlite::storage_manager& ioll, 
+                                                     int trackid, float threshold,
+                                                     int rowSpan, int colSpan,
+                                                     bool shower=true );
+
     static std::vector< std::vector<FlowTriples::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v, 
                                                     const larlite::larflowcluster& prong,
