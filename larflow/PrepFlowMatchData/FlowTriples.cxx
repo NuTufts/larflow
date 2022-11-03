@@ -815,6 +815,7 @@ namespace prep {
    * ignore all pixels not belonging to the input reco cluster
    *
    * @param[in] adc_v  Vector of image pixel values
+   * @param[in] thrumu_v  Vector of cosmic image pixel values
    * @param[in] prong  larflowcluster object with reco prong hits
    * @param[in] cropCenter  point to center crop if input prong exceeds rowSpan or colSpan
    * @param[in] threshold  Keep only pixels with value above this threshold
@@ -824,6 +825,7 @@ namespace prep {
    */        
   std::vector< std::vector<FlowTriples::CropPixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v,
+                                                             const std::vector<larcv::Image2D>& thrumu_v,
                                                              const larlite::larflowcluster& prong,
                                                              const TVector3& cropCenter, 
                                                              float threshold, int rowSpan, int colSpan ) {
@@ -896,7 +898,8 @@ namespace prep {
         int row = (hit.tick - 2400)/6;
         int col = hit.targetwire[p];
         float val = adc_v[p].pixel(row, col);
-          if ( val>=threshold && 
+        float val_cosmic = thrumu_v[p].pixel(row, col);
+          if ( val >= threshold && val_cosmic < threshold &&
                row >= imgBounds[p][0] && row < imgBounds[p][1] &&
                col >= imgBounds[p][2] && col < imgBounds[p][3] ) {
             sparseimg_vv[p].push_back( CropPixData_t(row - imgBounds[p][0],
@@ -907,7 +910,8 @@ namespace prep {
       for ( size_t row=0; row<adc_v[p].meta().rows(); row++ ) {
         for ( size_t col=0; col<adc_v[p].meta().cols(); col++ ) {
           float val = adc_v[p].pixel(row,col);
-          if ( val>=threshold && 
+          float val_cosmic = thrumu_v[p].pixel(row, col);
+          if ( val >= threshold && val_cosmic < threshold &&
                (int)row >= imgBounds[p][0] && (int)row < imgBounds[p][1] &&
                (int)col >= imgBounds[p][2] && (int)col < imgBounds[p][3] ) {
             sparseimg_vv[p+3].push_back( CropPixData_t((int)row - imgBounds[p][0],
