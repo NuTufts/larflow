@@ -2,7 +2,6 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
 
-#include "larcv/core/PyUtil/PyUtils.h"
 #include "larcv/core/Base/larcv_logger.h"
 #include "larcv/core/DataFormat/EventSparseImage.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
@@ -14,6 +13,17 @@
 
 namespace larflow {
 namespace prep {
+
+  bool FlowMatchHitMaker::_import_numpy = false;
+
+  int FlowMatchHitMaker::setupNumpy()
+  {
+    if ( !FlowMatchHitMaker::_import_numpy ) {
+      FlowMatchHitMaker::_import_numpy = true;      
+      import_array1(0);
+    }
+    return 0;
+  }
 
   /**
    * @brief compile network output into hit candidate information
@@ -39,11 +49,8 @@ namespace prep {
   {
 
     // enable numpy environment (if not already set)
-    std::cout << "setting pyutils ... ";
-    import_array1(0);    
-    larcv::SetPyUtil();
-    std::cout << " done" << std::endl;
-
+    setupNumpy();
+    
     // cast numpy data to C-arrays
     const int dtype = NPY_FLOAT;
     PyArray_Descr *descr = PyArray_DescrFromType(dtype);
@@ -651,11 +658,8 @@ namespace prep {
     }
     
     // enable numpy environment (if not already set)
-    std::cout << "setting pyutils ... ";
-    import_array1(0);    
-    larcv::SetPyUtil();
-    std::cout << " done" << std::endl;
-
+    setupNumpy();
+    
     // check types
     if ( PyArray_TYPE((PyArrayObject*)triple_probs)!=NPY_FLOAT32 ) {
        throw std::runtime_error("[FlowMatchHitMaker] triple_probs array needs to by type np.float32");
