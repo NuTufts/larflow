@@ -4,6 +4,7 @@
 
 #include <ctime>
 #include <sstream>
+#include <algorithm>
 
 namespace larflow {
 namespace prep {
@@ -902,8 +903,10 @@ namespace prep {
           if ( val >= threshold && val_cosmic < threshold &&
                row >= imgBounds[p][0] && row < imgBounds[p][1] &&
                col >= imgBounds[p][2] && col < imgBounds[p][3] ) {
-            sparseimg_vv[p].push_back( CropPixData_t(row - imgBounds[p][0],
-                                                     col - imgBounds[p][2], row, col, val) );
+            CropPixData_t cropPixData(row - imgBounds[p][0], col - imgBounds[p][2], row, col, val);
+            if( std::find(sparseimg_vv[p].begin(), sparseimg_vv[p].end(), cropPixData) == 
+                sparseimg_vv[p].end() )
+              sparseimg_vv[p].push_back(cropPixData);
           }
       }
 
