@@ -74,6 +74,7 @@ namespace reco {
     std::vector<float>           track_muid_v;      ///< muon likelihood   (from TrackdQdx)
     std::vector<float>           track_protonid_v;  ///< proton likelihood (from TrackdQdx)
     std::vector<float>           track_mu_vs_proton_llratio_v; // muon/proton likelihood ratio
+    std::vector<int>             track_isSecondary_v; ///< 1 if added by NuVertexAddSecondaries, 0 otherwise
     
     std::vector<larlite::larflowcluster> shower_v; ///< shower candidates
     std::vector<larlite::track>  shower_trunk_v;   ///< line for shower trunk for plotting
@@ -81,6 +82,7 @@ namespace reco {
     std::vector< std::vector<float> > shower_plane_pixsum_vv; ///< pixel sum of showers, a value for each plane
     std::vector< std::vector<TLorentzVector> > shower_plane_mom_vv; ///< energy of showers, a value for each plane
     std::vector< std::vector<float> > shower_plane_dqdx_vv;  ///< dqdx of shower trunk, a value for each plane
+    std::vector<int> shower_isSecondary_v; ///< 1 if added by NuVertexAddSecondaries, 0 otherwise
 
     /** @brief comparator to sort candidates by highest score */
     bool operator<(const NuVertexCandidate& rhs) const {
