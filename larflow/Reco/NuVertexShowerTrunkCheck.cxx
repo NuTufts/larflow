@@ -36,6 +36,14 @@ namespace reco {
       auto& shower_trunk = nuvtx.shower_trunk_v[j];
       auto& shower_pca   = nuvtx.shower_pcaxis_v[j];
 
+      // check shower trunk
+      bool showerOkay = true;
+      for(int i = 0; i < 3; ++i){
+        if( std::isnan(shower_trunk.LocationAtPoint(0)[i]) ) showerOkay = false;
+        if( std::isnan(shower_trunk.LocationAtPoint(1)[i]) ) showerOkay = false;
+      }
+      if(!showerOkay) continue;
+
       LARCV_DEBUG() << "shower[" << j << "] check for tracks to absorb" << std::endl;
       LARCV_DEBUG() << "shower[" << j << "] trunk start=("
 		    << shower_trunk.LocationAtPoint(0)[0] << ","
