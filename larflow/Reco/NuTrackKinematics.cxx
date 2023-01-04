@@ -64,7 +64,8 @@ namespace reco {
       float ke_p  = _sProtonRange2T->Eval( tracklen );
 
       // get direction of track
-      TVector3 trunkdir = get_trackdir_radius( track, 10.0, nuvtx.pos );
+      TVector3 trunkdir(0., 0., 0.);
+      if(track.NumberTrajectoryPoints() > 0) trunkdir = get_trackdir_radius( track, 10.0, nuvtx.pos );
       if ( trunkdir.Mag()<1.0e-1 ) {
         // bad direction for some reason
         trunkdir[0] = 0.;
