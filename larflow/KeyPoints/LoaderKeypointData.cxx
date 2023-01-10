@@ -41,19 +41,28 @@ namespace keypoints {
    */
   void LoaderKeypointData::load_tree() {
     LARCV_INFO() << "start" << std::endl;
-    
+
     ttriplet  = new TChain("larmatchtriplet");
     tkeypoint = new TChain("keypointlabels");
     tssnet    = new TChain("ssnetlabels");
     tlarbysmc = new TChain("LArbysMCTree");
+    has_larbysmc = true;
     for (auto const& infile : input_files ) {
       //std::cout << "add " << infile << " to chains" << std::endl;
       ttriplet->Add(infile.c_str());
       tkeypoint->Add(infile.c_str());
       tssnet->Add(infile.c_str());
-      tlarbysmc->Add(infile.c_str());
+      if ( has_larbysmc ) {
+	try {
+	  tlarbysmc->Add(infile.c_str());
+	}
+	catch ( const std::exception& e ) {
+	  LARCV_INFO() << "error loading LArbysMCTree (optional): " << e.what() << std::endl;
+	  has_larbysmc = false;
+	}
+      }
     }
-    LARCV_INFO() << "[LoaderKeypointData::load_tree()] " << input_files.size() << "files added" << std::endl;
+    LARCV_INFO() << "[LoaderKeypointData::load_tree()] " << input_files.size() << " files added" << std::endl;
     
     triplet_v = 0;
     kpdata_v = 0;
@@ -71,8 +80,7 @@ namespace keypoints {
     tkeypoint->SetBranchAddress("subrun", &_subrun );
     tkeypoint->SetBranchAddress("event",  &_event ); 
     
-    if ( tlarbysmc->GetEntries()>0 ) {
-      has_larbysmc = true;
+    if ( has_larbysmc && tlarbysmc->GetEntries()>0 ) {
       tlarbysmc->SetBranchAddress( "vtx_sce_x", &vtx_sce_x );
       tlarbysmc->SetBranchAddress( "vtx_sce_y", &vtx_sce_y );
       tlarbysmc->SetBranchAddress( "vtx_sce_z", &vtx_sce_z );      
@@ -81,6 +89,7 @@ namespace keypoints {
       has_larbysmc = false;
     }
 
+    LARCV_INFO() << "loaded. (has_larbysmc=" << has_larbysmc << ")" << std::endl;
   }
 
   /**

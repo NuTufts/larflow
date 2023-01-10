@@ -33,6 +33,7 @@ namespace voxelizer {
    * 
    */
   VoxelizeTriplets::VoxelizeTriplets()
+    : larcv::larcv_base("VoxelizeTriplets")
   {
 
     _origin.clear();
@@ -66,7 +67,8 @@ namespace voxelizer {
   VoxelizeTriplets::VoxelizeTriplets( std::vector<float> origin,
                                       std::vector<float> dim_len,
                                       float voxel_size ) 
-    : _origin(origin),
+    : larcv::larcv_base("VoxelizeTriplets"),
+      _origin(origin),
     _len(dim_len),
     _voxel_size(voxel_size)
   {
@@ -159,55 +161,85 @@ namespace voxelizer {
    * @param[in] triplet_data Instance of triplet data, assumed to be filled already
    *
    */
-  void VoxelizeTriplets::make_voxeldata( const larflow::prep::PrepMatchTriplets& triplet_data )
+  larflow::voxelizer::TPCVoxelData
+  VoxelizeTriplets::make_voxeldata( const larflow::prep::MatchTriplets& triplet_data )
   {
+
+    // configure voxel based on tpc and cryo ID
+    // (do later -- not needed for MicroBooNE for now)
     
-    // first we need to define the voxels that are filled    
-    _voxel_set.clear();
+    larflow::voxelizer::TPCVoxelData voxdata;
+    voxdata._ndims  = _ndims;
+    voxdata._origin = _origin;
+    voxdata._len    = _len;
+    voxdata._voxel_size = _voxel_size;
+    voxdata._nvoxels = _nvoxels;
+    voxdata._tpcid  = triplet_data._tpcid;
+    voxdata._cryoid = triplet_data._cryoid;    
+            
+    // first we need to define the voxels that are filled
+    voxdata._voxel_set.clear();
     
     for ( int itriplet=0; itriplet<(int)triplet_data._triplet_v.size(); itriplet++ ) {
       const std::vector<float>& pos = triplet_data._pos_v[itriplet];
       std::array<int,3> coord;
       for (int i=0; i<3; i++)
         coord[i] = get_axis_voxel(i,pos[i]);      
-      _voxel_set.insert( coord );        
+      voxdata._voxel_set.insert( coord );        
     }
 
     // now we assign voxel to an index
-    _voxel_list.clear();
+    voxdata._voxel_list.clear();
     int idx=0;
-    for ( auto& coord : _voxel_set ) {
-      _voxel_list[coord] = idx;
+    for ( auto& coord : voxdata._voxel_set ) {
+      voxdata._voxel_list[coord] = idx;
       idx++;
     }
     int nvidx = idx;    
 
-    // std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "    
-    //           << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets"
-    //           << " fillfrac=" << float(nvidx)/((float)_nvoxels[0]*(float)_nvoxels[1]*(float)_nvoxels[2])*100.0 << "%"
-    //           << std::endl;
+    LARCV_INFO() << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets"
+		 << " fillfrac=" << float(nvidx)/((float)voxdata._nvoxels[0]*(float)voxdata._nvoxels[1]*(float)voxdata._nvoxels[2])*100.0 << "%"
+		 << std::endl;
 
     // assign triplets to voxels and vice versa
-    _voxelidx_to_tripidxlist.clear();
-    _voxelidx_to_tripidxlist.resize(nvidx);
-    _trip2voxelidx.clear();
-    _trip2voxelidx.resize( triplet_data._triplet_v.size(), 0 );
-    
+    voxdata._voxelidx_to_tripidxlist.clear();
+    voxdata._voxelidx_to_tripidxlist.resize(nvidx);
+    voxdata._trip2voxelidx.clear();
+    voxdata._trip2voxelidx.resize( triplet_data._triplet_v.size(), 0 );
+
     for ( int itriplet=0; itriplet<(int)triplet_data._triplet_v.size(); itriplet++ ) {
       const std::vector<float>& pos = triplet_data._pos_v[itriplet];
       std::array<int,3> coord;
       for (int i=0; i<3; i++)
         coord[i] = get_axis_voxel(i,pos[i]);
-      auto it=_voxel_list.find(coord);
-      if ( it==_voxel_list.end() ) {
+      auto it=voxdata._voxel_list.find(coord);
+      if ( it==voxdata._voxel_list.end() ) {
         throw std::runtime_error("could not find a voxel we defined!!");
       }
       
       int voxelidx = it->second;
-      _trip2voxelidx[itriplet] = voxelidx;
-      _voxelidx_to_tripidxlist[voxelidx].push_back( itriplet );
+      voxdata._trip2voxelidx[itriplet] = voxelidx;
+      voxdata._voxelidx_to_tripidxlist[voxelidx].push_back( itriplet );
     }
+
+    int number_multipt_voxel = 0;
+    int max_pt_in_voxel = 0;    
+    for ( auto const& voxel_tripletlist : voxdata._voxelidx_to_tripidxlist ) {
+      if ( voxel_tripletlist.size()>1 )
+	number_multipt_voxel++;
+      if ( voxel_tripletlist.size()>max_pt_in_voxel )
+	max_pt_in_voxel = (int)voxel_tripletlist.size();
+    }
+
+    LARCV_INFO() << "Number of filled voxels: " <<voxdata._voxelidx_to_tripidxlist.size() << std::endl;
+    LARCV_INFO() << "  number of multipt voxel: " << number_multipt_voxel << std::endl;
+    LARCV_INFO() << "  max pts in a voxel: " << max_pt_in_voxel << std::endl;
     
+    // Fill a TPCVoxelData object for This MatchTriplet instance
+
+    // save a copy in the voxelizer?
+    //_voxel_data_v.emplace_back( std::move(voxdata) );
+    return voxdata;
   }
 
   /**
@@ -227,24 +259,25 @@ namespace voxelizer {
    * @return Python dictionary as described above. Ownership is transferred to calling namespace.
    *
    */
-  PyObject* VoxelizeTriplets::make_voxeldata_dict( const larflow::prep::PrepMatchTriplets& triplet_data )
+  PyObject* VoxelizeTriplets::make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
+						   const larflow::prep::MatchTriplets& triplet_data )
   {
     
     // ok now we can make the arrays
     if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      LARCV_INFO() << " setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
 
-    int nvidx = (int)_voxel_set.size();
+    int nvidx = (int)voxdata._voxel_set.size();
     
     // first the voxel coordinate array
     npy_intp* coord_dims = new npy_intp[2];
     coord_dims[0] = (int)nvidx;
-    coord_dims[1] = (int)_ndims;
+    coord_dims[1] = (int)voxdata._ndims;
     PyArrayObject* coord_array = (PyArrayObject*)PyArray_SimpleNew( 2, coord_dims, NPY_LONG );
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second;
       const std::array<int,3>& coord = it->first;
       for (int j=0; j<_ndims; j++)
@@ -257,11 +290,11 @@ namespace voxelizer {
     feat_dims[0] = (int)nvidx;
     feat_dims[1] = (int)3;
     PyArrayObject* feat_array = (PyArrayObject*)PyArray_SimpleNew( 2, feat_dims, NPY_FLOAT );
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
       // ave plane charge of spacepoints associated to this voxel
-      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
       std::vector<float> pixsum_v(3,0.0);
       std::vector<int> npix_v(3,0);
       for ( auto const& tripidx : tripidx_v ) {
@@ -288,13 +321,13 @@ namespace voxelizer {
     vlabel_dims[0] = (int)nvidx;
     PyArrayObject* vlabel_array = (PyArrayObject*)PyArray_SimpleNew( 1, vlabel_dims, NPY_LONG );
     int num_true_voxels = 0;
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second;
       int truthlabel = 0.;
 
       if ( has_truth ) {
         // is there a true pixel?
-        std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx];
+        const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx];
         for ( auto const& tidx : tripidx_v ) {
           if ( triplet_data._truth_v[tidx]==1 ) {
             truthlabel = 1;
@@ -316,7 +349,7 @@ namespace voxelizer {
     float w_neg = 1.0/frac_neg;
     float w_pos = 1.0/frac_pos;
     float w_norm = (float)num_true_voxels*w_pos + (float)(nvidx-num_true_voxels)*w_neg;
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second;
       long truthlabel = *((long*)PyArray_GETPTR1( vlabel_array, vidx ));
 
@@ -331,20 +364,20 @@ namespace voxelizer {
 
     // the triplet to voxel index array
     npy_intp* trip2vidx_dims = new npy_intp[1];
-    trip2vidx_dims[0] = (int)_trip2voxelidx.size();
+    trip2vidx_dims[0] = (int)voxdata._trip2voxelidx.size();
     PyArrayObject* trip2vidx_array = (PyArrayObject*)PyArray_SimpleNew( 1, trip2vidx_dims, NPY_LONG );
-    for (int itriplet=0; itriplet<(int)_trip2voxelidx.size(); itriplet++ ) {
-      *((long*)PyArray_GETPTR1( trip2vidx_array, itriplet )) = (long)_trip2voxelidx[itriplet];
+    for (int itriplet=0; itriplet<(int)voxdata._trip2voxelidx.size(); itriplet++ ) {
+      *((long*)PyArray_GETPTR1( trip2vidx_array, itriplet )) = (long)voxdata._trip2voxelidx[itriplet];
     }
     //std::cout << "  made triplet-to-voxelindex array" << std::endl;    
-
+    
     // finally the list of triplet indices for each voxel
     PyObject* tripidx_pylist = PyList_New( nvidx );
     for ( int vidx=0; vidx<nvidx; vidx++ ) {
 
       // make the array
       npy_intp* tidx_dims = new npy_intp[1];
-      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx];
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx];
       tidx_dims[0] = (int)tripidx_v.size();
       PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( 1, tidx_dims, NPY_LONG );
       for ( int i=0; i<tidx_dims[0]; i++ ) {
@@ -401,7 +434,20 @@ namespace voxelizer {
    */
   PyObject* VoxelizeTriplets::make_voxeldata_dict()
   {
-    return make_voxeldata_dict( _triplet_maker );
+
+    // NEEDS FIX
+    
+    PyObject* pylist = PyList_New(0); // create an empty list
+    // for ( auto& matchtriplet : _triplet_maker._match_triplet_v ) {
+    //   PyObject* voxel_dict = make_voxeldata_dict( matchtriplet );
+    //   int status = PyList_Append( pylist, voxel_dict );
+    //   if ( status!=0 )
+    // 	LARCV_ERROR() << "Could not append voxel dictionary for TPC triplet data" << std::endl;
+    //   // need to dereference the dict here?
+    //   Py_DECREF( voxel_dict );
+    // }
+    
+    return pylist;
   }
   
   /**
@@ -432,10 +478,13 @@ namespace voxelizer {
     if ( has_mc ) {
       larcv::EventImage2D* ev_larflow =    
         (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");    
-      _triplet_maker.make_truth_vector( ev_larflow->Image2DArray() );
+      larcv::EventImage2D* ev_instance =    
+        (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");    
+      _triplet_maker.make_truth_vector( ev_larflow->Image2DArray(), ev_instance->Image2DArray() );
     }
 
-    make_voxeldata( _triplet_maker );
+    for ( auto& matchtriplet : _triplet_maker._match_triplet_v )
+      make_voxeldata( matchtriplet );
 
     // persistancy:
 
@@ -467,21 +516,26 @@ namespace voxelizer {
   }
 
   /**
-   * @brief make voxel labels for ssnet
+   * @brief make TPC voxel labels for ssnet
+   *
+   * collate the voxels and ssnet label data and output a numpy array.
+   *  
    */
-  int VoxelizeTriplets::make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data,
-						 PyArrayObject*& ssnet_array,
-						 PyArrayObject*& ssnet_weight )
+  int VoxelizeTriplets::make_ssnet_voxel_label_nparray( const larflow::prep::SSNetLabelData& ssnetdata,
+							const larflow::voxelizer::TPCVoxelData& voxeldata,
+							const larflow::prep::MatchTriplets& tripletdata,
+							PyArrayObject*& ssnet_array,
+							PyArrayObject*& ssnet_weight )
   {
 
-    // ok now we can make the arrays
+    // start the numpy environment or something
     if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      LARCV_INFO() << "setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
 
-    int nvidx = (int)_voxel_set.size();
+    int nvidx = (int)voxeldata._voxel_set.size();
     
     // voxel ssnet label array: charge on planes, taking mean
     npy_intp* ssnet_dims = new npy_intp[1];
@@ -489,14 +543,14 @@ namespace voxelizer {
     ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 1, ssnet_dims, NPY_LONG );
 
     std::vector<int> vox_nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxeldata._voxel_list.begin(); it!=voxeldata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
       // find class label with most (non background) triplets
-      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      const std::vector<int>& tripidx_v = voxeldata._voxelidx_to_tripidxlist[vidx]; // index of triplet
       std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
       for ( auto const& tripidx : tripidx_v ) {
-	int triplet_label = data.ssnet_label_v->at(tripidx);
+	int triplet_label = ssnetdata._ssnet_label_v.at(tripidx);
 	if ( triplet_label>=0 && triplet_label<larflow::prep::PrepSSNetTriplet::kNumClasses )
 	  nclass[triplet_label]++;
       }
@@ -540,21 +594,22 @@ namespace voxelizer {
     //std::cout << "  made ssnet truth array" << std::endl;
     return 0;
   }
-
+  
   /**
    * @brief make voxel labels for ssnet
    */
-  PyObject* VoxelizeTriplets::make_ssnet_dict_labels( const larflow::prep::PrepMatchTriplets& data )
+  PyObject* VoxelizeTriplets::make_ssnet_dict_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+						      const larflow::prep::MatchTriplets& data )
   {
 
     // ok now we can make the arrays
     if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      LARCV_INFO() << " setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
 
-    int nvidx = (int)_voxel_set.size();
+    int nvidx = (int)voxdata._voxel_set.size();
     
     // voxel ssnet label array: charge on planes, taking mean
     npy_intp* ssnet_dims = new npy_intp[1];
@@ -562,11 +617,11 @@ namespace voxelizer {
     PyArrayObject* ssnet_array = (PyArrayObject*)PyArray_SimpleNew( 1, ssnet_dims, NPY_LONG );
 
     std::vector<int> vox_nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
       // find class label with most (non background) triplets
-      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
       std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
       for ( auto const& tripidx : tripidx_v ) {
 	int triplet_label = data._pdg_v.at(tripidx);
@@ -645,7 +700,7 @@ namespace voxelizer {
     Py_DECREF( key_weight );
     Py_DECREF( ssnet_array );
     Py_DECREF( ssnet_weight );
-
+    
     //std::cout << "  made ssnet truth array" << std::endl;
     return d;
   }
@@ -655,56 +710,72 @@ namespace voxelizer {
    * @param data Class holding the triplet data and truth labels loaded inside
    * @return dictionary with numpy arrays
    */
-  PyObject* VoxelizeTriplets::get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data )
+  PyObject* VoxelizeTriplets::get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data ) 
   {
-    // get larmatch voxels and truth labels
-    PyObject* larmatch_dict = VoxelizeTriplets::make_voxeldata_dict( data.triplet_v->at(0) );
+
+    size_t num_tpcs = data.triplet_v->size(); // number of sets of triplet data. each entry is for a TPC in the detector.
+
+    PyObject* tpclist = PyList_New(0);
+
+    for ( size_t idata=0; idata<num_tpcs; idata++ ) {
+      const larflow::prep::MatchTriplets& tripletdata = data.triplet_v->at(idata); /// proposed spacepoints and labels
+      const larflow::keypoints::KeypointData& kpdata  = data.kpdata_v->at(idata);  /// keypoints along with info to calc score label
+      const larflow::prep::SSNetLabelData& ssnetdata  = data.ssnet_v->at(idata);   /// ssnet labels for the spacepoints
+
+      larflow::voxelizer::TPCVoxelData voxdata = make_voxeldata(tripletdata); /// make maps from voxels to spacepoints
+      
+      // get larmatch voxels and truth labels (ghost vs true label)
+      PyObject* larmatch_dict = VoxelizeTriplets::make_voxeldata_dict( voxdata, tripletdata );
     
-    PyObject *ssnet_label_key  = Py_BuildValue("s", "ssnet_labels" );
-    PyObject *ssnet_weight_key = Py_BuildValue("s", "ssnet_weights" );    
-    PyArrayObject* ssnet_array  = nullptr;
-    PyArrayObject* ssnet_weight = nullptr;
-    make_ssnet_voxel_labels( data, ssnet_array, ssnet_weight );
-    PyDict_SetItem(larmatch_dict, ssnet_label_key,  (PyObject*)ssnet_array);
-    PyDict_SetItem(larmatch_dict, ssnet_weight_key, (PyObject*)ssnet_weight);    
+      PyObject *ssnet_label_key  = Py_BuildValue("s", "ssnet_labels" );
+      PyObject *ssnet_weight_key = Py_BuildValue("s", "ssnet_weights" );    
+      PyArrayObject* ssnet_array  = nullptr;
+      PyArrayObject* ssnet_weight = nullptr;
+      make_ssnet_voxel_label_nparray( ssnetdata, voxdata, tripletdata, ssnet_array, ssnet_weight );
+      PyDict_SetItem(larmatch_dict, ssnet_label_key,  (PyObject*)ssnet_array);
+      PyDict_SetItem(larmatch_dict, ssnet_weight_key, (PyObject*)ssnet_weight);    
 
-    PyArrayObject* larmatch_labels = (PyArrayObject*)PyDict_GetItemString( larmatch_dict, "voxlabel" );
-    PyArrayObject* kplabel  = nullptr;
-    PyArrayObject* kpweight = nullptr;
-    make_kplabel_arrays( data, larmatch_labels, kplabel, kpweight );
-    PyObject *kp_label_key = Py_BuildValue("s", "kplabel" );
-    PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );
-    PyObject *kp_weight_key = Py_BuildValue("s", "kpweight" );    
-    PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );
+      PyArrayObject* larmatch_labels = (PyArrayObject*)PyDict_GetItemString( larmatch_dict, "voxlabel" );
+      PyArrayObject* kplabel  = nullptr;
+      PyArrayObject* kpweight = nullptr;
+      make_kplabel_arrays( kpdata, voxdata, larmatch_labels, kplabel, kpweight );
+      PyObject *kp_label_key = Py_BuildValue("s", "kplabel" );
+      PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );
+      PyObject *kp_weight_key = Py_BuildValue("s", "kpweight" );    
+      PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );
 
-    // instance labels
-    PyObject* dict_instance_labels = make_instance_dict_labels( data.triplet_v->at(0) );
-    int mergeok = PyDict_Update( larmatch_dict, dict_instance_labels );
-    if ( mergeok!=0 ) {
-      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with instance label dict failed");
+      // instance labels
+      PyObject* dict_instance_labels = make_instance_dict_labels( voxdata, tripletdata );
+      int mergeok = PyDict_Update( larmatch_dict, dict_instance_labels );
+      if ( mergeok!=0 ) {
+	throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with instance label dict failed");
+      }
+      
+      // origin labels
+      PyObject* dict_origin_labels = make_origin_dict_labels( voxdata, tripletdata );
+      mergeok = PyDict_Update( larmatch_dict, dict_origin_labels );
+      if ( mergeok!=0 ) {
+	throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with origin label dict failed");
+      }
+
+      Py_DECREF(ssnet_label_key);
+      Py_DECREF(ssnet_weight_key);
+      Py_DECREF(kp_label_key);
+      Py_DECREF(kp_weight_key);
+      
+      Py_DECREF(kplabel);
+      Py_DECREF(kpweight);
+      Py_DECREF(ssnet_array);
+      Py_DECREF(ssnet_weight);
+      Py_DECREF(dict_origin_labels);
+      Py_DECREF(dict_instance_labels);
+
+      PyList_Append( tpclist, larmatch_dict );
+
     }
-    
-    // origin labels
-    PyObject* dict_origin_labels = make_origin_dict_labels( data.triplet_v->at(0) );
-    mergeok = PyDict_Update( larmatch_dict, dict_origin_labels );
-    if ( mergeok!=0 ) {
-      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with origin label dict failed");
-    }
-
-    Py_DECREF(ssnet_label_key);
-    Py_DECREF(ssnet_weight_key);
-    Py_DECREF(kp_label_key);
-    Py_DECREF(kp_weight_key);
-
-    Py_DECREF(kplabel);
-    Py_DECREF(kpweight);
-    Py_DECREF(ssnet_array);
-    Py_DECREF(ssnet_weight);
-    Py_DECREF(dict_origin_labels);
-    Py_DECREF(dict_instance_labels);    
 
 
-    return larmatch_dict;
+    return tpclist;
   }
 
   /**
@@ -719,20 +790,22 @@ namespace voxelizer {
    * @param[out] kplabel_weight numpy array containing weight for each spacepoint
    * @return always returns 0  
    */
-  int VoxelizeTriplets::make_kplabel_arrays( const larflow::keypoints::LoaderKeypointData& data,
+  int VoxelizeTriplets::make_kplabel_arrays( const larflow::keypoints::KeypointData& kpdata,
+					     const larflow::voxelizer::TPCVoxelData& voxdata,
 					     PyArrayObject* larmatch_label_array,
 					     PyArrayObject*& kplabel_array,
-					     PyArrayObject*& kplabel_weight )
+					     PyArrayObject*& kplabel_weight,
+					     float sigma )
   {
-
+    
     // ok now we can make the arrays
     if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      LARCV_INFO() << " setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
 
-    int nvidx = (int)_voxel_set.size();
+    int nvidx = (int)voxdata._voxel_set.size();
     int nclasses = 6; //number of keypoint classes    
     
     // voxel ssnet label array: charge on planes, taking mean
@@ -740,25 +813,25 @@ namespace voxelizer {
     kplabel_dims[0] = (int)nclasses;
     kplabel_dims[1] = (int)nvidx;    
     kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
-
+    
     /// ------- ///
     
-    float sigma = 10.0; // cm
+    //float sigma = 10.0; // cm
     float sigma2 = sigma*sigma; // cm^2
 
     std::vector<int> npos(nclasses,0);
     std::vector<int> nneg(nclasses,0);
-
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index, index in the array we are filling
       const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
 
       std::vector<float> vox_center(3,0);
       for (int i=0; i<3; i++)
 	vox_center[i] = ((float)arr_index[i]+0.5)*get_voxel_size() + get_origin()[i]; // position of voxel center
-
+      
       //std::cout << "vox-center: (" << vox_center[0] << "," << vox_center[1] << "," << vox_center[2] << ")" << std::endl;
-
+      
       long larmatch_truth_label = 1.0;
       if ( larmatch_label_array!=NULL )
 	larmatch_truth_label = *((long*)PyArray_GETPTR1(larmatch_label_array,vidx));
@@ -773,12 +846,12 @@ namespace voxelizer {
 	  continue;
 	}
 	
-	const std::vector< std::vector<float> >& pos_v = *(data.kppos_v[c]);
-	int nkp = pos_v.size();
+	const std::vector<larflow::keypoints::KPdata>& kpd_v = kpdata._kpd_v;
+	int nkp = kpd_v.size();
 	float min_dist_kp = 1.0e9;
 	int   max_kp_idx = -1;
 	for (int ikp=0; ikp<nkp; ikp++) {
-	  const std::vector<float>& pos = pos_v[ikp];
+	  const std::vector<float>& pos = kpd_v.at(ikp).keypt;
 	  float dist = 0;
 	  for (int i=0; i<3; i++)
 	    dist += ( pos[i]-vox_center[i] )*( pos[i]-vox_center[i] );
@@ -853,161 +926,162 @@ namespace voxelizer {
    * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
    * @return always returns 0  
    */
-  PyObject* VoxelizeTriplets::make_kplabel_dict_fromprep( const larflow::keypoints::PrepKeypointData& data,
-							  PyObject* plarmatch_label_array )
-  {
+  // PyObject* VoxelizeTriplets::make_kplabel_dict_fromprep( const larflow::keypoints::PrepKeypointData& data,
+  // 							  PyObject* plarmatch_label_array )
+  // {
 
-    // ok now we can make the arrays
-    if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
-      import_array1(0);
-      _setup_numpy = true;
-    }
+  //   // ok now we can make the arrays
+  //   if ( !_setup_numpy ) {
+  //     LARCV_INFO() << " setup numpy" << std::endl;
+  //     import_array1(0);
+  //     _setup_numpy = true;
+  //   }
 
-    PyArrayObject* larmatch_label_array =  (PyArrayObject*)plarmatch_label_array;
+  //   PyArrayObject* larmatch_label_array =  (PyArrayObject*)plarmatch_label_array;
 
-    int nvidx = (int)_voxel_set.size();
-    int nclasses = 6; //number of keypoint classes    
+  //   int nvidx = (int)_voxel_set.size();
+  //   int nclasses = 6; //number of keypoint classes    
     
-    // voxel ssnet label array: charge on planes, taking mean
-    npy_intp* kplabel_dims = new npy_intp[2];
-    kplabel_dims[0] = (int)nclasses;
-    kplabel_dims[1] = (int)nvidx;    
-    PyArrayObject* kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
+  //   // voxel ssnet label array: charge on planes, taking mean
+  //   npy_intp* kplabel_dims = new npy_intp[2];
+  //   kplabel_dims[0] = (int)nclasses;
+  //   kplabel_dims[1] = (int)nvidx;    
+  //   PyArrayObject* kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
 
-    /// ------- ///
+  //   /// ------- ///
     
-    float sigma = 10.0; // cm
-    float sigma2 = sigma*sigma; // cm^2
+  //   float sigma = 10.0; // cm
+  //   float sigma2 = sigma*sigma; // cm^2
 
-    std::vector<int> npos(nclasses,0);
-    std::vector<int> nneg(nclasses,0);
+  //   std::vector<int> npos(nclasses,0);
+  //   std::vector<int> nneg(nclasses,0);
 
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
-      int vidx = it->second; // voxel index, index in the array we are filling
-      const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
+  //   for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+  //     int vidx = it->second; // voxel index, index in the array we are filling
+  //     const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
 
-      std::vector<float> vox_center(3,0);
-      for (int i=0; i<3; i++)
-	vox_center[i] = ((float)arr_index[i]+0.5)*get_voxel_size() + get_origin()[i]; // position of voxel center
+  //     std::vector<float> vox_center(3,0);
+  //     for (int i=0; i<3; i++)
+  // 	vox_center[i] = ((float)arr_index[i]+0.5)*get_voxel_size() + get_origin()[i]; // position of voxel center
 
-      //std::cout << "vox-center: (" << vox_center[0] << "," << vox_center[1] << "," << vox_center[2] << ")" << std::endl;
+  //     //std::cout << "vox-center: (" << vox_center[0] << "," << vox_center[1] << "," << vox_center[2] << ")" << std::endl;
 
-      long larmatch_truth_label = 1.0;
-      if ( larmatch_label_array!=NULL )
-	larmatch_truth_label = *((long*)PyArray_GETPTR1(larmatch_label_array,vidx));
+  //     long larmatch_truth_label = 1.0;
+  //     if ( larmatch_label_array!=NULL )
+  // 	larmatch_truth_label = *((long*)PyArray_GETPTR1(larmatch_label_array,vidx));
 	  
-      // for each class, calculate distance to closest true keypoint
-      // use smallest label
-      for (int c=0; c<6; c++) {
+  //     // for each class, calculate distance to closest true keypoint
+  //     // use smallest label
+  //     for (int c=0; c<6; c++) {
 
-	if ( larmatch_truth_label==0 ) {
-	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
-	  nneg[c]++;
-	  continue;
-	}
+  // 	if ( larmatch_truth_label==0 ) {
+  // 	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
+  // 	  nneg[c]++;
+  // 	  continue;
+  // 	}
 	
-	const std::vector< std::vector<float> >& pos_v = (data._kppos_v[c]);
-	int nkp = pos_v.size();
-	float min_dist_kp = 1.0e9;
-	int   max_kp_idx = -1;
-	for (int ikp=0; ikp<nkp; ikp++) {
-	  const std::vector<float>& pos = pos_v[ikp];
-	  float dist = 0;
-	  for (int i=0; i<3; i++)
-	    dist += ( pos[i]-vox_center[i] )*( pos[i]-vox_center[i] );
-	  if ( dist<min_dist_kp ) {
-	    min_dist_kp = dist;
-	    max_kp_idx = ikp;
-	  }
-	  // if ( c==0 ) {
-	  //   std::cout << "  true kp[" << ikp << "]: (" << pos[0] << "," << pos[1] << "," << pos[2] << ") dist=" << sqrt(dist) << std::endl;
-	  // }	 	  
-	}
+  // 	const std::vector< std::vector<float> >& pos_v = (kpdata._kppos_v[c]);
+  // 	int nkp = pos_v.size();
+  // 	float min_dist_kp = 1.0e9;
+  // 	int   max_kp_idx = -1;
+  // 	for (int ikp=0; ikp<nkp; ikp++) {
+  // 	  const std::vector<float>& pos = pos_v[ikp];
+  // 	  float dist = 0;
+  // 	  for (int i=0; i<3; i++)
+  // 	    dist += ( pos[i]-vox_center[i] )*( pos[i]-vox_center[i] );
+  // 	  if ( dist<min_dist_kp ) {
+  // 	    min_dist_kp = dist;
+  // 	    max_kp_idx = ikp;
+  // 	  }
+  // 	  // if ( c==0 ) {
+  // 	  //   std::cout << "  true kp[" << ikp << "]: (" << pos[0] << "," << pos[1] << "," << pos[2] << ") dist=" << sqrt(dist) << std::endl;
+  // 	  // }	 	  
+  // 	}
 
-	// label for pixel
-	if ( max_kp_idx>=0 ) {
-	  float labelscore = exp(-min_dist_kp/sigma2);
-	  if (labelscore>0.05 ) {
-	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = labelscore;
-	    npos[c]++;	    
-	  }
-	  else {
-	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
-	    nneg[c]++;	    
-	  }
-	}
-	else {
-	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
-	  nneg[c]++;
-	}
-      }
-    }//end of voxel list
+  // 	// label for pixel
+  // 	if ( max_kp_idx>=0 ) {
+  // 	  float labelscore = exp(-min_dist_kp/sigma2);
+  // 	  if (labelscore>0.05 ) {
+  // 	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = labelscore;
+  // 	    npos[c]++;	    
+  // 	  }
+  // 	  else {
+  // 	    *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
+  // 	    nneg[c]++;	    
+  // 	  }
+  // 	}
+  // 	else {
+  // 	  *((float*)PyArray_GETPTR2(kplabel_array,c,vidx)) = 0.0;
+  // 	  nneg[c]++;
+  // 	}
+  //     }
+  //   }//end of voxel list
 	
-    // weights to balance positive and negative examples
-    int kpweight_nd = 2;
-    npy_intp kpweight_dims[] = { nclasses, (long)nvidx };
-    PyArrayObject* kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
+  //   // weights to balance positive and negative examples
+  //   int kpweight_nd = 2;
+  //   npy_intp kpweight_dims[] = { nclasses, (long)nvidx };
+  //   PyArrayObject* kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
-    for (int c=0; c<nclasses; c++ ) {
-      float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
-      float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
-      float w_norm = w_pos*npos[c] + w_neg*nneg[c];
+  //   for (int c=0; c<nclasses; c++ ) {
+  //     float w_pos = (npos[c]) ? float(npos[c]+nneg[c])/float(npos[c]) : 0.0;
+  //     float w_neg = (nneg[c]) ? float(npos[c]+nneg[c])/float(nneg[c]) : 0.0;
+  //     float w_norm = w_pos*npos[c] + w_neg*nneg[c];
 
-      //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+  //     //std::cout << "Keypoint class[" << c << "] WEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
     
-      for (int i=0; i<kpweight_dims[1]; i++ ) {
+  //     for (int i=0; i<kpweight_dims[1]; i++ ) {
 
-	float labelscore = *((float*)PyArray_GETPTR2(kplabel_array,c,i));
-	if ( labelscore>0.05 ) {
-	  if ( w_pos>0.0 )
-	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_pos/w_norm;
-	  else
-	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
-	}
-	else {
-	  if ( w_neg>0.0 )
-	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_neg/w_norm;
-	  else
-	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
-	}
-      }//end of class loop
-    }
+  // 	float labelscore = *((float*)PyArray_GETPTR2(kplabel_array,c,i));
+  // 	if ( labelscore>0.05 ) {
+  // 	  if ( w_pos>0.0 )
+  // 	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_pos/w_norm;
+  // 	  else
+  // 	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
+  // 	}
+  // 	else {
+  // 	  if ( w_neg>0.0 )
+  // 	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = w_neg/w_norm;
+  // 	  else
+  // 	    *((float*)PyArray_GETPTR2(kplabel_weight,c,i)) = 0.0;
+  // 	}
+  //     }//end of class loop
+  //   }
 
-    PyObject *d = PyDict_New();
-    PyObject* key_kplabel  = Py_BuildValue("s","voxkplabel");
-    PyObject* key_kpweight = Py_BuildValue("s","voxkpweight");
-    PyDict_SetItem( d, key_kplabel,  (PyObject*)kplabel_array );
-    PyDict_SetItem( d, key_kpweight, (PyObject*)kplabel_weight );
+  //   PyObject *d = PyDict_New();
+  //   PyObject* key_kplabel  = Py_BuildValue("s","voxkplabel");
+  //   PyObject* key_kpweight = Py_BuildValue("s","voxkpweight");
+  //   PyDict_SetItem( d, key_kplabel,  (PyObject*)kplabel_array );
+  //   PyDict_SetItem( d, key_kpweight, (PyObject*)kplabel_weight );
     
-    Py_DECREF( key_kplabel );
-    Py_DECREF( key_kpweight );
-    Py_DECREF( kplabel_array );
-    Py_DECREF( kplabel_weight );
+  //   Py_DECREF( key_kplabel );
+  //   Py_DECREF( key_kpweight );
+  //   Py_DECREF( kplabel_array );
+  //   Py_DECREF( kplabel_weight );
 
-    return d;
-  }
+  //   return d;
+  // }
 
   /**
    * @brief make voxel labels for instance tags
    */
-  PyObject* VoxelizeTriplets::make_instance_dict_labels( const larflow::prep::PrepMatchTriplets& data )
+  PyObject* VoxelizeTriplets::make_instance_dict_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+							 const larflow::prep::MatchTriplets& tripletdata )
   {
 
     // ok now we can make the arrays
     if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      LARCV_INFO() << " setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
-
-    int nvidx = (int)_voxel_set.size();
+    
+    int nvidx = (int)voxdata._voxel_set.size();
 
     // compile unique IDs
     std::map<int,int> instance2id;
     std::map<int,int> idcounts;
     int nids = 0;
-    for ( auto const& instanceid : data._instance_id_v ) {
+    for ( auto const& instanceid : tripletdata._instance_id_v ) {
       if ( instanceid==0 )
 	continue;
       
@@ -1028,17 +1102,17 @@ namespace voxelizer {
 
     std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
     std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
       // find class label with most (non background) triplets
-      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
 
       // clear the values
       memset( nvotes_id.data(), 0, sizeof(int)*nvotes_id.size() );
 
       for ( auto const& tripidx : tripidx_v ) {
-	int instance_label = data._instance_id_v.at(tripidx);
+	int instance_label = tripletdata._instance_id_v.at(tripidx);
 
 	auto it = instance2id.find( instance_label );
 	if ( it!=instance2id.end() ) {
@@ -1056,7 +1130,7 @@ namespace voxelizer {
 	  max_id = i;
 	}
       }
-
+      
       if (max_id>0 ) {
 	*((long*)PyArray_GETPTR1( array, (int)vidx)) = max_id;
 	vox_nclass[max_id]++;
@@ -1109,7 +1183,7 @@ namespace voxelizer {
     //Py_DECREF( weight );
     Py_DECREF( key_map );
     Py_DECREF( idmap );    
-
+    
     //std::cout << "  made ssnet truth array" << std::endl;
     return d;
   }
@@ -1117,17 +1191,18 @@ namespace voxelizer {
   /**
    * @brief make voxel labels for origin tag
    */
-  PyObject* VoxelizeTriplets::make_origin_dict_labels( const larflow::prep::PrepMatchTriplets& data )
+  PyObject* VoxelizeTriplets::make_origin_dict_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+						       const larflow::prep::MatchTriplets& data )
   {
 
     // ok now we can make the arrays
     if ( !_setup_numpy ) {
-      std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      LARCV_INFO() << " setup numpy" << std::endl;
       import_array1(0);
       _setup_numpy = true;
     }       
 
-    int nvidx = (int)_voxel_set.size();
+    int nvidx = (int)voxdata._voxel_set.size();
     
     // voxel ssnet label array: charge on planes, taking mean
     npy_intp* dims = new npy_intp[1];
@@ -1136,11 +1211,11 @@ namespace voxelizer {
 
     std::vector<int> vox_nclass( 2, 0 ); // count voxels with an assigned origin label
     std::vector<int> nvotes( 2, 0 ); // vector to vote for origin label for voxel
-    for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
 
       // find class label with most (non background) triplets
-      std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
 
       // clear the values
       memset( nvotes.data(), 0, sizeof(int)*nvotes.size() );

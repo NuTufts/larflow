@@ -3,12 +3,17 @@ set(MODULE_NAME Voxelizer )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS VoxelizeTriplets.h
-  LArVoxelHitMaker.h )
+set( HEADERS
+  TPCVoxelData.h
+  VoxelizeTriplets.h
+  #LArVoxelHitMaker.h
+  )
 
 add_library( ${LIBNAME} SHARED
+  TPCVoxelData.cxx
   VoxelizeTriplets.cxx
-  LArVoxelHitMaker.cxx )
+  #LArVoxelHitMaker.cxx
+  )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

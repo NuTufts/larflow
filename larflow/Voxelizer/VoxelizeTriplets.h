@@ -10,12 +10,16 @@
 #include <string>
 #include <vector>
 
+#include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/DataFormat/storage_manager.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/PrepFlowMatchData/MatchTriplets.h"
 #include "larflow/KeyPoints/PrepKeypointData.h"
 #include "larflow/KeyPoints/LoaderKeypointData.h"
+
+#include "TPCVoxelData.h"
 
 namespace larflow {
 namespace voxelizer {
@@ -38,7 +42,7 @@ namespace voxelizer {
    * relevant for the MicroBooNE LArTPC.
    *
    */
-  class VoxelizeTriplets {
+  class VoxelizeTriplets : public larcv::larcv_base {
 
   public:
 
@@ -63,10 +67,14 @@ namespace voxelizer {
     std::vector<int>   _nvoxels; ///< number of voxels in each dimension
     void _define_voxels();
 
-    std::set< std::array<int,3> >      _voxel_set;  ///< set of occupied voxels
-    std::map< std::array<int,3>, int > _voxel_list; ///< map from voxel coordinate to voxel index
-    std::vector< std::vector<int> >    _voxelidx_to_tripidxlist; ///< voxel index to vector of triplet indices
-    std::vector<int>                   _trip2voxelidx; ///< triplet index to voxel index map   
+    // std::set< std::array<int,3> >      _voxel_set;  ///< set of occupied voxels
+    // std::map< std::array<int,3>, int > _voxel_list; ///< map from voxel coordinate to voxel index
+    // std::vector< std::vector<int> >    _voxelidx_to_tripidxlist; ///< voxel index to vector of triplet indices
+    // std::vector<int>                   _trip2voxelidx; ///< triplet index to voxel index map
+
+  public:
+
+    std::vector< TPCVoxelData > _voxel_data_v;
 
   public:
 
@@ -74,26 +82,37 @@ namespace voxelizer {
 
     int get_axis_voxel( int axis, float coord ) const;
     
-    
-    void make_voxeldata( const larflow::prep::PrepMatchTriplets& triplet_data );
-    PyObject* make_voxeldata_dict( const larflow::prep::PrepMatchTriplets& triplet_data );
+    PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
+
+    larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
+    PyObject* make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
+				   const larflow::prep::MatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict();
 
-    int make_ssnet_voxel_labels( const larflow::keypoints::LoaderKeypointData& data,
-				 PyArrayObject*& ssnet_array,
-				 PyArrayObject*& ssnet_weight );
-    PyObject* make_ssnet_dict_labels( const larflow::prep::PrepMatchTriplets& data );
+    int make_ssnet_voxel_label_nparray( const larflow::prep::SSNetLabelData& ssnetdata,
+					const larflow::voxelizer::TPCVoxelData& voxeldata,
+					const larflow::prep::MatchTriplets& tripletdata,
+					PyArrayObject*& ssnet_array,
+					PyArrayObject*& ssnet_weight );
+    
+    PyObject* make_ssnet_dict_labels( const larflow::voxelizer::TPCVoxelData& voxeldata,
+				      const larflow::prep::MatchTriplets& data );
 				       
-    PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
-    int make_kplabel_arrays( const larflow::keypoints::LoaderKeypointData& data,
+    int make_kplabel_arrays( const larflow::keypoints::KeypointData& kpdata,
+			     const larflow::voxelizer::TPCVoxelData& voxdata,
 			     PyArrayObject* match_array,
 			     PyArrayObject*& kplabel_label,
-			     PyArrayObject*& kplabel_weight );
-    PyObject* make_kplabel_dict_fromprep( const larflow::keypoints::PrepKeypointData& data,
-					  PyObject* voxel_match_array );
+			     PyArrayObject*& kplabel_weight,
+			     float sigma=10.0 );
+    
+    // PyObject* make_kplabel_dict_fromprep( const larflow::keypoints::PrepKeypointData& data,
+    // 					  PyObject* voxel_match_array );
 
-    PyObject* make_instance_dict_labels( const larflow::prep::PrepMatchTriplets& data );
-    PyObject* make_origin_dict_labels( const larflow::prep::PrepMatchTriplets& data );
+    PyObject* make_instance_dict_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+					 const larflow::prep::MatchTriplets& tripletdata );
+    
+    PyObject* make_origin_dict_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+				       const larflow::prep::MatchTriplets& data );
 
     /** @brief get the number of total voxels */   
     const std::vector<int>& get_nvoxels() const  { return _nvoxels; };

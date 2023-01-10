@@ -191,7 +191,11 @@ namespace prep {
     
     void store_2dssnet_score( larcv::IOManager& iolcv,
 			      std::vector<larlite::larflow3dhit>& larmatch_hit_v );
-    
+
+  private:
+
+    int setupNumpy();
+    static bool _import_numpy;
 
   };
 

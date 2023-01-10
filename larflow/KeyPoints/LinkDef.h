@@ -16,8 +16,8 @@
 
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::keypoints;
-#pragma link C++ class std::vector<float>+;
-#pragma link C++ class std::vector< std::vector<float> >+;
+//#pragma link C++ class std::vector<float>+;
+//#pragma link C++ class std::vector< std::vector<float> >+;
 #pragma link C++ class larflow::keypoints::KPdata+;
 #pragma link C++ class std::vector<larflow::keypoints::KPdata>+;
 #pragma link C++ class larflow::keypoints::KeypointData+;

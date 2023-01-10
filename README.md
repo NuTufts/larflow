@@ -21,14 +21,14 @@ Documentation for the library can be found at [github.io/larflow](https://nutuft
 * larmatchnet: definition of network, scripts to train and deploy network
 * larflow: c++ libraries providing methods to prepare data, perform downstream reconstruction
 
-Within the `larflow` folder, are the following c++ modules:
-* `PrepFlowMatchData`: classes/methods for preparing spacepoint data from TPC images
-* `KeyPoints`: classes/methods for preparing keypoint training info using spacepoint data from `PrepFlowMatchData`
+Within the `larflow` folder, are the following c++ modules (and their dependencies):
+* `LArFlowConstants`: constants, enumerations used in the other modules
+* `PrepFlowMatchData`: classes/methods for preparing spacepoint data from TPC images (dep: LArFlowConstants)
+* `KeyPoints`: classes/methods for preparing keypoint training info using spacepoint data from `PrepFlowMatchData` (dep: PrepFlowMatchData)
+* `Voxelizer`: voxelize larmatch spacepoints, not finished. intended to help spacepoint output connect to 3D convolutional networks. (dep: KeyPoints)
 * `SpatialEmbed`: classes/methods for preparing spatial embedding training info using spacepoint data from `PrepFlowMatchData`
 * `Reco`: downstream reconstruction using output of networks to form candidate neutrino interactions
 * `CRTMatch`: tools to combine CRT data with spacepoints and TPC data in order to provide tagged cosmic muon tracks
-* `Voxelizer`: voxelize larmatch spacepoints, not finished. intended to help spacepoint output connect to 3D convolutional networks.
-* `LArFlowConstants`: constants, enumerations used in the other modules
 * `FlowContourMatch`:deprecated tools
 
 Other folders are considered deprecated and need to be cleaned up and archived.
