@@ -338,8 +338,19 @@ namespace prep {
 
       try {
 	if ( has_kplabel_scores ) {
-	  for (int c=0; c<6; c++) 
+	  for (int c=0; c<6; c++)
 	    hit[17+c] = m.keypoint_scores[c];
+	  
+	  if ( hit_v.size()<10 ) {
+	    std::cout << " make hit[" << hit_v.size() << "]: kplabels=(";
+	    for (int c=0; c<6; c++) {
+	      std::cout << hit[17+c];
+	      if ( c+1<6 )
+		std::cout << ", ";
+	      else
+		std::cout << ")" << std::endl;
+	    }
+	  }
 	}
       }
       catch ( const std::exception& e ) {
@@ -703,10 +714,11 @@ namespace prep {
       // score for this match
       float prob = *(float*)PyArray_GETPTR1( (PyArrayObject*)triple_probs, ipair );
 
-      long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
+      long index[5] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 0 ),
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 1 ),
                         *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 2 ),
-			*(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ) };
+			*(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 3 ),
+			*(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, ipair, 4 ) };
 
       
       std::vector<int> triple(7,0); // (col,col,col,tick,istruth,tpcid,cryoid)
@@ -735,7 +747,7 @@ namespace prep {
       std::vector<float> pos(3,0);
       
       if ( precalc_pos ) {
-        pos = pos_vv[ipair];
+        pos = pos_vv[index[4]];
       }
       else {
         
