@@ -35,6 +35,8 @@ if not os.path.exists(args.input_list):
 f = open(args.input_list,'r')
 j = json.load(f)
 
+print("test!!!")
+
 # This is the file id to run
 FILEIDS=[args.fileid]
 
@@ -103,6 +105,8 @@ labeler = larflow.keypoints.LoaderKeypointData( f_v )
 voxelsize = 0.3
 dv = larutil.LArProperties.GetME().DriftVelocity()
 
+imgLimitsX = [-800*0.5*0.111,5248*0.5*0.111]
+
 #dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=0.3 )
 dataset = larvoxelDataset( filelist=input_triplet_v, random_access=False, voxelsize_cm=voxelsize )
 loader = torch.utils.data.DataLoader(dataset,batch_size=1,collate_fn=collate_fn)
@@ -129,7 +133,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("fullSample_083022.root","recreate")
+outfile = rt.TFile("missingChargeFlag_102722.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -143,6 +147,8 @@ ancestorID = array('i',[0])
 clusterTick = array('d',[0])
 flashTick = array('d',[0])
 origin = array('i',[0])
+# debug
+missingCharge = array('i',[0])
 
 coord_v = std.vector("larcv::NumpyArrayInt")()
 feat_v  = std.vector("larcv::NumpyArrayFloat")()
@@ -172,6 +178,9 @@ outtree.Branch("ancestorID",  ancestorID,  "ancestorID/I")
 outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
 outtree.Branch("flashTick",  flashTick,  "flashTick/D")
 outtree.Branch("origin",  origin,  "origin/I")
+
+outtree.Branch("missingCharge",  missingCharge,  "missingCharge/I")
+
 outtree.Branch("coord_v",  coord_v)
 outtree.Branch("feat_v",   feat_v)
 outtree.Branch("larmatch_truth_v", lm_truth_v)
@@ -282,7 +291,7 @@ def voxelizeIntrxn(iid_v, flashtick=0):
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(5): # event loop
+for ientry in range(1): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []
@@ -311,7 +320,7 @@ for ientry in range(5): # event loop
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
     mcpg.buildgraphonly( ioll  )
     ##mcpg.printGraph(0,False)
-    ##print ("Node?: ",mcpg.node_v[1].nodeidx)
+    #print ("Node?: ",mcpg.node_v[1].nodeidx)
 
     # create dictionary of key: ancestorid (int), value: list of corresponding trackids
     #intrxnDict = defaultdict(list)
@@ -552,7 +561,7 @@ for ientry in range(5): # event loop
     subrun[0] = ioll.subrun_id()
     event[0] = ioll.event_id()
 
-    # loop thru all the intxns in the event here
+    # loop thru all the intrxns in the event here
     for i in range(len( iidList )): #loops thru entries in iidList and keyList which should be same
         print("size of the iidList at the END: ",len( iidList ))
         print("i, iidList[i]: ",i, iidList[i])
@@ -589,8 +598,20 @@ for ientry in range(5): # event loop
             for j in intrxnTracks[key]:
                 print("These are the corresponding mctrack vector positions according to dict: ",j)
                 # save the MCTRACKS
-                out_mctrack.push_back( ev_mctrack.at(j) )
+                mctrack = ev_mctrack.at(j)
+                out_mctrack.push_back( mctrack )
+                
+                if ev_mctrack:
+                    xPositionStart = mctrack.at(0).X()
+                    print("xPositionStart: ", xPositionStart)
 
+                '''
+
+                if xPositionStart < imgLimitsX[0]:
+                    missingCharge[0] = 1
+                else: 
+                    missingCharge[0] = 0
+                '''
                 #grab some flash using first intrxn track for now
                 if foundFlash == 0:
 
