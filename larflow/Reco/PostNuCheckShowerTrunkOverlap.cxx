@@ -41,6 +41,14 @@ namespace reco {
 	  // the shower trunk direction as a single line segment
 	  auto const& showertrunk = nucand.shower_trunk_v.at(ishr);
 
+          // check shower trunk
+          bool showerOkay = true;
+          for(int i = 0; i < 3; ++i){
+            if( std::isnan(showertrunk.LocationAtPoint(0)[i]) ) showerOkay = false;
+            if( std::isnan(showertrunk.LocationAtPoint(1)[i]) ) showerOkay = false;
+          }
+          if(!showerOkay) continue;
+
 	  // we also look at the 1st principle component of the shower
 	  // spacepoints. this is a larlite::pcaxis object, which stores
 	  // the first 2 principle component axes
