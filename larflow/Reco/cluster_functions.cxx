@@ -1131,7 +1131,7 @@ namespace reco {
     //LARCV_DEBUG() << newtrunk_cluster.points_v.size() << " hits of " << cluster.points_v.size() << " used to form trunk" << std::endl;
 
     bool use_all_pca = false;
-    if ( cluster.points_v.size()<10 ) {
+    if ( newtrunk_cluster.points_v.size()<10 ) {
       use_all_pca = true;
     }
     else {

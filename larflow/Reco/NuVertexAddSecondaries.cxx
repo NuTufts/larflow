@@ -125,6 +125,18 @@ namespace reco {
     _nu_track_builder.set_verbosity( larcv::msg::kNORMAL );    
     _nu_track_builder.loadClustersAndConnections( iolcv, ioll );
     _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+
+    // Set secondary flags for previously added tracks & showers if this hasn't been done
+    if ( nuvtx.track_isSecondary_v.size() == 0 ) {
+      for (int i = 0; i < nuvtx.track_v.size(); i++) {
+        nuvtx.track_isSecondary_v.push_back(0);
+      }
+    }
+    if ( nuvtx.shower_isSecondary_v.size() == 0 ) {
+      for (int i = 0; i < nuvtx.shower_v.size(); i++) {
+        nuvtx.shower_isSecondary_v.push_back(0);
+      }
+    }
     
     for ( auto& candidate : candidates_v ) {
 
@@ -158,7 +170,8 @@ namespace reco {
 	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
 	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
 	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
-	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );      
+	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
+          nuvtx.track_isSecondary_v.push_back(1);
 	}
       }
       else {
@@ -189,7 +202,8 @@ namespace reco {
 	for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
 	  nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
 	  nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
-	  nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );	  	  
+	  nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
+          nuvtx.shower_isSecondary_v.push_back(1);
 	}
 	
       }

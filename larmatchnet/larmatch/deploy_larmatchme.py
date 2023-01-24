@@ -205,9 +205,6 @@ for ientry in range(NENTRIES):
     print("Ran model: ",pred_dict.keys())
 
     if "cuda" in args.device_name:
-=======
-    if args.device_name != "cpu":
->>>>>>> e1fb58c319d8a348faa91b1f912ee1f8dee2ed82
         torch.cuda.synchronize()
     sys.stdout.flush()    
     
