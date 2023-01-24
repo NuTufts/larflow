@@ -37,6 +37,8 @@ j = json.load(f)
 
 print("test!!!")
 
+cm_per_tick = larutil.LArProperties.GetME().DriftVelocity()*0.5
+
 # This is the file id to run
 FILEIDS=[args.fileid]
 
@@ -105,7 +107,7 @@ labeler = larflow.keypoints.LoaderKeypointData( f_v )
 voxelsize = 0.3
 dv = larutil.LArProperties.GetME().DriftVelocity()
 
-imgLimitsX = [-800*0.5*0.111,5248*0.5*0.111]
+imgLimitsX = [-800*0.5*0.111,5248*0.5*0.111] # event display image limits in cm
 
 #dataset = larvoxelDataset( txtfile=args.input_larmatch[0], random_access=False, voxelsize_cm=0.3 )
 dataset = larvoxelDataset( filelist=input_triplet_v, random_access=False, voxelsize_cm=voxelsize )
@@ -133,7 +135,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("missingChargeFlag_102722.root","recreate")
+outfile = rt.TFile("missingChargeFlag_011823.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -568,6 +570,8 @@ for ientry in range(1): # event loop
         print("size of keyList, which should be the same: ", len(keyList))
         print("key, or corresponding ancestorID of this iidlist, is: ", keyList[i])
 
+        print("THIS IS ENTRY NUMBER: ", i)
+
 
         for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
                  ssnet_truth_v, ssnet_weight_v,
@@ -597,21 +601,25 @@ for ientry in range(1): # event loop
         if key in intrxnTracks:
             for j in intrxnTracks[key]:
                 print("These are the corresponding mctrack vector positions according to dict: ",j)
+
+                missingCharge[0] = 0 # default OK value (no missing charge or flash)
+
                 # save the MCTRACKS
                 mctrack = ev_mctrack.at(j)
                 out_mctrack.push_back( mctrack )
+
+                sizeMCT = mctrack.size()
+                print("sizeMCT: ", sizeMCT)
                 
-                if ev_mctrack:
+                if mctrack:
                     xPositionStart = mctrack.at(0).X()
+                    xPositionEnd = mctrack.at(sizeMCT-1).X()
+                    #print("ev_mctrack: ", ev_mctrack)
+                    #print("ev_mctrack.at(j): ", ev_mctrack.at(j))
                     print("xPositionStart: ", xPositionStart)
+                    print("xPositionEnd: ", xPositionEnd)
+                    print("imageLimits: ", imgLimitsX[0], ", ", imgLimitsX[1])
 
-                '''
-
-                if xPositionStart < imgLimitsX[0]:
-                    missingCharge[0] = 1
-                else: 
-                    missingCharge[0] = 0
-                '''
                 #grab some flash using first intrxn track for now
                 if foundFlash == 0:
 
@@ -639,6 +647,23 @@ for ientry in range(1): # event loop
                             out_opflash_beam.push_back( ev_opflash_beam.at( match[1] ) )
                     ##else: # there was no matching flash, just write null
                     ##    out_opflash.push_back( null )
+
+                xPosStartOffset = xPositionStart + (( match[0] - 3200 ) * cm_per_tick)
+                print("xPosStartOffset: ", xPosStartOffset )
+
+                xPosEndOffset = xPositionEnd + (( match[0] - 3200 ) * cm_per_tick)
+                print("xPosEndOffset: ", xPosEndOffset )
+
+                if (xPosStartOffset < imgLimitsX[0]) or (xPosStartOffset > imgLimitsX[1]) or (xPosEndOffset < imgLimitsX[0]) or (xPosEndOffset > imgLimitsX[1]):
+                    missingCharge[0] = 1
+
+                if (flashTick[0] < -999.0): 
+                    missingCharge[0] = 2
+
+                #else: 
+                #    missingCharge[0] = 0
+
+                print("missingCharge[0]: ", missingCharge[0])
 
         if key in intrxnShowers:
             for j in intrxnShowers[key]:
