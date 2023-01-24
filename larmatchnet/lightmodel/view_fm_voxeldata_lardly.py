@@ -42,6 +42,8 @@ io_ll.open()
 from larlite import larutil
 dv = larutil.LArProperties.GetME().DriftVelocity()
 detdata = lardly.DetectorOutline()
+evddata = lardly.EVDImageOutline()
+
 
 color_by_options = ["charge"]
 colorscale = "Viridis"
@@ -95,9 +97,12 @@ def make_figures(ientry,loader,minprob=0.0):
     print("making figures for ientry={}".format(ientry))
     global larvoxeltrainingdata
 
-
     #batch = next(iter(loader))
     batch = list(iter(loader))[ientry]
+
+    flashTemp = 1744.5
+    #flashTemp = batch["flashTick"]
+    print("flashTemp: ", flashTemp)
 
     # MCTRACK
     if args.larlite!="":
@@ -133,6 +138,8 @@ def make_figures(ientry,loader,minprob=0.0):
         print("VISUALIZE MCTRACKS")
         #mctrack_v = lardly.data.visualize_larlite_mctrack( mctrack, do_sce_correction=False )
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( ev_mctrack, do_sce_correction=False, no_offset=True )
+        # draw blue track corresponding to the charge with offset (grabbed from the larmatch reco using the evds, not corrected to match raw mctrack)
+        mctrack_v_offset = lardly.data.visualize_larlite_event_mctrack( ev_mctrack, do_sce_correction=False, color_labels={0:'rgb(0,181,226)'}, no_offset=False, set_tick=flashTemp)
         #mcshower_v = lardly.data.visualize_larlite_event_mcshower( ev_mcshower )
         ##mcshower_lardly = lardly.data.visualize3d_larlite_mcshower( mcshower ) # returns an array of objects
         ##for x in mcshower_lardly:
@@ -152,7 +159,7 @@ def make_figures(ientry,loader,minprob=0.0):
         #traces3d.append( mctrack_v )
         #traces3d.append( mcshower_v )
 
-    flashTemp = -530.25
+
     print("voxel entries: ",batch["voxcoord"].shape)
     print("voxel entries X before: ",batch["voxcoord"][:,1])
     print("calculated X after: ",batch["voxcoord"][:,1]*0.3+(2399-3200-(flashTemp-3200))*0.5*dv)
@@ -164,7 +171,8 @@ def make_figures(ientry,loader,minprob=0.0):
     # 3D trace
     voxtrace = {
         "type":"scatter3d",
-        "x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv,
+        "x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv, # this is the actual calc for charge aligning with raw mctrack (red)
+        ##"x":batch["voxcoord"][:,1]*0.3+(2399-3200)*0.5*dv+(flashTemp-3200)*0.5*dv, # this is so charge aligns with blue plotted track (with offset)
         "y":batch["voxcoord"][:,2]*0.3-120.0,
         "z":batch["voxcoord"][:,3]*0.3,
         "mode":"markers",
@@ -182,11 +190,14 @@ def make_figures(ientry,loader,minprob=0.0):
     if args.larlite!="":
         #traces_v.append(mctrack_v)
         traces_v += mctrack_v
+        traces_v += mctrack_v_offset
         traces_v += mcshower_lardly
         if len(ev_opflash_beam)==1 or len(ev_opflash_cosmic)==1:
             traces_v += opflash_v
     #traces_v.append( detdata.getlines() )
     traces_v += detdata.getlines()
+    traces_v += evddata.getlines() # red boundary box of event display
+    
 
     voxtrace["marker"]["colorscale"]="Viridis"
 
