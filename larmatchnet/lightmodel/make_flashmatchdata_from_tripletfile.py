@@ -135,7 +135,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("missingChargeFlag_011823.root","recreate")
+outfile = rt.TFile("missingChargeFlag_100Events_012523_TEST.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -290,10 +290,12 @@ def voxelizeIntrxn(iid_v, flashtick=0):
 
     instance_truth_v.push_back(  larcv.NumpyArrayInt( data["voxinstance"].squeeze().astype(np.int32) ) )
 
+totalEntryNum = 0
+
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(1): # event loop
+for ientry in range(5): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []
@@ -570,7 +572,9 @@ for ientry in range(1): # event loop
         print("size of keyList, which should be the same: ", len(keyList))
         print("key, or corresponding ancestorID of this iidlist, is: ", keyList[i])
 
-        print("THIS IS ENTRY NUMBER: ", i)
+        print("In this loop, this is entry number: ", i)
+        print("TOTAL ENTRY NUM:", totalEntryNum )
+        totalEntryNum = totalEntryNum + 1
 
 
         for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
@@ -598,11 +602,14 @@ for ientry in range(1): # event loop
 
         matchingFlashTick = 0
 
+        missingCharge[0] = 0 # default OK value (no missing charge or flash)
+        # if at least 1 track in intrxn flagged, then flag whole event
+
         if key in intrxnTracks:
             for j in intrxnTracks[key]:
                 print("These are the corresponding mctrack vector positions according to dict: ",j)
 
-                missingCharge[0] = 0 # default OK value (no missing charge or flash)
+                #missingCharge[0] = 0 # default OK value (no missing charge or flash)
 
                 # save the MCTRACKS
                 mctrack = ev_mctrack.at(j)
@@ -664,6 +671,8 @@ for ientry in range(1): # event loop
                 #    missingCharge[0] = 0
 
                 print("missingCharge[0]: ", missingCharge[0])
+        else: 
+            missingCharge[0] = 2 # There are no tracks in the event
 
         if key in intrxnShowers:
             for j in intrxnShowers[key]:
