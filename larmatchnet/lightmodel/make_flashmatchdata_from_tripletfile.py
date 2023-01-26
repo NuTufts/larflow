@@ -493,7 +493,7 @@ for ientry in range(5): # event loop
         print("Found match: ", match ) #should be a pair of tick and index
 
         # Found a flash match! Now fill the tree
-        if match[0] != -999.999 and match[0] != 999.999 and track_tick != -999.997:
+        if match[0] != -9999.999 and match[0] != 9999.999 and track_tick != -9999.997:
 
             ##for vec in [ coord_v, feat_v, lm_truth_v, lm_weight_v,
             ##         ssnet_truth_v, ssnet_weight_v,
@@ -644,7 +644,7 @@ for ientry in range(5): # event loop
                     ancestorID[0] = fmutil.trackAncestorID()
                     origin[0] = fmutil.trackOrigin()
 
-                    if match[0] != -999.999 and match[0] != 999.999 and track_tick != -999.997:
+                    if match[0] != -9999.999 and match[0] != 9999.999 and track_tick != -9999.997:
                         if (fmutil.isCosmic == 1):
                             ##    print("ev_opflash_cosmic: ",ev_opflash_cosmic)
                             out_opflash_cosmic.push_back( ev_opflash_cosmic.at( match[1] ) )
@@ -664,7 +664,7 @@ for ientry in range(5): # event loop
                 if (xPosStartOffset < imgLimitsX[0]) or (xPosStartOffset > imgLimitsX[1]) or (xPosEndOffset < imgLimitsX[0]) or (xPosEndOffset > imgLimitsX[1]):
                     missingCharge[0] = 1
 
-                if (flashTick[0] < -999.0): 
+                if (flashTick[0] < -9999.0): 
                     missingCharge[0] = 2
 
                 #else: 
@@ -712,7 +712,7 @@ for ientry in range(5): # event loop
             #voxdata = voxelizer.get_full_voxel_labelset_dict( labeler )
             #print("voxdata keys: ",voxdata.keys())
 
-        #if isCosmic == 1 and match != -999.999 and track_tick != -999.997:
+        #if isCosmic == 1 and match != -9999.999 and track_tick != -9999.997:
             #listy.append( match - track_tick )
             #listy.append( track_tick )
 
