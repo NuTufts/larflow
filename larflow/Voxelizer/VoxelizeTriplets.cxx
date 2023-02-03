@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <math.h> 
 
 #include "larlite/LArUtil/LArProperties.h"
 #include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
@@ -35,46 +36,30 @@ namespace voxelizer {
   VoxelizeTriplets::VoxelizeTriplets()
     : larcv::larcv_base("VoxelizeTriplets")
   {
-
-    _origin.clear();
-    _len.clear();
-    
-    const float driftv = larutil::LArProperties::GetME()->DriftVelocity();
-    
-    _origin.resize(3,0);
-    _origin[0] = (2399-3200)*0.5*driftv;    
-    _origin[1] = -120.0;
-    _origin[2] = 0;
- 
-    _len.resize(3,0);
-    _len[0] = 1010*6*0.5*driftv;    
-    _len[1] = 2.0*120.0;
-    _len[2] = 1037.0;
-
-    _voxel_size = 0.3;
-    
-    _define_voxels();
+    set_voxel_size_cm(0.3); // will call function to define voxels in each tpc
   }
 
-  /**
-   * @brief constructor where voxel grid can be specified
-   *
-   * @param[in] origin  Position in 3D where origin of the voxel grid is located (in cm).
-   * @param[in] dim_len Total length of each dimension (should be 3) in cm.
-   * @param[in] voxel_size Length of height, width, and depth of an individual voxel in cm.
-   *
-   */  
-  VoxelizeTriplets::VoxelizeTriplets( std::vector<float> origin,
-                                      std::vector<float> dim_len,
-                                      float voxel_size ) 
-    : larcv::larcv_base("VoxelizeTriplets"),
-      _origin(origin),
-    _len(dim_len),
-    _voxel_size(voxel_size)
-  {
-    _define_voxels();
-  }
-
+  // I WANT TO BE ABLE TO DEFINE THE ORIGIN TOO, BUT NOT CLEAR HOW TO DO THAT RIGHT NOW
+  // UNDER THE NEED TO HANDLE MORE THAN 1 TPC.
+  // REQUIRES DEFINING AND ORIGIN OFFSET FROM THE DEFAULT SOMEHOW FOR EACH TPC
+  // /**
+  //  * @brief constructor where voxel grid can be specified
+  //  *
+  //  * @param[in] origin  Position in 3D where origin of the voxel grid is located (in cm).
+  //  * @param[in] dim_len Total length of each dimension (should be 3) in cm.
+  //  * @param[in] voxel_size Length of height, width, and depth of an individual voxel in cm.
+  //  *
+  //  */  
+  // VoxelizeTriplets::VoxelizeTriplets( std::vector<float> origin,
+  //                                     std::vector<float> dim_len,
+  //                                     float voxel_size ) 
+  //   : larcv::larcv_base("VoxelizeTriplets"),
+  //     _origin(origin),
+  //   _len(dim_len),
+  //   _voxel_size(voxel_size)
+  // {
+  //   _define_voxels();
+  // }
 
   /**
    * @brief using the origin, grid length, and voxel size define the voxel grid
@@ -82,29 +67,42 @@ namespace voxelizer {
    */
   void VoxelizeTriplets::_define_voxels()
   {
-    _ndims = (int)_origin.size();
-    _nvoxels.resize(_ndims,0);
+    _ndims = 3;
 
-    std::stringstream ss;
-    ss << "(";
-    for (int v=0; v<_ndims; v++) {
-      int nv = (_len[v])/_voxel_size;
-      if ( fabs(nv*_voxel_size-_len[v])>0.001 )
-        nv++;
-      _nvoxels[v] = nv;
-      ss << nv;
-      if ( v+1<_ndims ) ss << ", ";
-    }
-    ss << ")";
+    // we use simchannelvoxelizer to define voxels. handles the multiple tpcs.
+    _simchan_voxelizer.defineTPCVoxels( _len );
 
-    std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "
-              << "Number of voxels defined: " << ss.str() << ", ndims=" << _ndims
-              << std::endl;
-    std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] "    
-              << "BOUNDS: [" << _origin[0] << "," << _origin[0]+_len[0] << "] "
-              << "[" << _origin[1] << "," << _origin[1]+_len[1] << "] "
-              << "[" << _origin[2] << "," << _origin[2]+_len[2] << "] "
-              << std::endl;    
+    auto const& geo  = *(larlite::larutil::Geometry::GetME());
+    for (int icryo=0; icryo<(int)geo.Ncryostats(); icryo++) {
+      for (int itpc=0; itpc<(int)geo.NTPCs(icryo); itpc++) {
+	auto const& tpcinfo = _simchan_voxelizer.getTPCInfo( icryo, itpc );
+
+	std::cout << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] " << std::endl;
+	std::cout << " CRYO[" << icryo << "] TPC[" << itpc << "] " << std::endl;
+	std::cout << " NVOXELS: (";
+	for (int v=0; v<_ndims; v++) {
+	  std::cout << tpcinfo._num_voxels_v[v];
+	  if ( v!=2 )
+	    std::cout << ",";
+	}
+	std::cout << ")" << std::endl;
+
+	std::cout << " VOXEL LENGTH: (";
+	for (int v=0; v<_ndims; v++) {
+	  std::cout << tpcinfo._voxel_dim_v[v];
+	  if ( v!=2 )
+	    std::cout << ",";
+	}
+	std::cout << ")" << std::endl;
+	
+	std::cout << " BOUNDS: ";
+	for (int v=0; v<_ndims; v++) {
+	  std::cout << "[" << tpcinfo._origin_cm_v[v] << "," << tpcinfo._origin_cm_v[v] + tpcinfo._voxel_dim_v[v]*tpcinfo._num_voxels_v[v] << "] ";
+	}
+	std::cout << std::endl;
+	
+      }
+    }    
   }
 
   /**
@@ -113,38 +111,44 @@ namespace voxelizer {
    */
   void VoxelizeTriplets::set_voxel_size_cm( float width_cm )
   {
-    _voxel_size = width_cm;
+    const float driftv = larutil::LArProperties::GetME()->DriftVelocity();
+    float dtick = std::floor( width_cm/larutil::DetectorProperties::GetME()->GetXTicksCoefficient() );
+    LARCV_DEBUG() << "setting voxel edges to be " << width_cm << " cm --> dtick=" << dtick << std::endl;
+    _len.resize(3,0);
+    _len[0] = dtick;
+    _len[1] = width_cm;
+    _len[2] = width_cm;
     _define_voxels();
   }
 
-  /**
-   * @brief get the voxel bin along one of the dimensions
-   *
-   * @param[in] axis Dimension we want
-   * @param[in] coord Coordinate in the dimension we want
-   * @return voxel bin index along the given dimension
-   */
-  int VoxelizeTriplets::get_axis_voxel( int axis, float coord ) const {
+  // /**
+  //  * @brief get the voxel bin along one of the dimensions
+  //  *
+  //  * @param[in] axis Dimension we want
+  //  * @param[in] coord Coordinate in the dimension we want
+  //  * @return voxel bin index along the given dimension
+  //  */
+  // int VoxelizeTriplets::get_axis_voxel( int axis, float coord ) const {
 
-    if ( axis<0 || axis>=_ndims ) {
-      std::stringstream ss;
-      ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] invalid dim given: " << axis << " (_ndims=" << _ndims << ")" << std::endl;
-      throw std::runtime_error(ss.str());
-    }
+  //   if ( axis<0 || axis>=_ndims ) {
+  //     std::stringstream ss;
+  //     ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] invalid dim given: " << axis << " (_ndims=" << _ndims << ")" << std::endl;
+  //     throw std::runtime_error(ss.str());
+  //   }
     
-    int vidx = (coord-_origin[axis])/_voxel_size;
-    if (vidx<0 || vidx>=_nvoxels[axis] ) {
-      std::stringstream ss;
-      ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "]";
-      ss << " dim[" << axis << "] coordinate[" << coord << "] "
-         << "given is out of bounds [" << _origin[axis] << "," << _origin[axis]+_len[axis] << "]"
-         << " vidx=" << vidx << " bounds[0," << _nvoxels[axis] << ")"
-         << std::endl;
-      throw std::runtime_error(ss.str());
-    }
+  //   int vidx = (coord-_origin[axis])/_voxel_size;
+  //   if (vidx<0 || vidx>=_nvoxels[axis] ) {
+  //     std::stringstream ss;
+  //     ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "]";
+  //     ss << " dim[" << axis << "] coordinate[" << coord << "] "
+  //        << "given is out of bounds [" << _origin[axis] << "," << _origin[axis]+_len[axis] << "]"
+  //        << " vidx=" << vidx << " bounds[0," << _nvoxels[axis] << ")"
+  //        << std::endl;
+  //     throw std::runtime_error(ss.str());
+  //   }
 
-    return vidx;
-  }
+  //   return vidx;
+  // }
   
   /**
    *
@@ -167,51 +171,69 @@ namespace voxelizer {
 
     // configure voxel based on tpc and cryo ID
     // (do later -- not needed for MicroBooNE for now)
+
+    auto& tpcinfo = _simchan_voxelizer.getTPCInfo( triplet_data._cryoid, triplet_data._tpcid );
     
     larflow::voxelizer::TPCVoxelData voxdata;
     voxdata._ndims  = _ndims;
-    voxdata._origin = _origin;
-    voxdata._len    = _len;
-    voxdata._voxel_size = _voxel_size;
-    voxdata._nvoxels = _nvoxels;
+    voxdata._origin = tpcinfo._origin_cm_v;
+    voxdata._len    = tpcinfo._voxel_dim_v;
+    voxdata._voxel_size = 0.3;
+    voxdata._nvoxels = tpcinfo._num_voxels_v;
     voxdata._tpcid  = triplet_data._tpcid;
     voxdata._cryoid = triplet_data._cryoid;    
             
     // first we need to define the voxels that are filled
     voxdata._voxel_set.clear();
-    
+
+    unsigned long n_uncontained = 0;
+
     for ( int itriplet=0; itriplet<(int)triplet_data._triplet_v.size(); itriplet++ ) {
-      const std::vector<float>& pos = triplet_data._pos_v[itriplet];
-      std::array<int,3> coord;
-      for (int i=0; i<3; i++)
-        coord[i] = get_axis_voxel(i,pos[i]);      
-      voxdata._voxel_set.insert( coord );        
+      const std::vector<float>& pos = triplet_data._pos_v[itriplet]; // this is (x,y,z)
+      const float tick = triplet_data._wirecoord_v[itriplet][3];
+      std::vector<long> vox_index;
+      bool contained = _simchan_voxelizer.getVoxelIndexWithTPCInfo( tick, pos[1], pos[2], tpcinfo, vox_index );
+      if ( contained ) {
+	std::array<long,3> coord;
+	for (int i=0; i<3; i++)
+	  coord[i] = vox_index[i];
+	voxdata._voxel_set.insert( coord );
+      }
+      else {
+	n_uncontained++;
+      }
     }
 
     // now we assign voxel to an index
     voxdata._voxel_list.clear();
-    int idx=0;
+    long idx=0;
     for ( auto& coord : voxdata._voxel_set ) {
       voxdata._voxel_list[coord] = idx;
       idx++;
     }
-    int nvidx = idx;    
-
-    LARCV_INFO() << "Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets"
-		 << " fillfrac=" << float(nvidx)/((float)voxdata._nvoxels[0]*(float)voxdata._nvoxels[1]*(float)voxdata._nvoxels[2])*100.0 << "%"
+    long nvidx = idx;
+    
+    LARCV_INFO() << "CRYO[" << voxdata._cryoid << "] TPC[" << voxdata._tpcid << "]" << std::endl;
+    LARCV_INFO() << "  Filling " << nvidx << " voxels from " << triplet_data._triplet_v.size() << " triplets" << std::endl;
+    LARCV_INFO() << "  Fillfrac=" << float(nvidx)/((float)voxdata._nvoxels[0]*(float)voxdata._nvoxels[1]*(float)voxdata._nvoxels[2])*100.0 << "%"
 		 << std::endl;
-
+    
     // assign triplets to voxels and vice versa
     voxdata._voxelidx_to_tripidxlist.clear();
     voxdata._voxelidx_to_tripidxlist.resize(nvidx);
     voxdata._trip2voxelidx.clear();
     voxdata._trip2voxelidx.resize( triplet_data._triplet_v.size(), 0 );
-
+    
     for ( int itriplet=0; itriplet<(int)triplet_data._triplet_v.size(); itriplet++ ) {
-      const std::vector<float>& pos = triplet_data._pos_v[itriplet];
-      std::array<int,3> coord;
+      const std::vector<float>& pos = triplet_data._pos_v[itriplet]; // this is (x,y,z)
+      const float tick = triplet_data._wirecoord_v[itriplet][3];
+      std::vector<long> vox_index;
+      bool contained = _simchan_voxelizer.getVoxelIndexWithTPCInfo( tick, pos[1], pos[2], tpcinfo, vox_index );
+      if ( !contained )
+	continue;
+      std::array<long,3> coord;
       for (int i=0; i<3; i++)
-        coord[i] = get_axis_voxel(i,pos[i]);
+        coord[i] = vox_index[i];
       auto it=voxdata._voxel_list.find(coord);
       if ( it==voxdata._voxel_list.end() ) {
         throw std::runtime_error("could not find a voxel we defined!!");
@@ -232,13 +254,11 @@ namespace voxelizer {
     }
 
     LARCV_INFO() << "Number of filled voxels: " <<voxdata._voxelidx_to_tripidxlist.size() << std::endl;
+    LARCV_INFO() << "  number of uncontained triplets: " << n_uncontained << std::endl;
     LARCV_INFO() << "  number of multipt voxel: " << number_multipt_voxel << std::endl;
     LARCV_INFO() << "  max pts in a voxel: " << max_pt_in_voxel << std::endl;
     
     // Fill a TPCVoxelData object for This MatchTriplet instance
-
-    // save a copy in the voxelizer?
-    //_voxel_data_v.emplace_back( std::move(voxdata) );
     return voxdata;
   }
 
@@ -279,7 +299,7 @@ namespace voxelizer {
     PyArrayObject* coord_array = (PyArrayObject*)PyArray_SimpleNew( 2, coord_dims, NPY_LONG );
     for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second;
-      const std::array<int,3>& coord = it->first;
+      const std::array<long,3>& coord = it->first;
       for (int j=0; j<_ndims; j++)
         *((long*)PyArray_GETPTR2( coord_array, (int)vidx, j)) = (long)coord[j];
     }
@@ -497,22 +517,34 @@ namespace voxelizer {
    * @brief get voxel indices from non-t0 corrected space point coordinate
    *
    */
-  std::vector<int> VoxelizeTriplets::get_voxel_indices( const std::vector<float>& xyz ) const
+  std::vector<long> VoxelizeTriplets::get_voxel_indices( const std::vector<float>& xyz )
   {
-    std::vector<int> indices(3,0);
-    for (int i=0; i<3; i++) {
 
-      if ( xyz[i]-_origin[i]<0 || xyz[i]>=_origin[i]+_len[i] ) {
-        std::stringstream ss;
-        ss << "[VoxelizeTriplets::get_voxel_indices.L" << __LINE__ << "] "
-           << " Space point provided (" << xyz[0] << "," << xyz[1] << "," << xyz[2] << ") is out of bounds"
-           << " for axis=" << i << " bounds=[" << _origin[i] << "," << _origin[i]+_len[i] << ")"
-           << std::endl;
-        throw std::runtime_error( ss.str() );
+    TVector3 worldLoc( xyz[0], xyz[1], xyz[2]);
+    
+    std::vector<int> ctid = larlite::larutil::Geometry::GetME()->GetContainingCryoAndTPCIDs( worldLoc );
+    int cryoid = ctid[0];
+    int tpcid  = ctid[1];
+    auto& tpcinfo = _simchan_voxelizer.getTPCInfo( cryoid, tpcid );
+    float tick = larutil::DetectorProperties::GetME()->ConvertXToTicks( xyz[0], 0, tpcid, cryoid );
+    std::vector<long> vox_index(3,0);
+    bool contained = _simchan_voxelizer.getVoxelIndexWithTPCInfo( tick, xyz[1], xyz[2], tpcinfo, vox_index );
+
+    if ( !contained ) {
+
+      std::vector<float> origin = tpcinfo._origin_cm_v;
+      
+      std::stringstream ss;
+      ss << "[VoxelizeTriplets::get_voxel_indices.L" << __LINE__ << "] "
+	 << " Space point provided (" << xyz[0] << "," << xyz[1] << "," << xyz[2] << ") is out of bounds" << std::endl;
+      for (int i=0; i<3; i++) {
+	float maxbound = origin[i] + tpcinfo._num_voxels_v[i]*tpcinfo._voxel_dim_v[i];
+	ss << " for axis=" << i << " bounds=[" << origin[i] << "," << maxbound << ")"
+	   << std::endl;
       }
-      indices[i] = get_axis_voxel( i, xyz[i] );
+      throw std::runtime_error( ss.str() );
     }
-    return indices;
+    return vox_index;
   }
 
   /**
@@ -523,7 +555,6 @@ namespace voxelizer {
    */
   int VoxelizeTriplets::make_ssnet_voxel_label_nparray( const larflow::prep::SSNetLabelData& ssnetdata,
 							const larflow::voxelizer::TPCVoxelData& voxeldata,
-							const larflow::prep::MatchTriplets& tripletdata,
 							PyArrayObject*& ssnet_array,
 							PyArrayObject*& ssnet_weight )
   {
@@ -562,7 +593,7 @@ namespace voxelizer {
 	  max_class_n = nclass[iclass];
 	}
       }
-
+      
       if (max_class>0 && max_class_n>0 ) {
 	*((long*)PyArray_GETPTR1( ssnet_array, (int)vidx)) = max_class;
 	vox_nclass[max_class]++;
@@ -731,7 +762,7 @@ namespace voxelizer {
       PyObject *ssnet_weight_key = Py_BuildValue("s", "ssnet_weights" );    
       PyArrayObject* ssnet_array  = nullptr;
       PyArrayObject* ssnet_weight = nullptr;
-      make_ssnet_voxel_label_nparray( ssnetdata, voxdata, tripletdata, ssnet_array, ssnet_weight );
+      make_ssnet_voxel_label_nparray( ssnetdata, voxdata, ssnet_array, ssnet_weight );
       PyDict_SetItem(larmatch_dict, ssnet_label_key,  (PyObject*)ssnet_array);
       PyDict_SetItem(larmatch_dict, ssnet_weight_key, (PyObject*)ssnet_weight);    
 
@@ -779,6 +810,70 @@ namespace voxelizer {
   }
 
   /**
+   * @brief get full label set for voxels
+   * @param data Class holding the triplet data and truth labels loaded inside
+   * @return dictionary with numpy arrays
+   */
+  PyObject* VoxelizeTriplets::make_full_voxel_labelset_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
+							     const larflow::prep::MatchTriplets& tripletdata,
+							     const larflow::prep::SSNetLabelData& ssnetdata,
+							     const larflow::keypoints::KeypointData& kpdata )
+  {
+
+    // const larflow::prep::MatchTriplets& tripletdata = data.triplet_v->at(idata); /// proposed spacepoints and labels
+    // const larflow::keypoints::KeypointData& kpdata  = data.kpdata_v->at(idata);  /// keypoints along with info to calc score label
+    // const larflow::prep::SSNetLabelData& ssnetdata  = data.ssnet_v->at(idata);   /// ssnet labels for the spacepoints
+      
+    // get larmatch voxels and truth labels (ghost vs true label)
+    PyObject* larmatch_dict = VoxelizeTriplets::make_voxeldata_dict( voxdata, tripletdata );
+    
+    PyObject *ssnet_label_key  = Py_BuildValue("s", "ssnet_labels" );
+    PyObject *ssnet_weight_key = Py_BuildValue("s", "ssnet_weights" );    
+    PyArrayObject* ssnet_array  = nullptr;
+    PyArrayObject* ssnet_weight = nullptr;
+    make_ssnet_voxel_label_nparray( ssnetdata, voxdata, ssnet_array, ssnet_weight );
+    PyDict_SetItem(larmatch_dict, ssnet_label_key,  (PyObject*)ssnet_array);
+    PyDict_SetItem(larmatch_dict, ssnet_weight_key, (PyObject*)ssnet_weight);    
+
+    PyArrayObject* larmatch_labels = (PyArrayObject*)PyDict_GetItemString( larmatch_dict, "voxlabel" );
+    PyArrayObject* kplabel  = nullptr;
+    PyArrayObject* kpweight = nullptr;
+    make_kplabel_arrays( kpdata, voxdata, larmatch_labels, kplabel, kpweight );
+    PyObject *kp_label_key = Py_BuildValue("s", "kplabel" );
+    PyDict_SetItem(larmatch_dict, kp_label_key, (PyObject*)kplabel );
+    PyObject *kp_weight_key = Py_BuildValue("s", "kpweight" );    
+    PyDict_SetItem(larmatch_dict, kp_weight_key, (PyObject*)kpweight );
+
+    // instance labels
+    PyObject* dict_instance_labels = make_instance_dict_labels( voxdata, tripletdata );
+    int mergeok = PyDict_Update( larmatch_dict, dict_instance_labels );
+    if ( mergeok!=0 ) {
+      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with instance label dict failed");
+    }
+      
+    // origin labels
+    PyObject* dict_origin_labels = make_origin_dict_labels( voxdata, tripletdata );
+    mergeok = PyDict_Update( larmatch_dict, dict_origin_labels );
+    if ( mergeok!=0 ) {
+      throw std::runtime_error( "voxelizetriplet::get_full_voxel_labelset_dict: merge with origin label dict failed");
+    }
+
+    Py_DECREF(ssnet_label_key);
+    Py_DECREF(ssnet_weight_key);
+    Py_DECREF(kp_label_key);
+    Py_DECREF(kp_weight_key);
+    
+    Py_DECREF(kplabel);
+    Py_DECREF(kpweight);
+    Py_DECREF(ssnet_array);
+    Py_DECREF(ssnet_weight);
+    Py_DECREF(dict_origin_labels);
+    Py_DECREF(dict_instance_labels);
+    
+    return larmatch_dict;
+  }
+  
+  /**
    * @brief make keypoint ground truth numpy arrays
    *
    * @param[in]  num_max_samples Max number of samples to return
@@ -813,6 +908,8 @@ namespace voxelizer {
     kplabel_dims[0] = (int)nclasses;
     kplabel_dims[1] = (int)nvidx;    
     kplabel_array = (PyArrayObject*)PyArray_SimpleNew( 2, kplabel_dims, NPY_FLOAT );
+
+    auto& tpcinfo = _simchan_voxelizer.getTPCInfo( voxdata._cryoid, voxdata._tpcid );
     
     /// ------- ///
     
@@ -824,11 +921,11 @@ namespace voxelizer {
     
     for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index, index in the array we are filling
-      const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
+      const std::array<long,3>& arr_index = it->first; // index in the dense 3D array
 
       std::vector<float> vox_center(3,0);
       for (int i=0; i<3; i++)
-	vox_center[i] = ((float)arr_index[i]+0.5)*get_voxel_size() + get_origin()[i]; // position of voxel center
+	vox_center[i] = ((float)arr_index[i]+0.5)*tpcinfo._voxel_dim_v[i] + tpcinfo._origin_cm_v[i]; // position of voxel center
       
       //std::cout << "vox-center: (" << vox_center[0] << "," << vox_center[1] << "," << vox_center[2] << ")" << std::endl;
       
@@ -958,7 +1055,7 @@ namespace voxelizer {
 
   //   for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
   //     int vidx = it->second; // voxel index, index in the array we are filling
-  //     const std::array<int,3>& arr_index = it->first; // index in the dense 3D array
+  //     const std::array<long,3>& arr_index = it->first; // index in the dense 3D array
 
   //     std::vector<float> vox_center(3,0);
   //     for (int i=0; i<3; i++)

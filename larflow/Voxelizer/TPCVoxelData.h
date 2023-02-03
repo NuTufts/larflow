@@ -33,8 +33,8 @@ namespace voxelizer {
     std::vector<int>   _nvoxels; ///< number of voxels in each dimension
 
     // actual data
-    std::set< std::array<int,3> >      _voxel_set;  ///< set of occupied voxels
-    std::map< std::array<int,3>, int > _voxel_list; ///< map from voxel coordinate to voxel index
+    std::set< std::array<long,3> >      _voxel_set;  ///< set of occupied voxels
+    std::map< std::array<long,3>, long > _voxel_list; ///< map from voxel coordinate to voxel index
 
     // map to original triplet data that contains the detector info and labels
     std::vector< std::vector<int> >    _voxelidx_to_tripidxlist; ///< voxel index to vector of triplet indices

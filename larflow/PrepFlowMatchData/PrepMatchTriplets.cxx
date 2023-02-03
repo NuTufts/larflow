@@ -32,10 +32,13 @@ namespace prep {
    */
   void PrepMatchTriplets::clear()
   {
-
+    // clear the output data
     for ( auto& matchdata : _match_triplet_v )
       matchdata.clear();
-    
+
+    // clear meta data for an event
+    _shower_daughter2mother.clear();
+    _instance2class_map.clear();
   }
   
   /**

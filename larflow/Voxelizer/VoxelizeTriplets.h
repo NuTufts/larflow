@@ -13,6 +13,7 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/DataFormat/storage_manager.h"
+#include "ublarcvapp/MCTools/SimChannelVoxelizer.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 #include "larflow/PrepFlowMatchData/MatchTriplets.h"
@@ -48,9 +49,10 @@ namespace voxelizer {
 
     VoxelizeTriplets();
 
-    VoxelizeTriplets( std::vector<float> origin,
-                      std::vector<float> dim_len,
-                      float voxel_size );
+    // VoxelizeTriplets( std::vector<float> origin,
+    //                   std::vector<float> dim_len,
+    //                   float voxel_size );
+    
     ~VoxelizeTriplets() {};
 
     void process_fullchain( larcv::IOManager& iolcv,
@@ -61,11 +63,10 @@ namespace voxelizer {
   protected:
 
     int _ndims; ///< number of dimensions of the voxel grid (really only works in 3D)
-    std::vector<float> _origin;  ///< origin of the voxel grid in cm
     std::vector<float> _len;     ///< length of the voxel grid in each dimension in cvm
-    float _voxel_size;           ///< voxel edge length in cm
-    std::vector<int>   _nvoxels; ///< number of voxels in each dimension
     void _define_voxels();
+
+    ublarcvapp::mctools::SimChannelVoxelizer _simchan_voxelizer; ///< we use this class to define the voxels in each TPCS
 
     // std::set< std::array<int,3> >      _voxel_set;  ///< set of occupied voxels
     // std::map< std::array<int,3>, int > _voxel_list; ///< map from voxel coordinate to voxel index
@@ -83,6 +84,12 @@ namespace voxelizer {
     int get_axis_voxel( int axis, float coord ) const;
     
     PyObject* get_full_voxel_labelset_dict( const larflow::keypoints::LoaderKeypointData& data );
+    
+    PyObject* make_full_voxel_labelset_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
+					     const larflow::prep::MatchTriplets& tripletdata,
+					     const larflow::prep::SSNetLabelData& ssnetdata,
+					     const larflow::keypoints::KeypointData& kpdata );
+    
 
     larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
@@ -91,7 +98,6 @@ namespace voxelizer {
 
     int make_ssnet_voxel_label_nparray( const larflow::prep::SSNetLabelData& ssnetdata,
 					const larflow::voxelizer::TPCVoxelData& voxeldata,
-					const larflow::prep::MatchTriplets& tripletdata,
 					PyArrayObject*& ssnet_array,
 					PyArrayObject*& ssnet_weight );
     
@@ -114,21 +120,21 @@ namespace voxelizer {
     PyObject* make_origin_dict_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
 				       const larflow::prep::MatchTriplets& data );
 
-    /** @brief get the number of total voxels */   
-    const std::vector<int>& get_nvoxels() const  { return _nvoxels; };
+    // /** @brief get the number of total voxels */   
+    // const std::vector<int>& get_nvoxels() const  { return _nvoxels; };
 
-    /** @brief get the origin of the voxel grid */
-    const std::vector<float>& get_origin() const { return _origin; };
+    // /** @brief get the origin of the voxel grid */
+    // const std::vector<float>& get_origin() const { return _origin; };
 
     /** @brief get the lengths of each dimension of the voxel grid */
     const std::vector<float>& get_dim_len() const { return _len; };
 
-    /** @brief get the voxel edge length */
-    float get_voxel_size() const { return _voxel_size; };
+    // /** @brief get the voxel edge length */
+    // float get_voxel_size() const { return _voxel_size; };
 
     void set_voxel_size_cm( float width_cm );
 
-    std::vector<int> get_voxel_indices( const std::vector<float>& xyz ) const;
+    std::vector<long> get_voxel_indices( const std::vector<float>& xyz );
 
     
   protected:

@@ -26,7 +26,7 @@ namespace prep {
     std::vector< larcv::ImageMeta >                       _imgmeta_v;       ///< image metas for the most recently processed event [elements is for planes]
     std::vector< std::vector< FlowTriples::PixData_t > >  _sparseimg_vv;    ///< sparse representation of image [elements is for planes]
     std::vector< std::vector<int> >                       _triplet_v;       ///< set of sparseimage indices indicating candidate 3-plane match (U-index,V-index,Y-index,row)
-    std::vector< std::vector<int> >                       _wirecoord_v;     ///< set of sparseimage indices indicating candidate 3-plane match (U-wire,V-wire,Y-wire,row)    
+    std::vector< std::vector<int> >                       _wirecoord_v;     ///< set of sparseimage indices indicating candidate 3-plane match (U-wire,V-wire,Y-wire,tick)    
     std::vector< std::vector<int> >                       _trip_cryo_tpc_v; ///< cryostat and tpc id for triplet [elements in triplet]
     std::vector< int >                                    _truth_v;         ///< indicates if index set in _triple_v is true match (1) or not (0)
     std::vector< std::vector<int> >                       _truth_2plane_v;  ///< truth vectors for 2 plane flows. inner vector is 1/0 for all 2-plane flow dirs [deprecate]

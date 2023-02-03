@@ -20,6 +20,8 @@
 #pragma link C++ class std::vector<larflow::voxelizer::VoxelizeTriplets>+;
 #pragma link C++ class larflow::voxelizer::LArVoxelHitMaker+;
 #pragma link C++ class std::vector<larflow::voxelizer::LArVoxelHitMaker>+;
+#pragma link C++ class larflow::voxelizer::TPCVoxelData+;
+#pragma link C++ class std::vector<larflow::voxelizer::TPCVoxelData>+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif
