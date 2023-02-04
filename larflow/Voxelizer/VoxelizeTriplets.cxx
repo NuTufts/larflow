@@ -113,7 +113,8 @@ namespace voxelizer {
   {
     const float driftv = larutil::LArProperties::GetME()->DriftVelocity();
     float dtick = std::floor( width_cm/larutil::DetectorProperties::GetME()->GetXTicksCoefficient() );
-    LARCV_DEBUG() << "setting voxel edges to be " << width_cm << " cm --> dtick=" << dtick << std::endl;
+    // LARCV_DEBUG() << "setting voxel edges to be " << width_cm << " cm --> dtick=" << dtick << std::endl;
+    dtick = 6; // over-ride
     _len.resize(3,0);
     _len[0] = dtick;
     _len[1] = width_cm;

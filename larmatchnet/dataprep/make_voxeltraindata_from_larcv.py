@@ -7,6 +7,7 @@ import numpy as np
 
 parser = argparse.ArgumentParser("Test PrepKeypointData")
 parser.add_argument('-d','--detector',required=True,type=str,help="Choose detector. Optons: {'uboone','sbnd','icarus'} [required]")
+parser.add_argument("-wo",'--wire-overlap-file',required=True,type=str,help="Location of wire overlap file")
 parser.add_argument("-ill", "--input-larlite",required=True,type=str,help="Input larlite file [required]")
 parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file [required]")
 parser.add_argument("-o","--output",required=True,type=str,help="output file name [required]")
@@ -31,15 +32,23 @@ if args.detector not in ["uboone","sbnd","icarus"]:
     raise ValueError("Invalid detector. Choices: uboone, sbnd, or icarus")
 
 # SET DETECTOR
+overlap_matrix_file = args.wire_overlap_file
+if not os.path.exists(overlap_matrix_file):
+    print("Overlap matrix file not found at given path: ",overlap_matrix_file)
+    print("This file contains information on which combination of wires intersect")
+    print("example (on TREX): /tutorial_files/output_microboone_wireoverlap_matrices.root")
+    print("It is required.")
+    sys.exit(0)
+    
 if args.detector == "icarus":
     detid = larlite.geo.kICARUS
-    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root"
+    #overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_icarus_wireoverlap_matrices.root"
 elif args.detector == "uboone":
     detid = larlite.geo.kMicroBooNE
-    overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_microboone_wireoverlap_matrices.root"    
+    #overlap_matrix_file = os.environ["LARFLOW_BASEDIR"]+"/larflow/PrepFlowMatchData/test/output_microboone_wireoverlap_matrices.root"    
 elif args.detector == "sbnd":
     detid = larlite.geo.kSBND
-    raise ValueError("SBND not supported yet")
+    #raise ValueError("SBND not supported yet")
 larutil.LArUtilConfig.SetDetector(detid)
 
 rt.gStyle.SetOptStat(0)
