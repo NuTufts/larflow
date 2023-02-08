@@ -201,6 +201,9 @@ namespace voxelizer {
 	voxdata._voxel_set.insert( coord );
       }
       else {
+	std::cout << "uncontained? pos=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") tick=" << tick
+		  << " index=(" << vox_index[0] << "," << vox_index[1] << "," << vox_index[2] << ")"
+		  << std::endl;
 	n_uncontained++;
       }
     }
@@ -1366,6 +1369,144 @@ namespace voxelizer {
 
     //std::cout << "  made ssnet truth array" << std::endl;
     return d;
+  }
+
+  /**
+   * @brief produces the semantic labels for mlreco
+   *
+   */
+  std::vector< larcv::SparseTensor3D >
+  VoxelizeTriplets::make_mlreco_semantic_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
+							 const larflow::prep::MatchTriplets& triplet_data,
+							 const larflow::prep::SSNetLabelData& ssnetdata )
+  {
+
+    LARCV_NORMAL() << "Start conversion" << std::endl;
+    
+    // voxel 0-dimension is in ticks. convert to x-coordinate cm using drift distance, relative to trigger
+    float xmin = larutil::DetectorProperties::GetME()->ConvertTicksToX( voxdata._origin[0], 0, voxdata._tpcid, voxdata._cryoid );
+    float xmax = voxdata._origin[0] + voxdata._len[0]*voxdata._nvoxels[0]; // in ticks
+    xmax = larutil::DetectorProperties::GetME()->ConvertTicksToX(xmax, 0, voxdata._tpcid, voxdata._cryoid ); // in x cm
+    float ymax = voxdata._origin[1] + voxdata._len[1]*voxdata._nvoxels[1];
+    float zmax = voxdata._origin[2] + voxdata._len[2]*voxdata._nvoxels[2];
+    larcv::Voxel3DMeta meta;    
+    meta.set(xmin,voxdata._origin[1],voxdata._origin[2],
+	     xmax,ymax,zmax,
+	     voxdata._nvoxels[0], voxdata._nvoxels[1], voxdata._nvoxels[2],
+	     larcv::kUnitCM);
+
+    LARCV_NORMAL() << "Meta: " << meta.dump() << std::endl;    
+
+    // Convert our data into larcv::VoxelSet
+    larcv::VoxelSet charge[3]; // charge value from each plane
+    larcv::VoxelSet label;
+
+    // Loop over the voxels
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    int iidx = 0 ;
+    
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      if ( iidx>0 && iidx%10000==0 )
+	LARCV_DEBUG() << "  processing voxel " << iidx << " of " << nvidx << std::endl;
+      
+      int vidx = it->second;
+
+      // voxel coordinate
+      const std::array<long,3>& coord = it->first;
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+	    
+      // ave plane charge of spacepoints associated to this voxel
+      std::vector<float> pixsum_v(3,0.0);
+      std::vector<int> npix_v(3,0);
+      for ( auto const& tripidx : tripidx_v ) {
+	auto const& tripindices = triplet_data._triplet_v[tripidx];
+	for (int p=0; p<3; p++) {
+	  const larflow::prep::FlowTriples::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
+	  pixsum_v[p] += pixdata.val;
+	  npix_v[p]++;
+	}
+      }
+
+      // fill charge voxelset(s)
+      for (int p=0; p<3; p++) {
+	if (npix_v[p]>0) {
+	  charge[p].push_back( meta.index(coord[0], coord[1], coord[2]), pixsum_v[p]/float(npix_v[p]) );
+	}
+	else {
+	  charge[p].push_back( meta.index(coord[0], coord[1], coord[2]), 0.0  );
+	}
+      }
+      
+      // the class label: mlreco uses the 5-particle labels for larcv
+      // find class label with most (non background) triplets
+      std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
+      for ( auto const& tripidx : tripidx_v ) {
+	int triplet_label = ssnetdata._ssnet_label_v.at(tripidx);
+	if ( triplet_label>=0 && triplet_label<larflow::prep::PrepSSNetTriplet::kNumClasses )
+	  nclass[triplet_label]++;
+      }
+      int max_class = -1;
+      int max_class_n = 0;
+      for (int iclass=1; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+	if ( nclass[iclass]>max_class_n ) {
+	  max_class = iclass;
+	  max_class_n = nclass[iclass];
+	}
+      }
+      
+      // now that we have decided the class, set the voxetset label
+      if (max_class>0 && max_class_n>0 ) {
+	int mlreco_label = 0;
+	switch (max_class) {
+	case 0: // BG class
+	  mlreco_label = 5;
+	  break;
+	case 1: // electron
+	  mlreco_label = 1;
+	  break;
+	case 2: // gamma
+	  mlreco_label = 0;
+	  break;
+	case 3: // muon
+	  mlreco_label = 2;
+	  break;
+	case 4: // pion
+	  mlreco_label = 3;
+	  break;
+	case 5: // proton
+	  mlreco_label = 4;
+	  break;
+	default: // other (kaons usually): dump it into the pion class
+	  mlreco_label = 3;
+	  break;
+	}
+	
+	label.push_back( meta.index(coord[0], coord[1], coord[2]), (float)mlreco_label );
+      }
+      else {
+	// no max class found
+	label.push_back( meta.index(coord[0], coord[1], coord[2]), 5.0  );	
+      }
+
+      iidx++;
+    }//end of loop over voxels
+
+    // sort these voxelsets
+    for (int p=0; p<3; p++)
+      charge[p].sort();
+    label.sort();
+      
+    std::vector< larcv::SparseTensor3D > out_v;
+    for (int p=0; p<3; p++) {
+      larcv::SparseTensor3D x( std::move(charge[p]), meta );
+      out_v.emplace_back( std::move( x ) );
+    }
+    larcv::SparseTensor3D xlabel( std::move(label), meta );    
+    out_v.emplace_back( std::move(xlabel) );
+
+    return out_v;
   }
   
 }

@@ -12,6 +12,7 @@
 
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larcv/core/DataFormat/SparseTensor3D.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "ublarcvapp/MCTools/SimChannelVoxelizer.h"
 
@@ -89,7 +90,11 @@ namespace voxelizer {
 					     const larflow::prep::MatchTriplets& tripletdata,
 					     const larflow::prep::SSNetLabelData& ssnetdata,
 					     const larflow::keypoints::KeypointData& kpdata );
-    
+
+    std::vector< larcv::SparseTensor3D >
+    make_mlreco_semantic_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
+					 const larflow::prep::MatchTriplets& triplet_data,
+					 const larflow::prep::SSNetLabelData& ssnetdata );
 
     larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
