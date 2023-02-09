@@ -1505,6 +1505,7 @@ namespace voxelizer {
   std::vector< larcv::SparseTensor3D >
   VoxelizeTriplets::make_mlreco_cluster_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
 							const larflow::prep::MatchTriplets& tripletdata,
+							const larflow::keypoints::KeypointData& kpdata,							
 							std::vector<larcv::Particle>& particle_v,
 							std::vector<larcv::Particle>& rejected_v )
   {
@@ -1525,21 +1526,24 @@ namespace voxelizer {
     std::map<int,int> idcounts;    //key: new instance code, value: number of voxels
     int nids = 0;
     for ( auto const& instanceid : tripletdata._instance_id_v ) {
-      if ( instanceid==0 )
+      if ( instanceid==0 ) // ID[0] is reserved for no TrackID assigned to triplet
 	continue;
       
       int id = 0;
       if ( instance2id.find( instanceid )==instance2id.end() ) {
+	// New instanceID/trackID found, assign new sequential ID
 	id = nids;
 	instance2id[instanceid] = id; 
 	idcounts[id] = 0;
 	nids++;
+	//LARCV_DEBUG() << "trackid[" << instanceid << "] -> sequentialid[" << id << "]" << std::endl;
       }
       idcounts[id]++;
     }
     
     std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
     std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
+    int nmissing = 0;
     for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
       const std::array<long,3>& coord = it->first; // voxel coordinates      
@@ -1570,7 +1574,7 @@ namespace voxelizer {
 	}
       }
       
-      if (max_id>0 ) {
+      if (max_id>=0 ) {
 	// determined a winning ID for this voxel
 	instance_labels.push_back( meta.index(coord[0], coord[1], coord[2]), (float)max_id );
 	vox_nclass[max_id]++;
@@ -1585,22 +1589,58 @@ namespace voxelizer {
 
     // filter the particle list to only include ids in the voxel
     LARCV_DEBUG() << "prefilterd particles=" << particle_v.size() << std::endl;
+    int num_updated = 0;
     for ( auto& particle : particle_v ) {
-      auto it=instance2id.find( (int)particle.track_id() );
-      if ( it!=instance2id.end() ) {
-	// found, save this particle
-	particle.num_voxels( vox_nclass[it->second] );
-	saved_v.emplace_back( std::move(particle) );
-      }
-      else {
+      
+      int trackid = (int)particle.track_id();
+      auto it=instance2id.find( trackid );
+
+      bool has_voxels = it!=instance2id.end();
+
+      if ( !has_voxels ) {
 	// not found, reject
 	rejected_v.emplace_back( std::move(particle) );
+	continue;
       }
+
+      // now we want to adjust the info for the particle.
+      // we need to see if we have a refined keypoint made
+      bool found_kpdata = false;
+      for ( auto& kp : kpdata._kpd_v ) {
+	if ( kp.trackid==trackid ) {
+	  if ( kp.kptype==kTrackEnd ) {
+	    // modify the end point of the particle
+	    float t = particle.last_step().T();
+	    particle.last_step( kp.keypt[0], kp.keypt[1], kp.keypt[2], t );
+	  }
+	  else {
+	    // else modify the start point of the particle
+	    float t = particle.first_step().T();
+	    particle.first_step( kp.keypt[0], kp.keypt[1], kp.keypt[2], t );
+	  }
+	  found_kpdata = true;
+	}
+      }
+      if ( found_kpdata ) {
+	num_updated++;
+	LARCV_DEBUG() << "KPdata updated TRACKID[" << trackid << "] pdg=" << particle.pdg_code() << " num_voxels=" << vox_nclass[it->second] << std::endl;
+      }
+      else {
+	LARCV_DEBUG() << "No KP match for TRACKID[" << trackid << "] pdg=" << particle.pdg_code() << " num_voxels=" << vox_nclass[it->second] << std::endl;
+      }
+      
+      // update the number of voxels
+      particle.num_voxels( vox_nclass[it->second] );
+
+      // store this particle in the save list
+      saved_v.emplace_back( std::move(particle) );
     }
     std::swap( particle_v, saved_v );
-    LARCV_DEBUG() << "post-filterd particles=" << particle_v.size() << std::endl;    
-
+    LARCV_DEBUG() << "particles updated with KPdata info: " << num_updated << std::endl;
+    LARCV_DEBUG() << "post-filtered particles=" << particle_v.size() << std::endl;
+    
     instance_labels.sort();
+
 
     larcv::SparseTensor3D xlabel( std::move(instance_labels), meta );    
     out_v.emplace_back( std::move(xlabel) );

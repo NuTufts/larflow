@@ -100,6 +100,7 @@ namespace voxelizer {
     std::vector< larcv::SparseTensor3D >
     make_mlreco_cluster_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
 					const larflow::prep::MatchTriplets& tripletdata,
+					const larflow::keypoints::KeypointData& kpdata,					
 					std::vector<larcv::Particle>& particle_v,
 					std::vector<larcv::Particle>& rejected_v );
 

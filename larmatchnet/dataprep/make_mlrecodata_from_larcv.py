@@ -225,7 +225,7 @@ for ientry in range(start_entry,end_entry,1):
 
         # Make individual particle cluster labels + refine partice list to those labeling voxels in the event
         rejected_v = std.vector("larcv::Particle")()
-        cluster_v = voxelizer.make_mlreco_cluster_label_sparse3d( tpc_voxdata, tpc_tripletdata, particle_v, rejected_v )
+        cluster_v = voxelizer.make_mlreco_cluster_label_sparse3d( tpc_voxdata, tpc_tripletdata, tpc_kpdata, particle_v, rejected_v )
         print("Number after voxelizer particle cluster labeler: ",particle_v.size())
         ev_cluster.merge( cluster_v[0] )
 
