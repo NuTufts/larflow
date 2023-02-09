@@ -1382,19 +1382,8 @@ namespace voxelizer {
   {
 
     LARCV_NORMAL() << "Start conversion" << std::endl;
-    
-    // voxel 0-dimension is in ticks. convert to x-coordinate cm using drift distance, relative to trigger
-    float xmin = larutil::DetectorProperties::GetME()->ConvertTicksToX( voxdata._origin[0], 0, voxdata._tpcid, voxdata._cryoid );
-    float xmax = voxdata._origin[0] + voxdata._len[0]*voxdata._nvoxels[0]; // in ticks
-    xmax = larutil::DetectorProperties::GetME()->ConvertTicksToX(xmax, 0, voxdata._tpcid, voxdata._cryoid ); // in x cm
-    float ymax = voxdata._origin[1] + voxdata._len[1]*voxdata._nvoxels[1];
-    float zmax = voxdata._origin[2] + voxdata._len[2]*voxdata._nvoxels[2];
-    larcv::Voxel3DMeta meta;    
-    meta.set(xmin,voxdata._origin[1],voxdata._origin[2],
-	     xmax,ymax,zmax,
-	     voxdata._nvoxels[0], voxdata._nvoxels[1], voxdata._nvoxels[2],
-	     larcv::kUnitCM);
 
+    larcv::Voxel3DMeta meta = make_meta( voxdata );
     LARCV_NORMAL() << "Meta: " << meta.dump() << std::endl;    
 
     // Convert our data into larcv::VoxelSet
@@ -1507,6 +1496,133 @@ namespace voxelizer {
     out_v.emplace_back( std::move(xlabel) );
 
     return out_v;
+  }
+
+  /**
+   * @brief produces particle cluster labels for voxels, refines particle list
+   *
+   */
+  std::vector< larcv::SparseTensor3D >
+  VoxelizeTriplets::make_mlreco_cluster_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
+							const larflow::prep::MatchTriplets& tripletdata,
+							std::vector<larcv::Particle>& particle_v,
+							std::vector<larcv::Particle>& rejected_v )
+  {
+
+    LARCV_DEBUG() << "start" << std::endl;
+    larcv::Voxel3DMeta meta = make_meta( voxdata );
+    LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;    
+
+    
+    std::vector<larcv::Particle> saved_v;
+    std::vector< larcv::SparseTensor3D > out_v;    
+    larcv::VoxelSet instance_labels;
+
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    // compile unique IDs
+    std::map<int,int> instance2id; //key: geant4 track id, value: new instance code
+    std::map<int,int> idcounts;    //key: new instance code, value: number of voxels
+    int nids = 0;
+    for ( auto const& instanceid : tripletdata._instance_id_v ) {
+      if ( instanceid==0 )
+	continue;
+      
+      int id = 0;
+      if ( instance2id.find( instanceid )==instance2id.end() ) {
+	id = nids;
+	instance2id[instanceid] = id; 
+	idcounts[id] = 0;
+	nids++;
+      }
+      idcounts[id]++;
+    }
+    
+    std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
+    std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+      const std::array<long,3>& coord = it->first; // voxel coordinates      
+
+      // find class label with most (non background) triplets
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+
+      // clear the values
+      memset( nvotes_id.data(), 0, sizeof(int)*nvotes_id.size() );
+
+      for ( auto const& tripidx : tripidx_v ) {
+	int instance_label = tripletdata._instance_id_v.at(tripidx);
+
+	auto it = instance2id.find( instance_label );
+	if ( it!=instance2id.end() ) {
+	  // found the instance, get the id label
+	  int idlabel = it->second;
+	  nvotes_id[idlabel]++;
+	}
+      }
+      
+      int max_id = -1;
+      int max_id_n = 0;
+      for ( int i=0; i<(int)nvotes_id.size(); i++ ) {
+	if ( nvotes_id[i]>max_id_n ) {
+	  max_id_n = nvotes_id[i];
+	  max_id = i;
+	}
+      }
+      
+      if (max_id>0 ) {
+	// determined a winning ID for this voxel
+	instance_labels.push_back( meta.index(coord[0], coord[1], coord[2]), (float)max_id );
+	vox_nclass[max_id]++;
+      }
+      else {
+	instance_labels.push_back( meta.index(coord[0], coord[1], coord[2]), (float)nids );
+	vox_nclass[nids]++;
+      }
+      
+    }//loop over voxels
+
+
+    // filter the particle list to only include ids in the voxel
+    LARCV_DEBUG() << "prefilterd particles=" << particle_v.size() << std::endl;
+    for ( auto& particle : particle_v ) {
+      auto it=instance2id.find( (int)particle.track_id() );
+      if ( it!=instance2id.end() ) {
+	// found, save this particle
+	particle.num_voxels( vox_nclass[it->second] );
+	saved_v.emplace_back( std::move(particle) );
+      }
+      else {
+	// not found, reject
+	rejected_v.emplace_back( std::move(particle) );
+      }
+    }
+    std::swap( particle_v, saved_v );
+    LARCV_DEBUG() << "post-filterd particles=" << particle_v.size() << std::endl;    
+
+    instance_labels.sort();
+
+    larcv::SparseTensor3D xlabel( std::move(instance_labels), meta );    
+    out_v.emplace_back( std::move(xlabel) );
+       
+    return out_v;
+    
+  }  
+
+  larcv::Voxel3DMeta VoxelizeTriplets::make_meta( const larflow::voxelizer::TPCVoxelData& voxdata )
+  {
+    // voxel 0-dimension is in ticks. convert to x-coordinate cm using drift distance, relative to trigger
+    float xmin = larutil::DetectorProperties::GetME()->ConvertTicksToX( voxdata._origin[0], 0, voxdata._tpcid, voxdata._cryoid );
+    float xmax = voxdata._origin[0] + voxdata._len[0]*voxdata._nvoxels[0]; // in ticks
+    xmax = larutil::DetectorProperties::GetME()->ConvertTicksToX(xmax, 0, voxdata._tpcid, voxdata._cryoid ); // in x cm
+    float ymax = voxdata._origin[1] + voxdata._len[1]*voxdata._nvoxels[1];
+    float zmax = voxdata._origin[2] + voxdata._len[2]*voxdata._nvoxels[2];
+    larcv::Voxel3DMeta meta;    
+    meta.set(xmin,voxdata._origin[1],voxdata._origin[2],
+	     xmax,ymax,zmax,
+	     voxdata._nvoxels[0], voxdata._nvoxels[1], voxdata._nvoxels[2],
+	     larcv::kUnitCM);
+    return meta;
   }
   
 }

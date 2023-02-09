@@ -18,7 +18,7 @@ parser.add_argument("-ill", "--input-larlite",required=True,type=str,help="Input
 parser.add_argument("-ilcv","--input-larcv",required=True,type=str,help="Input LArCV file [required]")
 parser.add_argument("-o","--output",required=True,type=str,help="output file name [required]")
 parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree with Wire ADC values [default: wire]")
-parser.add_argument("-tf",  "--tick-forwards",action='store_true',default=False,help="Input LArCV data is tick-forwards [default: false]")
+parser.add_argument("-tf",  "--tick-forward",action='store_true',default=False,help="Input LArCV data is tick-forwards [default: false]")
 parser.add_argument("-n",   "--nentries",type=int,default=-1,help="Number of entries to run [default: -1 (all)]")
 parser.add_argument("-e",   "--start-entry",type=int,default=0,help="Entry to start [default: 0]")
 args = parser.parse_args()
@@ -63,12 +63,13 @@ ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
 ioll.add_in_filename(  args.input_larlite )
 ioll.open()
 
-iolcv.add_in_file( args.input_larcv )
 # OPEN INPUT FILES: LARCV
 if args.tick_forward:
     iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickForward )
 else:
     iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
+iolcv.add_in_file( args.input_larcv )
+if not args.tick_forward:
     iolcv.reverse_all_products()
 iolcv.initialize()
 
@@ -169,13 +170,16 @@ for ientry in range(start_entry,end_entry,1):
 
     # We need to convert mctrack and mcshower into larcv::particle objects
     particle_v = particleconvertor.convert( ev_mctrack, ev_mcshower )
-    print("Number of larcv::particle instances: ",particle_v.size())    
+    print("Number of larcv::particle instances: ",particle_v.size())
+    
 
     # eventsparsetensor3d container for event
     ev_charge_v = {}
     for p in range(3):
         ev_charge_v[p] = outlcv.get_data( larcv.kProductSparseTensor3D, "charge_plane%d"%(p) )    
-    ev_semantic = outlcv.get_data( larcv.kProductSparseTensor3D, "pcluster_semantics_ghost" )
+    ev_semantic = outlcv.get_data( larcv.kProductSparseTensor3D, "semantics_ghost" )
+    ev_cluster  = outlcv.get_data( larcv.kProductSparseTensor3D, "pcluster" )
+    ev_particle = outlcv.get_data( larcv.kProductParticle, "corrected" )
 
     ev_tripdata.clear()
 
@@ -218,13 +222,18 @@ for ientry in range(start_entry,end_entry,1):
         for p in range(3):
             ev_charge_v[p].merge( data_v[p] )
         ev_semantic.merge( data_v[3] )
-        
+
+        # Make individual particle cluster labels + refine partice list to those labeling voxels in the event
+        rejected_v = std.vector("larcv::Particle")()
+        cluster_v = voxelizer.make_mlreco_cluster_label_sparse3d( tpc_voxdata, tpc_tripletdata, particle_v, rejected_v )
+        print("Number after voxelizer particle cluster labeler: ",particle_v.size())
+        ev_cluster.merge( cluster_v[0] )
 
         # UBOONE HACK: one tpc at a time
         if True:
             break
 
-
+    ev_particle.set( particle_v )
     # Done with the event -- Fill it!
     outlcv.set_id( ev_adc.run(), ev_adc.subrun(), ev_adc.event() )
     outlcv.save_entry()

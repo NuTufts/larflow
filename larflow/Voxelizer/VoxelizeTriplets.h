@@ -13,6 +13,7 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/SparseTensor3D.h"
+#include "larcv/core/DataFormat/Particle.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "ublarcvapp/MCTools/SimChannelVoxelizer.h"
 
@@ -95,6 +96,12 @@ namespace voxelizer {
     make_mlreco_semantic_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
 					 const larflow::prep::MatchTriplets& triplet_data,
 					 const larflow::prep::SSNetLabelData& ssnetdata );
+    
+    std::vector< larcv::SparseTensor3D >
+    make_mlreco_cluster_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
+					const larflow::prep::MatchTriplets& tripletdata,
+					std::vector<larcv::Particle>& particle_v,
+					std::vector<larcv::Particle>& rejected_v );
 
     larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
@@ -141,6 +148,7 @@ namespace voxelizer {
 
     std::vector<long> get_voxel_indices( const std::vector<float>& xyz );
 
+    larcv::Voxel3DMeta make_meta( const TPCVoxelData& voxdata );
     
   protected:
     
