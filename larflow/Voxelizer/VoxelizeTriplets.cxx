@@ -1588,7 +1588,7 @@ namespace voxelizer {
 
 
     // filter the particle list to only include ids in the voxel
-    LARCV_DEBUG() << "prefilterd particles=" << particle_v.size() << std::endl;
+    LARCV_DEBUG() << "pre-filterd particles=" << particle_v.size() << std::endl;
     int num_updated = 0;
     for ( auto& particle : particle_v ) {
       
@@ -1623,10 +1623,18 @@ namespace voxelizer {
       }
       if ( found_kpdata ) {
 	num_updated++;
-	LARCV_DEBUG() << "KPdata updated TRACKID[" << trackid << "] pdg=" << particle.pdg_code() << " num_voxels=" << vox_nclass[it->second] << std::endl;
+	LARCV_DEBUG() << "KPdata updated TRACKID[" << trackid << "]"
+		      << " shape=" << particle.shape()
+		      << " pdg=" << particle.pdg_code()
+		      << " num_voxels=" << vox_nclass[it->second]
+		      << std::endl;
       }
       else {
-	LARCV_DEBUG() << "No KP match for TRACKID[" << trackid << "] pdg=" << particle.pdg_code() << " num_voxels=" << vox_nclass[it->second] << std::endl;
+	LARCV_DEBUG() << "No KP match for TRACKID[" << trackid << "]"
+		      << " shape=" << particle.shape()
+		      << " pdg=" << particle.pdg_code()
+		      << " num_voxels=" << vox_nclass[it->second]
+		      << std::endl;
       }
       
       // update the number of voxels
