@@ -34,7 +34,8 @@ namespace voxelizer {
    * 
    */
   VoxelizeTriplets::VoxelizeTriplets()
-    : larcv::larcv_base("VoxelizeTriplets")
+    : larcv::larcv_base("VoxelizeTriplets"),
+      _nu_only(false)
   {
     set_voxel_size_cm(0.3); // will call function to define voxels in each tpc
   }
@@ -266,6 +267,277 @@ namespace voxelizer {
     return voxdata;
   }
 
+  /**
+   * @brief fill TPCVoxelData ssnet voxel labels
+   *
+   * fill TPCVoxelData::_voxel_ssnetid.
+   *  
+   */
+  int VoxelizeTriplets::fill_tpcvoxeldata_semantic_labels( const larflow::prep::SSNetLabelData& ssnetdata,
+							   const larflow::prep::MatchTriplets& triplet_data,
+							   larflow::voxelizer::TPCVoxelData& voxdata )
+  {
+
+    // clear label map
+    voxdata._voxel_realedep.clear();
+    voxdata._voxel_ssnetid.clear();
+    
+    // Loop over the voxels
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    int iidx = 0;
+    
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      int vidx = it->second;
+
+      // voxel coordinate
+      const std::array<long,3>& coord = it->first;
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+	    
+      // the class label: mlreco uses the 5-particle labels for larcv
+      // find class label with most (non background) triplets
+      std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
+      for ( auto const& tripidx : tripidx_v ) {
+	int triplet_label = ssnetdata._ssnet_label_v.at(tripidx);
+	if ( triplet_label>=0 && triplet_label<larflow::prep::PrepSSNetTriplet::kNumClasses )
+	  nclass[triplet_label]++;
+      }
+      int max_class = -1;
+      int max_class_n = 0;
+      for (int iclass=1; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
+	if ( nclass[iclass]>max_class_n ) {
+	  max_class = iclass;
+	  max_class_n = nclass[iclass];
+	}
+      }
+      
+      // now that we have decided the class, set the voxetset label
+      if (max_class>0 && max_class_n>0 ) {
+	int mlreco_label = 0;
+	switch (max_class) {
+	case 0: // BG class
+	  mlreco_label = 5;
+	  break;
+	case 1: // electron
+	  mlreco_label = 1;
+	  break;
+	case 2: // gamma
+	  mlreco_label = 0;
+	  break;
+	case 3: // muon
+	  mlreco_label = 2;
+	  break;
+	case 4: // pion
+	  mlreco_label = 3;
+	  break;
+	case 5: // proton
+	  mlreco_label = 4;
+	  break;
+	default: // other (kaons usually): dump it into the pion class
+	  mlreco_label = 3;
+	  break;
+	}
+
+	voxdata._voxel_ssnetid[vidx] = mlreco_label;
+	if (mlreco_label!=5 )
+	  voxdata._voxel_realedep[vidx] = 1; // real
+	else
+	  voxdata._voxel_realedep[vidx] = 0; // ghost
+      }
+      else {
+	voxdata._voxel_ssnetid[vidx]  = 5; // no label, so set to background
+	voxdata._voxel_realedep[vidx] = 0; // ghost
+      }
+
+      iidx++;
+    }//end of loop over voxels
+    
+    return 0;
+  }
+
+  /**
+   * @brief fill charge from three planes for voxels
+   *
+   */
+  int VoxelizeTriplets::fill_tpcvoxeldata_planecharge( const larflow::prep::MatchTriplets& triplet_data,
+						       larflow::voxelizer::TPCVoxelData& voxdata )
+  {
+
+    voxdata._voxel_planecharge.clear();
+    
+    // Loop over the voxels
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    int iidx = 0 ;
+    
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      int vidx = it->second;
+
+      // voxel coordinate
+      const std::array<long,3>& coord = it->first;
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+	    
+      // ave plane charge of spacepoints associated to this voxel
+      std::vector<float> pixsum_v(3,0.0);
+      std::vector<int> npix_v(3,0);
+      for ( auto const& tripidx : tripidx_v ) {
+	auto const& tripindices = triplet_data._triplet_v[tripidx];
+	for (int p=0; p<3; p++) {
+	  const larflow::prep::FlowTriples::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
+	  pixsum_v[p] += pixdata.val;
+	  npix_v[p]++;
+	}
+      }
+
+      std::vector<float> charge_v(3,0);
+      
+      // fill charge voxelset(s)
+      for (int p=0; p<3; p++) {
+	if (npix_v[p]>0) {
+	  charge_v[p] = pixsum_v[p]/float(npix_v[p]);
+	}
+	else {
+	  charge_v[p] = 0.0;
+	}
+      }
+      
+      voxdata._voxel_planecharge[vidx] = charge_v;
+      
+    }//end of voxel list
+    
+    return 0;
+  }
+
+  
+  /**
+   * @brief fill not-neutrino origin label for tpcvoxeldata
+   *
+   */
+  int VoxelizeTriplets::fill_tpcvoxeldata_cosmicorigin( const larflow::prep::MatchTriplets& triplet_data,
+							larflow::voxelizer::TPCVoxelData& voxdata )
+  {
+
+    voxdata._voxel_origin.clear();
+    
+    // Loop over the voxels
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    int iidx = 0 ;
+    
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      int vidx = it->second;
+
+      // voxel coordinate
+      const std::array<long,3>& coord = it->first;
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+	          
+      // cosmic origin label: 0=neutrino, 1=cosmic
+      // not cosmic if at least one nu origin triplet inside this voxel
+      bool isnu = false;
+      for ( auto const& tripidx : tripidx_v ) {
+	int origin_label = triplet_data._origin_v.at(tripidx);
+	if ( origin_label==1 )
+	  isnu = true;
+      }
+
+      if (isnu)
+	voxdata._voxel_origin[vidx] = 0;
+      else
+	voxdata._voxel_origin[vidx] = 1;
+      
+      iidx++;
+    }//end of loop over voxels
+    
+    return 0;
+  }
+
+  /**
+   * @brief produces particle cluster labels for voxels, refines particle list
+   *
+   */
+  int VoxelizeTriplets::fill_tpcvoxeldata_instance_labels( const larflow::prep::MatchTriplets& tripletdata,
+							   larflow::voxelizer::TPCVoxelData& voxdata )
+  {
+
+    voxdata._voxel_instanceid.clear();
+    voxdata._id2trackid.clear();
+    
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    // compile unique IDs and their frequency
+    std::map<long,long> instance2id; //key: geant4 track id, value: new instance code
+    std::map<long,long> idcounts;    //key: new instance code, value: number of voxels
+    int nids = 0;
+    for ( auto const& instanceid : tripletdata._instance_id_v ) {
+      if ( instanceid==0 ) // ID[0] is reserved for no TrackID assigned to triplet
+	continue;
+      
+      int id = 0;
+      if ( instance2id.find( instanceid )==instance2id.end() ) {
+	// New instanceID/trackID found, assign new sequential ID
+	id = nids;
+	instance2id[instanceid] = id; 
+	idcounts[id] = 0;
+	voxdata._id2trackid[id] = instanceid;
+	voxdata._trackid2id[instanceid] = id;
+	nids++;
+	//LARCV_DEBUG() << "trackid[" << instanceid << "] -> sequentialid[" << id << "]" << std::endl;
+      }
+      idcounts[id]++;
+    }
+    
+    std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
+    std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
+    int nmissing = 0;
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+      int vidx = it->second; // voxel index
+      const std::array<long,3>& coord = it->first; // voxel coordinates      
+
+      // find class label with most (non background) triplets
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+
+      // clear the values
+      memset( nvotes_id.data(), 0, sizeof(int)*nvotes_id.size() );
+
+      for ( auto const& tripidx : tripidx_v ) {
+	int instance_label = tripletdata._instance_id_v.at(tripidx);
+
+	auto it = instance2id.find( instance_label );
+	if ( it!=instance2id.end() ) {
+	  // found the instance, get the id label
+	  int idlabel = it->second;
+	  nvotes_id[idlabel]++;
+	}
+      }
+      
+      int max_id = -1;
+      int max_id_n = 0;
+      for ( int i=0; i<(int)nvotes_id.size(); i++ ) {
+	if ( nvotes_id[i]>max_id_n ) {
+	  max_id_n = nvotes_id[i];
+	  max_id = i;
+	}
+      }
+      
+      if (max_id>=0 ) {
+	// determined a winning ID for this voxel
+	voxdata._voxel_instanceid[vidx] = max_id;
+	vox_nclass[max_id]++;
+      }
+      else {
+	voxdata._voxel_instanceid[vidx] = nids;
+	vox_nclass[nids]++;
+      }
+      
+    }//loop over voxels
+    
+    return 0;
+    
+  }  
+  
   /**
    * @brief takes in precomputed triplet data and outputs voxel data in the form of a python dict
    * 
@@ -1383,6 +1655,20 @@ namespace voxelizer {
 
     LARCV_NORMAL() << "Start conversion" << std::endl;
 
+    if ( voxdata._voxel_planecharge.size()==0 )
+      LARCV_ERROR() << "Plane charge labels not filled" << std::endl;
+
+    if ( voxdata._voxel_ssnetid.size()==0 )
+      LARCV_ERROR() << "SSNet ID labels not filled" << std::endl;
+
+    if ( voxdata._voxel_realedep.size()==0 )
+      LARCV_ERROR() << "Real Edep labels not filled" << std::endl;
+
+    if ( _nu_only && voxdata._voxel_origin.size()==0 ) {
+      LARCV_ERROR() << "NU-ONLY mode is TRUE, but there are no origin labels. Run: fill_tpcvoxeldata_cosmicorigin() prior to this function." << std::endl;
+      throw std::runtime_error("NU-ONLY mode is TRUE, but there are no origin labels.");
+    }
+
     larcv::Voxel3DMeta meta = make_meta( voxdata );
     LARCV_NORMAL() << "Meta: " << meta.dump() << std::endl;    
 
@@ -1397,88 +1683,38 @@ namespace voxelizer {
     
     for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
 
-      if ( iidx>0 && iidx%10000==0 )
-	LARCV_DEBUG() << "  processing voxel " << iidx << " of " << nvidx << std::endl;
+      // if ( iidx>0 && iidx%10000==0 )
+      // 	LARCV_DEBUG() << "  processing voxel " << iidx << " of " << nvidx << std::endl;
       
       int vidx = it->second;
+      auto const it_origin = voxdata._voxel_origin.find(vidx);
+      if ( it_origin==voxdata._voxel_origin.end() ) {
+	LARCV_ERROR() << "No origin label for voxel index=" << vidx << std::endl;
+      }
+
+      // skip non-neutrino voxels
+      if ( _nu_only && it_origin->second==1 )
+	continue;
 
       // voxel coordinate
       const std::array<long,3>& coord = it->first;
       const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
-	    
-      // ave plane charge of spacepoints associated to this voxel
-      std::vector<float> pixsum_v(3,0.0);
-      std::vector<int> npix_v(3,0);
-      for ( auto const& tripidx : tripidx_v ) {
-	auto const& tripindices = triplet_data._triplet_v[tripidx];
-	for (int p=0; p<3; p++) {
-	  const larflow::prep::FlowTriples::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
-	  pixsum_v[p] += pixdata.val;
-	  npix_v[p]++;
-	}
-      }
 
-      // fill charge voxelset(s)
-      for (int p=0; p<3; p++) {
-	if (npix_v[p]>0) {
-	  charge[p].push_back( meta.index(coord[0], coord[1], coord[2]), pixsum_v[p]/float(npix_v[p]) );
-	}
-	else {
-	  charge[p].push_back( meta.index(coord[0], coord[1], coord[2]), 0.0  );
-	}
+      auto it_charge = voxdata._voxel_planecharge.find(vidx);
+      if ( it_charge==voxdata._voxel_planecharge.end() ) {
+	throw std::runtime_error("could not find plane charge for voxel index [vidx]");
       }
+      auto const& charge_v = it_charge->second;
+      
+      // fill charge voxelset(s)
+      for (int p=0; p<3; p++)
+	charge[p].push_back( meta.index(coord[0], coord[1], coord[2]), charge_v[p] );
       
       // the class label: mlreco uses the 5-particle labels for larcv
-      // find class label with most (non background) triplets
-      std::vector<int> nclass( larflow::prep::PrepSSNetTriplet::kNumClasses, 0 );      
-      for ( auto const& tripidx : tripidx_v ) {
-	int triplet_label = ssnetdata._ssnet_label_v.at(tripidx);
-	if ( triplet_label>=0 && triplet_label<larflow::prep::PrepSSNetTriplet::kNumClasses )
-	  nclass[triplet_label]++;
-      }
-      int max_class = -1;
-      int max_class_n = 0;
-      for (int iclass=1; iclass<larflow::prep::PrepSSNetTriplet::kNumClasses; iclass++) {
-	if ( nclass[iclass]>max_class_n ) {
-	  max_class = iclass;
-	  max_class_n = nclass[iclass];
-	}
-      }
+      auto it_ssnet = voxdata._voxel_ssnetid.find(vidx);
+      if ( it_ssnet!=voxdata._voxel_ssnetid.end() ) 
+	label.push_back( meta.index(coord[0], coord[1], coord[2]), (float)it_ssnet->second );
       
-      // now that we have decided the class, set the voxetset label
-      if (max_class>0 && max_class_n>0 ) {
-	int mlreco_label = 0;
-	switch (max_class) {
-	case 0: // BG class
-	  mlreco_label = 5;
-	  break;
-	case 1: // electron
-	  mlreco_label = 1;
-	  break;
-	case 2: // gamma
-	  mlreco_label = 0;
-	  break;
-	case 3: // muon
-	  mlreco_label = 2;
-	  break;
-	case 4: // pion
-	  mlreco_label = 3;
-	  break;
-	case 5: // proton
-	  mlreco_label = 4;
-	  break;
-	default: // other (kaons usually): dump it into the pion class
-	  mlreco_label = 3;
-	  break;
-	}
-	
-	label.push_back( meta.index(coord[0], coord[1], coord[2]), (float)mlreco_label );
-      }
-      else {
-	// no max class found
-	label.push_back( meta.index(coord[0], coord[1], coord[2]), 5.0  );	
-      }
-
       iidx++;
     }//end of loop over voxels
 
@@ -1497,7 +1733,65 @@ namespace voxelizer {
 
     return out_v;
   }
+  
+  /**
+   * @brief produces the cosmic origin label
+   *
+   */
+  std::vector< larcv::SparseTensor3D >
+  VoxelizeTriplets::make_mlreco_cosmicorigin_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
+							     const larflow::prep::MatchTriplets& triplet_data )
+  {
 
+    LARCV_NORMAL() << "Start conversion" << std::endl;    
+
+    if ( voxdata._voxel_origin.size()==0 )
+      throw std::runtime_error("No cosmic origin labels set");
+
+    larcv::Voxel3DMeta meta = make_meta( voxdata );
+    LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;    
+
+    // Convert our data into larcv::VoxelSet
+    larcv::VoxelSet label;
+
+    // Loop over the voxels
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    int iidx = 0 ;
+    
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      int vidx = it->second;
+
+      // skip non-neutrino voxels
+      auto const it_origin = voxdata._voxel_origin.find(vidx);
+      if ( it_origin==voxdata._voxel_origin.end() ) {
+	LARCV_ERROR() <<  "could not find voxel by index in TPCVoxelData" << std::endl;
+      }
+	
+      if ( _nu_only && it_origin->second==1 )
+	continue;      
+
+      // voxel coordinate
+      const std::array<long,3>& coord = it->first;
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+
+      // cosmic origin label: 0=neutrino, 1=cosmic
+      label.push_back( meta.index(coord[0], coord[1], coord[2]), it_origin->second );
+      
+      iidx++;
+    }//end of loop over voxels
+    
+    // sort these voxelsets
+    label.sort();
+    
+    larcv::SparseTensor3D xlabel( std::move(label), meta );    
+    std::vector< larcv::SparseTensor3D > out_v;
+    out_v.emplace_back( std::move(xlabel) );
+    
+    return out_v;
+  }
+  
   /**
    * @brief produces particle cluster labels for voxels, refines particle list
    *
@@ -1509,136 +1803,140 @@ namespace voxelizer {
 							std::vector<larcv::Particle>& particle_v,
 							std::vector<larcv::Particle>& rejected_v )
   {
-
+    
     LARCV_DEBUG() << "start" << std::endl;
     larcv::Voxel3DMeta meta = make_meta( voxdata );
-    LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;    
+    LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;
+    
+    if ( voxdata._voxel_instanceid.size()==0 ) {
+      throw std::runtime_error("Instance ID labels for voxels have not been filled");
+    }
 
+    if ( _nu_only && voxdata._voxel_origin.size()==0 ) {
+      LARCV_ERROR() << "NU-ONLY mode is TRUE, but there are no origin labels. Run: fill_tpcvoxeldata_cosmicorigin() prior to this function." << std::endl;
+      throw std::runtime_error("NU-ONLY mode is TRUE, but there are no origin labels.");
+    }
+    
     
     std::vector<larcv::Particle> saved_v;
     std::vector< larcv::SparseTensor3D > out_v;    
     larcv::VoxelSet instance_labels;
 
     int nvidx = (int)voxdata._voxel_set.size();
+    std::vector<int> vox_nclass( voxdata._id2trackid.size()+1, 0 );
 
-    // compile unique IDs
-    std::map<int,int> instance2id; //key: geant4 track id, value: new instance code
-    std::map<int,int> idcounts;    //key: new instance code, value: number of voxels
-    int nids = 0;
-    for ( auto const& instanceid : tripletdata._instance_id_v ) {
-      if ( instanceid==0 ) // ID[0] is reserved for no TrackID assigned to triplet
-	continue;
-      
-      int id = 0;
-      if ( instance2id.find( instanceid )==instance2id.end() ) {
-	// New instanceID/trackID found, assign new sequential ID
-	id = nids;
-	instance2id[instanceid] = id; 
-	idcounts[id] = 0;
-	nids++;
-	//LARCV_DEBUG() << "trackid[" << instanceid << "] -> sequentialid[" << id << "]" << std::endl;
-      }
-      idcounts[id]++;
-    }
-    
-    std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
-    std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
-    int nmissing = 0;
+    // if we cut down the labels, we need to remap again.
+    std::map<long,long> origid2seqid; // original id in voxdata._voxel_origin to new sequential ID
+
+    long nseqid = 0;
     for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
       int vidx = it->second; // voxel index
+
+      auto const it_origin = voxdata._voxel_origin.find(vidx);
+      if ( it_origin==voxdata._voxel_origin.end() ) {
+	LARCV_ERROR() << "No origin label for voxel index=" << vidx << std::endl;
+      }      
+      
+      if ( _nu_only && it_origin->second!=0 )
+	continue;
+      
       const std::array<long,3>& coord = it->first; // voxel coordinates      
 
-      // find class label with most (non background) triplets
-      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+      auto it_iid = voxdata._voxel_instanceid.find(vidx);
+      long instanceid = it_iid->second;
 
-      // clear the values
-      memset( nvotes_id.data(), 0, sizeof(int)*nvotes_id.size() );
-
-      for ( auto const& tripidx : tripidx_v ) {
-	int instance_label = tripletdata._instance_id_v.at(tripidx);
-
-	auto it = instance2id.find( instance_label );
-	if ( it!=instance2id.end() ) {
-	  // found the instance, get the id label
-	  int idlabel = it->second;
-	  nvotes_id[idlabel]++;
-	}
+      auto it_seqid = origid2seqid.find( instanceid );
+      if ( it_seqid==origid2seqid.end() ) {
+	// not found in map
+	origid2seqid[instanceid] = nseqid;
+	nseqid++;
+	it_seqid = origid2seqid.find( instanceid );
       }
       
-      int max_id = -1;
-      int max_id_n = 0;
-      for ( int i=0; i<(int)nvotes_id.size(); i++ ) {
-	if ( nvotes_id[i]>max_id_n ) {
-	  max_id_n = nvotes_id[i];
-	  max_id = i;
-	}
-      }
-      
-      if (max_id>=0 ) {
-	// determined a winning ID for this voxel
-	instance_labels.push_back( meta.index(coord[0], coord[1], coord[2]), (float)max_id );
-	vox_nclass[max_id]++;
-      }
-      else {
-	instance_labels.push_back( meta.index(coord[0], coord[1], coord[2]), (float)nids );
-	vox_nclass[nids]++;
-      }
-      
+      instance_labels.push_back( meta.index(coord[0], coord[1], coord[2]), (float)it_seqid->second );
+      vox_nclass[it_seqid->second]++;
     }//loop over voxels
-
-
+    
+    
     // filter the particle list to only include ids in the voxel
     LARCV_DEBUG() << "pre-filterd particles=" << particle_v.size() << std::endl;
     int num_updated = 0;
     for ( auto& particle : particle_v ) {
       
       int trackid = (int)particle.track_id();
-      auto it=instance2id.find( trackid );
+      auto it=voxdata._trackid2id.find( trackid );
 
-      bool has_voxels = it!=instance2id.end();
+      long labelid = it->second;
+      
+      // translate trackid to instanceid
+      bool has_voxels = it!=voxdata._trackid2id.end();
 
+      if ( has_voxels ) {
+	// translate instanceid to sequential id used for output label
+	auto it_seqid = origid2seqid.find( labelid );
+	if ( it_seqid==origid2seqid.end() ) {
+	  has_voxels = false;
+	}
+	else {
+	  labelid = it_seqid->second;
+	}
+      }
+      
       if ( !has_voxels ) {
-	// not found, reject
+	// not found in both original label nor the final filter: reject
 	rejected_v.emplace_back( std::move(particle) );
 	continue;
       }
-
+      
       // now we want to adjust the info for the particle.
       // we need to see if we have a refined keypoint made
-      bool found_kpdata = false;
+      int found_kpdata = 0;
       for ( auto& kp : kpdata._kpd_v ) {
 	if ( kp.trackid==trackid ) {
+	  // found the matching kpdata object for this particle
+	  found_kpdata++;
+	  
 	  if ( kp.kptype==kTrackEnd ) {
 	    // modify the end point of the particle
 	    float t = particle.last_step().T();
 	    particle.last_step( kp.keypt[0], kp.keypt[1], kp.keypt[2], t );
 	  }
 	  else {
-	    // else modify the start point of the particle
+	    // else modify the start point of the particle for all types
 	    float t = particle.first_step().T();
+	    // std::cout << "trackid=" << trackid
+	    // 	      << " pos=(" << kp.keypt[0] << ", " << kp.keypt[1] << "," << kp.keypt[2] << ")"
+	    // 	      << " t=" << t 
+	    // 	      << std::endl;
 	    particle.first_step( kp.keypt[0], kp.keypt[1], kp.keypt[2], t );
 	  }
-	  found_kpdata = true;
 	}
-      }
-      if ( found_kpdata ) {
+      }//loop over all vectors
+      if ( found_kpdata>0 ) {
 	num_updated++;
-	LARCV_DEBUG() << "KPdata updated TRACKID[" << trackid << "]"
+	LARCV_DEBUG() << "KPdata updated TRACKID[" << trackid << "] nmatch=" << found_kpdata
+		      << " labelid=" << labelid
 		      << " shape=" << particle.shape()
 		      << " pdg=" << particle.pdg_code()
-		      << " num_voxels=" << vox_nclass[it->second]
+		      << " start=(" << particle.first_step().X() << "," << particle.first_step().Y() << "," << particle.first_step().Z() << ")"
+		      << " t=" << particle.first_step().T()
+		      << " num_voxels=" << vox_nclass[labelid]
 		      << std::endl;
       }
       else {
 	LARCV_DEBUG() << "No KP match for TRACKID[" << trackid << "]"
 		      << " shape=" << particle.shape()
 		      << " pdg=" << particle.pdg_code()
-		      << " num_voxels=" << vox_nclass[it->second]
+		      << " start=(" << particle.first_step().X() << "," << particle.first_step().Y() << "," << particle.first_step().Z() << ")"
+		      << " t=" << particle.first_step().T()
 		      << std::endl;
       }
       
+      // change particle track id to id label in tensor
+      particle.track_id( (unsigned int)labelid );
+      
       // update the number of voxels
-      particle.num_voxels( vox_nclass[it->second] );
+      particle.num_voxels( vox_nclass[labelid] );
 
       // store this particle in the save list
       saved_v.emplace_back( std::move(particle) );
@@ -1648,15 +1946,18 @@ namespace voxelizer {
     LARCV_DEBUG() << "post-filtered particles=" << particle_v.size() << std::endl;
     
     instance_labels.sort();
-
-
+    
     larcv::SparseTensor3D xlabel( std::move(instance_labels), meta );    
     out_v.emplace_back( std::move(xlabel) );
-       
+    
     return out_v;
     
   }  
 
+  /** 
+   * @brief make larcv::Voxel3DMeta from the 3d tensor parameters in TPCVoxelData
+   *
+   */
   larcv::Voxel3DMeta VoxelizeTriplets::make_meta( const larflow::voxelizer::TPCVoxelData& voxdata )
   {
     // voxel 0-dimension is in ticks. convert to x-coordinate cm using drift distance, relative to trigger

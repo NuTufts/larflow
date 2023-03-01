@@ -93,6 +93,8 @@ namespace keypoints {
                   const larlite::event_mctruth&  mctruth_v );
 
     void make_proposal_labels( const larflow::prep::PrepMatchTriplets& match_proposals );
+    void refine_keypoint_positions( const larflow::prep::PrepMatchTriplets& match_proposals );
+    
     void clear();
     
   protected:

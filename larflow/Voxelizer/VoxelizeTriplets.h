@@ -96,6 +96,10 @@ namespace voxelizer {
     make_mlreco_semantic_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
 					 const larflow::prep::MatchTriplets& triplet_data,
 					 const larflow::prep::SSNetLabelData& ssnetdata );
+
+    std::vector< larcv::SparseTensor3D >
+    make_mlreco_cosmicorigin_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
+					     const larflow::prep::MatchTriplets& triplet_data );
     
     std::vector< larcv::SparseTensor3D >
     make_mlreco_cluster_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
@@ -104,7 +108,24 @@ namespace voxelizer {
 					std::vector<larcv::Particle>& particle_v,
 					std::vector<larcv::Particle>& rejected_v );
 
+    // TPCVoxelData functions
     larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
+
+    int fill_tpcvoxeldata_semantic_labels( const larflow::prep::SSNetLabelData& ssnetdata,
+					   const larflow::prep::MatchTriplets& triplet_data,
+					   larflow::voxelizer::TPCVoxelData& voxeldata );
+    
+    int fill_tpcvoxeldata_planecharge( const larflow::prep::MatchTriplets& triplet_data,
+				       larflow::voxelizer::TPCVoxelData& voxdata );
+
+    int fill_tpcvoxeldata_cosmicorigin( const larflow::prep::MatchTriplets& triplet_data,
+					larflow::voxelizer::TPCVoxelData& voxdata );
+
+    int fill_tpcvoxeldata_instance_labels( const larflow::prep::MatchTriplets& tripletdata,
+					   larflow::voxelizer::TPCVoxelData& voxdata );
+
+    // Make dictionary of numpy arrays with voxel data
+    
     PyObject* make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
 				   const larflow::prep::MatchTriplets& triplet_data );
     PyObject* make_voxeldata_dict();
@@ -150,9 +171,12 @@ namespace voxelizer {
     std::vector<long> get_voxel_indices( const std::vector<float>& xyz );
 
     larcv::Voxel3DMeta make_meta( const TPCVoxelData& voxdata );
+
+    void nu_only( bool only_nu ) { _nu_only=only_nu; };
     
   protected:
-    
+
+    bool _nu_only;
     
   private:
 

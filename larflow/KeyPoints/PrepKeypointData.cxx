@@ -12,6 +12,7 @@
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
 #include "ublarcvapp/RecoTools/DetUtils.h"
+#include "ublarcvapp/UBWireTool/UBWireTool.h" ///< don't like this
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
@@ -24,6 +25,9 @@
 #include "larlite/DataFormat/mctrack.h"
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctruth.h"
+
+// larflow
+#include "larflow/Reco/cluster_functions.h"
 
 namespace larflow {
 namespace keypoints {
@@ -111,15 +115,15 @@ namespace keypoints {
       badch_v.emplace_back( std::move(blank) );
     }
 
-    std::cout << "[PrepKeypointData Inputs]" << std::endl;
-    std::cout << "  adc images: "      << ev_adc->Image2DArray().size() << std::endl;
-    std::cout << "  badch images: "    << badch_v.size() << std::endl;    
-    std::cout << "  segment images: "  << ev_segment->Image2DArray().size() << std::endl;
-    std::cout << "  instance images: " << ev_instance->Image2DArray().size() << std::endl;
-    std::cout << "  ancestor images: " << ev_ancestor->Image2DArray().size() << std::endl;
-    std::cout << "  mctracks: " << ev_mctrack->size() << std::endl;
-    std::cout << "  mcshowers: " << ev_mcshower->size() << std::endl;
-    std::cout << "  mctruths: " << ev_mctruth->size() << std::endl;
+    LARCV_INFO() << "[PrepKeypointData Inputs]" << std::endl;
+    LARCV_INFO() << "  adc images: "      << ev_adc->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  badch images: "    << badch_v.size() << std::endl;    
+    LARCV_INFO() << "  segment images: "  << ev_segment->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  instance images: " << ev_instance->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  ancestor images: " << ev_ancestor->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  mctracks: " << ev_mctrack->size() << std::endl;
+    LARCV_INFO() << "  mcshowers: " << ev_mcshower->size() << std::endl;
+    LARCV_INFO() << "  mctruths: " << ev_mctruth->size() << std::endl;
 
     _run    = iolcv.event_id().run();
     _subrun = iolcv.event_id().subrun();
@@ -180,7 +184,7 @@ namespace keypoints {
     std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
 
-    LARCV_INFO() << "[Track Endpoint Results]" << std::endl;
+    LARCV_INFO() << "[Track Endpoint Results] N=" << track_kpd.size() << std::endl;
     for ( auto const& kpd : track_kpd ) {
       LARCV_INFO() << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
@@ -189,7 +193,7 @@ namespace keypoints {
     // add points for shower starts
     std::vector<KPdata> shower_kpd
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
-    LARCV_INFO() << "[Shower Endpoint Results]" << std::endl;
+    LARCV_INFO() << "[Shower Endpoint Results] N=" << shower_kpd.size() << std::endl;
     for ( auto const& kpd : shower_kpd ) {
       LARCV_INFO() << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
@@ -302,6 +306,8 @@ namespace keypoints {
 
       std::vector< const larcv::Image2D* > padc_v
 	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );
+
+      //std::cout << "track start=(" << mctrk.Start().X() << "," << mctrk.Start().Y() << "," << mctrk.Start().Z() << ")" << std::endl;
       
 
       int crossingtype =
@@ -388,6 +394,7 @@ namespace keypoints {
 
     LARCV_DEBUG() << "start" << std::endl;
     auto const geom = larlite::larutil::Geometry::GetME();
+    auto const detp = larutil::DetectorProperties::GetME();    
     
     // output vector of keypoint data
     std::vector<KPdata> kpd_v;
@@ -411,9 +418,38 @@ namespace keypoints {
 
       auto const& shower = mcshower_v.at( pnode.vidx );
 
+      //std::cout << "Set shower keypoint location --------------" << std::endl;      
+      // set the initial keypoint
       TVector3 vpos;
-      for (int i=0; i<3; i++)
-	vpos[i] = shower.DetProfile().Position()[i];
+      TVector3 vpos_sce;
+
+      if ( pnode.pid==22 ) {
+	for (int i=0; i<3; i++) {
+	  vpos[i] = shower.DetProfile().Position()[i];
+	  // Detprofile already has SCE applied.
+	  vpos_sce[i] = vpos[i];
+	}
+	// some repeated offset I keep seeing ...	
+	vpos[0] -= 1.5;
+	vpos_sce[0] -= 1.5; 
+      }
+      else {
+	// other showers, i.e. electron
+	for (int i=0; i<3; i++)
+	  vpos[i] = shower.Start().Position()[i];
+
+	std::vector<double> offsets = {-0.7,0,0};
+	if ( psce ) {
+	  offsets = psce->GetPosOffsets( vpos[0], vpos[1], vpos[2] );
+	  //std::cout << "Calculated SCE offsets" << std::endl;
+	}
+	vpos_sce[0] = vpos[0] - offsets[0] + 0.7;
+	vpos_sce[1] = vpos[1] + offsets[1];
+	vpos_sce[2] = vpos[2] + offsets[2];      
+      }
+      
+      double t_detprofile = shower.DetProfile().T();
+
       std::vector<int> CT = geom->GetContainingCryoAndTPCIDs(vpos);
       if ( CT.size()==0 )
 	continue;
@@ -421,8 +457,35 @@ namespace keypoints {
       int tpcid = CT[1];
       int cryoid = CT[0];
 
+      //std::cout << "  shower.Start(): " << shower.Start().X() << " " << shower.Start().Y() << " " << shower.Start().Z() << " t=" << shower.Start().T() << std::endl;      
+      //std::cout << "  detprofile: " << shower.DetProfile().X() << " " << shower.DetProfile().Y() << " " << shower.DetProfile().Z() << " t=" << shower.DetProfile().T() << std::endl;
+
+      // no-SCE corrected position
+      std::vector<float> pos4v(4,0);
+      pos4v[0] = t_detprofile;
+      pos4v[1] = vpos[0];
+      pos4v[2] = vpos[1];
+      pos4v[3] = vpos[2];
+      
+      float tick = ublarcvapp::mctools::CrossingPointsAnaMethods::getTick( pos4v, tpcid, cryoid, 4050, psce );
+      vpos_sce[0] = detp->ConvertTicksToX(tick,0,tpcid,cryoid); // detprofile mess up
+      
+      // std::cout << "  PID[" << pnode.pid << "] id=" << pnode.tid	
+      // 		<< "  mcshower.Start() w/ SCE: " << vpos_sce[0] << " " << vpos_sce[1] << " " << vpos_sce[2] << std::endl;
+      
+      // std::cout << "  "
+      // 		<< "shower(tid=" << pnode.tid << ","
+      // 		<< "mtid=" << pnode.mtid << ","
+      // 		<< "aid=" << pnode.aid << ") "
+      // 		<< "pid=" << pnode.pid << " "
+      // 		<< "origin=" << pnode.origin << " "
+      // 		<< "process: " << shower.Process()
+      // 		<< std::endl;
+      
+
       std::vector< const larcv::Image2D* > padc_v
-	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );      
+	= ublarcvapp::recotools::DetUtils::getTPCImages( adc_v, tpcid, cryoid );
+      auto const& meta = padc_v[0]->meta();
       
       LARCV_DEBUG() << "shower(tid=" << pnode.tid << ","
 		    << "mtid=" << pnode.mtid << ","
@@ -469,26 +532,26 @@ namespace keypoints {
 
       kpd.keypt.resize(3,0);
       for (int i=0; i<3; i++)
-        kpd.keypt[i]   = pnode.imgpos4[i];
+        kpd.keypt[i]   = vpos_sce[i];
 
       TVector3 dpos(0,0,0);
-      for (int i=0; i<3; i++ ) dpos[i] = pnode.imgpos4[i];
+      std::vector<float> fpos(3,0);
+      for (int i=0; i<3; i++ ) {
+	dpos[i] = pnode.imgpos4[i];
+	fpos[i] = vpos_sce[i];
+      }
 
-      kpd.imgcoord.resize(4,0);      
+      std::vector<int> imgcoords;
+      
       try {
-        for (int p=0; p<3; p++)
-          kpd.imgcoord[1+p] = (int)geom->NearestWire( dpos, p, tpcid, cryoid );
+	imgcoords = ublarcvapp::UBWireTool::getProjectedImagePixel( fpos, meta, 3 );
       }
       catch (...) {
-        continue;
+	LARCV_ERROR() << "Bad image coordinate for the keypoint" << std::endl;
       }
-      float tick = pnode.imgpos4[3];
-      if ( tick>padc_v[0]->meta().min_y() && tick<padc_v[0]->meta().max_y() ) {
-        kpd.imgcoord[0] = padc_v[0]->meta().row( tick );
-      }
-      else {
-        continue;
-      }
+      
+      kpd.imgcoord = imgcoords;
+      
       kpd_v.emplace_back( std::move(kpd) );
 
     }//end of node loop
@@ -539,7 +602,7 @@ namespace keypoints {
         std::vector<double> offsets = {0.7,0,0};
 	if ( psce ) {
 	  offsets = psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
-	  std::cout << "Calculated SCE offsets" << std::endl;
+	  //std::cout << "Calculated SCE offsets" << std::endl;
 	}
         nupos[0] = nupos[0] - offsets[0] + 0.7;
         nupos[1] += offsets[1];
@@ -854,7 +917,7 @@ namespace keypoints {
 	  
 	if ( testkpd.tpcid!=kpdata.tpcid || testkpd.cryoid!=kpdata.cryoid )
 	  continue;
-
+	///std::cout << "(store kpdata: trackid=" << testkpd.trackid << ")" << std::endl;
 	kpdata._kpd_v.push_back( testkpd );
       }
 
@@ -1002,6 +1065,66 @@ namespace keypoints {
     
   //   return hist_v;
   // }
+
+  /**
+   * @brief clean up the keypoint locations using clustering of true triplets
+   *
+   */
+  void PrepKeypointData::refine_keypoint_positions( const larflow::prep::PrepMatchTriplets& match_proposals )
+  {
+    for ( auto& kp : _kpd_v ) {
+      // for each proposed true keypoint, we will find true spacepoints that are within 3 cm.
+      // we then cluster and calc the PCA
+      // we can then move the point to be at the end of the PCA cluster
+
+      if ( !kp.is_shower )
+	continue; // the track keypoints are pretty good.
+
+      larflow::reco::cluster_t cluster; /// representation of the point cloud
+	
+      for ( auto const& triplets : match_proposals._match_triplet_v ) {
+
+	for ( size_t idx=0; idx< triplets._pos_v.size(); idx++ ) {
+	  if ( triplets._instance_id_v[idx]==kp.trackid && triplets._truth_v[idx]==1 ) {
+	    // only consider true spacepoints due to the particle
+	    auto const& pos = triplets._pos_v[idx];
+	    float dist = 0.;
+	    for (int i=0; i<3; i++) {
+	      dist += (pos[i]-kp.keypt[i])*(pos[i]-kp.keypt[i]); // both are apparent positions, i.e. needs t0 and drift time correction
+	    }
+	    if ( dist<25.0 ) {
+	      // matching trackid, is a true spacepoint proposal, and within 5 cm of origin keypoint
+	      cluster.points_v.push_back( pos );
+	    }
+	  }
+	}//end of loop over all triplets, i.e. spacepoint proposals in the current TPC
+      }//end of loop over TPC triplets
+
+      if ( cluster.points_v.size()<5 ) {
+	// unreliable and bail on this point
+	continue;
+      }
+
+      // now get the PCA
+      larflow::reco::cluster_pca( cluster );
+
+      // get the closest pca end
+      float dist[2] = {0,0};
+      for (int iend=0; iend<2; iend++) {
+	for (int i=0; i<3; i++)
+	  dist[iend] += (kp.keypt[i]-cluster.pca_ends_v[iend][i])*(kp.keypt[i]-cluster.pca_ends_v[iend][i]);
+      }
+      int closest_end = 0;
+      if ( dist[1]<dist[0] )
+	closest_end = 1;
+
+      // move the keypoint!
+      for (int i=0; i<3; i++)
+	kp.keypt[i] = cluster.pca_ends_v[closest_end][i];
+      
+    }// end of loop over all proposed keypoints
+  }
+  
   
 }
 }
