@@ -21,6 +21,7 @@ parser.add_argument("-adc", "--adc",type=str,default="wire",help="Name of tree w
 parser.add_argument("-tf",  "--tick-forward",action='store_true',default=False,help="Input LArCV data is tick-forwards [default: false]")
 parser.add_argument("-n",   "--nentries",type=int,default=-1,help="Number of entries to run [default: -1 (all)]")
 parser.add_argument("-e",   "--start-entry",type=int,default=0,help="Entry to start [default: 0]")
+parser.add_argument("-xnu", "--nu-only",action='store_true',default=False,help="If on, will save only neutrino voxels and particles")
 args = parser.parse_args()
 
 import ROOT as rt
@@ -120,7 +121,7 @@ ev_voxdata  = std.vector("larflow::voxelizer::TPCVoxelData")() # container to st
 
 # Keypoint maker
 kpana = larflow.keypoints.PrepKeypointData()
-#kpana.set_verbosity( larcv.msg.kDEBUG )
+kpana.set_verbosity( larcv.msg.kINFO )
 kpana.setADCimageTreeName( args.adc  )
 
 # ssnet label data: provides particle label for each spacepoint
@@ -131,13 +132,13 @@ truthfixer = larflow.prep.TripletTruthFixer()
 
 # VOXELIZES TRIPLET SPACEPOINTS
 voxelizer = larflow.voxelizer.VoxelizeTriplets()
-voxelizer.set_verbosity(larcv.msg.kDEBUG)
+#voxelizer.set_verbosity(larcv.msg.kDEBUG)
 
 # Conversion of mctrack and mcshower into larcv::particle
 particleconvertor = ublarcvapp.mctools.ConvertMCInfoForLArCV2()
 particleconvertor.doApplySCE(True)
 particleconvertor.doApplyT0drift(True)
-particleconvertor.set_verbosity(larcv.msg.kDEBUG)
+particleconvertor.set_verbosity(larcv.msg.kNORMAL)
 
 # -------------------
 # EVENT LOOP!!
@@ -155,11 +156,6 @@ for ientry in range(start_entry,end_entry,1):
 
     # CLEAR ANY TRIPLET DATA WE SAVED
     ev_tripdata.clear()
-
-    print(" ") 
-    print("==========================")
-    print("===[ EVENT ",ientry," ]===")
-    sys.stdout.flush()
     
     ioll.go_to(ientry)
     iolcv.read_entry(ientry)
@@ -179,6 +175,7 @@ for ientry in range(start_entry,end_entry,1):
         ev_charge_v[p] = outlcv.get_data( larcv.kProductSparseTensor3D, "charge_plane%d"%(p) )    
     ev_semantic = outlcv.get_data( larcv.kProductSparseTensor3D, "semantics_ghost" )
     ev_cluster  = outlcv.get_data( larcv.kProductSparseTensor3D, "pcluster" )
+    ev_origin   = outlcv.get_data( larcv.kProductSparseTensor3D, "cosmic_origin" )    
     ev_particle = outlcv.get_data( larcv.kProductParticle, "corrected" )
 
     ev_tripdata.clear()
@@ -194,7 +191,8 @@ for ientry in range(start_entry,end_entry,1):
 
     # make keypoint score ground truth
     kpana.process( iolcv, ioll )
-    kpana.make_proposal_labels( tripletmaker )
+    kpana.refine_keypoint_positions( tripletmaker )
+    kpana.make_proposal_labels( tripletmaker )    
     #kpana.fillAnaTree()
 
     # make ssnet ground truth
@@ -211,22 +209,39 @@ for ientry in range(start_entry,end_entry,1):
         print(" MatchData[%d]: num of triplets=%d"%(imatch,tripletmaker._match_triplet_v.at(imatch)._triplet_v.size()))
         #ev_tripdata.push_back( tripletmaker._match_triplet_v.at(imatch) ) # only do this if we need to, expensive
 
+        if args.nu_only:
+            voxelizer.nu_only( True )
+        else:
+            voxelizer.nu_only( False )
+
         # NOW VOXELIZE TRIPLET DATA
         tpc_tripletdata = tripletmaker._match_triplet_v.at(imatch)
         tpc_ssnetdata   = ssnet._ssnet_labeldata_v.at(imatch)
         tpc_kpdata      = kpana._keypoint_tpclabel_v.at(imatch)
         tpc_voxdata     = voxelizer.make_voxeldata( tpc_tripletdata )
 
+        # Fill the Voxel data instance
+        voxelizer.fill_tpcvoxeldata_semantic_labels( tpc_ssnetdata, tpc_tripletdata, tpc_voxdata )
+        voxelizer.fill_tpcvoxeldata_planecharge( tpc_tripletdata, tpc_voxdata )
+        voxelizer.fill_tpcvoxeldata_cosmicorigin( tpc_tripletdata, tpc_voxdata )
+        voxelizer.fill_tpcvoxeldata_instance_labels( tpc_tripletdata, tpc_voxdata )
+
         # Make SparseTensor3D products
         data_v = voxelizer.make_mlreco_semantic_label_sparse3d( tpc_voxdata, tpc_tripletdata, tpc_ssnetdata )
-        for p in range(3):
-            ev_charge_v[p].merge( data_v[p] )
-        ev_semantic.merge( data_v[3] )
+
+        # Make Origin SparseTensor3D
+        origin_v = voxelizer.make_mlreco_cosmicorigin_label_sparse3d( tpc_voxdata, tpc_tripletdata )
 
         # Make individual particle cluster labels + refine partice list to those labeling voxels in the event
         rejected_v = std.vector("larcv::Particle")()
         cluster_v = voxelizer.make_mlreco_cluster_label_sparse3d( tpc_voxdata, tpc_tripletdata, tpc_kpdata, particle_v, rejected_v )
         print("Number after voxelizer particle cluster labeler: ",particle_v.size())
+
+        # STORE THE DATA
+        for p in range(3):
+            ev_charge_v[p].merge( data_v[p] )
+        ev_semantic.merge( data_v[3] )
+        ev_origin.merge( origin_v[0] )        
         ev_cluster.merge( cluster_v[0] )
 
         # UBOONE HACK: one tpc at a time
