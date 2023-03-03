@@ -108,6 +108,11 @@ namespace voxelizer {
 					std::vector<larcv::Particle>& particle_v,
 					std::vector<larcv::Particle>& rejected_v );
 
+    std::vector< larcv::SparseTensor3D >
+    make_mlreco_keypointbased_semantic_weights( const larflow::voxelizer::TPCVoxelData& voxdata,
+						const larflow::prep::MatchTriplets& tripletdata,
+						const larflow::keypoints::KeypointData& kpdata );
+
     // TPCVoxelData functions
     larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
 

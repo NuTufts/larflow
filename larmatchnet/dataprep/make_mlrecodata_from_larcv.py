@@ -174,6 +174,7 @@ for ientry in range(start_entry,end_entry,1):
     for p in range(3):
         ev_charge_v[p] = outlcv.get_data( larcv.kProductSparseTensor3D, "charge_plane%d"%(p) )    
     ev_semantic = outlcv.get_data( larcv.kProductSparseTensor3D, "semantics_ghost" )
+    ev_sem_weights = outlcv.get_data( larcv.kProductSparseTensor3D, "semantics_weights" )        
     ev_cluster  = outlcv.get_data( larcv.kProductSparseTensor3D, "pcluster" )
     ev_origin   = outlcv.get_data( larcv.kProductSparseTensor3D, "cosmic_origin" )    
     ev_particle = outlcv.get_data( larcv.kProductParticle, "corrected" )
@@ -237,12 +238,17 @@ for ientry in range(start_entry,end_entry,1):
         cluster_v = voxelizer.make_mlreco_cluster_label_sparse3d( tpc_voxdata, tpc_tripletdata, tpc_kpdata, particle_v, rejected_v )
         print("Number after voxelizer particle cluster labeler: ",particle_v.size())
 
+        # Make weights for semantic labeling
+        sem_weights_v = voxelizer.make_mlreco_keypointbased_semantic_weights( tpc_voxdata, tpc_tripletdata, tpc_kpdata )
+
         # STORE THE DATA
+        print("Store the mlreco data")
         for p in range(3):
-            ev_charge_v[p].merge( data_v[p] )
-        ev_semantic.merge( data_v[3] )
-        ev_origin.merge( origin_v[0] )        
-        ev_cluster.merge( cluster_v[0] )
+            ev_charge_v[p].fast_merge( data_v[p] )
+        ev_semantic.fast_merge( data_v[3] )
+        ev_origin.fast_merge( origin_v[0] )        
+        ev_cluster.fast_merge( cluster_v[0] )
+        ev_sem_weights.fast_merge( sem_weights_v[0] )
 
         # UBOONE HACK: one tpc at a time
         if True:
@@ -250,6 +256,7 @@ for ientry in range(start_entry,end_entry,1):
 
     ev_particle.set( particle_v )
     # Done with the event -- Fill it!
+    print("save entry")
     outlcv.set_id( ev_adc.run(), ev_adc.subrun(), ev_adc.event() )
     outlcv.save_entry()
     

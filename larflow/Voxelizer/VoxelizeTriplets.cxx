@@ -1954,6 +1954,128 @@ namespace voxelizer {
     
   }  
 
+  /**
+   * @brief uses keypoint locations to generate weights
+   *
+   * scoring: 
+   *  - close to any keypoint: x2 boost
+   *  - is a non-cosmics+true voxel: x10 boost (10-20x boost)
+   *  - close to neutrino vertex: x10 boost (result in a total 200x boost)
+   * 
+   */
+  std::vector< larcv::SparseTensor3D >
+  VoxelizeTriplets::make_mlreco_keypointbased_semantic_weights( const larflow::voxelizer::TPCVoxelData& voxdata,
+								const larflow::prep::MatchTriplets& tripletdata,
+								const larflow::keypoints::KeypointData& kpdata )
+  {
+    
+    LARCV_NORMAL() << "start" << std::endl;
+    larcv::Voxel3DMeta meta = make_meta( voxdata );
+    LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;
+    
+    if ( voxdata._voxel_instanceid.size()==0 ) {
+      throw std::runtime_error("Instance ID labels for voxels have not been filled");
+    }
+
+    if ( _nu_only && voxdata._voxel_origin.size()==0 ) {
+      LARCV_ERROR() << "NU-ONLY mode is TRUE, but there are no origin labels. Run: fill_tpcvoxeldata_cosmicorigin() prior to this function." << std::endl;
+      throw std::runtime_error("NU-ONLY mode is TRUE, but there are no origin labels.");
+    }
+    
+    
+    std::vector< larcv::SparseTensor3D > out_v;    
+    larcv::VoxelSet weight_labels;
+
+    int nprocessed = 0;
+    int nkeypoint_matched = 0;
+    int nnu_matched = 0;
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      // if (nprocessed%1000==0) {
+      // 	std::cout << "nprocessed=" << nprocessed << std::endl;
+      // }
+      nprocessed++;
+      
+      int vidx = it->second; // voxel index
+
+      const std::array<long,3>& coord = it->first; // voxel coordinates
+
+      // convert back to cm
+      std::vector<float> pos_cm(3,0);
+      for (int i=0; i<3; i++) {
+	pos_cm[i] = ((float)coord[i]+0.5)*voxdata._len[i] + voxdata._origin[i];
+      }
+      // 0-index is in ticks. Convert to cm
+      pos_cm[0] = larutil::DetectorProperties::GetME()->ConvertTicksToX( pos_cm[0], 0, voxdata._tpcid, voxdata._cryoid );
+
+      // tests:
+      // 1) is it non-cosmic/neutrino + true?
+      // 2) is it near a keypoint?
+      // 3) is it a neutrino keypoint
+
+      float voxel_weight = 1.0;
+
+      auto const it_label = voxdata._voxel_ssnetid.find( vidx );
+      if ( it_label==voxdata._voxel_ssnetid.end() ) {
+	LARCV_ERROR() << "missing semantic label for voxel with IDX=" << vidx << std::endl;
+	throw std::runtime_error("missing semantic label for voxel");
+      }
+
+      auto const it_origin = voxdata._voxel_origin.find( vidx );
+      if ( it_origin==voxdata._voxel_origin.end() ) {
+	LARCV_ERROR() << "missing origin lael for voxel with IDX=" << vidx << std::endl;
+	throw std::runtime_error("missing origin label for voxel");
+      }
+
+      if ( it_label->second!=5 && it_origin->second==0 ) {
+	//not a ghost and a neutrino pixel
+	voxel_weight *= 2.0;
+      }
+
+
+      // test proximity to keypoint
+      bool found_proximal_keypoint = false;
+      bool found_proximal_nu_vertex = false;
+      for ( auto& kp : kpdata._kpd_v ) {
+
+	float dist = 0.;
+	for (int i=0; i<3; i++) {
+	  dist += (kp.keypt[i] - pos_cm[i])*(kp.keypt[i] - pos_cm[i]);
+	}
+	dist = sqrt(dist);
+	if ( dist<3.0 )  {
+	  found_proximal_keypoint = true;
+	  if ( kp.kptype==larflow::kNuVertex )
+	    found_proximal_nu_vertex = true;
+	}
+
+      }
+	
+      if ( found_proximal_keypoint ) {
+	nkeypoint_matched++;	
+	voxel_weight *= 2.0;
+      }
+
+      if ( found_proximal_nu_vertex ) {
+	voxel_weight *= 5.0;
+	nnu_matched++;
+      }
+      
+      
+      weight_labels.push_back( meta.index(coord[0], coord[1], coord[2]), voxel_weight );
+    }
+    
+    larcv::SparseTensor3D xlabel( std::move(weight_labels), meta );    
+    out_v.emplace_back( std::move(xlabel) );
+
+    LARCV_NORMAL() << "Done." << std::endl;
+    LARCV_NORMAL() << "Number Keypoint Matched: " << nkeypoint_matched << std::endl;
+    LARCV_NORMAL() << "Number Neutrino-Keypoint Matched: " << nnu_matched << std::endl;
+    
+    return out_v;
+    
+  }  
+  
   /** 
    * @brief make larcv::Voxel3DMeta from the 3d tensor parameters in TPCVoxelData
    *
