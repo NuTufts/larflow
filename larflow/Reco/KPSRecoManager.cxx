@@ -674,8 +674,18 @@ namespace reco {
       _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
     }
 
+    // - repair shower trunks again by absorbing tracks or creating hits for new near-vertex tracks
+    ivtx = 0;
+    //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
+      LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
+      _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
+      //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+      ivtx++;
+    }
+
     // - add secondaries
-    _nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_add_secondaries.set_verbosity( larcv::msg::kDEBUG );
     for ( size_t ivtx=0; ivtx<_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++ ) {
       LARCV_NORMAL() << "Try to add secondaries to VTX[" << ivtx << "]" << std::endl;
       auto& nuvtx = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
