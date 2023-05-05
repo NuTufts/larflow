@@ -118,49 +118,45 @@ for entry in range(ll_nentries):
 #elif len(ev_opflash_beam)==1:
 #    opflash_v = lardly.data.visualize_larlite_opflash_3d( ev_opflash_beam.at(0) )
 
+    # array for grabbing all x-positions for mctracks, mcshowers in intrxn event
+    vx = array( 'd' )
 
     if ev_mctrack:
 
-        mctrack = ev_mctrack.at(0)
+        print("There are ", ev_mctrack.size(), " track(s) in this intrxn")
 
-        if ev_mcshower.size()!=0:
-            mcshower = ev_mcshower.at(0)
+        for i in range(ev_mctrack.size()):
 
-        print("shower INFO X (used in lardly code): ", mcshower.Start().X())
-        #print("mcshower.at(0).X() ", mcshower.at(0).X())
+            mctrack = ev_mctrack.at(i)
 
-        '''
-        print("EventID is: ", ioll.event_id() )
-        print("TrackID is: ", mctrack.TrackID() )
-        print("Starting X position is: ", mctrack.Start().X())
-        print("Starting Y position is: ", mctrack.Start().Y())
-        print("Starting Z position is: ", mctrack.Start().Z())
-
-        print("First mcstep X:", mctrack.at(0).X() )
-        print("First mcstep Y:", mctrack.at(0).Y() )
-        print("First mcstep Z:", mctrack.at(0).Z() )
-        '''
-        vx, vy, vz = array( 'd' ), array( 'd' ), array( 'd' )
-
-        for mcstep in mctrack:
-            vx.append( mcstep.X() )
-            vy.append( mcstep.Y() )
-            vz.append( mcstep.Z() )
+            for mcstep in mctrack:
+                vx.append( mcstep.X() )
             print( "mcstep X values: ",mcstep.X() )
-            print( "mcstep Y values: ",mcstep.Y() )
-            print( "mcstep Z values: ",mcstep.Z() )
 
-        print(vx)
-        if len(vx)==0:
-            meanX_v.append(0)
-            continue
-        mean = np.mean(vx)
-        print("The mean x-position of this track is: ", mean)
-        meanX_v.append(mean)
+    if ev_mcshower:
 
+        print("There are ", ev_mcshower.size(), " shower(s) in this intrxn")
+
+        for i in range(ev_mcshower.size()):
+
+            mcshower = ev_mcshower.at(i)
+
+            vx.append( mcshower.Start().X() )
+            vx.append( mcshower.End().X() )
+
+    print(vx)
+
+    # no tracks or showers
+    if len(vx)==0:
+        meanX_v.append(0)
         continue
 
-    meanX_v.append(0)
+    # now take mean of all the points gathered in interxn
+    # this is the average x-position for the intrxn event
+    mean = np.mean(vx)
+    print("The mean x-position of this track is: ", mean)
+    meanX_v.append(mean)
+    continue
 
     
 
