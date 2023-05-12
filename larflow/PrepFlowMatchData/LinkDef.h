@@ -30,6 +30,7 @@
 #pragma link C++ class std::vector<larflow::prep::SSNetLabelData>+;
 #pragma link C++ class larflow::prep::PrepSSNetTriplet+;
 #pragma link C++ class larflow::prep::TripletTruthFixer+;
+#pragma link C++ class larflow::prep::TripletTruthFromSimCh+;
 
 //#pragma link C++ class std::vector<larflow::prep::PrepMatchTriplets>+;
 //#pragma link C++ class larflow::prep::MatchTripletProcessor+;

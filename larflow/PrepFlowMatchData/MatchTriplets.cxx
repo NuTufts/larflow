@@ -207,7 +207,45 @@ namespace prep {
       PyDict_SetItem(d, segment_t_key, (PyObject*)segment_t);     
       Py_DECREF( segment_t );    
       Py_DECREF( segment_t_key );
+
+      // Instance ID
+      npy_intp instance_t_dim[] = { (long int)npts };
+      PyArrayObject* instance_t = (PyArrayObject*)PyArray_SimpleNew( 1, instance_t_dim, NPY_LONG );
+      PyObject *instance_t_key = Py_BuildValue("s", "instance_t");
       
+      for (size_t itriplet=0; itriplet<npts; itriplet++) {
+        *((long*)PyArray_GETPTR1( instance_t, itriplet )) = (long)_instance_id_v[itriplet];
+      }
+      
+      PyDict_SetItem(d, instance_t_key, (PyObject*)instance_t);     
+      Py_DECREF( instance_t );    
+      Py_DECREF( instance_t_key );
+
+      // Ancestor ID
+      npy_intp ancestor_t_dim[] = { (long int)npts };
+      PyArrayObject* ancestor_t = (PyArrayObject*)PyArray_SimpleNew( 1, ancestor_t_dim, NPY_LONG );
+      PyObject *ancestor_t_key = Py_BuildValue("s", "ancestor_t");
+      
+      for (size_t itriplet=0; itriplet<npts; itriplet++) {
+        *((long*)PyArray_GETPTR1( ancestor_t, itriplet )) = (long)_ancestor_id_v[itriplet];
+      }
+      
+      PyDict_SetItem(d, ancestor_t_key, (PyObject*)ancestor_t);     
+      Py_DECREF( ancestor_t );    
+      Py_DECREF( ancestor_t_key );
+
+      // Origin ID
+      npy_intp origin_t_dim[] = { (long int)npts };
+      PyArrayObject* origin_t = (PyArrayObject*)PyArray_SimpleNew( 1, origin_t_dim, NPY_LONG );
+      PyObject *origin_t_key = Py_BuildValue("s", "origin_t");
+      
+      for (size_t itriplet=0; itriplet<npts; itriplet++) {
+        *((long*)PyArray_GETPTR1( origin_t, itriplet )) = (long)_origin_v[itriplet];
+      }
+      
+      PyDict_SetItem(d, origin_t_key, (PyObject*)origin_t);     
+      Py_DECREF( origin_t );    
+      Py_DECREF( origin_t_key );
       
     }
 

@@ -67,6 +67,7 @@ namespace prep {
                   const bool check_wire_intersection=false );
 
     void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
+    void process_truth_labels_fromsimch( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
     
     void make_truth_vector( const std::vector<larcv::Image2D>& larflow_v,
 			    const std::vector<larcv::Image2D>& instance_v );

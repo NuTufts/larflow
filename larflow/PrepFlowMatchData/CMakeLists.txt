@@ -16,6 +16,7 @@ set( HEADERS #WireOverlap.h
   PrepSSNetTriplet.h
   #TripletIO.h
   TripletTruthFixer.h
+  TripletTruthFromSimCh.h
   )
 
 add_library( ${LIBNAME} SHARED
@@ -32,6 +33,7 @@ add_library( ${LIBNAME} SHARED
   PrepSSNetTriplet.cxx
   #TripletIO.cxx
   TripletTruthFixer.cxx
+  TripletTruthFromSimCh.cxx
   )
 
 # create a property to hold our headers
