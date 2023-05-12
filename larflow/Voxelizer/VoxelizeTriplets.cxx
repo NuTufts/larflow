@@ -536,7 +536,88 @@ namespace voxelizer {
     
     return 0;
     
-  }  
+  }
+
+  /**
+   * @brief fill keypoint labels for the TPC voxels
+   *
+   */
+  int VoxelizeTriplets::fill_tpcvoxeldata_keypoint_labels( const larflow::keypoints::KeypointData& kpdata,
+							   const larflow::prep::MatchTriplets& triplet_data,
+							   const float score_sigma_cm,
+							   larflow::voxelizer::TPCVoxelData& voxdata )
+  {
+    // clear the keypoint label map
+    voxdata._voxel_kplabel.clear();
+    
+    // Number of voxels with content
+    int nvidx = (int)voxdata._voxel_set.size();
+
+    // Number of triplets
+    int ntriplets = (int)triplet_data._triplet_v.size();
+
+    // check that the keypoint triplet labels stored for each class match
+    for ( size_t ikp=0; ikp<6; ikp++ ) {
+      if ( (int)kpdata._match_proposal_labels_v[ikp].size()!=ntriplets ) {
+	LARCV_CRITICAL() << "Number of Keypoint labels for triplets does not match the number of triplets!" << std::endl;
+	throw std::runtime_error("Stop: Number of Keypoint labels for triplets does not match the number of triplets!");
+      }
+    }
+
+    // loop over voxels
+    for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+      // the voxel index
+      int vidx = it->second;
+
+      // voxel coordinate (vx, vy, vz)
+      const std::array<long,3>& coord = it->first;
+
+      // triplet indices that fill this voxel (for triplet_data._tiplet_v)
+      const std::vector<int>& tripidx_v = voxdata._voxelidx_to_tripidxlist[vidx]; // index of triplet
+	          
+      // define label for each keypoint class
+      std::vector<float> kplabel_v( 6, 0.0 ); // label for each class
+
+      // loop over keypoint class
+      for ( size_t ikp=0; ikp<6; ikp++ ) {
+	
+	// we take the largest of the label score
+	float kplabel_max = 0.0;
+
+	// loop over triplet index
+	for ( auto const& tripidx : tripidx_v )  {
+
+	  // get the ingredients needed to make a keypoint label
+	  auto const& label_v = kpdata._match_proposal_labels_v[ikp].at(tripidx);
+	  // from PrepKeypointData::make_proposal_labels
+	  //
+	  //* vector elements:
+	  //*  [0]:   1.0 if has true end-point with 0.3*50 cm, 0.0 if not.
+	  //*  [1-3]: shift in 3D points from point to closest end-point
+	  //*  [4-7]: shift in 2D pixels from image points to closest end-point: drow, dU, dV, dY
+	  //
+	  
+	  if ( label_v[0]>0 ) {
+	    // a nearby keypoint
+	    float kpdist_cm = label_v[1]*label_v[1] + label_v[2]*label_v[2] + label_v[3]*label_v[3];
+	    float kplabel = exp( -0.5*kpdist_cm/(score_sigma_cm*score_sigma_cm) );
+	    if ( kplabel>kplabel_max )
+	      kplabel_max = kplabel;
+	  }
+	}//end of triplet index loop
+
+	kplabel_v[ ikp ] = kplabel_max;
+	
+      }//end of keypoint class loop
+
+      voxdata._voxel_kplabel[vidx] = kplabel_v;
+      
+    }//end of loop over voxels
+    
+    return 0;
+  }
+  
   
   /**
    * @brief takes in precomputed triplet data and outputs voxel data in the form of a python dict
@@ -760,6 +841,7 @@ namespace voxelizer {
    *
    */
   void VoxelizeTriplets::process_fullchain( larcv::IOManager& iolcv,
+					    larlite::storage_manager& ioll,
                                             std::string adc_producer,
                                             std::string chstatus_producer,
                                             bool has_mc )
@@ -772,11 +854,12 @@ namespace voxelizer {
     _triplet_maker.process( iolcv, adc_producer, chstatus_producer, adc_threshold, calc_triplet_pos3d );
 
     if ( has_mc ) {
-      larcv::EventImage2D* ev_larflow =    
-        (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");    
-      larcv::EventImage2D* ev_instance =    
-        (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");    
-      _triplet_maker.make_truth_vector( ev_larflow->Image2DArray(), ev_instance->Image2DArray() );
+      // larcv::EventImage2D* ev_larflow =    
+      //   (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");    
+      // larcv::EventImage2D* ev_instance =    
+      //   (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");    
+      // _triplet_maker.make_truth_vector( ev_larflow->Image2DArray(), ev_instance->Image2DArray() );
+      _triplet_maker.process_truth_labels( iolcv, ioll, adc_producer );
     }
 
     for ( auto& matchtriplet : _triplet_maker._match_triplet_v )
@@ -1969,6 +2052,7 @@ namespace voxelizer {
 								const larflow::keypoints::KeypointData& kpdata )
   {
     
+    
     LARCV_NORMAL() << "start" << std::endl;
     larcv::Voxel3DMeta meta = make_meta( voxdata );
     LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;
@@ -1981,14 +2065,14 @@ namespace voxelizer {
       LARCV_ERROR() << "NU-ONLY mode is TRUE, but there are no origin labels. Run: fill_tpcvoxeldata_cosmicorigin() prior to this function." << std::endl;
       throw std::runtime_error("NU-ONLY mode is TRUE, but there are no origin labels.");
     }
-    
-    
-    std::vector< larcv::SparseTensor3D > out_v;    
-    larcv::VoxelSet weight_labels;
 
     int nprocessed = 0;
     int nkeypoint_matched = 0;
     int nnu_matched = 0;
+
+    std::vector< larcv::SparseTensor3D > out_v;
+    larcv::VoxelSet weight_labels; // stores voxels and labels before passing to sparsetensor3d
+    
     for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
 
       // if (nprocessed%1000==0) {
@@ -1997,9 +2081,9 @@ namespace voxelizer {
       nprocessed++;
       
       int vidx = it->second; // voxel index
-
+      
       const std::array<long,3>& coord = it->first; // voxel coordinates
-
+      
       // convert back to cm
       std::vector<float> pos_cm(3,0);
       for (int i=0; i<3; i++) {
@@ -2061,9 +2145,9 @@ namespace voxelizer {
 	nnu_matched++;
       }
       
-      
       weight_labels.push_back( meta.index(coord[0], coord[1], coord[2]), voxel_weight );
-    }
+      
+    }//end of voxel loop
     
     larcv::SparseTensor3D xlabel( std::move(weight_labels), meta );    
     out_v.emplace_back( std::move(xlabel) );
@@ -2071,6 +2155,70 @@ namespace voxelizer {
     LARCV_NORMAL() << "Done." << std::endl;
     LARCV_NORMAL() << "Number Keypoint Matched: " << nkeypoint_matched << std::endl;
     LARCV_NORMAL() << "Number Neutrino-Keypoint Matched: " << nnu_matched << std::endl;
+    
+    return out_v;
+    
+  }  
+
+  /**
+   * @brief uses keypoint lables
+   *
+   * transferring information from TPCVoxelData::_voxel_kplabel to SparseTensor3D
+   *
+   */
+  std::vector< larcv::SparseTensor3D >
+  VoxelizeTriplets::make_mlreco_keypoint_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+						 const larflow::prep::MatchTriplets& tripletdata)
+  {
+
+    LARCV_NORMAL() << "start" << std::endl;
+    larcv::Voxel3DMeta meta = make_meta( voxdata );
+    LARCV_DEBUG() << "Meta: " << meta.dump() << std::endl;
+    
+    if ( voxdata._voxel_kplabel.size()==0 ) {
+      LARCV_CRITICAL() << "Keypoint Labels not filled yet. Need to call 'fill_tpcvoxeldata_keypoint_labels'" << std::endl;
+      throw std::runtime_error("Keypoint Labels not filled yet. Need to call 'fill_tpcvoxeldata_keypoint_labels'");
+    }
+
+    std::vector< larcv::SparseTensor3D > out_v;
+    
+    // loop over keypoint class
+    for (int ikp=0; ikp<6; ikp++ ) {
+    
+      larcv::VoxelSet kpclass_labels;
+      
+      int nprocessed = 0;
+      int nkeypoint_matched = 0;
+      int nnu_matched = 0;
+      for ( auto it=voxdata._voxel_list.begin(); it!=voxdata._voxel_list.end(); it++ ) {
+
+	// if (nprocessed%1000==0) {
+	// 	std::cout << "nprocessed=" << nprocessed << std::endl;
+	// }
+	nprocessed++;
+      
+	int vidx = it->second; // voxel index
+
+	const std::array<long,3>& coord = it->first; // voxel coordinates
+
+	auto it_label = voxdata._voxel_kplabel.find( vidx );
+	if ( it_label==voxdata._voxel_kplabel.end() )
+	  continue;
+	
+	const std::vector<float>& label = it_label->second;	
+	kpclass_labels.push_back( meta.index(coord[0], coord[1], coord[2]), label[ikp] );
+      }//end of voxel loop
+
+      // make the sparsetensor3d object
+      larcv::SparseTensor3D xlabel( std::move(kpclass_labels), meta );
+
+      // store it in the returning container
+      out_v.emplace_back( std::move(xlabel) );
+      
+    }//end of keypoint class loop
+    
+
+    LARCV_NORMAL() << "Done." << std::endl;
     
     return out_v;
     

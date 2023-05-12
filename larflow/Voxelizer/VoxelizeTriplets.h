@@ -58,6 +58,7 @@ namespace voxelizer {
     ~VoxelizeTriplets() {};
 
     void process_fullchain( larcv::IOManager& iolcv,
+			    larlite::storage_manager& ioll,
                             std::string adc_producer,
                             std::string chstatus_producer,
                             bool has_mc=false );
@@ -77,11 +78,11 @@ namespace voxelizer {
 
   public:
 
-    std::vector< TPCVoxelData > _voxel_data_v;
+    std::vector< TPCVoxelData > _voxel_data_v; ///< voxelized data and labels stored here
 
   public:
 
-    larflow::prep::PrepMatchTriplets _triplet_maker; ///< internal triplet maker, used if making from  images only    
+    larflow::prep::PrepMatchTriplets _triplet_maker; ///< internal 2D images to 3D/triplet maker, used if making from images only
 
     int get_axis_voxel( int axis, float coord ) const;
     
@@ -91,6 +92,11 @@ namespace voxelizer {
 					     const larflow::prep::MatchTriplets& tripletdata,
 					     const larflow::prep::SSNetLabelData& ssnetdata,
 					     const larflow::keypoints::KeypointData& kpdata );
+
+    // //////////////////////////////////////////////////////////////////////////////////////////
+    // Make functions that convert voxel data into SparseTensor3D used by MLRECO3D
+    // //////////////////////////////////////////////////////////////////////////////////////////
+    
 
     std::vector< larcv::SparseTensor3D >
     make_mlreco_semantic_label_sparse3d( const larflow::voxelizer::TPCVoxelData& voxdata,
@@ -113,8 +119,16 @@ namespace voxelizer {
 						const larflow::prep::MatchTriplets& tripletdata,
 						const larflow::keypoints::KeypointData& kpdata );
 
+    std::vector< larcv::SparseTensor3D >
+    make_mlreco_keypoint_labels( const larflow::voxelizer::TPCVoxelData& voxdata,
+				 const larflow::prep::MatchTriplets& tripletdata );
+    
     // TPCVoxelData functions
     larflow::voxelizer::TPCVoxelData make_voxeldata( const larflow::prep::MatchTriplets& triplet_data );
+
+    // //////////////////////////////////////////////////////////////////////////////////////////
+    // Fill functions that transfer Triplet information into Voxels
+    // //////////////////////////////////////////////////////////////////////////////////////////
 
     int fill_tpcvoxeldata_semantic_labels( const larflow::prep::SSNetLabelData& ssnetdata,
 					   const larflow::prep::MatchTriplets& triplet_data,
@@ -129,7 +143,15 @@ namespace voxelizer {
     int fill_tpcvoxeldata_instance_labels( const larflow::prep::MatchTriplets& tripletdata,
 					   larflow::voxelizer::TPCVoxelData& voxdata );
 
+    int fill_tpcvoxeldata_keypoint_labels( const larflow::keypoints::KeypointData& kpdata,
+					   const larflow::prep::MatchTriplets& triplet_data,
+					   const float score_sigma_cm,
+					   larflow::voxelizer::TPCVoxelData& voxdata );
+    
+
+    // //////////////////////////////////////////////////////////////////////////////////////////
     // Make dictionary of numpy arrays with voxel data
+    // //////////////////////////////////////////////////////////////////////////////////////////
     
     PyObject* make_voxeldata_dict( const larflow::voxelizer::TPCVoxelData& voxdata,
 				   const larflow::prep::MatchTriplets& triplet_data );

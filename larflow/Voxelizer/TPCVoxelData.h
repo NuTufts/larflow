@@ -46,6 +46,7 @@ namespace voxelizer {
     std::map< long, int > _voxel_instanceid;
     std::map< long, int > _voxel_ssnetid;
     std::map< long, int > _voxel_realedep;
+    std::map< long, std::vector<float> > _voxel_kplabel;
 
     std::map< long, long > _id2trackid;
     std::map< long, long > _trackid2id;
