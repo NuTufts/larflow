@@ -34,7 +34,9 @@ namespace prep {
     std::map<unsigned long, unsigned long> _shower_daughter2mother;
     void fill_daughter2mother_map( const std::vector<larlite::mcshower>& shower_v );
 
+    std::map<unsigned long, unsigned long> _instance2ancestor_map;
     std::map<unsigned long, int> _instance2class_map;
+    std::map<unsigned long, int> _instance2origin_map;
     void fill_class_map( const std::vector<larlite::mctrack>&  track_v,
                          const std::vector<larlite::mcshower>& shower_v );
 
