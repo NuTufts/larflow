@@ -178,6 +178,10 @@ for ientry in range(start_entry,end_entry,1):
     ev_cluster  = outlcv.get_data( larcv.kProductSparseTensor3D, "pcluster" )
     ev_origin   = outlcv.get_data( larcv.kProductSparseTensor3D, "cosmic_origin" )    
     ev_particle = outlcv.get_data( larcv.kProductParticle, "corrected" )
+    ev_keypoint_labels_v = {}
+    for kp in range(6):
+        ev_keypoint_labels_v[kp] = outlcv.get_data( larcv.kProductSparseTensor3D, "kplabel_class%d"%(kp) )
+    
 
     ev_tripdata.clear()
 
@@ -226,6 +230,7 @@ for ientry in range(start_entry,end_entry,1):
         voxelizer.fill_tpcvoxeldata_planecharge( tpc_tripletdata, tpc_voxdata )
         voxelizer.fill_tpcvoxeldata_cosmicorigin( tpc_tripletdata, tpc_voxdata )
         voxelizer.fill_tpcvoxeldata_instance_labels( tpc_tripletdata, tpc_voxdata )
+        voxelizer.fill_tpcvoxeldata_keypoint_labels( tpc_kpdata, tpc_tripletdata, 5.0, tpc_voxdata )
 
         # Make SparseTensor3D products
         data_v = voxelizer.make_mlreco_semantic_label_sparse3d( tpc_voxdata, tpc_tripletdata, tpc_ssnetdata )
@@ -241,6 +246,9 @@ for ientry in range(start_entry,end_entry,1):
         # Make weights for semantic labeling
         sem_weights_v = voxelizer.make_mlreco_keypointbased_semantic_weights( tpc_voxdata, tpc_tripletdata, tpc_kpdata )
 
+        # Make keypoint labels
+        kplabels_v = voxelizer.make_mlreco_keypoint_labels( tpc_voxdata, tpc_tripletdata )
+
         # STORE THE DATA
         print("Store the mlreco data")
         for p in range(3):
@@ -249,6 +257,8 @@ for ientry in range(start_entry,end_entry,1):
         ev_origin.fast_merge( origin_v[0] )        
         ev_cluster.fast_merge( cluster_v[0] )
         ev_sem_weights.fast_merge( sem_weights_v[0] )
+        for kp in range(6):
+            ev_keypoint_labels_v[kp].fast_merge( kplabels_v[kp] )
 
         # UBOONE HACK: one tpc at a time
         if True:
