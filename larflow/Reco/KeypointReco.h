@@ -1,6 +1,12 @@
 #ifndef __LARFLOW_RECO_KEYPOINTRECO_H__
 #define __LARFLOW_RECO_KEYPOINTRECO_H__
 
+#include <Python.h>
+#include "bytesobject.h"
+
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
+
 #include <vector>
 
 #include "TTree.h"
@@ -105,7 +111,15 @@ namespace reco {
     void process( larlite::storage_manager& io_ll );
     void process_all_keypoint_types( larlite::storage_manager& io_ll );    
     void process( const std::vector<larlite::larflow3dhit>& input_lfhits );
-    void dump2json( std::string outfilename="dump_keypointreco.json" );    
+    void process_from_numpy_array( PyObject* keypoint_coord_array,
+				   PyObject* keypoint_score_array,
+				   PyObject* nonghost_score_array=nullptr,
+				   int tpcid=0, int cryoid=0 );
+    
+    void process( PyObject* keypoint_coord_array, PyObject* keypoint_score_array ); ///< intended to take in output from mlreco
+    void dump2json( std::string outfilename="dump_keypointreco.json" );
+
+    PyObject* get_keypoint_candidate_numpy_array();
 
     std::vector< KPCluster > output_pt_v;  ///< container of class representing reco. vertices
     std::vector< cluster_t >   _cluster_v; ///< clusters of spacepoints with keypoint score above some threshold
@@ -154,6 +168,13 @@ namespace reco {
     /** @brief fill entry data in _output_tree */
     void fillTree() {  if ( _output_tree ) _output_tree->Fill(); };
 
+
+    
+  private:
+    
+    static bool _import_numpy_keypointreco;
+    static int SetPyUtil();
+    
   };
 
 }

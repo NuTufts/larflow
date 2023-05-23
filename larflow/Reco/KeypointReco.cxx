@@ -20,6 +20,21 @@
 namespace larflow {
 namespace reco {
 
+  bool KeypointReco::_import_numpy_keypointreco = false;
+
+  int KeypointReco::SetPyUtil() {
+
+    if (!KeypointReco::_import_numpy_keypointreco) {
+#ifdef USE_PYTHON3
+      import_array1(0);
+#else
+      import_array1(0);
+#endif
+      KeypointReco::_import_numpy_keypointreco = true;
+    }
+    return 0;
+  }
+  
   /** 
    * @brief set default parameter values
    *
@@ -37,6 +52,7 @@ namespace reco {
     _keypoint_type = -1;
     _threshold_cluster_max_score = 0.75;
     _min_kpcluster_size = 4;
+    _lfhit_score_index = 10;
   }
   
   /**
@@ -115,6 +131,11 @@ namespace reco {
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
   {
 
+    if ( larutil::LArUtilConfig::Detector()==larlite::geo::kDetIdMax ) {
+      LARCV_NORMAL() << "Detector Geometry not yet set. Call larutil::LArUtilConfig::SetDetector(...) first." << std::endl;
+      return;
+    }
+    
     output_pt_v.clear();
 
     auto const geom = larlite::larutil::Geometry::GetME();
@@ -142,6 +163,161 @@ namespace reco {
 		       << std::endl;
       }
     }
+  }
+
+  /**
+   * @brief take in numpy array with keypoint label scores over some list of either spacepoints or voxels
+   *
+   * @param[in] keypoint_coord_array
+   * @param[in] keypoint_score_array
+   * @param[in] nonghost_score_array
+   * @param[in] tpcid
+   * @param[in] cryoid
+   *
+   */
+  void KeypointReco::process_from_numpy_array( PyObject* keypoint_coord_array,
+					       PyObject* keypoint_score_array,
+					       PyObject* nonghost_score_array,
+					       int tpcid, int cryoid )
+  {
+
+    KeypointReco::SetPyUtil();
+    
+    // get dimensions of arrays
+    int coord_ndims      = PyArray_NDIM( (PyArrayObject*)keypoint_coord_array );
+    npy_intp* coord_dims = PyArray_DIMS( (PyArrayObject*)keypoint_coord_array );
+    int coord_dtype = PyArray_TYPE( (PyArrayObject*)keypoint_coord_array );
+
+    if ( coord_ndims!=2 ) {
+      LARCV_WARNING() << "Expected a numpy array of dimension 2 for the 'keypoint_coord_array' argument" << std::endl;
+      return;
+    }
+    if ( coord_dtype!=NPY_FLOAT32 ) {
+      LARCV_WARNING() << "Expected dtype of numpy array 'keypoint_coord_array' to be NPY_FLOAT32. Use 'x.as_type(np.float32)' before passing array." << std::endl;
+    }
+
+    int score_ndims      = PyArray_NDIM( (PyArrayObject*)keypoint_score_array );
+    npy_intp* score_dims = PyArray_DIMS( (PyArrayObject*)keypoint_score_array );
+    int score_dtype = PyArray_TYPE( (PyArrayObject*)keypoint_score_array );
+
+    if ( score_ndims!=2 ) {
+      LARCV_WARNING() << "Expected a numpy array of dimension 2 for the 'keypoint_score_array' argument" << std::endl;
+      return;
+    }
+    if ( score_dtype!=NPY_FLOAT32 ) {
+      LARCV_WARNING() << "Expected dtype of numpy array 'keypoint_score_array' to be NPY_FLOAT32. Use 'x.as_type(np.float32)' before passing array." << std::endl;
+      return;
+    }
+
+    int nonghost_ndims = 0;
+    npy_intp* nonghost_dims = nullptr;
+    bool has_nonghost = false;
+    if ( nonghost_score_array!=nullptr ) {
+      // non-ghost scores provided
+      nonghost_ndims = PyArray_NDIM( (PyArrayObject*)nonghost_score_array );
+      nonghost_dims  = PyArray_DIMS( (PyArrayObject*)nonghost_score_array );
+      int nonghost_dtype = PyArray_TYPE( (PyArrayObject*)nonghost_score_array );      
+      has_nonghost = true;
+
+      if ( nonghost_ndims!=2 ) {
+	LARCV_WARNING() << "Expected a numpy array of dimension 2 for the 'nonghost_score_array' (optional) argument" << std::endl;
+	return;
+      }
+      if ( nonghost_dtype!=NPY_FLOAT32 ) {
+	LARCV_WARNING() << "Expected dtype of (optional) numpy array 'nonghost_score_array' to be NPY_FLOAT32. Use 'x.as_type(np.float32)' before passing array." << std::endl;
+	return;
+      }      
+    }
+    
+    // check the number of tokens (spacepoints or voxels) is the same for the coords and score
+    if ( score_dims[0]!=coord_dims[0] ) {
+      LARCV_WARNING() << "Length of coord and score array do not match. "
+		       << "score_dims[0]=" << score_dims[0] << " != "
+		       << "coord_dims[0]=" << coord_dims[0]
+		       << std::endl;
+      return;
+    }
+
+    // if the nonghost scores provided, check that the length of the array is the same
+    if ( has_nonghost && nonghost_dims[0]!=coord_dims[0] ) {
+      LARCV_WARNING() << "Length of coord and nonghost array do not match. "
+		       << "nonghost_dims[0]=" << nonghost_dims[0] << " != "
+		       << "coord_dims[0]=" << coord_dims[0]
+		       << std::endl;
+      return;
+    }
+
+    // check that the score's second dimension is only 1.
+    if ( score_dims[1]!=1 ) {
+      LARCV_WARNING() << "Keypoint score array dim[1]!=1. The 2D score array should only provide scores for one keypoint type" << std::endl;
+      return;
+    }
+
+    // if nonghost scores provided, check that the number of scores (second dim) is 1
+    if ( nonghost_dims[1]!=1 ) {
+      LARCV_WARNING() << "Nonghost array dim[1]!=1" << std::endl;
+      return;
+    }
+
+    LARCV_INFO() << "Process Keypoint Score array: " << coord_dims[0] << std::endl;
+    LARCV_INFO() << "xfer info to larflow3dhit" << std::endl;
+
+    // we convert the numpy array data into larlite::larflow3dhit objects
+    // the rest of algorithm uses that type (For better or worse)
+    std::vector< larlite::larflow3dhit > hit_v(coord_dims[0]);
+
+    int max_index = 10;
+    if ( _lfhit_score_index>=max_index )
+      max_index = _lfhit_score_index+1;
+
+    if ( has_nonghost )
+      LARCV_INFO() << "has ghost" << std::endl;
+    else
+      LARCV_INFO() << "no ghosts" << std::endl;
+    
+    for (size_t ii=0; ii<(size_t)coord_dims[0]; ii++ ) {
+
+      larlite::larflow3dhit& hitinfo = hit_v.at(ii); /// object is just an extension of std::vector<float>
+      hitinfo.resize(max_index,0); /// need to fill vector entries used by KeypointReco::_make_initial_pt_data
+      // this is:
+      //  lfhit[_lfhit_score_index]: the keypoint score for this class
+      //  lfhit[9]: the non-ghost score (higher means non-ghost point or voxel)      
+      //  lfhit[3]: tpc id
+      //  lfhit[4]: cryostat id
+      //  lfhit[0-2]: (x,y,z) positions
+      hitinfo[_lfhit_score_index] = *(float*)PyArray_GETPTR2( (PyArrayObject*)keypoint_score_array, ii, 0 );
+      hitinfo[3] = tpcid;
+      hitinfo[4] = cryoid;
+
+      for (int v=0; v<3; v++)
+	hitinfo[v] = *(float*)PyArray_GETPTR2( (PyArrayObject*)keypoint_coord_array, ii, v );
+      
+      if ( has_nonghost )
+	hitinfo[9] = *(float*)PyArray_GETPTR2( (PyArrayObject*)nonghost_score_array, ii, 0 );
+      else
+	hitinfo[9] = 1.0;
+
+      if ( ii<10 ) {
+	std::stringstream ss;
+	ss << "hit[" << ii << "]: ";
+       	for (int ih=0; ih<(int)hitinfo.size(); ih++)
+       	  ss << hitinfo[ih] << " ";
+	LARCV_DEBUG() << ss.str() << std::endl;
+      }
+      
+    }
+
+    LARCV_INFO() << "Now make keypoint candidates" << std::endl;
+    
+    // now that we have a larflow3dhit collection, we run the keypoint finding algorithm
+    process( hit_v );
+    
+    // output of the algorithm is now in
+    // output_pt_v
+    // _cluster_v
+
+    // use KeypointReco::get_keypoint_candidate_numpy_array() to return the data in the form
+    // of a numpy array
   }
   
   /**
@@ -576,6 +752,41 @@ namespace reco {
     
   }
 
+  /**
+   * @brief return the keypoint candidate information in the form of a numpy array
+   *
+   * Data comes from the 'output_pt_v' container.
+   * 
+   */
+  PyObject* KeypointReco::get_keypoint_candidate_numpy_array()
+  {
+    KeypointReco::SetPyUtil();
+  
+    npy_intp dim_data[2];
+    dim_data[0] = output_pt_v.size();
+    dim_data[1] = 8; // x,y,z,num in cluster,max score,(x,y,z)-max point
+  
+    PyArrayObject* array = nullptr;
+    try {
+      array = (PyArrayObject*)PyArray_SimpleNew( 2, dim_data, NPY_FLOAT64 );
+    }
+    catch (std::exception& e ) {
+      LARCV_CRITICAL() << "trouble allocating new pyarray: " << e.what() << std::endl;
+    }
+
+    for (size_t ikp=0; ikp<output_pt_v.size(); ikp++) {
+      auto const& kp = output_pt_v.at(ikp);
+      // set position
+      for (int v=0; v<3; v++)
+	*((double*)PyArray_GETPTR2( array, ikp, v )) = kp.center_pt_v[v];
+      *((double*)PyArray_GETPTR2( array, ikp, 3 )) = kp.pt_pos_v.size();
+      *((double*)PyArray_GETPTR2( array, ikp, 4 )) = kp.max_score;
+      for (int v=0; v<3; v++)
+	*((double*)PyArray_GETPTR2( array, ikp, 5+v )) = kp.max_pt_v[v];	
+    }
+
+    return (PyObject*)array;
+  }
   
 }
 }
