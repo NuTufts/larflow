@@ -25,7 +25,7 @@ if len(sys.argv) < 4:
 entry = int(sys.argv[3])
     
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
-#ioll2 = larlite.storage_manager( larlite.storage_manager.kREAD )
+#ioll2 = larlite.storage_manager( larlite.storage_manager.kREAD ) 
 #ioll.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 ioll.add_in_filename( sys.argv[2] )
 #ioll2.add_in_filename( sys.argv[1] )
@@ -54,6 +54,8 @@ dataset = LMDataset( filelist=["missingChargeFlag_100Events_040323_TEST.root"], 
 
 loader = torch.utils.data.DataLoader( dataset, batch_size=1, collate_fn=LMDataset.collate_fn )
 niter = ll_nentries
+
+weirdEvents = []
 
 for iiter in range(niter):
     print("====================================")
@@ -113,7 +115,8 @@ for entry in range(ll_nentries):
         print("totalPE: ", totalPE )
         totalPE_v.append(totalPE)
     if len(ev_opflash_beam)==0 and len(ev_opflash_cosmic)==0:
-        totalPE_v.append(0)
+        totalPE = 0
+        totalPE_v.append(totalPE)
     
 #elif len(ev_opflash_beam)==1:
 #    opflash_v = lardly.data.visualize_larlite_opflash_3d( ev_opflash_beam.at(0) )
@@ -130,8 +133,10 @@ for entry in range(ll_nentries):
             mctrack = ev_mctrack.at(i)
 
             for mcstep in mctrack:
+                print( "Here mcstep.X() is: ",mcstep.X() )
                 vx.append( mcstep.X() )
-            print( "mcstep X values: ",mcstep.X() )
+
+    print("This is vx after putting in info from mctrack mcsteps: ", vx)
 
     if ev_mcshower:
 
@@ -141,7 +146,9 @@ for entry in range(ll_nentries):
 
             mcshower = ev_mcshower.at(i)
 
+            print("This is mcshower.Start().X():", mcshower.Start().X() )
             vx.append( mcshower.Start().X() )
+            print("This is mcshower.End().X():", mcshower.End().X() )
             vx.append( mcshower.End().X() )
 
     print(vx)
@@ -154,6 +161,12 @@ for entry in range(ll_nentries):
     # now take mean of all the points gathered in interxn
     # this is the average x-position for the intrxn event
     mean = np.mean(vx)
+    if (totalPE < 1000) and (mean < 25):
+        print("Event flagged for being weird.")
+        print("The enetry here was: ", entry)
+        print("Total PE < 1000, PE here is: ", totalPE)
+        print("Also mean x-pos < 50 cm. Mean x-pos here is: ", mean)
+        weirdEvents.append(entry) 
     print("The mean x-position of this track is: ", mean)
     meanX_v.append(mean)
     continue
@@ -219,11 +232,11 @@ print("SCALED totalPE: ", n3)
 '''
 
 n1 = n1.astype(int)
-np.savetxt('n1.csv', n1, delimiter=',')
+np.savetxt('TEST_n1.csv', n1, delimiter=',')
 n2 = n2.astype(int)
-np.savetxt('n2.csv', n2, delimiter=',')
+np.savetxt('TEST_n2.csv', n2, delimiter=',')
 n3 = n3.astype(int)
-np.savetxt('n3.csv', n3, delimiter=',')
+np.savetxt('TEST_n3.csv', n3, delimiter=',')
 
 print("type(n1)): ", type(n1))
 print("n1.shape: ", n1.shape)
@@ -267,6 +280,8 @@ plt.title('Total PE vs. Total ADC')
 plt.savefig("pe_vs_adc_50bins.jpg")
 plt.show()
 '''
+
+print("Here are the events that were weird (avg x-pos < 50 and totalPE < 1000): ", weirdEvents)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')

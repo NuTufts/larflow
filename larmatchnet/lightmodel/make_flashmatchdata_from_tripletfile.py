@@ -138,7 +138,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("missingChargeFlag_100Events_040323_TEST.root","recreate")
+outfile = rt.TFile("withErrorFlag_100Events_040323_TEST.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -153,7 +153,7 @@ clusterTick = array('d',[0])
 flashTick = array('d',[0])
 origin = array('i',[0])
 # debug
-missingCharge = array('i',[0])
+errorFlag = array('i',[0])
 
 coord_v = std.vector("larcv::NumpyArrayInt")()
 feat_v  = std.vector("larcv::NumpyArrayFloat")()
@@ -184,7 +184,7 @@ outtree.Branch("clusterTick",  clusterTick,  "clusterTick/D")
 outtree.Branch("flashTick",  flashTick,  "flashTick/D")
 outtree.Branch("origin",  origin,  "origin/I")
 
-outtree.Branch("missingCharge",  missingCharge,  "missingCharge/I")
+outtree.Branch("errorFlag",  errorFlag,  "errorFlag/I")
 
 outtree.Branch("coord_v",  coord_v)
 outtree.Branch("feat_v",   feat_v)
@@ -605,14 +605,14 @@ for ientry in range(5): # event loop
 
         matchingFlashTick = 0
 
-        missingCharge[0] = 0 # default OK value (no missing charge or flash)
+        errorFlag[0] = 0 # default OK value (no missing charge or flash)
         # if at least 1 track in intrxn flagged, then flag whole event
 
         if key in intrxnTracks:
             for j in intrxnTracks[key]:
                 print("These are the corresponding mctrack vector positions according to dict: ",j)
 
-                #missingCharge[0] = 0 # default OK value (no missing charge or flash)
+                #errorFlag[0] = 0 # default OK value (no missing charge or flash)
 
                 # save the MCTRACKS
                 mctrack = ev_mctrack.at(j)
@@ -620,6 +620,8 @@ for ientry in range(5): # event loop
 
                 sizeMCT = mctrack.size()
                 print("sizeMCT: ", sizeMCT)
+
+                stepCounter = 0
                 
                 if mctrack:
                     xPositionStart = mctrack.at(0).X()
@@ -675,23 +677,25 @@ for ientry in range(5): # event loop
                 print("xPosEndOffset: ", xPosEndOffset )
 
                 if (xPosStartOffset < imgLimitsX[0]) or (xPosStartOffset > imgLimitsX[1]) or (xPosEndOffset < imgLimitsX[0]) or (xPosEndOffset > imgLimitsX[1]):
-                    missingCharge[0] = 1
+                    errorFlag[0] = 1
 
                 #if (yPositionStart < imgLimitsY[0]) or (yPositionStart > imgLimitsY[1]) or (yPositionEnd < imgLimitsY[0]) or (yPositionEnd > imgLimitsY[1]):
-                #    missingCharge[0] = 1
+                #    errorFlag[0] = 1
 
                 #if (zPositionStart < imgLimitsZ[0]) or (zPositionStart > imgLimitsZ[1]) or (zPositionEnd < imgLimitsZ[0]) or (zPositionEnd > imgLimitsZ[1]):
-                #    missingCharge[0] = 1
+                #    errorFlag[0] = 1
 
                 if (flashTick[0] < -9999.0): 
-                    missingCharge[0] = 2
+                    errorFlag[0] = 2
+                    if sizeMCT == 0:
+                        errorFlag[0] = 4
 
                 #else: 
-                #    missingCharge[0] = 0
+                #    errorFlag[0] = 0
 
-                print("missingCharge[0]: ", missingCharge[0])
+                print("errorFlag[0]: ", errorFlag[0])
         else: 
-            missingCharge[0] = 2 # There are no tracks in the event
+            errorFlag[0] = 3 # There are no tracks in the event
 
         if key in intrxnShowers:
             for j in intrxnShowers[key]:
