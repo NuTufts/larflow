@@ -41,7 +41,7 @@ totalADC_v = []
 meanX_v = []
 totalPE_v = []
 
-dataset = LMDataset( filelist=["missingChargeFlag_100Events_040323_TEST.root"], is_voxeldata=True, random_access=False )
+dataset = LMDataset( filelist=[ sys.argv[1] ], is_voxeldata=True, random_access=False )
 
 #tfile = TFile(sys.argv[1],'open')
 #preppedTree  = tfile.Get('larvoxeltrainingdata')
@@ -232,11 +232,11 @@ print("SCALED totalPE: ", n3)
 '''
 
 n1 = n1.astype(int)
-np.savetxt('TEST_n1.csv', n1, delimiter=',')
+np.savetxt('NEWTRIPLET_n1.csv', n1, delimiter=',')
 n2 = n2.astype(int)
-np.savetxt('TEST_n2.csv', n2, delimiter=',')
+np.savetxt('NEWTRIPLET_n2.csv', n2, delimiter=',')
 n3 = n3.astype(int)
-np.savetxt('TEST_n3.csv', n3, delimiter=',')
+np.savetxt('NEWTRIPLET_n3.csv', n3, delimiter=',')
 
 print("type(n1)): ", type(n1))
 print("n1.shape: ", n1.shape)
