@@ -1,3 +1,8 @@
+# This code takes json with mcinfo, opreco, 
+# and json filepaths and creates flashmatch data
+# 
+# (Original debug comments begin with ###)
+
 from __future__ import print_function
 import os,sys,argparse,json
 #sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet/larvoxel/prepdata/")
@@ -7,7 +12,7 @@ parser = argparse.ArgumentParser(description='Run Prep larmatch data')
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
 parser.add_argument('-i','--fileid',required=True,type=int,help="File ID number to run")
 parser.add_argument('input_list',type=str,help="json file that collates triplet, mcinfo, and opreco files")
-parser.add_argument('input_larmatch',nargs='+',help="Input larmatch triplet training args")
+#parser.add_argument('input_larmatch',nargs='+',help="Input larmatch triplet training args")
 
 args = parser.parse_args()
 
@@ -34,8 +39,6 @@ if not os.path.exists(args.input_list):
 # LOAD JSON FILE
 f = open(args.input_list,'r')
 j = json.load(f)
-
-print("test!!!")
 
 # This is the file id to run
 FILEIDS=[args.fileid]
@@ -75,7 +78,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( "filtered_MCTracks_opflash_040323.root" )
+iomc.set_out_filename( args.output + "_NEWTRIPLETFILE_filtered_MCTracks_opflash_061523.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -138,7 +141,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile("withErrorFlag_100Events_040323_TEST.root","recreate")
+outfile = rt.TFile(args.output + "_NEWTRIPLETFILE_withErrorFlag_100Events_061523_TEST.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -202,7 +205,7 @@ outtree.Branch("ancestor_weight_v",ancestor_weight_v)
 #listy = []
 
 def voxelizeIntrxn(iid_v, flashtick=0):
-    print("This is iid_v: ",iid_v)
+    ###print("This is iid_v: ",iid_v)
 
     # create array with T/F boolean
     indexmatch_v = [ data["voxinstance"]==iid for iid in iid_v ]
@@ -222,8 +225,8 @@ def voxelizeIntrxn(iid_v, flashtick=0):
     iiorigin_truth_v = [ data["voxorigin"][indexmatch[:]] for indexmatch in indexmatch_v ]
     iiorigin_weight_v = [ data["voxoriginweight"][indexmatch[:]] for indexmatch in indexmatch_v ]
 
-    print("data[voxcoord]",data["voxcoord"])
-    print("data[voxlabel]",data["voxlabel"])
+    ###print("data[voxcoord]",data["voxcoord"])
+    ###print("data[voxlabel]",data["voxlabel"])
     #print("iicoord_v",iicoord_v)
     #print("iicoord_v array",np.array(iicoord_v)) # do NOT do this! use concatenate (below)
 
@@ -239,18 +242,18 @@ def voxelizeIntrxn(iid_v, flashtick=0):
     iiorigin_truth = np.concatenate( iiorigin_truth_v )
     iiorigin_weight = np.concatenate( iiorigin_weight_v )
 
-    print("iicoord",iicoord)
-    print("type(iicoord): ",type(iicoord))
-    print("Now operate on iicoord to scale")
+    ###print("iicoord",iicoord)
+    ###print("type(iicoord): ",type(iicoord))
+    ###print("Now operate on iicoord to scale")
 
     #iicoord = iicoord*voxelsize
     #print("iicoord",iicoord)
 
     #print("type(iicoord) after scaling: ",type(iicoord))
 
-    print("Now operate on iicoord to shift offset by flashtick")
-    print("flashtick is :",flashtick)
-    print("the offset to subtract by is: ", (flashtick-3200)*0.5*dv)
+    ###print("Now operate on iicoord to shift offset by flashtick")
+    ###print("flashtick is :",flashtick)
+    ###print("the offset to subtract by is: ", (flashtick-3200)*0.5*dv)
 
     if flashtick!=0:
         iicoord[:,0] = (iicoord[:,0] - (flashtick-3200)*0.5*dv*(1/voxelsize)).round(0)
@@ -263,7 +266,7 @@ def voxelizeIntrxn(iid_v, flashtick=0):
 
     iicoord = iicoord.astype(int)
 
-    print("iicoord",iicoord)
+    ###print("iicoord",iicoord)
     #print("iicoord.shape",iicoord.shape)
     #print("iifeat",iifeat)
     #print("iifeat.shape",iifeat.shape)
@@ -319,10 +322,10 @@ for ientry in range(5): # event loop
     ev_opflash_cosmic = opio.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
     ev_opflash_beam = opio.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
 
-    print("ev_mctrack.size() is:", ev_mctrack.size() )
-    print("ev_mcshower.size() is:", ev_mcshower.size() )
-    print("ev_opflash_cosmic.size() is:", ev_opflash_cosmic.size() )
-    print("ev_opflash_beam.size() is:", ev_opflash_beam.size() )
+    ###print("ev_mctrack.size() is:", ev_mctrack.size() )
+    ###print("ev_mcshower.size() is:", ev_mcshower.size() )
+    ###print("ev_opflash_cosmic.size() is:", ev_opflash_cosmic.size() )
+    ###print("ev_opflash_beam.size() is:", ev_opflash_beam.size() )
 
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
     mcpg.buildgraphonly( ioll  )
@@ -339,8 +342,8 @@ for ientry in range(5): # event loop
 
     for i in range(0, mcpg.node_v.size(), 1):
 
-        print("Looping thru nodes in the mcpg vector!")
-        print("i, total num clusters (tracks & showers) in event: ", i, " ", mcpg.node_v.size())
+        ###print("Looping thru nodes in the mcpg vector!")
+        ###print("i, total num clusters (tracks & showers) in event: ", i, " ", mcpg.node_v.size())
 
         #if mcpg.node_v[i].origin!=1:
     #        continue
@@ -350,16 +353,16 @@ for ientry in range(5): # event loop
         nodeType = mcpg.node_v[i].type # is this a track or a shower?
         nodeIndex = mcpg.node_v[i].vidx # position in mctrack/mcshower vector
 
-        print("nodeAncestor: ",nodeAncestor)
-        print("nodeTrackid: ",nodeTrackid)
-        print("node Type (0 for track, 1 for shwr): ",nodeType)
-        print("index in track/shower vector: ",nodeIndex)
+        ###print("nodeAncestor: ",nodeAncestor)
+        ###print("nodeTrackid: ",nodeTrackid)
+        ###print("node Type (0 for track, 1 for shwr): ",nodeType)
+        ###print("index in track/shower vector: ",nodeIndex)
 
         if nodeType == -1: #not a track or shower
             continue
 
         if mcpg.node_v[i].origin==1: # if a cluster from beam origin
-            print("beam cluster")
+            ###print("beam cluster")
             if neutrinoKey==0:
                 neutrinoKey = -9997
                 intrxnDict[neutrinoKey] = [nodeTrackid]
@@ -397,7 +400,7 @@ for ientry in range(5): # event loop
                 intrxnTracks[nodeAncestor] = [nodeIndex]
         else: # this is a shower
             if nodeAncestor in intrxnShowers:
-                print("intrxnShowers[nodeAncestor]",intrxnShowers[nodeAncestor])
+                ###("intrxnShowers[nodeAncestor]",intrxnShowers[nodeAncestor])
                 intrxnShowers[nodeAncestor].append(nodeIndex)
             else:
                 intrxnShowers[nodeAncestor] = [nodeIndex]
@@ -407,9 +410,9 @@ for ientry in range(5): # event loop
         #intrxnDict[nodeAncestor] = nodeAncestor
         #intrxnDict.setdefault(nodeAncestor, [])
 
-        print("intrxnDict", intrxnDict)
-        print("intrxnTracks", intrxnTracks)
-        print("intrxnShowers", intrxnShowers)
+        ###print("intrxnDict", intrxnDict)
+        ###print("intrxnTracks", intrxnTracks)
+        ###print("intrxnShowers", intrxnShowers)
 
     numTracks = fmutil.numTracks( ioll )
     numShowers = fmutil.numShowers( ioll )
@@ -438,18 +441,18 @@ for ientry in range(5): # event loop
             pair = std.vector("int")(2,0)
             pair[0] = int(k)
             pair[1] = int(v)
-            print("trackID and instance: ", pair[0], " ", pair[1])
+            ###print("trackID and instance: ", pair[0], " ", pair[1])
             instance_map_v.push_back(pair)
             #print("instance_map_v: ",instance_map_v)
             if (k in trackList):
             #print("FOUND a track that matches ancestorID!")
-                print("It is track ID: ",k)
-                print("For instance: ",v)
+                ###print("It is track ID: ",k)
+                ###print("For instance: ",v)
                 iid_v.append(v)
 
-        print("This is iid_v: ",iid_v)
+        ###print("This is iid_v: ",iid_v)
         if not iid_v:
-            print("List is empty")
+            ###print("List is empty")
             continue
 
         iidList.append(iid_v)
@@ -558,11 +561,11 @@ for ientry in range(5): # event loop
 
     # should be in event loop
 
-    print("This is event NO: ", ientry)
-    print("IIDLOST: ",iidList)
-    print("keyList: ",keyList)
-    print("ancestorList: ", ancestorList)
-    print("trackList: ", trackList)
+    ###print("This is event NO: ", ientry)
+    ###print("IIDLOST: ",iidList)
+    ###print("keyList: ",keyList)
+    ###print("ancestorList: ", ancestorList)
+    ###print("trackList: ", trackList)
 
     run[0] = ioll.run_id()
     subrun[0] = ioll.subrun_id()
@@ -570,13 +573,13 @@ for ientry in range(5): # event loop
 
     # loop thru all the intrxns in the event here
     for i in range(len( iidList )): #loops thru entries in iidList and keyList which should be same
-        print("size of the iidList at the END: ",len( iidList ))
-        print("i, iidList[i]: ",i, iidList[i])
-        print("size of keyList, which should be the same: ", len(keyList))
-        print("key, or corresponding ancestorID of this iidlist, is: ", keyList[i])
+        ###print("size of the iidList at the END: ",len( iidList ))
+        ###print("i, iidList[i]: ",i, iidList[i])
+        ###print("size of keyList, which should be the same: ", len(keyList))
+        ###print("key, or corresponding ancestorID of this iidlist, is: ", keyList[i])
 
-        print("In this loop, this is entry number: ", i)
-        print("TOTAL ENTRY NUM:", totalEntryNum )
+        ###print("In this loop, this is entry number: ", i)
+        ###print("TOTAL ENTRY NUM:", totalEntryNum )
         totalEntryNum = totalEntryNum + 1
 
 
@@ -600,8 +603,8 @@ for ientry in range(5): # event loop
         out_opflash_beam  = iomc.get_data( larlite.data.kOpFlash, "simpleFlashBeam" )
         out_opflash_cosmic  = iomc.get_data( larlite.data.kOpFlash, "simpleFlashCosmic" )
 
-        print(intrxnTracks)
-        print(intrxnShowers)
+        ###print(intrxnTracks)
+        ###print(intrxnShowers)
 
         matchingFlashTick = 0
 
@@ -619,7 +622,7 @@ for ientry in range(5): # event loop
                 out_mctrack.push_back( mctrack )
 
                 sizeMCT = mctrack.size()
-                print("sizeMCT: ", sizeMCT)
+                ###print("sizeMCT: ", sizeMCT)
 
                 stepCounter = 0
                 
@@ -632,15 +635,15 @@ for ientry in range(5): # event loop
                     zPositionEnd = mctrack.at(sizeMCT-1).Z()
                     #print("ev_mctrack: ", ev_mctrack)
                     #print("ev_mctrack.at(j): ", ev_mctrack.at(j))
-                    print("xPositionStart: ", xPositionStart)
-                    print("xPositionEnd: ", xPositionEnd)
-                    print("imageLimits: ", imgLimitsX[0], ", ", imgLimitsX[1])
-                    print("yPositionStart: ", yPositionStart)
-                    print("yPositionEnd: ", yPositionEnd)
-                    print("imageLimits: ", imgLimitsY[0], ", ", imgLimitsY[1])
-                    print("zPositionStart: ", zPositionStart)
-                    print("zPositionEnd: ", zPositionEnd)
-                    print("imageLimits: ", imgLimitsZ[0], ", ", imgLimitsZ[1])
+                    ###print("xPositionStart: ", xPositionStart)
+                    ###print("xPositionEnd: ", xPositionEnd)
+                    ###print("imageLimits: ", imgLimitsX[0], ", ", imgLimitsX[1])
+                    ###print("yPositionStart: ", yPositionStart)
+                    ###print("yPositionEnd: ", yPositionEnd)
+                    ###print("imageLimits: ", imgLimitsY[0], ", ", imgLimitsY[1])
+                    ###print("zPositionStart: ", zPositionStart)
+                    ###print("zPositionEnd: ", zPositionEnd)
+                    ###print("imageLimits: ", imgLimitsZ[0], ", ", imgLimitsZ[1])
 
                 #grab some flash using first intrxn track for now
                 if foundFlash == 0:
@@ -650,7 +653,7 @@ for ientry in range(5): # event loop
                     producer = fmutil.producer
                     op_tick = fmutil.grabTickFromOpflash( opio )
                     match = fmutil.matchTicks( track_tick, op_tick )
-                    print("match IS: ",match)
+                    ###print("match IS: ",match)
                     matchingFlashTick = match[0]
 
                     fmutil.process( ioll )
@@ -671,10 +674,10 @@ for ientry in range(5): # event loop
                     ##    out_opflash.push_back( null )
 
                 xPosStartOffset = xPositionStart + (( match[0] - 3200 ) * cm_per_tick)
-                print("xPosStartOffset: ", xPosStartOffset )
+                ###print("xPosStartOffset: ", xPosStartOffset )
 
                 xPosEndOffset = xPositionEnd + (( match[0] - 3200 ) * cm_per_tick)
-                print("xPosEndOffset: ", xPosEndOffset )
+                ###print("xPosEndOffset: ", xPosEndOffset )
 
                 if (xPosStartOffset < imgLimitsX[0]) or (xPosStartOffset > imgLimitsX[1]) or (xPosEndOffset < imgLimitsX[0]) or (xPosEndOffset > imgLimitsX[1]):
                     errorFlag[0] = 1
@@ -693,13 +696,13 @@ for ientry in range(5): # event loop
                 #else: 
                 #    errorFlag[0] = 0
 
-                print("errorFlag[0]: ", errorFlag[0])
+                ###print("errorFlag[0]: ", errorFlag[0])
         else: 
             errorFlag[0] = 3 # There are no tracks in the event
 
         if key in intrxnShowers:
             for j in intrxnShowers[key]:
-                print("These are the corresponding mcshower vector positions according to dict: ",j)
+                ###print("These are the corresponding mcshower vector positions according to dict: ",j)
                 # save the MCSHOWERS
                 out_mcshower.push_back( ev_mcshower.at(j) )
 
