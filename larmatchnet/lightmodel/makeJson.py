@@ -10,10 +10,10 @@ parser.add_argument('-t','--triplet',required=True,type=str,help="Path with trip
 args = parser.parse_args()
 
 mcinfoPathList = open("paths.txt",'r').read().split('\n')
-print("mcinfoPathList: ", len(mcinfoPathList))
+#print("mcinfoPathList: ", len(mcinfoPathList))
 mcinfoPathList.pop() # removes last blank "" entry
 oprecoPathList = [w.replace('mcinfo', 'opreco') for w in mcinfoPathList] # list comprehension to replace
-print("mcinfoPathList: ", len(mcinfoPathList))
+#print("mcinfoPathList: ", len(mcinfoPathList))
 
 mcinfo = mcinfoPathList
 opreco = oprecoPathList

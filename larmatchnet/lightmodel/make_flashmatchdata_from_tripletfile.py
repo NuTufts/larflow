@@ -16,13 +16,12 @@ parser.add_argument('input_list',type=str,help="json file that collates triplet,
 
 args = parser.parse_args()
 
-from ctypes import c_int
 from array import array
 import numpy as np
-from array import array
 import torch
-from collections import defaultdict
 from larvoxel_dataset import larvoxelDataset
+#from ctypes import c_int
+#from collections import defaultdict
 
 import ROOT as rt
 from ROOT import std, TFile, TTree
@@ -35,6 +34,8 @@ from larlite import larutil
 if not os.path.exists(args.input_list):
     print("Could not find input list: ",args.input_list)
     sys.exit(0)
+
+print("Opening files...")
 
 # LOAD JSON FILE
 f = open(args.input_list,'r')
@@ -64,6 +65,8 @@ for fid in FILEIDS:
             sys.exit(0)
         input_opreco_v.append(oprecofile)
 
+print("Call FlashMatcher...")
+
 fmutil = ublarcvapp.mctools.FlashMatcher()
 
 print("Loaded %d larmatch triplet files to process"%(len(input_triplet_v)))
@@ -78,7 +81,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( args.output + "_NEWTRIPLETFILE_filtered_MCTracks_opflash_061523.root" )
+iomc.set_out_filename( args.output + "_filtered_MCTracks_opflash.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -141,7 +144,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile(args.output + "_NEWTRIPLETFILE_withErrorFlag_100Events_061523_TEST.root","recreate")
+outfile = rt.TFile(args.output + "_FMData_withErrorFlag_100Events.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -613,7 +616,7 @@ for ientry in range(5): # event loop
 
         if key in intrxnTracks:
             for j in intrxnTracks[key]:
-                print("These are the corresponding mctrack vector positions according to dict: ",j)
+                ###print("These are the corresponding mctrack vector positions according to dict: ",j)
 
                 #errorFlag[0] = 0 # default OK value (no missing charge or flash)
 
@@ -756,6 +759,8 @@ for ientry in range(5): # event loop
 
 #print("list: ", listy)
 fmutil.finalize()
+
+print("Flashmatch data created!")
 
 iomc.close()
 #ioop.close()
