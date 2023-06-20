@@ -34,11 +34,15 @@ SCRIPT="python ${UBDL_DIR}/larflow/larflow/KeyPoints/test/run_prepalldata.py"
 echo "SCRIPT: ${SCRIPT}" >> ${local_logfile} 2>&1
 echo "startline: ${startline}" >> ${local_logfile} 2>&1
 
+touch paths.txt
+pathfile=`echo paths.txt`
+
 for i in {1..5}
 do
     let lineno=$startline+$i
     larcvtruth=`sed -n ${lineno}p $INPUTLIST | awk '{print $1}'`
     mcinfo_path=`sed -n ${lineno}p $INPUTLIST | awk '{print $2}'`
+    echo "${mcinfo_path}" >> ${pathfile} 2>&1
     COMMAND="${SCRIPT} --out out_${i}.root --input-larcv $larcvtruth --input-larlite ${mcinfo_path} -adc wiremc -tb -tri"
     echo $COMMAND
     $COMMAND >> ${local_logfile} 2>&1
@@ -48,10 +52,20 @@ ls -lh out_*.root >> ${local_logfile} 2>&1
 
 ana_outputfile=`printf "larmatchtriplet_${TAG}_%04d.root" ${jobid}`
 hadd -f $ana_outputfile out_*.root >> ${local_logfile} 2>&1
-#cp $ana_outputfile ${OUTPUT_DIR}/
 
+SCRIPT="python3 ${UBDL_DIR}/larflow/larmatchnet/lightmodel/makeJson.py"
+COMMAND="${SCRIPT} --t ${ana_outputfile}"
+echo $COMMAND
+$COMMAND >> ${local_logfile} 2>&1
 
+out_json=`printf "tempJson.json"`
 
+SCRIPT="python3 ${UBDL_DIR}/larflow/larmatchnet/lightmodel/make_flashmatchdata_from_tripletfile.py"
+COMMAND="${SCRIPT} -o out_062023 -i 0 ${out_json}"
+echo $COMMAND
+$COMMAND >> ${local_logfile} 2>&1
+
+cp *out_062023* ${OUTPUT_DIR}/
 cp ${local_logfile} ${jobworkdir}/
 
 cd /tmp
