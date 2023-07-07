@@ -1,3 +1,4 @@
+
 #ifndef __KPS_RECO_MANAGER_H__
 #define __KPS_RECO_MANAGER_H__
 
@@ -165,6 +166,7 @@ namespace reco {
 
     void saveEventMCinfo(bool savemc);
     void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
+    void saveEventKeypoints(bool save_keypoints=true ) { _save_keypoints_in_anafile=save_keypoints; }; ///< if true, store keypoints
     void runPerfectMCreco( bool run_perfect=true ) { _run_perfect_mcreco=run_perfect; }; ///< if true and save MC info also set to true, run mc perfect reco
 
     void clear();
@@ -180,11 +182,16 @@ namespace reco {
     int _ana_event; ///< event number for tree entry
     float _t_event_elapsed; ///< runtime for event
     bool _save_selected_only; ///< if true, save only selected nu vertex candidates
+    bool _save_keypoints_in_anafile; ///< if true save keypoints to ana file
     void make_ana_file();
 
     std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v; ///< selection variables for nuvtx candidates
     std::vector< larflow::reco::NuVertexCandidate >    _nu_perfect_v; ///< store reco based on true trajectories
-
+    std::vector< larflow::reco::KPCluster >            _event_kpc_nu_v; ///< stores reconstructed keypoints
+    std::vector< larflow::reco::KPCluster >            _event_kpc_track_v; ///< stores reconstructed keypoints
+    std::vector< larflow::reco::KPCluster >            _event_kpc_shower_v; ///< stores reconstructed keypoints
+    std::vector< larflow::reco::KPCluster >            _event_kpc_cosmic_v; ///< stores reconstructed keypoints    
+    
     bool _kMinize_outputfile_size;
 
     int _reco_version;

@@ -27,6 +27,7 @@ namespace reco {
     _ana_output_file(inputfile_name),
     _t_event_elapsed(0),
     _save_selected_only(false),
+    _save_keypoints_in_anafile(false),
     _kMinize_outputfile_size(false),
     _reco_version(reco_ver),
     _stop_after_prepspacepoints(false),
@@ -459,6 +460,21 @@ namespace reco {
       throw std::runtime_error(oops.str());
     }
 
+    if ( _save_keypoints_in_anafile ) {
+      _event_kpc_nu_v.clear();
+      _event_kpc_track_v.clear();
+      _event_kpc_shower_v.clear();
+      _event_kpc_cosmic_v.clear();      
+      for ( auto& kpc : _kpreco_nu.output_pt_v )
+	_event_kpc_nu_v.push_back( kpc );
+      for ( auto& kpc : _kpreco_track.output_pt_v  )
+	_event_kpc_track_v.push_back( kpc );
+      for ( auto& kpc : _kpreco_shower.output_pt_v  )
+	_event_kpc_shower_v.push_back( kpc );
+      for ( auto& kpc : _kpreco_track_cosmic.output_pt_v  )
+	_event_kpc_cosmic_v.push_back( kpc );
+    }
+    
   }
 
   /**
@@ -741,11 +757,21 @@ namespace reco {
   {
     _ana_file = new TFile(_ana_output_file.c_str(), "recreate");
     _ana_tree = new TTree("KPSRecoManagerTree","Ana Output of KPSRecoManager algorithms");
+
+    // event book-keeping indicies: run, subrun, event
     _ana_tree->Branch("run",&_ana_run,"run/I");
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
-    _ana_tree->Branch("event",&_ana_event,"event/I");    
-  }
+    _ana_tree->Branch("event",&_ana_event,"event/I");
 
+    if ( _save_keypoints_in_anafile ) {
+      _ana_tree->Branch( "kpc_nu_v",     &_event_kpc_nu_v );
+      _ana_tree->Branch( "kpc_track_v",  &_event_kpc_track_v );
+      _ana_tree->Branch( "kpc_shower_v", &_event_kpc_shower_v );
+      _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
+    }
+    
+  }
+  
   /** @brief is true, save MC event summary */  
   void KPSRecoManager::saveEventMCinfo( bool savemc )
   {
@@ -1016,65 +1042,12 @@ namespace reco {
       
   }
   
-  void KPSRecoManager::runNuVtxSelection()
-  {
-    
-    if ( !_save_selected_only )
-      return;
-
-    LARCV_INFO() << "run 1e1p development selection" << std::endl;
-
-    std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v
-      //= _nuvertexmaker.get_mutable_fitted_candidates();
-      = _nuvertexmaker.get_mutable_output_candidates();
-    
-    if ( _nu_sel_v.size()!=nuvtx_v.size() ) {
-      LARCV_CRITICAL() << "mismatch in selection and vertex candidates" << std::endl;
-      return;
-    }
-    
-    std::vector<larflow::reco::NuSelectionVariables> pass_nusel_v;
-    std::vector<larflow::reco::NuVertexCandidate>    pass_nuvtx_v;
-
-    
-    for ( int ivtx=0; ivtx<(int)nuvtx_v.size(); ivtx++ ) {
-      auto& nusel = _nu_sel_v[ivtx];
-      auto& nuvtx = nuvtx_v[ivtx];
-
-      if ( nusel.dist2truevtx<3.0 ) {
-        _eventsel_1e1p.set_verbosity( larcv::msg::kDEBUG ); // for debug
-        LARCV_NORMAL() << "--------------------------------" << std::endl;
-        LARCV_NORMAL() << "vtx[" << ivtx << "]  dist2true: "  << nusel.dist2truevtx << " cm" << std::endl;
-      }
-      else
-        _eventsel_1e1p.set_verbosity( larcv::msg::kNORMAL ); // for debug
-      
-      int pass = _eventsel_1e1p.runSelection( nusel, nuvtx );
-      if ( pass==1 ) {
-        pass_nusel_v.emplace_back( std::move( nusel ) );
-        pass_nuvtx_v.emplace_back( std::move( nuvtx ) );
-      }
-    }
-
-    // now clear and replace
-    LARCV_DEBUG() << "clear and replace vertices" << std::endl;
-    nuvtx_v.clear();
-    _nu_sel_v.clear();
-    for ( int ivtx=0; ivtx<(int)pass_nusel_v.size(); ivtx++ ) {
-      nuvtx_v.emplace_back( std::move(pass_nuvtx_v[ivtx]) );
-      _nu_sel_v.emplace_back( std::move(pass_nusel_v[ivtx]) );
-    }
-    LARCV_INFO() << "Applied 1e1p selection. Passing vertices: " << nuvtx_v.size() << std::endl;
-    
-    return;
-  }
-
-
   void KPSRecoManager::clear()
   {
     _nu_sel_v.clear();
     _nu_perfect_v.clear();
     
   }
+  
 }
 }
