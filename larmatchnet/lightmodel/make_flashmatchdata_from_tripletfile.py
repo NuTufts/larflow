@@ -81,7 +81,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( args.output + "_filtered_MCTracks_opflash.root" )
+iomc.set_out_filename( args.output + "_FMDATA_filtered_MCTracks_opflash.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -144,7 +144,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile(args.output + "_FMData_withErrorFlag_100Events.root","recreate")
+outfile = rt.TFile(args.output + "_FMDATA_coords_withErrorFlags_100Events.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
@@ -304,7 +304,7 @@ totalEntryNum = 0
 # MAIN LOOP
 # NOTE: Only works with tracks for now! Implement shower part too
 #iomc.next_event()
-for ientry in range(5): # event loop
+for ientry in range(nentries): # event loop
 
     ancestorList = [] # keep track of intrxn ancestor IDs in the event
     trackList = []

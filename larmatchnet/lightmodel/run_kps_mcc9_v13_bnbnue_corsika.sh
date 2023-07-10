@@ -61,11 +61,11 @@ $COMMAND >> ${local_logfile} 2>&1
 out_json=`printf "tempJson.json"`
 
 SCRIPT="python3 ${UBDL_DIR}/larflow/larmatchnet/lightmodel/make_flashmatchdata_from_tripletfile.py"
-COMMAND="${SCRIPT} -o out_062023 -i 0 ${out_json}"
+COMMAND="${SCRIPT} -o ${jobid} -i 0 ${out_json}"
 echo $COMMAND
 $COMMAND >> ${local_logfile} 2>&1
 
-cp *out_062023* ${OUTPUT_DIR}/
+cp *FMDATA* ${OUTPUT_DIR}/
 cp ${local_logfile} ${jobworkdir}/
 
 cd /tmp
