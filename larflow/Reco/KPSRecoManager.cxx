@@ -763,12 +763,10 @@ namespace reco {
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
     _ana_tree->Branch("event",&_ana_event,"event/I");
 
-    if ( _save_keypoints_in_anafile ) {
-      _ana_tree->Branch( "kpc_nu_v",     &_event_kpc_nu_v );
-      _ana_tree->Branch( "kpc_track_v",  &_event_kpc_track_v );
-      _ana_tree->Branch( "kpc_shower_v", &_event_kpc_shower_v );
-      _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
-    }
+    _ana_tree->Branch( "kpc_nu_v",     &_event_kpc_nu_v );
+    _ana_tree->Branch( "kpc_track_v",  &_event_kpc_track_v );
+    _ana_tree->Branch( "kpc_shower_v", &_event_kpc_shower_v );
+    _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
     
   }
   
