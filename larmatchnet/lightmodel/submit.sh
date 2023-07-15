@@ -6,7 +6,7 @@
 #SBATCH --output=lmkpsdata_bnb_nue.log
 #SBATCH --mem-per-cpu=4000
 #SBATCH --time=8:00:00
-#SBATCH --array=0
+#SBATCH --array=0-9
 #SBATCH --partition=preempt
 #SBATCH --error=griderr_mktriplettruth.%j.%N.err
 
