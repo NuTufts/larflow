@@ -225,6 +225,8 @@ namespace reco {
       KPCluster kpc     = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
       KPCluster kpc_fit = _fit_cluster_CARUANA(  cluster, skimmed_pt_v, skimmed_index_v );
       kpc.center_pt_v = kpc_fit.center_pt_v;
+      kpc.center_pt_rmse_v = kpc_fit.center_pt_rmse_v;
+      kpc.center_pt_rsqr_v = kpc_fit.center_pt_rsqr_v;
       if ( kpc.max_score < _threshold_cluster_max_score )
 	continue;
       
@@ -304,7 +306,8 @@ namespace reco {
     cluster_pca( cluster );
 
     KPCluster kpc;
-    kpc.center_pt_v.resize(3,0.0);
+    kpc.center_pt_v.resize(3,0.0); //will get overwritten by Gaussian fit
+    kpc.center_avg_pt_v.resize(3,0.0);
     kpc.max_pt_v.resize(4,0.0);
 
     float totw = 0.;
@@ -320,6 +323,7 @@ namespace reco {
       
       for (int v=0; v<3; v++ ) {
         kpc.center_pt_v[v] += w*w*skimmed_pt_v[ skimidx ][v];
+        kpc.center_avg_pt_v[v] += w*w*skimmed_pt_v[ skimidx ][v];
       }
       totw += w*w;
         
@@ -340,6 +344,7 @@ namespace reco {
     if ( totw>0.0 ) {
       for (int v=0; v<3; v++ ) {
         kpc.center_pt_v[v] /= totw;
+        kpc.center_avg_pt_v[v] /= totw;
       }
     }
     //kpc.cluster = cluster; // this seems dumb. just for now/development.
@@ -385,6 +390,9 @@ namespace reco {
   {
 
     std::vector<double> mean(3,0);
+    std::vector<float> rmse(3,-1);
+    std::vector<float> rsqr(3,-1);
+    float avg_score = 0.;
 
     for (int dim=0; dim<3; dim++) {
 
@@ -394,6 +402,7 @@ namespace reco {
 
       for (auto const& idx : cluster.hitidx_v ) {
 	auto const& pt = skimmed_pt_v.at( idx );
+        if(dim == 0) avg_score += pt[3];
 	for (int n=1; n<=4; n++)
 	  x_sum[n-1] += TMath::Power(pt[dim],n);
 	double lny = TMath::Log(pt[3]);
@@ -402,6 +411,7 @@ namespace reco {
 	lny_terms[2] += pt[dim]*pt[dim]*lny;	
       }
       double N = cluster.hitidx_v.size();
+      if(N > 0. && dim == 0) avg_score /= N;
       
       // construct the matrix
       Eigen::Matrix3d A;
@@ -414,6 +424,22 @@ namespace reco {
       Eigen::Matrix3d invA = A.inverse();
       Eigen::Vector3d sol = invA*b;
       mean[dim] = -sol(1)/(2*sol(2));
+
+      if(sol(2) <= 0.){ //standard deviation is a real number
+        // calculate goodness of fit metrics
+        float fit_stnd = TMath::Sqrt(-1.0/(2*sol(2)));
+        float fit_norm = TMath::Exp(sol(0) - (sol(1)*sol(1))/(4*sol(2)));
+        float res_sq = 0.;
+        float dev_sq = 0.;
+        for (auto const& idx : cluster.hitidx_v ) {
+          auto const& pt = skimmed_pt_v.at( idx );
+          float val_fit = fit_norm*TMath::Exp(-0.5*TMath::Power( (pt[dim] - mean[dim])/fit_stnd, 2));
+          res_sq += TMath::Power(pt[3] - val_fit, 2);
+          dev_sq += TMath::Power(pt[3] - avg_score, 2);
+        }
+        if(N > 0) rmse[dim] = TMath::Sqrt(res_sq/N);
+        if(dev_sq > 0) rsqr[dim] = 1.0 - res_sq/dev_sq;
+      }
     }
 
     LARCV_DEBUG() << "Solved for mean position, N=" << cluster.hitidx_v.size() << ": "
@@ -424,6 +450,8 @@ namespace reco {
     
     KPCluster kpc;
     kpc.center_pt_v = { mean[0], mean[1], mean[2] };
+    kpc.center_pt_rmse_v = { rmse[0], rmse[1], rmse[2] };
+    kpc.center_pt_rsqr_v = { rsqr[0], rsqr[1], rsqr[2] };
     
     return kpc;
   }
