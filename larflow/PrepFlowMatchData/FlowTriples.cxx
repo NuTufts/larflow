@@ -5,6 +5,7 @@
 #include <ctime>
 #include <sstream>
 #include <algorithm>
+#include <map>
 
 namespace larflow {
 namespace prep {
@@ -645,7 +646,164 @@ namespace prep {
 
     // sparsify planes: pixels must be above threshold
     std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v.size()*2);
-    
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+      sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+    }
+
+    std::vector< std::vector<int> > imgBounds;
+    getRecoImageBounds(imgBounds, adc_v, prong, cropCenter, rowSpan, colSpan);
+
+    fillProngImagesFromReco(sparseimg_vv, threshold, adc_v, thrumu_v, prong, imgBounds);
+    fillContextImages(sparseimg_vv, threshold, adc_v, thrumu_v, imgBounds);
+
+    return sparseimg_vv;
+  }
+
+  /**
+   * @brief convert the wire image data into a sparse represntation of input prong
+   *
+   * we convert the image into a vector of CropPixData_t objects.
+   * ignore all pixels not belonging to the input reco cluster
+   *
+   * @param[in] adc_v  Vector of image pixel values
+   * @param[in] thrumu_v  Vector of cosmic image pixel values
+   * @param[in] prong  larflowcluster object with reco prong hits
+   * @param[in] cropCenter  point to center crop if input prong exceeds rowSpan or colSpan
+   * @param[in] threshold  Keep only pixels with value above this threshold
+   * @param[in] rowSpan  number of rows in cropped image
+   * @param[in] colSpan  number of columns in cropped image
+   * @param[in] mcpg  MCPixelPGraph used to remove specified particle
+   * @param[in] trackid_rm  track id of particle to remove from context images
+   * @param[in] trackid_rm2  optional: track id of 2nd particle to remove from context images
+   * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
+   */        
+  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  FlowTriples::make_cropped_initial_sparse_prong_image_reco_rmContextPart(
+                                                             const std::vector<larcv::Image2D>& adc_v,
+                                                             const std::vector<larcv::Image2D>& thrumu_v,
+                                                             const larlite::larflowcluster& prong,
+                                                             const TVector3& cropCenter, 
+                                                             float threshold, int rowSpan, int colSpan,
+                                                             ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                             int trackid_rm, int trackid_rm2 ) {
+
+    // sparsify planes: pixels must be above threshold
+    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v.size()*2);
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+      sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
+    }
+
+    std::vector< std::vector<int> > imgBounds;
+    getRecoImageBounds(imgBounds, adc_v, prong, cropCenter, rowSpan, colSpan);
+
+    fillProngImagesFromReco(sparseimg_vv, threshold, adc_v, thrumu_v, prong, imgBounds);
+    fillPartRmContextImages(sparseimg_vv, threshold, adc_v, thrumu_v, imgBounds, mcpg, trackid_rm, trackid_rm2);
+
+    return sparseimg_vv;
+  }
+
+  /**
+   * @brief convert the wire image data into a sparse represntation of input prong
+   *
+   * we convert the image into a vector of CropPixData_t objects.
+   * ignore all pixels not belonging to the input reco cluster
+   *
+   * @param[in] adc_v_reco  Vector of image pixel values in reco input
+   * @param[in] adc_v_sim  Vector of image pixel values in simulated prong for substitution
+   * @param[in] thrumu_v  Vector of cosmic image pixel values
+   * @param[in] prong  larflowcluster object with reco prong hits
+   * @param[in] cropCenter  point to center crop if input prong exceeds rowSpan or colSpan
+   * @param[in] threshold  Keep only pixels with value above this threshold
+   * @param[in] rowSpan  number of rows in cropped image
+   * @param[in] colSpan  number of columns in cropped image
+   * @param[in] mcpg  MCPixelPGraph used to remove specified particle
+   * @param[in] trackid_rm  track id of particle to remove from context images
+   * @param[in] trackid_rm2  optional: track id of 2nd particle to remove from context images
+   * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
+   */        
+  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  FlowTriples::make_cropped_initial_sparse_prong_image_reco_subContextPart(
+                                                             const std::vector<larcv::Image2D>& adc_v_reco,
+                                                             const std::vector<larcv::Image2D>& adc_v_sim, 
+                                                             const std::vector<larcv::Image2D>& thrumu_v,
+                                                             const larlite::larflowcluster& prong,
+                                                             const TVector3& cropCenter, 
+                                                             float threshold, int rowSpan, int colSpan,
+                                                             ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                             int trackid_rm, int trackid_rm2 ) {
+
+    // sparsify planes: pixels must be above threshold
+    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v_reco.size()*2);
+    for ( size_t p=0; p<adc_v_reco.size(); p++ ) {
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
+      sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
+    }
+
+    std::vector< std::vector<int> > imgBounds;
+    getRecoImageBounds(imgBounds, adc_v_reco, prong, cropCenter, rowSpan, colSpan);
+
+    fillProngImagesFromReco(sparseimg_vv, threshold, adc_v_reco, thrumu_v, prong, imgBounds);
+    fillPartRmContextImages(sparseimg_vv, threshold, adc_v_reco, thrumu_v, imgBounds, mcpg, trackid_rm, trackid_rm2);
+    fillContextImages(sparseimg_vv, threshold, adc_v_sim, imgBounds);
+
+    return sparseimg_vv;
+  }
+
+  /**
+   * @brief convert the wire image data into a sparse represntation of input prong
+   *
+   * we convert the image into a vector of CropPixData_t objects.
+   * ignore all pixels not belonging to the input reco cluster
+   *
+   * @param[in] adc_v_reco  Vector of image pixel values in reco input
+   * @param[in] adc_v_sim  Vector of image pixel values in simulated prong for substitution
+   * @param[in] thrumu_v  Vector of cosmic image pixel values
+   * @param[in] prong  larflowcluster object with reco prong hits
+   * @param[in] cropCenter  point to center crop if input prong exceeds rowSpan or colSpan
+   * @param[in] threshold  Keep only pixels with value above this threshold
+   * @param[in] rowSpan  number of rows in cropped image
+   * @param[in] colSpan  number of columns in cropped image
+   * @param[in] mcpg  MCPixelPGraph used to remove specified particle
+   * @param[in] trackid_rm  track id of particle to remove from context images
+   * @param[in] trackid_rm2  optional: track id of 2nd particle to remove from context images
+   * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
+   */        
+  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  FlowTriples::make_cropped_initial_sparse_prong_image_reco_truthProngSub(
+                                                             const std::vector<larcv::Image2D>& adc_v_reco,
+                                                             const std::vector<larcv::Image2D>& adc_v_sim, 
+                                                             const std::vector<larcv::Image2D>& thrumu_v,
+                                                             const larlite::larflowcluster& prong,
+                                                             const TVector3& cropCenter, 
+                                                             float threshold, int rowSpan, int colSpan,
+                                                             ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                                             int trackid_rm, int trackid_rm2 ) {
+
+    // sparsify planes: pixels must be above threshold
+    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v_reco.size()*2);
+    for ( size_t p=0; p<adc_v_reco.size(); p++ ) {
+      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
+      sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
+    }
+
+    std::vector< std::vector<int> > imgBounds;
+    getRecoImageBounds(imgBounds, adc_v_reco, prong, cropCenter, rowSpan, colSpan);
+
+    fillProngImagesFromTruth(sparseimg_vv, threshold, adc_v_sim, imgBounds);
+    fillPartRmContextImages(sparseimg_vv, threshold, adc_v_reco, thrumu_v, imgBounds, mcpg, trackid_rm, trackid_rm2);
+
+    return sparseimg_vv;
+  }
+
+
+
+  void FlowTriples::getRecoImageBounds( std::vector< std::vector<int> >& imgBounds,
+                                        const std::vector<larcv::Image2D>& adc_v, 
+                                        const larlite::larflowcluster& prong,
+                                        const TVector3& cropCenter, int rowSpan, int colSpan ) {
+
     std::vector< std::vector<int> > prongBounds;
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       std::vector<int> planeProngBounds{9999999,-9999999,9999999,-9999999};
@@ -662,7 +820,6 @@ namespace prep {
 
     bool reCenterAny = false;
     std::vector<bool> reCenter;
-    std::vector< std::vector<int> > imgBounds;
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       std::vector<int> imgPlaneBounds{0, 0, 0, 0};
       if( (prongBounds[p][1] - prongBounds[p][0]) < rowSpan && 
@@ -701,10 +858,19 @@ namespace prep {
       imgBounds[p][3] = imgBounds[p][2] + colSpan;
     }
 
+    return;
+  }
+
+
+
+  void FlowTriples::fillProngImagesFromReco(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+                                            const float& threshold,
+                                            const std::vector<larcv::Image2D>& adc_v,
+                                            const std::vector<larcv::Image2D>& thrumu_v,
+                                            const larlite::larflowcluster& prong,
+                                            const std::vector< std::vector<int> >& imgBounds) {
+
     for ( size_t p=0; p<adc_v.size(); p++ ) {
-      size_t p_ = p+3;
-      sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
-      sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
 
       for( const auto& hit : prong ){
         // TO DO: REPLACE HARD-CODED VALUES!!!
@@ -722,6 +888,58 @@ namespace prep {
           }
       }
 
+      int idx=0;
+      for ( auto& pix : sparseimg_vv[p] ) {
+        pix.idx = idx;
+        idx++;
+      }
+
+    }
+
+    return;
+  }
+
+
+  void FlowTriples::fillProngImagesFromTruth(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+                                             const float& threshold,
+                                             const std::vector<larcv::Image2D>& adc_v,
+                                             const std::vector< std::vector<int> >& imgBounds){
+
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+
+      for ( size_t row=0; row<adc_v[p].meta().rows(); row++ ) {
+        for ( size_t col=0; col<adc_v[p].meta().cols(); col++ ) {
+          float val = adc_v[p].pixel(row,col);
+          if ( val>=threshold && 
+               (int)row >= imgBounds[p][0] && (int)row < imgBounds[p][1] &&
+               (int)col >= imgBounds[p][2] && (int)col < imgBounds[p][3] ) {
+            sparseimg_vv[p].push_back( CropPixData_t((int)row - imgBounds[p][0],
+                                                     (int)col - imgBounds[p][2], (int)row, (int)col, val) );
+            sparseimg_vv[p+3].push_back( CropPixData_t((int)row - imgBounds[p][0],
+                                                       (int)col - imgBounds[p][2], (int)row, (int)col, val) );
+          }
+        }
+      }
+
+      int idx=0;
+      for ( auto& pix : sparseimg_vv[p] ) {
+        pix.idx = idx;
+        idx++;
+      }
+    }
+
+    return;
+  }
+
+
+  void FlowTriples::fillContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+                                      const float& threshold,
+                                      const std::vector<larcv::Image2D>& adc_v,
+                                      const std::vector<larcv::Image2D>& thrumu_v,
+                                      const std::vector< std::vector<int> >& imgBounds){
+
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+
       for ( size_t row=0; row<adc_v[p].meta().rows(); row++ ) {
         for ( size_t col=0; col<adc_v[p].meta().cols(); col++ ) {
           float val = adc_v[p].pixel(row,col);
@@ -735,23 +953,131 @@ namespace prep {
         }
       }
 
-      // should be sorted in (r,c). do i pull the trigger and sort?
-      // std::sort( sparseimg_vv[p].begin(), sparseimg_vv[p].end() );
       int idx=0;
-      for ( auto& pix : sparseimg_vv[p] ) {
-        pix.idx = idx;
-        idx++;
-      }
-      idx=0;
       for ( auto& pix : sparseimg_vv[p+3] ) {
         pix.idx = idx;
         idx++;
       }
-      //std::cout << "[FlowTriples] plane[" << p << "] has " << sparseimg_vv[p].size() << " (above threshold) pixels" << std::endl;
     }
 
-    return sparseimg_vv;
+    return;
   }
+
+
+  void FlowTriples::fillContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+                                      const float& threshold,
+                                      const std::vector<larcv::Image2D>& adc_v,
+                                      const std::vector< std::vector<int> >& imgBounds){
+
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+
+      for ( size_t row=0; row<adc_v[p].meta().rows(); row++ ) {
+        for ( size_t col=0; col<adc_v[p].meta().cols(); col++ ) {
+          float val = adc_v[p].pixel(row,col);
+          if ( val >= threshold &&
+               (int)row >= imgBounds[p][0] && (int)row < imgBounds[p][1] &&
+               (int)col >= imgBounds[p][2] && (int)col < imgBounds[p][3] ) {
+            sparseimg_vv[p+3].push_back( CropPixData_t((int)row - imgBounds[p][0],
+                                                       (int)col - imgBounds[p][2], (int)row, (int)col, val) );
+          }
+        }
+      }
+
+      int idx=0;
+      for ( auto& pix : sparseimg_vv[p+3] ) {
+        pix.idx = idx;
+        idx++;
+      }
+    }
+
+    return;
+  }
+
+
+  void FlowTriples::fillPartRmContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+                                            const float& threshold,
+                                            const std::vector<larcv::Image2D>& adc_v,
+                                            const std::vector<larcv::Image2D>& thrumu_v,
+                                            const std::vector< std::vector<int> >& imgBounds,
+                                            ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                            const int& trackid_rm, const int& trackid_rm2){
+
+    //get simulated particle pixels to remove from context
+    const auto partPix_vv = mcpg.getPixelsFromParticleAndDaughters(trackid_rm);
+    std::vector< std::vector<int> > partPix_vv_2;
+    if(trackid_rm2 >= 0) partPix_vv_2 = mcpg.getPixelsFromParticleAndDaughters(trackid_rm2);
+
+    for ( size_t p=0; p<adc_v.size(); p++ ) {
+
+      //sort simulated particle pixels into map for logarithmic lookup
+      std::map<int, std::vector<int> > partPix_map;
+      for ( unsigned int iP = 0; iP < partPix_vv[p].size()/2; iP++ ) {
+        int partRow = (partPix_vv[p][2*iP] - 2400)/6;
+        int partCol = partPix_vv[p][2*iP+1];
+        if(partPix_map.find(partRow) != partPix_map.end()){
+          partPix_map[partRow].push_back(partCol);
+        }
+        else{
+          std::vector<int> colVec;
+          colVec.reserve(10);
+          colVec.push_back(partCol);
+          partPix_map[partRow] = colVec;
+        }
+      }
+      for ( auto& rowEntries : partPix_map ) {
+        std::sort(rowEntries.second.begin(), rowEntries.second.end());
+      }
+      if(trackid_rm2 >= 0){
+        for ( unsigned int iP = 0; iP < partPix_vv_2[p].size()/2; iP++ ) {
+          int partRow = (partPix_vv_2[p][2*iP] - 2400)/6;
+          int partCol = partPix_vv_2[p][2*iP+1];
+          if(partPix_map.find(partRow) != partPix_map.end()){
+            bool pixInMap = std::binary_search(partPix_map[partRow].begin(), partPix_map[partRow].end(), partCol);
+            if(!pixInMap) partPix_map[partRow].push_back(partCol);
+          }
+          else{
+            std::vector<int> colVec;
+            colVec.reserve(10);
+            colVec.push_back(partCol);
+            partPix_map[partRow] = colVec;
+          }
+        }
+        for ( auto& rowEntries : partPix_map ) {
+          std::sort(rowEntries.second.begin(), rowEntries.second.end());
+        }
+      }
+
+      for ( size_t row=0; row<adc_v[p].meta().rows(); row++ ) {
+        bool rowInPixMap = false;
+        bool firstRow = true;
+        for ( size_t col=0; col<adc_v[p].meta().cols(); col++ ) {
+          float val = adc_v[p].pixel(row,col);
+          float val_cosmic = thrumu_v[p].pixel(row, col);
+          if ( val >= threshold && val_cosmic < threshold &&
+               (int)row >= imgBounds[p][0] && (int)row < imgBounds[p][1] &&
+               (int)col >= imgBounds[p][2] && (int)col < imgBounds[p][3] ) {
+            if(firstRow){
+              rowInPixMap = (partPix_map.find((int)row) != partPix_map.end());
+              firstRow = false;
+            }
+            if( rowInPixMap && std::binary_search(partPix_map[(int)row].begin(),
+                                                  partPix_map[(int)row].end(), (int)col) ) continue;
+            sparseimg_vv[p+3].push_back( CropPixData_t((int)row - imgBounds[p][0],
+                                                       (int)col - imgBounds[p][2], (int)row, (int)col, val) );
+          }
+        }
+      }
+
+      int idx=0;
+      for ( auto& pix : sparseimg_vv[p+3] ) {
+        pix.idx = idx;
+        idx++;
+      }
+    }
+
+    return;
+  }
+
 
 }
 }
