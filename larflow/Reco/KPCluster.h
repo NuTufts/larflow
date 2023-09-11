@@ -20,6 +20,9 @@ namespace reco {
 
     KPCluster()
       : center_pt_v({0,0,0}),
+      center_pt_rmse_v({0,0,0}),
+      center_pt_rsqr_v({0,0,0}),
+      center_avg_pt_v({0,0,0}),
       pca_max_r(-1.0),
       pca_ave_r2(-1.0),
       pca_len(-1.0),
@@ -31,7 +34,10 @@ namespace reco {
       {};
     virtual ~KPCluster() {};
     
-    std::vector< float > center_pt_v;             ///< center point
+    std::vector< float > center_pt_v;             ///< center point calculated from Gaussian fit
+    std::vector< float > center_pt_rmse_v;        ///< RMSE of Gaussian fit
+    std::vector< float > center_pt_rsqr_v;        ///< R^2 of Gaussian fit
+    std::vector< float > center_avg_pt_v;         ///< center point calculated from weighted average
     std::vector< std::vector<float> > pt_pos_v;   ///< points associated to the center
     std::vector< float >              pt_score_v; ///< score of cluster points
 

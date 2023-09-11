@@ -25,6 +25,7 @@ parser.add_argument('--stop-after-keypointreco',default=False,action='store_true
 parser.add_argument('--stop-after-subclustering',default=False,action='store_true',help="If true, stop at subcluster reco")
 parser.add_argument('--stop-after-nutracker',default=False,action='store_true',help="If true, stop at subcluster reco")
 parser.add_argument("--run-perfect-mcreco",default=False,action='store_true',help="If true, and --ismc also provided, then perfecto reco module is run")
+parser.add_argument("--save-all-keypoints",default=False,action="store_true",help="If flag given, all reconstructed keypoints are saved to the ana file")
 
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
@@ -72,6 +73,10 @@ if args.stop_after_nutracker:
     recoman.debug_stop_at_nutracker( True )
     print("[enter] to start")
     input()
+if args.save_all_keypoints:
+    print("Save all reconstructed keypoints. Usually for selection development.")
+    recoman.saveEventKeypoints( True )
+
 
 # INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )

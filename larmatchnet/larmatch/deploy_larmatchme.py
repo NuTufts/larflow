@@ -85,14 +85,19 @@ io = larcv.IOManager( larcv.IOManager.kBOTH, "larcvio", tickdir )
 io.add_in_file( args.supera )
 io.set_out_file( "%s_larcv.root"%(outfilestem) )
 io.set_verbosity(1)
-io.specify_data_read( larcv.kProductImage2D,  "larflow" )
 io.specify_data_read( larcv.kProductImage2D,  args.adc_name )
 io.specify_data_read( larcv.kProductChStatus, args.chstatus_name )
 io.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
+if args.has_mc:
+    io.specify_data_read( larcv.kProductImage2D, "instance" )
+    io.specify_data_read( larcv.kProductImage2D, "ancestor" )    
+    io.specify_data_read( larcv.kProductImage2D, "segment" )
+    io.specify_data_read( larcv.kProductImage2D, "larflow" )    
 if args.has_wirecell:
     io.specify_data_read( larcv.kProductChStatus, "thrumu" )
 io.reverse_all_products()
 io.initialize()
+
 
 if args.has_mc and args.larlite_mcinfo is not None:
     ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
@@ -156,7 +161,7 @@ for ientry in range(NENTRIES):
     # make truth labels if possible
     if args.has_mc and ioll is not None:
         print("processing larflow truth...")
-        preplarmatch.process_truth_labels( io, ioll )
+        preplarmatch.process_truth_labels( io, ioll, args.adc_name )
 
     # turn shuffle off (to do, function should be kploader function)
     tripdata = preplarmatch.setShuffleWhenSampling( False )

@@ -389,7 +389,7 @@ namespace reco {
       }
 
       float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
-      std::cout << "ipt=" << ipt << " d=" << d << std::endl;
+      //std::cout << "ipt=" << ipt << " d=" << d << std::endl;
       
       if ( d>_max_line_dist )
 	continue;
@@ -420,13 +420,13 @@ namespace reco {
 	ptdist2 = 999999;
       }
 
-      std::cout << "ipt=" << ipt
-		<< " s1=" << s1
-		<< " s2=" << s2
-		<< " seglen=" << seglen
-		<< " ptdist1=" << ptdist1
-		<< " ptdist2=" << ptdist2
-		<< std::endl;
+      //std::cout << "ipt=" << ipt
+	//	<< " s1=" << s1
+	//	<< " s2=" << s2
+	//	<< " seglen=" << seglen
+	//	<< " ptdist1=" << ptdist1
+	//	<< " ptdist2=" << ptdist2
+	//	<< std::endl;
 
       // candidate intersection point on this track      
       if ( ptdist1<ptdist2 && ptdist1<min_seg_dist) {

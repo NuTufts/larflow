@@ -947,6 +947,19 @@ namespace prep {
       _setup_numpy = true;
     }
 
+    // check the truth content has been generated
+    if ( withtruth ) {
+      if ( _truth_v.size()==0 ) {
+	std::cout << "Being asked to return the truth (withtruth==True) but the truth has not been generated yet for these triplets." << std::endl;
+	std::cout << "Run first: PrepMatchTriplts::process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer )" << std::endl;
+
+	// returning a referene to the None object. So we need to increment reference count.
+	Py_INCREF(Py_None);
+	// return the None
+	return Py_None;
+      }
+    }
+
     int nd = 2;
     int ndims2 = 5;
     npy_intp dims[] = { max_num_samples, ndims2 };
