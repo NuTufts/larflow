@@ -171,7 +171,7 @@ def load_lm_data(input_file, entry):
     print("coord_t: ", coord_t)
     print("coord_t.size()", coord_t.size())
 
-    SA = calc_solid_angle(coord_np, flashTick)
+    #SA = calc_solid_angle(coord_np, flashTick)
     print("This is from the SA function: ", SA)
 
     SA_np = np.array(SA)
