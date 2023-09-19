@@ -89,7 +89,7 @@ class LightModelNet(ME.MinkowskiNetwork):
 
 if __name__ == '__main__':
     # loss and network
-    net = LightModelNet(1, 5, D=2)
+    net = LightModelNet(1, 8, D=3)
     print(net)
 
     ##input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
