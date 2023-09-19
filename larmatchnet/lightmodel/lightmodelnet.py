@@ -5,7 +5,8 @@ import torch
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MF
 
-from lm_dataloader import load_lm_data
+#from lm_dataloader import load_lm_data
+from dummyloader import load_data
 
 class LightModelNet(ME.MinkowskiNetwork):
 
@@ -65,7 +66,10 @@ class LightModelNet(ME.MinkowskiNetwork):
             dimension=D)
 
     def forward(self, x):
+
         out_s1 = self.block1(x)
+
+        #print("self.dimension: ", self.block1(x).dimension)
         out = MF.relu(out_s1)
 
         out_s2 = self.block2(out)
@@ -85,19 +89,24 @@ class LightModelNet(ME.MinkowskiNetwork):
 
 if __name__ == '__main__':
     # loss and network
-    net = LightModelNet(1, 1, D=3)
+    net = LightModelNet(1, 5, D=2)
     print(net)
 
-    input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
-    entry = 0
+    ##input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
+    ##entry = 0
 
     # a data loader must return a tuple of coords, features, and labels.
     #coords, feat, label = data_loader()
-    coords, feat, label = load_lm_data()
+    coords, feat, label = load_data()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     net = net.to(device)
     input = ME.SparseTensor(feat, coords, device=device)
+
+    print("input.shape: ", input.shape)
+
+    print("input.D: ", input.D)
+    #print("net.dimension: ", net.dimension)
 
     # Forward
     output = net(input)
