@@ -1,12 +1,10 @@
 import sys
-sys.path = ['', '/usr/lib/python38.zip', '/usr/lib/python3.8', '/usr/lib/python3.8/lib-dynload', '/usr/local/lib/python3.8/dist-packages', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/python','/usr/local/lib/python3.8/dist-packages/sparseconvnet-0.2-py3.8-linux-x86_64.egg', '/usr/lib/python3/dist-packages', '/usr/local/root/lib', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/lardly', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/utils', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/sparse_larflow', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/models', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/ublarcvapp/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larcv/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/Geo2D/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larlite/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/LArOpenCV/python']
-#sys.path = ['', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/lardly', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/utils', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/sparse_larflow', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larflow/models', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/ublarcvapp/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larcv/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/Geo2D/python', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/larlite/python', '/usr/local/root/lib', '/cluster/tufts/wongjiradlabnu/pabrat01/ubdl/LArOpenCV/python', '/usr/lib/python38.zip', '/usr/lib/python3.8', '/usr/lib/python3.8/lib-dynload', '/cluster/home/pabrat01/.local/lib/python3.8/site-packages', '/usr/local/lib/python3.8/dist-packages', '/usr/local/lib/python3.8/dist-packages/sparseconvnet-0.2-py3.8-linux-x86_64.egg', '/usr/lib/python3/dist-packages']
 import torch
 import MinkowskiEngine as ME
 import MinkowskiEngine.MinkowskiFunctional as MF
 
-#from lm_dataloader import load_lm_data
-from dummyloader import load_data
+from lm_dataloader import load_lm_data
+#from dummyloader import load_data
 
 class LightModelNet(ME.MinkowskiNetwork):
 
@@ -61,7 +59,7 @@ class LightModelNet(ME.MinkowskiNetwork):
         self.conv1_tr = ME.MinkowskiConvolution(
             in_channels=24,
             out_channels=out_nchannel,
-            kernel_size=1,
+            kernel_size=3,
             stride=1,
             dimension=D)
 
@@ -89,19 +87,21 @@ class LightModelNet(ME.MinkowskiNetwork):
 
 if __name__ == '__main__':
     # loss and network
-    net = LightModelNet(1, 8, D=3)
+    net = LightModelNet(3, 1, D=3)
     print(net)
 
-    ##input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
-    ##entry = 0
+    input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
+    entry = 0
 
     # a data loader must return a tuple of coords, features, and labels.
     #coords, feat, label = data_loader()
-    coords, feat, label = load_data()
+    coords, feat, label = load_lm_data(input_file, entry)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     net = net.to(device)
-    input = ME.SparseTensor(feat, coords, device=device)
+    #input = ME.SparseTensor(feat, coords, device=device)
+    coords, feats = ME.utils.sparse_collate( [coords], [feat] )
+    input = ME.SparseTensor(features=feats, coordinates=coords)
 
     print("input.shape: ", input.shape)
 
