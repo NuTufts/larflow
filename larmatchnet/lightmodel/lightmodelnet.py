@@ -65,29 +65,47 @@ class LightModelNet(ME.MinkowskiNetwork):
 
     def forward(self, x):
 
+        print("shape of x input: ", x.shape)
+
         out_s1 = self.block1(x)
+
+        print("self.block1(x) shape: ", out_s1.shape)
 
         #print("self.dimension: ", self.block1(x).dimension)
         out = MF.relu(out_s1)
 
+        print("MF.relu(out_s1) shape: ", out.shape)
+
         out_s2 = self.block2(out)
+        print("self.block2(out) shape: ", out_s2.shape)
         out = MF.relu(out_s2)
+        print("MF.relu(out_s2) shape: ", out.shape)
 
         out_s4 = self.block3(out)
+        print("self.block3(out) shape: ", out_s4.shape)
         out = MF.relu(out_s4)
+        print("MF.relu(out_s4) shape: ", out.shape)
 
         out = MF.relu(self.block3_tr(out))
+
+        print("out = MF.relu(self.block3_tr(out)) shape (after RELU): ", out.shape)
+
         out = ME.cat(out, out_s2)
 
+        print("out_s2 shape: ", out_s2.shape)
+        print("ME.cat(out, out_s2) shape: ", out.shape)
+
         out = MF.relu(self.block2_tr(out))
+        print("MF.relu(self.block2_tr(out)) shape: ", out.shape)
         out = ME.cat(out, out_s1)
+        print("ME.cat(out, out_s1) ", out.shape)
 
         return self.conv1_tr(out)
 
 
 if __name__ == '__main__':
     # loss and network
-    net = LightModelNet(3, 1, D=3)
+    net = LightModelNet(3, 32, D=3) # 3 ADC features go in, 1 feature out (the fudge factor)
     print(net)
 
     input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
@@ -110,3 +128,5 @@ if __name__ == '__main__':
 
     # Forward
     output = net(input)
+
+    print("output.shape: ", output.shape)

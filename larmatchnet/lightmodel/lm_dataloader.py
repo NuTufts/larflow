@@ -23,7 +23,10 @@ def calc_solid_angle(coord_v, flashTick):
     # note anode plane x-coord is 0.0 cm
     #pmtposmap = lardly.ubdl.getPosFromID( 1, origin_at_detcenter=False )
     print("pmt pos map: ", pmtposmap)
-    for ipmt in range(26,27): #32
+
+    SA_allPMTs = []
+
+    for ipmt in range(32): #32
 
         print("This is PMT #: ", ipmt)
 
@@ -71,12 +74,16 @@ def calc_solid_angle(coord_v, flashTick):
         zy_offset = np.sqrt( ( coord_v[:,1]*0.3-120.0 - y_center)**2 + ( coord_v[:,2]*0.3 - z_center )**2 )  #sqrt(Y^2 + X^2)
         print("This is zy_offset (all coords for this one PMT):", zy_offset)
         #for j in range( len(coord_x) ):
+        
         SA_list = []
         for j in range( L.size ):
             SA = solidAngleCalc(zy_offset[j],radius,L[j])
             #print("This is the solid angle calc!", SA)
             SA_list.append(SA)
-    return SA_list
+
+        SA_allPMTs.append(SA_list)
+        
+    return SA_allPMTs
 
 # Loads in ROOT trees, outputs torch tensors (coords, feats, SA calc...)
 def load_lm_data(input_file, entry):
@@ -105,7 +112,7 @@ def load_lm_data(input_file, entry):
 
     #ev_opflash = ev_opflash_cosmic.at(0)
 
-    print("Solid angle test: ", solidAngleCalc(0.2,1,1))
+    ##print("Solid angle test: ", solidAngleCalc(0.2,1,1))
 
     flash = []
 
@@ -121,7 +128,6 @@ def load_lm_data(input_file, entry):
     print("total PE: ", ev_opflash_cosmic[0].TotalPE())
     print("nOpDets(): ", ev_opflash_cosmic[0].nOpDets())
     
-
     #opflash = ev_opflash_cosmic.at(0)
     #opflash_array = np.array(opflash)
     #print("opflash_array: ", opflash_array)
@@ -158,12 +164,14 @@ def load_lm_data(input_file, entry):
     print("feat_v.size()", feat_v.size())
 
     print("coord_v", coord_v)
+    print("coord_v.size()", coord_v.size())
     coord_np = []
     for i in range(coord_v.size()):
         print("i: ", i)
         coord = coord_v.at(i)
         coord_np = coord.tonumpy()
         print("This is coord_np: ", coord_np)
+        print("This is coord_np.shape: ", coord_np.shape)
         coord_t = torch.from_numpy(coord_np)
         #coord_t_v.append(coord_t)
     flash_t = torch.from_numpy(flash_np)
@@ -171,15 +179,20 @@ def load_lm_data(input_file, entry):
     print("coord_t: ", coord_t)
     print("coord_t.size()", coord_t.size())
 
-    #SA = calc_solid_angle(coord_np, flashTick)
-    print("This is from the SA function: ", SA)
+    ##SA = calc_solid_angle(coord_np, flashTick)
+    ##print("This is from the SA function: ", SA)
 
-    SA_np = np.array(SA)
+    ##SA_np = np.array(SA)
 
-    SA_np = SA_np.astype(float)
-    np.savetxt('SA.csv', SA_np, delimiter=',')
+    ##SA_np = SA_np.astype(float)
+    ##np.savetxt('SA_32pmts.csv', SA_np, delimiter=',')
 
-    print("This is the shape of the SA output: ", SA_np.shape)
+    ##print("This is the shape of the SA output: ", SA_np.shape)
+    ##print("Need to take the transpose so shape is (N,32).")
+    ##SA_transpose = np.transpose(SA_np)
+    ##print("Shape is now: ", SA_transpose.shape )
+
+    ##SA_t = torch.from_numpy( SA_transpose )
 
     print("feat_v.size()", feat_v.size() )
 
@@ -192,10 +205,10 @@ def load_lm_data(input_file, entry):
     print("feat_t.size()", feat_t.size())
     #print("coord_t_v ", coord_t_v)
 
-    vector_b = np.array(larvoxeltrainingdata.coord_v)
-    vector_a.append(vector_b)
-    print("vector a: ", vector_a)
-    print("vector b: ", vector_b)
+    #vector_b = np.array(larvoxeltrainingdata.coord_v)
+    #vector_a.append(vector_b)
+    #print("vector a: ", vector_a)
+    #print("vector b: ", vector_b)
 
     #numpy_v = [np.asarray(e) for e in larvoxeltrainingdata.coord_v]
     #print("numpy_v", numpy_v)
@@ -207,7 +220,7 @@ def load_lm_data(input_file, entry):
 
     #data = {"coord_t":coord_t, "feat_t":feat_t, "flash_t":flash_t}
 
-    return coord_t, feat_t, flash_t
+    return coord_t, feat_t, flash_t #SA_t
 
 # Test it out!
 if __name__=="__main__":
@@ -215,4 +228,7 @@ if __name__=="__main__":
     input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
     entry = 0
 
-    load_lm_data(input_file, entry)
+    for i in range(1000):
+        coords, feat, label = load_lm_data(input_file, entry)
+
+    #np.savetxt('SA_10102023.csv', SA, delimiter=',')
