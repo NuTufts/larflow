@@ -122,9 +122,11 @@ namespace reco {
     
     LARCV_DEBUG() << "Now extend tracks using NuTrackBuilder" << std::endl;
     NuTrackBuilder _nu_track_builder;
-    _nu_track_builder.set_verbosity( larcv::msg::kNORMAL );    
+    //_nu_track_builder.set_verbosity( larcv::msg::kNORMAL );
+    _nu_track_builder.set_verbosity( logger().level() );    
     _nu_track_builder.loadClustersAndConnections( iolcv, ioll );
-    _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    //_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _nu_track_builder.set_verbosity( logger().level() );
 
     // Set secondary flags for previously added tracks & showers if this hasn't been done
     if ( nuvtx.track_isSecondary_v.size() == 0 ) {
@@ -164,7 +166,8 @@ namespace reco {
 	std::vector< ClusterBookKeeper > book_v;
 	nuvtx2_v.push_back( nuvtx2 );
 	book_v.push_back( nuclusterbook );	
-	_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+	//_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+	_nu_track_builder.set_verbosity( logger().level() );
 	_nu_track_builder.clear_track_proposals();
 	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
 	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
@@ -177,7 +180,8 @@ namespace reco {
       else {
 	// shower
 	NuVertexShowerReco _nuvertex_shower_reco;
-	_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
+	//_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );
+	_nuvertex_shower_reco.set_verbosity( logger().level() );    
 	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
 	_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
 	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    

@@ -36,7 +36,8 @@ namespace reco {
         = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "larmatch");
 
       KeypointFilterByWCTagger _wcfilter;
-      _wcfilter.set_verbosity( larcv::msg::kINFO );
+      //_wcfilter.set_verbosity( larcv::msg::kINFO );
+      _wcfilter.set_verbosity( logger().level() );
 
       std::vector< const larcv::Image2D* > ssnet_v; // leave empty
       std::vector<int> kept_v( ev_lfhit->size(), 0 );

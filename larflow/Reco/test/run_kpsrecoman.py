@@ -19,6 +19,7 @@ parser.add_argument("-mc",'--ismc',action='store_true',default=False,help="If tr
 parser.add_argument("-p","--products",default="rerun",help="output products saved. choices: {rerun[default],min,debug}")
 parser.add_argument("-f","--event-filter",default=False,action='store_true',help="If true, filter events by dev 1e1p selection [default false]")
 parser.add_argument("-v",'--version',default=2,type=int,help="The reco version [default 2]")
+parser.add_argument("-ll","--loglevel",default=1,type=int,help="log verbosity (0: debug, 1: info, 2: normal, 3: warning, 4: error)")
 # just for debug/development
 parser.add_argument('--stop-after-spacepointprep',default=False,action='store_true',help="If true, stop at Spacepoint Prep")
 parser.add_argument('--stop-after-keypointreco',default=False,action='store_true',help="If true, stop at Keypoint Reco")
@@ -48,7 +49,24 @@ print("[OUTPUT]    ",args.output)
 
 # ALGORITHMS
 recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
-recoman.set_verbosity(larcv.msg.kINFO)
+if args.loglevel == 0:
+  recoman.set_verbosity(larcv.msg.kDEBUG)
+  recoman.logger().default_level(larcv.msg.kDEBUG)
+elif args.loglevel == 1:
+  recoman.set_verbosity(larcv.msg.kINFO)
+  recoman.logger().default_level(larcv.msg.kINFO)
+elif args.loglevel == 2:
+  recoman.set_verbosity(larcv.msg.kNORMAL)
+  recoman.logger().default_level(larcv.msg.kNORMAL)
+elif args.loglevel == 3:
+  recoman.set_verbosity(larcv.msg.kWARNING)
+  recoman.logger().default_level(larcv.msg.kWARNING)
+elif args.loglevel == 4:
+  recoman.set_verbosity(larcv.msg.kERROR)
+  recoman.logger().default_level(larcv.msg.kERROR)
+else:
+  recoman.set_verbosity(larcv.msg.kINFO)
+  recoman.logger().default_level(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
 if args.ismc:
     recoman.saveEventMCinfo( args.ismc )

@@ -27,7 +27,8 @@ namespace reco {
     if ( ev_mcshower != NULL && ev_mcshower->size()>0 )
       has_mc = true;
 
-    dqdx_algo.set_verbosity(larcv::msg::kINFO);    
+    //dqdx_algo.set_verbosity(larcv::msg::kINFO);
+    dqdx_algo.set_verbosity( logger().level() );    
     
     // reco variables
     //  - dq/dx of first 3 cm
