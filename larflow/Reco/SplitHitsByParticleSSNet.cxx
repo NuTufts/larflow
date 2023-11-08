@@ -27,7 +27,7 @@ namespace reco {
       = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,
                                                   _input_ssnet_tree_name );
     auto const& sparseimg_v = ev_ssnet->SparseImageArray();
-    std::cout << "number of sparse images: " << sparseimg_v.size() << std::endl;
+    LARCV_INFO() << "number of sparse images: " << sparseimg_v.size() << std::endl;
            
     larcv::EventImage2D* ev_fiveparticle
       = ( larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "fivepidssn" );

@@ -221,6 +221,7 @@ namespace reco {
     // output:
     //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
     //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
+    _splithits_wcfilter.set_verbosity( logger().level() );
     _splithits_wcfilter.set_larmatch_tree_name( "larmatch" );
     _splithits_wcfilter.process_labelonly( iolcv, ioll );    
 
@@ -276,6 +277,7 @@ namespace reco {
     // output:
     //  * larflow3dhit_ssnetsplit_full_showerhit_tree: out-of-time shower hits
     //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
+    _splithits_full.set_verbosity( logger().level() );
     _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
     _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
     _splithits_full.process_splitonly( iolcv, ioll );
@@ -381,7 +383,7 @@ namespace reco {
       // so we simply re-run the algorithms to work with the additional vertex types.
 
       // neutrino
-      //_kpreco_nu.set_verbosity( larcv::msg::kINFO );
+      _kpreco_nu.set_verbosity( logger().level() );
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_sigma( 10.0 );
       _kpreco_nu.set_min_cluster_size(   50.0, 0 );
