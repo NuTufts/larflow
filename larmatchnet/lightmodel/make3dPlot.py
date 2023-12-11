@@ -232,11 +232,11 @@ print("SCALED totalPE: ", n3)
 '''
 
 n1 = n1.astype(int)
-np.savetxt('NEWTRIPLET_n1.csv', n1, delimiter=',')
+np.savetxt('10jobs_n1.csv', n1, delimiter=',')
 n2 = n2.astype(int)
-np.savetxt('NEWTRIPLET_n2.csv', n2, delimiter=',')
+np.savetxt('10jobs_n2.csv', n2, delimiter=',')
 n3 = n3.astype(int)
-np.savetxt('NEWTRIPLET_n3.csv', n3, delimiter=',')
+np.savetxt('10jobs_n3.csv', n3, delimiter=',')
 
 print("type(n1)): ", type(n1))
 print("n1.shape: ", n1.shape)

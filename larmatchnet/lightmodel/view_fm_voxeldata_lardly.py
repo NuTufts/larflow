@@ -25,6 +25,7 @@ from larlite import larlite
 from larflow import larflow
 sys.path.append("../")
 import lardly
+from lardly.ubdl.pmtpos import pmtposmap
 #from larvoxel.larvoxelclass_dataset import larvoxelClassDataset
 #from larvoxel_dataset import larvoxelDataset
 from lightmodel.lm_dataset import LMDataset

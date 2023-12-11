@@ -116,17 +116,26 @@ def load_lm_data(input_file, entry):
 
     flash = []
 
-    #print("ev_opflash_cosmic: ", (ev_opflash))
-    print("ev_opflash_cosmic.size()", ev_opflash_cosmic.size())
-    for i in range(200,232): #range for cosmic channels
-        print("ev_opflash_cosmic[0]: ", ev_opflash_cosmic[0].PE(i), " ")
-        flash.append( ev_opflash_cosmic[0].PE(i) )
-    #== Implement for beam as well! ==#
+    origin = larvoxeltrainingdata.origin
+    print("Origin here is (2 for cosmic, 1 for neutrino): ", origin)
+
+    if (origin == 2): # cosmic event
+        #print("ev_opflash_cosmic: ", (ev_opflash))
+        print("ev_opflash_cosmic.size()", ev_opflash_cosmic.size())
+        for i in range(200,232): #range for cosmic channels
+            print("ev_opflash_cosmic[0]: ", ev_opflash_cosmic[0].PE(i), " ")
+            flash.append( ev_opflash_cosmic[0].PE(i) )
+    
+    if (origin == 1): # neutrino event
+        print("ev_opflash_beam.size()", ev_opflash_beam.size())
+        for i in range(0,32): #range for beam channels
+            print("ev_opflash_beam[0]: ", ev_opflash_beam[0].PE(i), " ")
+            flash.append( ev_opflash_beam[0].PE(i) )
 
     flash_np = np.array(flash)
 
-    print("total PE: ", ev_opflash_cosmic[0].TotalPE())
-    print("nOpDets(): ", ev_opflash_cosmic[0].nOpDets())
+    ##print("total PE: ", ev_opflash_cosmic[0].TotalPE())
+    ##print("nOpDets(): ", ev_opflash_cosmic[0].nOpDets())
     
     #opflash = ev_opflash_cosmic.at(0)
     #opflash_array = np.array(opflash)
@@ -159,51 +168,65 @@ def load_lm_data(input_file, entry):
     flashTick = larvoxeltrainingdata.flashTick
     print("FLASHTICK HERE IS: ", flashTick)
 
-
     print("coord_v.size()", coord_v.size())
     print("feat_v.size()", feat_v.size())
 
     print("coord_v", coord_v)
     print("coord_v.size()", coord_v.size())
     coord_np = []
-    for i in range(coord_v.size()):
+    for i in range( coord_v.size() ):
         print("i: ", i)
         coord = coord_v.at(i)
-        coord_np = coord.tonumpy()
+        coord_np = np.copy( coord.tonumpy() )
         print("This is coord_np: ", coord_np)
         print("This is coord_np.shape: ", coord_np.shape)
+        print("This is type(coord_np): ", type(coord_np) )
         coord_t = torch.from_numpy(coord_np)
         #coord_t_v.append(coord_t)
     flash_t = torch.from_numpy(flash_np)
 
+    stdFlash = torch.std(flash_t)
+    print("Std value of flash: ", stdFlash )
+
     print("coord_t: ", coord_t)
     print("coord_t.size()", coord_t.size())
 
-    ##SA = calc_solid_angle(coord_np, flashTick)
-    ##print("This is from the SA function: ", SA)
+    print("flash_t: ", flash_t)
+    print("flash_t.size()", flash_t.size())
 
-    ##SA_np = np.array(SA)
+    '''
 
-    ##SA_np = SA_np.astype(float)
-    ##np.savetxt('SA_32pmts.csv', SA_np, delimiter=',')
+    SA = calc_solid_angle(coord_np, flashTick)
+    print("This is from the SA function: ", SA)
 
-    ##print("This is the shape of the SA output: ", SA_np.shape)
-    ##print("Need to take the transpose so shape is (N,32).")
-    ##SA_transpose = np.transpose(SA_np)
-    ##print("Shape is now: ", SA_transpose.shape )
+    SA_np = np.array(SA)
 
-    ##SA_t = torch.from_numpy( SA_transpose )
+    SA_np = SA_np.astype(float)
+
+    print("This is the shape of the SA output: ", SA_np.shape)
+    print("Need to take the transpose so shape is (N,32).")
+    SA_transpose = np.transpose(SA_np)
+    print("Shape is now: ", SA_transpose.shape )
+
+    '''
+
+    ###SA_t = torch.from_numpy( SA_transpose )
+    ###np.savetxt('SA_32pmts_110723_%d.csv' % (entry), SA_t, delimiter=',')
 
     print("feat_v.size()", feat_v.size() )
 
     for i in range(feat_v.size()):
         feat = feat_v.at(i)
-        feat_np = feat.tonumpy()
+        feat_np = np.copy( feat.tonumpy() )
         feat_t = torch.from_numpy(feat_np)
 
     print("feat_t: ", feat_t)
     print("feat_t.size()", feat_t.size())
     #print("coord_t_v ", coord_t_v)
+    meanFeat = torch.mean(feat_t)
+    stdFeat = torch.std(feat_t)
+    print("Mean value of ADC: ", meanFeat )
+    print("Std value of ADC: ", stdFeat )
 
     #vector_b = np.array(larvoxeltrainingdata.coord_v)
     #vector_a.append(vector_b)
@@ -220,15 +243,26 @@ def load_lm_data(input_file, entry):
 
     #data = {"coord_t":coord_t, "feat_t":feat_t, "flash_t":flash_t}
 
+    feat_t = feat_t - meanFeat
+    feat_t = feat_t / stdFeat
+
+    #flash_t = flash_t / stdFlash
+    flash_t = flash_t / 4000.
+
+    print("This is the new normalized feature tensor: ", feat_t)
+    print("This is the new normalized flash tensor: ", flash_t)
+
     return coord_t, feat_t, flash_t #SA_t
 
 # Test it out!
 if __name__=="__main__":
-    print("hi")                                                                                                                               
+    print("hi")
+
+    #finalSAList = []
     input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
     entry = 0
 
-    for i in range(1000):
-        coords, feat, label = load_lm_data(input_file, entry)
+    for i in range(22,24):
+        coords, feat, label = load_lm_data(input_file, i)
 
-    #np.savetxt('SA_10102023.csv', SA, delimiter=',')
+    ##np.savetxt('SA_2entries_110723.csv', SA, delimiter=',')
