@@ -1,32 +1,46 @@
+# This is the dataloader for the Light Model network.
+# Reads ROOT file with FMDATA nd opflash info, returns 
+# torch tensors: coords, feat, and truth.
+#
+# Called by train.py.
+
 import ROOT as rt
 import torch
 import numpy as np
+import time
 
 from larlite import larlite
-import lardly
-from lardly.ubdl.pmtpos import pmtposmap
+####import lardly
+####from lardly.ubdl.pmtpos import pmtposmap
 
-from solidAngle import solidAngleCalc
+####from solidAngle import solidAngleCalc
 
-from larlite import larutil
-dv = larutil.LArProperties.GetME().DriftVelocity()
+####from larlite import larutil
 
+
+####dv = larutil.LArProperties.GetME().DriftVelocity()
+####voxelsize = 5
+
+'''
 # Takes in coordinate array, outputs array of SA values
 def calc_solid_angle(coord_v, flashTick):
-    # Grab X component and convert to cm
+
+    print("Called function calc_solid_angle")
+    
     radius = 10.16 # PMT disk radius in cm
 
     print("coord_v: ", coord_v)
     print("coord_v shape: ", coord_v.shape)
 
-    coord_x = coord_v[:,0]*0.3+(2399-3200-(flashTick-3200))*0.5*dv
+    # Grab X component and convert to cm
+    coord_x = coord_v[:,0]*voxelsize+(2399-3200-(flashTick-3200))*0.5*dv
     # note anode plane x-coord is 0.0 cm
     #pmtposmap = lardly.ubdl.getPosFromID( 1, origin_at_detcenter=False )
     print("pmt pos map: ", pmtposmap)
 
     SA_allPMTs = []
 
-    for ipmt in range(32): #32
+    for ipmt in range(0,32): #32
 
         print("This is PMT #: ", ipmt)
 
@@ -39,24 +53,24 @@ def calc_solid_angle(coord_v, flashTick):
         print("z_center",z_center)
 
         print("x-coords are (not in cm): ", coord_v[:,0] )
-        print("x-coords are (in cm): ", coord_v[:,0]*0.3+(2399-3200-(flashTick-3200))*0.5*dv )
+        print("x-coords are (in cm): ", coord_v[:,0]*voxelsize+(2399-3200-(flashTick-3200))*0.5*dv )
 
         print("y-coords are (not in cm): ", coord_v[:,1] )
-        print("y-coords are (in cm): ", coord_v[:,1]*0.3-120.0 )
+        print("y-coords are (in cm): ", coord_v[:,1]*voxelsize-120.0 )
 
         print("z-coords are (not in cm): ", coord_v[:,2] )
-        print("z-coords are (in cm): ", coord_v[:,2]*0.3 )
+        print("z-coords are (in cm): ", coord_v[:,2]*voxelsize )
 
         L = coord_x - x_center
         print("Type of L:", type(L) )
         print("Size of L: ", L.size)
         print("Shape of L: ", L.shape)
         print("This is L (all coords for this one PMT): ", L)
-        print("coord_v[:,1]*0.3-120.0 - y_center):", coord_v[:,1]*0.3-120.0 - y_center)
-        print("coord_v[:,2]*0.3 - z_center:", coord_v[:,2]*0.3 - z_center)
-        X2 = ( coord_v[:,0]*0.3+(2399-3200-(flashTick-3200))*0.5*dv - x_center )**2
-        Y2 = ( coord_v[:,1]*0.3-120.0 - y_center)**2
-        Z2 = ( coord_v[:,2]*0.3 - z_center )**2
+        print("coord_v[:,1]*voxelsize-120.0 - y_center):", coord_v[:,1]*voxelsize-120.0 - y_center)
+        print("coord_v[:,2]*voxelsize - z_center:", coord_v[:,2]*voxelsize - z_center)
+        X2 = ( coord_v[:,0]*voxelsize+(2399-3200-(flashTick-3200))*0.5*dv - x_center )**2
+        Y2 = ( coord_v[:,1]*voxelsize-120.0 - y_center)**2
+        Z2 = ( coord_v[:,2]*voxelsize - z_center )**2
         print("X^2: ", X2)
         print("Y^2: ", Y2 )
         print("Z^2: ", Z2 )
@@ -71,7 +85,7 @@ def calc_solid_angle(coord_v, flashTick):
         np.savetxt('Rvals.csv', R, delimiter=',')
         np.savetxt('inverseR2vals.csv', inverseR2, delimiter=',')
 
-        zy_offset = np.sqrt( ( coord_v[:,1]*0.3-120.0 - y_center)**2 + ( coord_v[:,2]*0.3 - z_center )**2 )  #sqrt(Y^2 + X^2)
+        zy_offset = np.sqrt( ( coord_v[:,1]*voxelsize-120.0 - y_center)**2 + ( coord_v[:,2]*voxelsize - z_center )**2 )  #sqrt(Y^2 + X^2)
         print("This is zy_offset (all coords for this one PMT):", zy_offset)
         #for j in range( len(coord_x) ):
         
@@ -84,22 +98,23 @@ def calc_solid_angle(coord_v, flashTick):
         SA_allPMTs.append(SA_list)
         
     return SA_allPMTs
+'''
 
-# Loads in ROOT trees, outputs torch tensors (coords, feats, SA calc...)
-def load_lm_data(input_file, entry):
+# Loads in ROOT trees, outputs torch tensors (coords, feats, truth)
+def load_lm_data(input_file, opinput_file, entry):
     # load tree                                                                                                                                                               
     tfile = rt.TFile(input_file,'open')
     larvoxeltrainingdata  = tfile.Get('larvoxeltrainingdata')
     print("Got tree")   
 
     opio = larlite.storage_manager( larlite.storage_manager.kREAD )
-    opio.add_in_filename( "100events_062323_FMDATA_filtered_MCTracks_opflash.root" )
+    opio.add_in_filename( opinput_file )
     opio.open()
 
     ##tfile2 = rt.TFile('100events_062323_FMDATA_filtered_MCTracks_opflash.root', 'open')
     ##opflashTree = tfile.Get('opflash_simpleFlashCosmic_tree')
 
-    vector_a = []
+    #vector_a = []
 
     input_files = rt.std.vector("std::string")()
     input_files.push_back(input_file)
@@ -165,8 +180,8 @@ def load_lm_data(input_file, entry):
 
     coord_v = larvoxeltrainingdata.coord_v
     feat_v = larvoxeltrainingdata.feat_v
-    flashTick = larvoxeltrainingdata.flashTick
-    print("FLASHTICK HERE IS: ", flashTick)
+    ####flashTick = larvoxeltrainingdata.flashTick
+    ####print("FLASHTICK HERE IS: ", flashTick)
 
     print("coord_v.size()", coord_v.size())
     print("feat_v.size()", feat_v.size())
@@ -194,24 +209,24 @@ def load_lm_data(input_file, entry):
     print("flash_t: ", flash_t)
     print("flash_t.size()", flash_t.size())
 
-    '''
 
-    SA = calc_solid_angle(coord_np, flashTick)
-    print("This is from the SA function: ", SA)
+    ####SA = calc_solid_angle(coord_np, flashTick)
+    ####print("This is from the SA function: ", SA)
 
-    SA_np = np.array(SA)
+    ####SA_np = np.array(SA)
 
-    SA_np = SA_np.astype(float)
+    ####SA_np = SA_np.astype(float)
 
-    print("This is the shape of the SA output: ", SA_np.shape)
-    print("Need to take the transpose so shape is (N,32).")
-    SA_transpose = np.transpose(SA_np)
-    print("Shape is now: ", SA_transpose.shape )
+    ####print("This is the shape of the SA output: ", SA_np.shape)
+    ####print("Need to take the transpose so shape is (N,32).")
+    ####SA_transpose = np.transpose(SA_np)
+    ####print("Shape is now: ", SA_transpose.shape )
 
-    '''
+    
 
-    ###SA_t = torch.from_numpy( SA_transpose )
-    ###np.savetxt('SA_32pmts_110723_%d.csv' % (entry), SA_t, delimiter=',')
+    ####SA_t = torch.from_numpy( SA_transpose )
+    ####print("This is SA_t!!", SA_t)
+    ####np.savetxt('SA_LMDATALOADER_020424_voxelsize5_entry%d_allPMTs.csv' % (entry), SA_t, delimiter=',')
 
     print("feat_v.size()", feat_v.size() )
 
@@ -256,13 +271,22 @@ def load_lm_data(input_file, entry):
 
 # Test it out!
 if __name__=="__main__":
+
+    start_time = time.time()
+
     print("hi")
 
     #finalSAList = []
-    input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
-    entry = 0
+    #input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
+    input_file = "testfm_010724_FMDATA_coords_withErrorFlags_100Events_voxelsize5cm_010724.root"
+    opfile = "100events_062323_FMDATA_filtered_MCTracks_opflash.root"
+    num = 67
 
-    for i in range(22,24):
-        coords, feat, label = load_lm_data(input_file, i)
+    for i in range(0,1):
+        coords, feat, label = load_lm_data(input_file, opfile, num)
 
-    ##np.savetxt('SA_2entries_110723.csv', SA, delimiter=',')
+    ##np.savetxt('SA_012524_test5voxelsize.csv', SA, delimiter=',')
+        
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print("Execution time:",execution_time, " seconds")

@@ -81,7 +81,7 @@ for f in input_mcinfo_v:
     ioll.add_in_filename( f )
 ioll.open()
 
-iomc.set_out_filename( args.output + "_FMDATA_filtered_MCTracks_opflash.root" )
+iomc.set_out_filename( args.output + "_FMDATA_filtered_MCTracks_opflash_voxelsize5cm_test2.root" )
 iomc.open()
 
 #ioop.set_out_filename( "filtered_opflashes.root" )
@@ -108,9 +108,8 @@ for f in input_triplet_v:
     f_v.push_back(f)
 labeler = larflow.keypoints.LoaderKeypointData( f_v )
 
-voxelsize = 0.3
+voxelsize = 5.0
 dv = larutil.LArProperties.GetME().DriftVelocity()
-
 cm_per_tick = larutil.LArProperties.GetME().DriftVelocity()*0.5
 
 # event display image limits in cm
@@ -144,7 +143,7 @@ for i in range(ll_nentries):
     rse_map[rse] = i
 
 # make tree of stuff we want to keep
-outfile = rt.TFile(args.output + "_FMDATA_coords_withErrorFlags_100Events.root","recreate")
+outfile = rt.TFile(args.output + "_FMDATA_coords_withErrorFlags_100Events_voxelsize5cm_test2.root","recreate")
 outfile.cd()
 outtree = rt.TTree("larvoxeltrainingdata","Flashmatched Voxel Tree")
 # Run, subrun, event
