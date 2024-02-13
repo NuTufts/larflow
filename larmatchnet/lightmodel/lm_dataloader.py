@@ -101,7 +101,12 @@ def calc_solid_angle(coord_v, flashTick):
 '''
 
 # Loads in ROOT trees, outputs torch tensors (coords, feats, truth)
-def load_lm_data(input_file, opinput_file, entry):
+def load_lm_data(input_file, opinput_file, entry, batchsize):
+
+    coordBatch = []
+    featBatch = []
+    truthBatch = []
+
     # load tree                                                                                                                                                               
     tfile = rt.TFile(input_file,'open')
     larvoxeltrainingdata  = tfile.Get('larvoxeltrainingdata')
@@ -119,155 +124,161 @@ def load_lm_data(input_file, opinput_file, entry):
     input_files = rt.std.vector("std::string")()
     input_files.push_back(input_file)
 
-    larvoxeltrainingdata.GetEntry(entry)
-    opio.go_to(entry)
+    for ibatch in range(entry, entry+batchsize):
 
-    ev_opflash_cosmic = opio.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
-    ev_opflash_beam = opio.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
+        larvoxeltrainingdata.GetEntry(ibatch)
+        opio.go_to(ibatch)
 
-    #ev_opflash = ev_opflash_cosmic.at(0)
+        ev_opflash_cosmic = opio.get_data(larlite.data.kOpFlash,"simpleFlashCosmic")
+        ev_opflash_beam = opio.get_data(larlite.data.kOpFlash,"simpleFlashBeam")
 
-    ##print("Solid angle test: ", solidAngleCalc(0.2,1,1))
+        #ev_opflash = ev_opflash_cosmic.at(0)
 
-    flash = []
+        ##print("Solid angle test: ", solidAngleCalc(0.2,1,1))
 
-    origin = larvoxeltrainingdata.origin
-    print("Origin here is (2 for cosmic, 1 for neutrino): ", origin)
+        flash = []
 
-    if (origin == 2): # cosmic event
-        #print("ev_opflash_cosmic: ", (ev_opflash))
-        print("ev_opflash_cosmic.size()", ev_opflash_cosmic.size())
-        for i in range(200,232): #range for cosmic channels
-            print("ev_opflash_cosmic[0]: ", ev_opflash_cosmic[0].PE(i), " ")
-            flash.append( ev_opflash_cosmic[0].PE(i) )
-    
-    if (origin == 1): # neutrino event
-        print("ev_opflash_beam.size()", ev_opflash_beam.size())
-        for i in range(0,32): #range for beam channels
-            print("ev_opflash_beam[0]: ", ev_opflash_beam[0].PE(i), " ")
-            flash.append( ev_opflash_beam[0].PE(i) )
+        origin = larvoxeltrainingdata.origin
+        print("Origin here is (2 for cosmic, 1 for neutrino): ", origin)
 
-    flash_np = np.array(flash)
+        if (origin == 2): # cosmic event
+            #print("ev_opflash_cosmic: ", (ev_opflash))
+            print("ev_opflash_cosmic.size()", ev_opflash_cosmic.size())
+            for i in range(200,232): #range for cosmic channels
+                print("ev_opflash_cosmic[0]: ", ev_opflash_cosmic[0].PE(i), " ")
+                flash.append( ev_opflash_cosmic[0].PE(i) )
+        
+        if (origin == 1): # neutrino event
+            print("ev_opflash_beam.size()", ev_opflash_beam.size())
+            for i in range(0,32): #range for beam channels
+                print("ev_opflash_beam[0]: ", ev_opflash_beam[0].PE(i), " ")
+                flash.append( ev_opflash_beam[0].PE(i) )
 
-    ##print("total PE: ", ev_opflash_cosmic[0].TotalPE())
-    ##print("nOpDets(): ", ev_opflash_cosmic[0].nOpDets())
-    
-    #opflash = ev_opflash_cosmic.at(0)
-    #opflash_array = np.array(opflash)
-    #print("opflash_array: ", opflash_array)
-    #c.append(opflash_array)
-    #print("c: ", c)
+        flash_np = np.array(flash)
 
-    ##opflashTree.GetEntry(entry)
+        ##print("total PE: ", ev_opflash_cosmic[0].TotalPE())
+        ##print("nOpDets(): ", ev_opflash_cosmic[0].nOpDets())
+        
+        #opflash = ev_opflash_cosmic.at(0)
+        #opflash_array = np.array(opflash)
+        #print("opflash_array: ", opflash_array)
+        #c.append(opflash_array)
+        #print("c: ", c)
 
-    # will loop through to create a batch this many times                                                                                                                     
-    nentries = 1 # how many batches                                                                                                                                           
-    batchsize = 8 # how many inside a batch                                                                                                                                   
+        ##opflashTree.GetEntry(entry)
 
-    #dataloader = larflow.lightmodel.DataLoader(input_files)
-    #dataloader.load_entry(ientry)
+        # will loop through to create a batch this many times                                                                                                                     
+        ##nentries = 1 # how many batches                                                                                                                                           
+        ##batchsize = 8 # how many inside a batch                                                                                                                                   
 
-    #for ientry in range(nentries):
-       #data_dict = dataloader.getTrainingDataBatch(batchsize)
-       #if data_dict:
-            #print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
+        #dataloader = larflow.lightmodel.DataLoader(input_files)
+        #dataloader.load_entry(ientry)
 
-    #print("larvoxeltrainingdata.coord_v",larvoxeltrainingdata.coord_v)
-    #coord_array = np.array(larvoxeltrainingdata.coord_v)
-    #print("coord_array: ", coord_array)
-    #coord_t = torch.from_numpy(np.array(larvoxeltrainingdata.coord_v.data))
-    #print("coord_t: ", coord_t)
+        #for ientry in range(nentries):
+        #data_dict = dataloader.getTrainingDataBatch(batchsize)
+        #if data_dict:
+                #print("entry[",ientry,"] voxel entries: ",data_dict["coord_t"].shape)
 
-    coord_v = larvoxeltrainingdata.coord_v
-    feat_v = larvoxeltrainingdata.feat_v
-    ####flashTick = larvoxeltrainingdata.flashTick
-    ####print("FLASHTICK HERE IS: ", flashTick)
+        #print("larvoxeltrainingdata.coord_v",larvoxeltrainingdata.coord_v)
+        #coord_array = np.array(larvoxeltrainingdata.coord_v)
+        #print("coord_array: ", coord_array)
+        #coord_t = torch.from_numpy(np.array(larvoxeltrainingdata.coord_v.data))
+        #print("coord_t: ", coord_t)
 
-    print("coord_v.size()", coord_v.size())
-    print("feat_v.size()", feat_v.size())
+        coord_v = larvoxeltrainingdata.coord_v
+        feat_v = larvoxeltrainingdata.feat_v
+        ####flashTick = larvoxeltrainingdata.flashTick
+        ####print("FLASHTICK HERE IS: ", flashTick)
 
-    print("coord_v", coord_v)
-    print("coord_v.size()", coord_v.size())
-    coord_np = []
-    for i in range( coord_v.size() ):
-        print("i: ", i)
-        coord = coord_v.at(i)
-        coord_np = np.copy( coord.tonumpy() )
-        print("This is coord_np: ", coord_np)
-        print("This is coord_np.shape: ", coord_np.shape)
-        print("This is type(coord_np): ", type(coord_np) )
-        coord_t = torch.from_numpy(coord_np)
-        #coord_t_v.append(coord_t)
-    flash_t = torch.from_numpy(flash_np)
+        print("coord_v.size()", coord_v.size())
+        print("feat_v.size()", feat_v.size())
 
-    stdFlash = torch.std(flash_t)
-    print("Std value of flash: ", stdFlash )
+        print("coord_v", coord_v)
+        print("coord_v.size()", coord_v.size())
+        coord_np = []
+        for i in range( coord_v.size() ):
+            print("i: ", i)
+            coord = coord_v.at(i)
+            coord_np = np.copy( coord.tonumpy() )
+            print("This is coord_np: ", coord_np)
+            print("This is coord_np.shape: ", coord_np.shape)
+            print("This is type(coord_np): ", type(coord_np) )
+            coord_t = torch.from_numpy(coord_np)
+            #coord_t_v.append(coord_t)
+        flash_t = torch.from_numpy(flash_np)
 
-    print("coord_t: ", coord_t)
-    print("coord_t.size()", coord_t.size())
+        stdFlash = torch.std(flash_t)
+        print("Std value of flash: ", stdFlash )
 
-    print("flash_t: ", flash_t)
-    print("flash_t.size()", flash_t.size())
+        print("coord_t: ", coord_t)
+        print("coord_t.size()", coord_t.size())
+
+        print("flash_t: ", flash_t)
+        print("flash_t.size()", flash_t.size())
 
 
-    ####SA = calc_solid_angle(coord_np, flashTick)
-    ####print("This is from the SA function: ", SA)
+        ####SA = calc_solid_angle(coord_np, flashTick)
+        ####print("This is from the SA function: ", SA)
 
-    ####SA_np = np.array(SA)
+        ####SA_np = np.array(SA)
 
-    ####SA_np = SA_np.astype(float)
+        ####SA_np = SA_np.astype(float)
 
-    ####print("This is the shape of the SA output: ", SA_np.shape)
-    ####print("Need to take the transpose so shape is (N,32).")
-    ####SA_transpose = np.transpose(SA_np)
-    ####print("Shape is now: ", SA_transpose.shape )
+        ####print("This is the shape of the SA output: ", SA_np.shape)
+        ####print("Need to take the transpose so shape is (N,32).")
+        ####SA_transpose = np.transpose(SA_np)
+        ####print("Shape is now: ", SA_transpose.shape )
 
-    
+        
 
-    ####SA_t = torch.from_numpy( SA_transpose )
-    ####print("This is SA_t!!", SA_t)
-    ####np.savetxt('SA_LMDATALOADER_020424_voxelsize5_entry%d_allPMTs.csv' % (entry), SA_t, delimiter=',')
+        ####SA_t = torch.from_numpy( SA_transpose )
+        ####print("This is SA_t!!", SA_t)
+        ####np.savetxt('SA_LMDATALOADER_020424_voxelsize5_entry%d_allPMTs.csv' % (entry), SA_t, delimiter=',')
 
-    print("feat_v.size()", feat_v.size() )
+        print("feat_v.size()", feat_v.size() )
 
-    for i in range(feat_v.size()):
-        feat = feat_v.at(i)
-        feat_np = np.copy( feat.tonumpy() )
-        feat_t = torch.from_numpy(feat_np)
+        for i in range(feat_v.size()):
+            feat = feat_v.at(i)
+            feat_np = np.copy( feat.tonumpy() )
+            feat_t = torch.from_numpy(feat_np)
 
-    print("feat_t: ", feat_t)
-    print("feat_t.size()", feat_t.size())
-    #print("coord_t_v ", coord_t_v)
-    meanFeat = torch.mean(feat_t)
-    stdFeat = torch.std(feat_t)
-    print("Mean value of ADC: ", meanFeat )
-    print("Std value of ADC: ", stdFeat )
+        print("feat_t: ", feat_t)
+        print("feat_t.size()", feat_t.size())
+        #print("coord_t_v ", coord_t_v)
+        meanFeat = torch.mean(feat_t)
+        stdFeat = torch.std(feat_t)
+        print("Mean value of ADC: ", meanFeat )
+        print("Std value of ADC: ", stdFeat )
 
-    #vector_b = np.array(larvoxeltrainingdata.coord_v)
-    #vector_a.append(vector_b)
-    #print("vector a: ", vector_a)
-    #print("vector b: ", vector_b)
+        #vector_b = np.array(larvoxeltrainingdata.coord_v)
+        #vector_a.append(vector_b)
+        #print("vector a: ", vector_a)
+        #print("vector b: ", vector_b)
 
-    #numpy_v = [np.asarray(e) for e in larvoxeltrainingdata.coord_v]
-    #print("numpy_v", numpy_v)
+        #numpy_v = [np.asarray(e) for e in larvoxeltrainingdata.coord_v]
+        #print("numpy_v", numpy_v)
 
-    #coord_t = torch.from_numpy(np.array(data_dict["coord_t"]))
-    #feat_t = torch.from_numpy(np.array(data_dict["feat_t"]))
+        #coord_t = torch.from_numpy(np.array(data_dict["coord_t"]))
+        #feat_t = torch.from_numpy(np.array(data_dict["feat_t"]))
 
-    ## Do I subtract mean, divid by stdev?
+        ## Do I subtract mean, divid by stdev?
 
-    #data = {"coord_t":coord_t, "feat_t":feat_t, "flash_t":flash_t}
+        #data = {"coord_t":coord_t, "feat_t":feat_t, "flash_t":flash_t}
 
-    feat_t = feat_t - meanFeat
-    feat_t = feat_t / stdFeat
+        feat_t = feat_t - meanFeat
+        feat_t = feat_t / stdFeat
 
-    #flash_t = flash_t / stdFlash
-    flash_t = flash_t / 4000.
+        #flash_t = flash_t / stdFlash
+        flash_t = flash_t / 4000.
 
-    print("This is the new normalized feature tensor: ", feat_t)
-    print("This is the new normalized flash tensor: ", flash_t)
+        print("This is the new normalized feature tensor: ", feat_t)
+        print("This is the new normalized flash tensor: ", flash_t)
 
-    return coord_t, feat_t, flash_t #SA_t
+        coordBatch.append(coord_t)
+        featBatch.append(feat_t)
+        truthBatch.append(flash_t)
+
+    return coordBatch, featBatch, truthBatch #SA_t
 
 # Test it out!
 if __name__=="__main__":
@@ -280,10 +291,22 @@ if __name__=="__main__":
     #input_file = "100events_062323_FMDATA_coords_withErrorFlags_100Events.root"
     input_file = "testfm_010724_FMDATA_coords_withErrorFlags_100Events_voxelsize5cm_010724.root"
     opfile = "100events_062323_FMDATA_filtered_MCTracks_opflash.root"
-    num = 67
+    num = 0
+    batchnum = 2
 
     for i in range(0,1):
-        coords, feat, label = load_lm_data(input_file, opfile, num)
+        coordsBatch, featsBatch, labelBatch = load_lm_data(input_file, opfile, num, batchnum)
+
+    print("This is what got loaded in:")
+    print("coords batch: ", coordsBatch)
+    print("feats batch: ", featsBatch)
+    print("truth/label/flash batch: ", labelBatch)
+
+    print("Grabbing index of 1 from batch:")
+    print("labelBatch[1]: ", labelBatch[1])
+
+
+
 
     ##np.savetxt('SA_012524_test5voxelsize.csv', SA, delimiter=',')
         
