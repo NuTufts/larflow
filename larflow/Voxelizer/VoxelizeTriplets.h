@@ -47,12 +47,19 @@ namespace voxelizer {
     VoxelizeTriplets( std::vector<float> origin,
                       std::vector<float> dim_len,
                       float voxel_size );
+
     ~VoxelizeTriplets() {};
 
     void process_fullchain( larcv::IOManager& iolcv,
                             std::string adc_producer,
                             std::string chstatus_producer,
                             bool has_mc=false );
+
+    void process_fullchain_withtruth( larcv::IOManager& iolcv,
+				      larlite::storage_manager& ioll,
+				      std::string adc_producer,
+				      std::string chstatus_producer );
+        
 
   protected:
 

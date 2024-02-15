@@ -445,6 +445,42 @@ namespace voxelizer {
   }
 
   /**
+   * @brief process data from image to make triplet and voxel data with truth labels
+   *
+   * This method uses an internal instance of larflow::prep::PrepMatchTriplets, _triplet_maker.
+   * The internal instance is used to extract spacepoint proposals from the wire plane images
+   * and then pass that info to make_voxeldata().
+   *
+   * @param[in]  iolcv LArCV IOManager containing event data
+   * @param[in]  ioll larlite storage_manager containing truth meta-data
+   * @param[in]  adc_producer Root tree name containing wire images for event
+   * @param[in]  chstatus_producer Root tree name containing channel status info for event
+   *
+   */
+  void VoxelizeTriplets::process_fullchain_withtruth( larcv::IOManager& iolcv,
+						      larlite::storage_manager& ioll,
+						      std::string adc_producer,
+						      std::string chstatus_producer )
+  {
+
+    _triplet_maker.clear();
+
+    const float adc_threshold = 10.;
+    const bool calc_triplet_pos3d = true;
+    _triplet_maker.process( iolcv, adc_producer, chstatus_producer, adc_threshold, calc_triplet_pos3d );
+    _triplet_maker.process_truth_labels( iolcv, ioll, adc_producer );
+
+
+    make_voxeldata( _triplet_maker );
+
+    // persistancy:
+
+    // save larflow3dhits for visualization
+    // save class in ttree data for training
+    
+  }
+  
+  /**
    * @brief get voxel indices from non-t0 corrected space point coordinate
    *
    */
@@ -1004,8 +1040,8 @@ namespace voxelizer {
     int nvidx = (int)_voxel_set.size();
 
     // compile unique IDs
-    std::map<int,int> instance2id;
-    std::map<int,int> idcounts;
+    std::map<int,int> instance2id; /// trackid to sequential id
+    std::map<int,int> idcounts;    /// sequential id to counts
     int nids = 0;
     for ( auto const& instanceid : data._instance_id_v ) {
       if ( instanceid==0 )
@@ -1029,7 +1065,11 @@ namespace voxelizer {
     std::vector<int> vox_nclass( nids+1, 0 ); // count voxels with an assigned id label
     std::vector<int> nvotes_id( nids+1, 0 ); // vector to vote for instance label for voxel
     for ( auto it=_voxel_list.begin(); it!=_voxel_list.end(); it++ ) {
+
       int vidx = it->second; // voxel index
+
+      // we want to determine the instance ID (i.e. Geant4 TrackID) for this voxel
+      // we will do so based on the trackID with the most votes
 
       // find class label with most (non background) triplets
       std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[vidx]; // index of triplet
@@ -1058,7 +1098,7 @@ namespace voxelizer {
       }
 
       if (max_id>0 ) {
-	*((long*)PyArray_GETPTR1( array, (int)vidx)) = max_id;
+	*((long*)PyArray_GETPTR1( array, (int)vidx)) = max_id; //filled with sequential id
 	vox_nclass[max_id]++;
       }
       else {
@@ -1066,7 +1106,7 @@ namespace voxelizer {
 	vox_nclass[0]++;
       }
       
-    }
+    }//end of loop over voxel list
 
     // weights
     // npy_intp* weight_dims = new npy_intp[1];
