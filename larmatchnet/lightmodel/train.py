@@ -67,6 +67,7 @@ for iteration in range(num_iterations):
 
     label0 = labelList[0]
 
+
     ##print("coord0.shape: ", coord0.shape )
     ##print("feat0.shape: ", feat0.shape )
     ##print("coord0 (before sparse_collate): ", coord0)
@@ -148,6 +149,10 @@ for iteration in range(num_iterations):
     SA_batch2 = torch.cat((SA_t, SA_t1), 0)
     print("SA_batch2.shape: ", SA_batch2.shape)
 
+    # qucik dumb hack to test something, remove later
+    if (batchnum < 2): 
+        SA_batch2 = SA_t
+
     ##eltmult = output*SA_t
     eltmult = output*SA_batch2
     #print("eltmult.shape: ", eltmult.shape)
@@ -167,8 +172,9 @@ for iteration in range(num_iterations):
     print("This is the eltmult.F. Is it all between 0 and 1?")
     print("eltmult.F: ", F)
     print("F.shape: ", F.shape)
-    eltMax = torch.max(eltmult.F)
-    print("This is eltmax: ", eltMax)
+
+    ######eltMax = torch.max(eltmult.F)
+    ######print("This is eltmax: ", eltMax)
 
     '''
     eltmult_t1, eltmult_t2, eltmult_t3 = eltmult.sparse()
@@ -198,37 +204,151 @@ for iteration in range(num_iterations):
     #print("This is t_list: ", t_list)
     #print("This is t_list.shape: ", t_list.shape)
 
-    sum_t = torch.sum(F, 0)
-    print("This is the sum_t. Is it all between 0 and 1? ", sum_t)
-    #print("This is the shape of the sum_t: ", sum_t.shape)
-    sumMax = torch.max(sum_t)
-    print("This is sumMax: ", sumMax)
+    print("label0.shape: ", label0.shape)
 
+    firstBatch = torch.empty(32)
+    
+    for ib in range(0,batchnum):
 
+        mask = C[:,0]==ib
+        print("mask: ", mask)
+        maskedF = F[mask]
+        print("masked out F (eltmult): ", maskedF)
+        print("Size of masked out F: ", maskedF.shape)
+        sum_t = torch.sum(maskedF, 0)
+        print("This is summed over 1 batch: ", sum_t)
+        #maxPE = torch.max(labelList[ib], 0)
+        maxThreePE = torch.topk(labelList[ib], 3, dim=0)
+        maxFirstPE = maxThreePE[0][0]
+        maxSecondPE = maxThreePE[0][1]
+        maxThirdPE = maxThreePE[0][2]
+        indexFirstPE = maxThreePE[1][0].item()
+        indexSecondPE = maxThreePE[1][1].item()
+        indexThirdPE = maxThreePE[1][2].item()
+        print("This is the maxPE (highest value in maxThreePE): ", maxFirstPE)
+
+        if (ib==0): 
+            batchedLosses = sum_t
+            batchedLosses_truth = label0
+
+            maxPEBatch_truth = maxFirstPE
+            maxPEBatch_output = sum_t[indexFirstPE]
+
+            secondMaxPEBatch_truth = maxSecondPE
+            secondMaxPEBatch_output = sum_t[indexSecondPE]
+
+            thirdMaxPEBatch_truth = maxThirdPE
+            thirdMaxPEBatch_output = sum_t[indexThirdPE]
+
+        else:
+            batchedLosses = torch.stack([batchedLosses,sum_t]) 
+            batchedLosses_truth = torch.stack([label0, labelList[ib]])
+
+            maxPEBatch_truth = torch.stack([maxPEBatch_truth, maxFirstPE])
+            maxPEBatch_output = torch.stack([maxPEBatch_output, sum_t[indexFirstPE]])
+
+            secondMaxPEBatch_truth = torch.stack([secondMaxPEBatch_truth, maxSecondPE])
+            secondMaxPEBatch_output = torch.stack([secondMaxPEBatch_output, sum_t[indexSecondPE]])
+
+            thirdMaxPEBatch_truth = torch.stack([thirdMaxPEBatch_truth, maxThirdPE])
+            thirdMaxPEBatch_output = torch.stack([thirdMaxPEBatch_output, sum_t[indexThirdPE]])
+            
+                          
+    
+    print("This is the stacked tensor: ", batchedLosses)
+    print("This is the stacked tensor shape: ", batchedLosses.shape)
+
+    print("This is the stacked TRUTH tensor: ", batchedLosses_truth)
+    print("This is the stacked TRUTH tensor shape: ", batchedLosses_truth.shape)
+
+    print("This is the stacked maxPE TRUTH tensor, should be (batchnum, 1): ", maxPEBatch_truth)
+    print("shape of stacked maxPE TRUTH tensor: ", maxPEBatch_truth.shape)
+    
+    if (batchnum > 1): # need to reshape tensor to be (batchnum, 1)
+        maxPEBatch_truth = torch.reshape(maxPEBatch_truth, (batchnum, 1))
+        maxPEBatch_output = torch.reshape(maxPEBatch_output, (batchnum, 1))
+        secondMaxPEBatch_output = torch.reshape(secondMaxPEBatch_output, (batchnum, 1))
+        thirdMaxPEBatch_output = torch.reshape(thirdMaxPEBatch_output, (batchnum, 1))
+
+    print("Reshaped maxPEBatch_truth: ", maxPEBatch_truth)
+    print("Reshaped maxPEBatch_truth shape: ", maxPEBatch_truth.shape)
+
+    print("This is the stacked maxPE OUTPUT tensor, should be (batchnum, 1): ", maxPEBatch_output)
+    print("shape of stacked maxPE OUTPUT tensor: ", maxPEBatch_output.shape)
+
+    print("Reshaped maxPEBatch_output: ", maxPEBatch_output)
+    print("Reshaped maxPEBatch_output shape: ", maxPEBatch_output.shape)
+
+    print("SECOND MAX TENSOR CHECK")
+
+    print("Reshaped secondMaxPEBatch_truth: ", secondMaxPEBatch_truth)
+    print("Reshaped secondMaxPEBatch_truth shape: ", secondMaxPEBatch_truth.shape)
+
+    print("Reshaped secondMaxPEBatch_output: ", secondMaxPEBatch_output)
+    print("Reshaped secondMaxPEBatch_output shape: ", secondMaxPEBatch_output.shape)
+
+    print("THIRD MAX TENSOR CHECK")
+
+    print("Reshaped thirdMaxPEBatch_truth: ", thirdMaxPEBatch_truth)
+    print("Reshaped thirdMaxPEBatch_truth shape: ", thirdMaxPEBatch_truth.shape)
+
+    print("Reshaped thirdMaxPEBatch_output: ", thirdMaxPEBatch_output)
+    print("Reshaped thirdMaxPEBatch_output shape: ", thirdMaxPEBatch_output.shape)
+    
+
+    #####sum_t = torch.sum(F, 0)
+
+    ####print("This is the sum_t. Is it all between 0 and 1? ", sum_t)
+    ####print("This is the shape of the sum_t: ", sum_t.shape)
+    #####sumMax = torch.max(sum_t)
+    #####print("This is sumMax: ", sumMax)
+
+    '''
     print("label0: ", label0)
+
     maxPE = torch.max(label0, 0)
-    maxThreePE = torch.topk(label0, 3, dim=0)
-    print("torch.topk is :", maxThreePE)
     print("MaxPE is: ", maxPE)
     print("The max value is: ", maxPE[0])
     print("The index is: ", maxPE[1])
     indexPE = maxPE[1].item()
+    
+
+    maxThreePE = torch.topk(label0, 3, dim=0)
+    print("torch.topk is :", maxThreePE)
     indexSecondPE = maxThreePE[1][1].item()
     print("2nd largest index is: ", indexSecondPE )
     print("2nd largest value is: ", sum_t[indexSecondPE] )
     indexThirdPE = maxThreePE[1][2].item()
     print("3rd largest index is: ", indexThirdPE )
     print("3rd largest value is: ", sum_t[indexThirdPE] )
+    '''
+    
+ 
+   
 
-    loss = error(sum_t, label0)
+    ###loss = error(sum_t, label0)
 
+    loss = error(batchedLosses, batchedLosses_truth)
     print("This is the loss: ", loss)
-
     wandb.log({"loss": loss.detach().item()})
 
-    lossMaxPE = error(sum_t[indexPE], maxPE[0])
-    print("This is the lossMaxPE: ", lossMaxPE)
+    ####print("sum_t[indexPE]: ",sum_t[indexPE] )
+    ####print("in loss subtracting off: ", maxPE[0])
+
+    ####lossMaxPE = error(sum_t[indexPE], maxPE[0])
+    lossMaxPE = error(maxPEBatch_output, maxPEBatch_truth)
+    print("This is the first lossMaxPE: ", lossMaxPE)
     wandb.log({"lossMaxPE": lossMaxPE.detach().item()})
+
+    lossSecondMaxPE = error(secondMaxPEBatch_output, secondMaxPEBatch_truth)
+    print("This is the second lossMaxPE: ", lossSecondMaxPE)
+    wandb.log({"lossSecondMaxPE": lossSecondMaxPE.detach().item()})
+
+    lossThirdMaxPE = error(thirdMaxPEBatch_output, thirdMaxPEBatch_truth)
+    print("This is the third lossMaxPE: ", lossThirdMaxPE)
+    wandb.log({"lossThirdMaxPE": lossThirdMaxPE.detach().item()})
+
+    '''
 
     lossSecondMaxPE = error(sum_t[indexSecondPE], maxThreePE[0][1])
     print("This is the lossSecondMaxPE: ", lossSecondMaxPE)
@@ -241,6 +361,8 @@ for iteration in range(num_iterations):
     #lossThirdMaxPE = error(sum_t[indexPE], maxPE[0])
     #print("This is the lossMaxPE: ", lossMaxPE)
     #wandb.log({"lossMaxPE": lossMaxPE.detach().item()})
+
+    '''
 
     '''
     if (iteration == 5): 
