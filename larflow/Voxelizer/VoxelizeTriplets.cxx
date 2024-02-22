@@ -6,6 +6,9 @@
 #include "larlite/LArUtil/LArProperties.h"
 #include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
 
+#include "ublarcvapp/MCTools/MCPixelPGraph.h"
+#include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
+
 namespace larflow {
 namespace voxelizer {
 
@@ -460,7 +463,8 @@ namespace voxelizer {
   void VoxelizeTriplets::process_fullchain_withtruth( larcv::IOManager& iolcv,
 						      larlite::storage_manager& ioll,
 						      std::string adc_producer,
-						      std::string chstatus_producer )
+						      std::string chstatus_producer,
+						      bool truth_correct_tdrift )
   {
 
     _triplet_maker.clear();
@@ -470,6 +474,46 @@ namespace voxelizer {
     _triplet_maker.process( iolcv, adc_producer, chstatus_producer, adc_threshold, calc_triplet_pos3d );
     _triplet_maker.process_truth_labels( iolcv, ioll, adc_producer );
 
+    if ( truth_correct_tdrift ) {
+
+      // our interface to the truth particle graph
+      ublarcvapp::mctools::MCPixelPGraph mcpg;
+      mcpg.buildgraphonly( ioll );
+      
+      // we are going to remove the tdrift of the reconstructed spacepoints assigned to a trackid
+      for (unsigned long ispacepoint=0; ispacepoint<(unsigned long)_triplet_maker._triplet_v.size(); ispacepoint++) {
+	auto& triplet_indices = _triplet_maker._triplet_v.at(ispacepoint); // (u-index, v-index, y-index, tick )
+	if ( _triplet_maker._truth_v.at(ispacepoint)==1 ) {
+	  // only correct "truth" points
+	  float reco_tick = (float)triplet_indices.at(3);
+	  // get the ancestor ID
+	  long aid = _triplet_maker._ancestor_id_v.at(ispacepoint);
+	  long tid = _triplet_maker._instance_id_v.at(ispacepoint);
+	  // get the truth info for the track ancestor ID
+	  ublarcvapp::mctools::MCPixelPGraph::Node_t* node = mcpg.findTrackID( tid );
+	  if ( node==nullptr ) {
+	    node = mcpg.findTrackID( aid );
+	  }
+	  if ( node==nullptr ) {
+	    std::cout << "[VoxelizeTriplets::process_fullchain_withtruth] [WARNING] ancestorid=" << aid << " and trackid=" << tid << " did not have a node" << std::endl;
+	    // we are going to kill it by setting the truth vector to 0
+	    _triplet_maker._truth_v.at(ispacepoint) = 0;
+	    continue;
+	  }
+
+	  std::vector<float> txyz = { node->start[3] , node->start[0], node->start[1], node->start[2] };
+
+	  float tpctick_wdrift  = ublarcvapp::mctools::CrossingPointsAnaMethods::getTick( txyz, 4050.0, NULL );	  
+	  float tpctick_nodrift = ublarcvapp::mctools::CrossingPointsAnaMethods::getTrueTick( txyz, 4050.0, NULL );
+
+	  float tdrift_ticks = tpctick_wdrift-tpctick_nodrift;
+	  // the drift time from the truth energy depositions to the anode, in units of TPC clock ticks
+	  float corrected_tick = reco_tick-tpctick_nodrift;
+	  triplet_indices.at(3) = (int)corrected_tick;
+	}
+      }
+    }
+    
 
     make_voxeldata( _triplet_maker );
 

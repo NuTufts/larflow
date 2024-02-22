@@ -58,7 +58,8 @@ namespace voxelizer {
     void process_fullchain_withtruth( larcv::IOManager& iolcv,
 				      larlite::storage_manager& ioll,
 				      std::string adc_producer,
-				      std::string chstatus_producer );
+				      std::string chstatus_producer,
+				      bool truth_correct_tdrift=false );
         
 
   protected:
