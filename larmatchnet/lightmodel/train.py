@@ -267,7 +267,11 @@ for iteration in range(num_iterations):
     if (batchnum > 1): # need to reshape tensor to be (batchnum, 1)
         maxPEBatch_truth = torch.reshape(maxPEBatch_truth, (batchnum, 1))
         maxPEBatch_output = torch.reshape(maxPEBatch_output, (batchnum, 1))
+
+        secondMaxPEBatch_truth = torch.reshape(secondMaxPEBatch_truth, (batchnum, 1))
         secondMaxPEBatch_output = torch.reshape(secondMaxPEBatch_output, (batchnum, 1))
+
+        thirdMaxPEBatch_truth = torch.reshape(thirdMaxPEBatch_truth, (batchnum, 1))
         thirdMaxPEBatch_output = torch.reshape(thirdMaxPEBatch_output, (batchnum, 1))
 
     print("Reshaped maxPEBatch_truth: ", maxPEBatch_truth)
@@ -381,3 +385,4 @@ for iteration in range(num_iterations):
 #wandb.save('model.h5')
 #wandb.save('../logs/*ckpt*')
 #wandb.save(os.path.join(wandb.run.dir, "checkpoint*"))
+

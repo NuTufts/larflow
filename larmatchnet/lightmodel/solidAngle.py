@@ -5,7 +5,7 @@
 import ROOT as rt
 import numpy as np
 import torch
-import sys
+import sys, argparse
 #np.set_printoptions(threshold=sys.maxsize)
 
 import time
@@ -148,84 +148,86 @@ def makeSA(coord_v, flashTick, ientry):
 
     return SA_t
 
-# this fn only takes in the coord_np
-def makeSA(coord_v): 
+# this fn only takes in the coord_np and pmt number
+def makeSA(coord_v, ipmt): 
 
     coord_x = coord_v[:,0]*voxelsize
 
-    SA_allPMTs = []
+    ####SA_allPMTs = []
 
-    for ipmt in range(0,32): #32
+    ####for ipmt in range(0,32): #32
 
-        print("This is PMT #: ", ipmt)
+    print("This is PMT #: ", ipmt)
 
-        center = [pmtposmap[ipmt][0]-15.0, pmtposmap[ipmt][1], pmtposmap[ipmt][2] ]
-        print("center of pmt is: ", center)
-        x_center = center[0]
-        y_center = center[1]
-        z_center = center[2]
-        print("y_center",y_center)
-        print("z_center",z_center)
+    center = [pmtposmap[ipmt][0]-15.0, pmtposmap[ipmt][1], pmtposmap[ipmt][2] ]
+    print("center of pmt is: ", center)
+    x_center = center[0]
+    y_center = center[1]
+    z_center = center[2]
+    print("y_center",y_center)
+    print("z_center",z_center)
 
-        print("x-coords are (not in cm): ", coord_v[:,0] )
-        print("x-coords are (in cm): ", coord_v[:,0]*voxelsize )
+    print("x-coords are (not in cm): ", coord_v[:,0] )
+    print("x-coords are (in cm): ", coord_v[:,0]*voxelsize )
 
-        print("y-coords are (not in cm): ", coord_v[:,1] )
-        print("y-coords are (in cm): ", coord_v[:,1]*voxelsize )
+    print("y-coords are (not in cm): ", coord_v[:,1] )
+    print("y-coords are (in cm): ", coord_v[:,1]*voxelsize )
 
-        print("z-coords are (not in cm): ", coord_v[:,2] )
-        print("z-coords are (in cm): ", coord_v[:,2]*voxelsize )
+    print("z-coords are (not in cm): ", coord_v[:,2] )
+    print("z-coords are (in cm): ", coord_v[:,2]*voxelsize )
 
-        L = coord_x - x_center
-        print("Type of L:", type(L) )
-        print("Size of L: ", L.size)
-        print("Shape of L: ", L.shape)
-        print("This is L (all coords for this one PMT): ", L)
-        ##print("coord_v[:,2]*voxelsize - z_center:", coord_v[:,2]*voxelsize - z_center)
-        X2 = ( coord_v[:,0]*voxelsize - x_center )**2
-        Y2 = ( coord_v[:,1]*voxelsize - y_center)**2
-        Z2 = ( coord_v[:,2]*voxelsize - z_center )**2
-        print("X^2: ", X2)
-        print("Y^2: ", Y2 )
-        print("Z^2: ", Z2 )
-        print("Y^2+Z^2: ",Y2 + Z2 )
+    L = coord_x - x_center
+    print("Type of L:", type(L) )
+    print("Size of L: ", L.size)
+    print("Shape of L: ", L.shape)
+    print("This is L (all coords for this one PMT): ", L)
+    ##print("coord_v[:,2]*voxelsize - z_center:", coord_v[:,2]*voxelsize - z_center)
+    X2 = ( coord_v[:,0]*voxelsize - x_center )**2
+    Y2 = ( coord_v[:,1]*voxelsize - y_center)**2
+    Z2 = ( coord_v[:,2]*voxelsize - z_center )**2
+    print("X^2: ", X2)
+    print("Y^2: ", Y2 )
+    print("Z^2: ", Z2 )
+    print("Y^2+Z^2: ",Y2 + Z2 )
 
-        R = np.sqrt(X2 + Y2 + Z2) # this is an array with all coords in the interxn
+    R = np.sqrt(X2 + Y2 + Z2) # this is an array with all coords in the interxn
 
-        print("R is: ", R)
+    print("R is: ", R)
 
-        inverseR2 = 1 / (R**2)
+    inverseR2 = 1 / (R**2)
 
-        zy_offset = np.sqrt( ( coord_v[:,1]*voxelsize - y_center)**2 + ( coord_v[:,2]*voxelsize - z_center )**2 )  #sqrt(Y^2 + X^2)
-        print("This is zy_offset (all coords for this one PMT):", zy_offset)
+    zy_offset = np.sqrt( ( coord_v[:,1]*voxelsize - y_center)**2 + ( coord_v[:,2]*voxelsize - z_center )**2 )  #sqrt(Y^2 + X^2)
+    print("This is zy_offset (all coords for this one PMT):", zy_offset)
 
-        SA_list = []
-        #SA_list.append(ientry)
-        print("L.size is: ", L.size)
-        for j in range( L.size ):
-            SA = solidAngleCalc(zy_offset[j],radius,L[j])
-            ##print("This is the solid angle calc!", SA, "for entry: ", j)
-            SA_list.append(SA)
+    SA_list = []
+    #SA_list.append(ientry)
+    print("L.size is: ", L.size)
+    for j in range( L.size ):
+        SA = solidAngleCalc(zy_offset[j],radius,L[j])
+        ####print("This is the solid angle calc!", SA, "for entry: ", j)
+        SA_list.append(SA)
 
-        ##print("THIS IS SA LIST: ", SA_list)
+    ##print("THIS IS SA LIST: ", SA_list)
 
-        #SA_allPMTs.append(ientry)
-        SA_allPMTs.append(SA_list)
+    #SA_allPMTs.append(ientry)
+    ####SA_allPMTs.append(SA_list)
 
-        print("THIS IS SA_ALLPMTS: ", SA_allPMTs)
+    ####print("THIS IS SA_ALLPMTS: ", SA_allPMTs)
 
-    SA_np = np.array(SA_allPMTs)
+    ####SA_np = np.array(SA_allPMTs)
+    SA_np = np.array(SA_list)
     SA_np = SA_np.astype(float)
     print("This is the shape of the SA output: ", SA_np.shape)
 
+    '''
     print("Need to take the transpose so shape is (N,32).")
     SA_transpose = np.transpose(SA_np)
     print("Shape is now: ", SA_transpose.shape )
 
     SA_t = torch.from_numpy( SA_transpose )
-    ####SA_t = torch.from_numpy( SA_np )
+    '''
 
-    return SA_t
+    return SA_np ####SA_t
 
 def fullDetectorCoords(voxsize) :
 
@@ -283,6 +285,12 @@ if __name__=="__main__":
 
     start_time = time.time()
 
+    parser = argparse.ArgumentParser(description='Run solid angle calculator')
+    parser.add_argument('-p','--PMTID',type=int,default=0,help="PMT ID to run over (0-31; 0 by default)")
+    args = parser.parse_args()
+
+    print("args.PMTID: ", args.PMTID)
+
     input = "testfm_010724_FMDATA_coords_withErrorFlags_100Events_voxelsize5cm_010724.root"
     ####num = 2
 
@@ -295,14 +303,19 @@ if __name__=="__main__":
     print("coords_fullDetector.shape ",  coords_fullDetector.shape)
     #coords_fullDetector = np.ones((3,3))
     print("coords_fullDetector.shape ",  coords_fullDetector.shape)
+
+    np.savetxt('fullDetectorCoords_5cmVoxels.csv', coords_fullDetector, delimiter=',')
     
-    SA_out = makeSA(coords_fullDetector)
-    print("Result of calling SA on the full detector coords: ", SA_out )
+    #####S##A_out = makeSA(coords_fullDetector, args.PMTID)
+    ####print("This is the result of calling SA on the full detector coords for PMT number ", args.PMTID, ": ", SA_out )
 
-    makeCSV(SA_out)
+    # now save this list for 1 PMT to a file
+    #######np.savetxt('SA_batchJob_voxelsize5_PMT%d.csv'% (args.PMTID), SA_out, delimiter=',')
 
-    ####SA_tensor = torch.empty((32, 0), dtype=torch.float32)
-    ####SA_tensor_t = torch.transpose(SA_tensor, 0, 1)
+    ####makeCSV(SA_out)
+
+    ##SA_tensor = torch.empty((32, 0), dtype=torch.float32)
+    ##SA_tensor_t = torch.transpose(SA_tensor, 0, 1)
 
     '''
     for num in range(2,17): # how many entries do I want total?
