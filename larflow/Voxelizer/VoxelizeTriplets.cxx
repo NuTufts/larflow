@@ -479,6 +479,8 @@ namespace voxelizer {
       // our interface to the truth particle graph
       ublarcvapp::mctools::MCPixelPGraph mcpg;
       mcpg.buildgraphonly( ioll );
+
+      const float driftv = larutil::LArProperties::GetME()->DriftVelocity(); // in cm per us      
       
       // we are going to remove the tdrift of the reconstructed spacepoints assigned to a trackid
       for (unsigned long ispacepoint=0; ispacepoint<(unsigned long)_triplet_maker._triplet_v.size(); ispacepoint++) {
@@ -503,13 +505,21 @@ namespace voxelizer {
 
 	  std::vector<float> txyz = { node->start[3] , node->start[0], node->start[1], node->start[2] };
 
-	  float tpctick_wdrift  = ublarcvapp::mctools::CrossingPointsAnaMethods::getTick( txyz, 4050.0, NULL );	  
-	  float tpctick_nodrift = ublarcvapp::mctools::CrossingPointsAnaMethods::getTrueTick( txyz, 4050.0, NULL );
+	  // correct the apparent position to remove delta-t0
+	  float g4_trig_offset_us = 0.0;
+	  // what is this offset term? I often use it in such a way that 4050-4050=0?
+	  // (this is from uboone lore I forgot),
+	  // my guess that's to do with the 4050 ns = 4.05 us delay which is
+	  //  between beam trigger (which defines tpc tick 3200) and beam arrival?
+	  // and that for some mc version, the geant4 t=0 is defined at the arrival time of the beam
+	  
+	  float dt0_us = (txyz[0] - g4_trig_offset_us)*1.0e-3;
+	  float dx_dt0 = dt0_us*driftv;
 
-	  float tdrift_ticks = tpctick_wdrift-tpctick_nodrift;
-	  // the drift time from the truth energy depositions to the anode, in units of TPC clock ticks
-	  float corrected_tick = reco_tick-tpctick_nodrift;
-	  triplet_indices.at(3) = (int)corrected_tick;
+	  // correct _pos_v, which is is what is used to bin/voxelize the spacepoints
+	  _triplet_maker._pos_v.at(ispacepoint)[0] -= dx_dt0;
+	  
+	  
 	}
       }
     }
