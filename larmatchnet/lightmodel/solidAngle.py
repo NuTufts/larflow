@@ -21,6 +21,7 @@ from lardly.ubdl.pmtpos import pmtposmap
 
 
 dv = larutil.LArProperties.GetME().DriftVelocity()
+
 voxelsize = 5
 
 solidAngle = 0.0
@@ -92,7 +93,7 @@ def makeSA(coord_v, flashTick, ientry):
         print("x-coords are (in cm): ", coord_v[:,0]*voxelsize+(2399-3200-(flashTick-3200))*0.5*dv )
 
         print("y-coords are (not in cm): ", coord_v[:,1] )
-        print("y-coords are (in cm): ", coord_v[:,1]*voxelsize-120.0 )
+        print("y-coords are (in cm): ", coord_v[:,1]*voxelsize-117.0 )
 
         print("z-coords are (not in cm): ", coord_v[:,2] )
         print("z-coords are (in cm): ", coord_v[:,2]*voxelsize )
@@ -102,10 +103,10 @@ def makeSA(coord_v, flashTick, ientry):
         print("Size of L: ", L.size)
         print("Shape of L: ", L.shape)
         print("This is L (all coords for this one PMT): ", L)
-        print("coord_v[:,1]*voxelsize-120.0 - y_center):", coord_v[:,1]*voxelsize-120.0 - y_center)
+        print("coord_v[:,1]*voxelsize-117.0 - y_center):", coord_v[:,1]*voxelsize-117.0 - y_center)
         print("coord_v[:,2]*voxelsize - z_center:", coord_v[:,2]*voxelsize - z_center)
         X2 = ( coord_v[:,0]*voxelsize+(2399-3200-(flashTick-3200))*0.5*dv - x_center )**2
-        Y2 = ( coord_v[:,1]*voxelsize-120.0 - y_center)**2
+        Y2 = ( coord_v[:,1]*voxelsize-117.0 - y_center)**2
         Z2 = ( coord_v[:,2]*voxelsize - z_center )**2
         print("X^2: ", X2)
         print("Y^2: ", Y2 )
@@ -118,7 +119,7 @@ def makeSA(coord_v, flashTick, ientry):
 
         inverseR2 = 1 / (R**2)
 
-        zy_offset = np.sqrt( ( coord_v[:,1]*voxelsize-120.0 - y_center)**2 + ( coord_v[:,2]*voxelsize - z_center )**2 )  #sqrt(Y^2 + X^2)
+        zy_offset = np.sqrt( ( coord_v[:,1]*voxelsize-117.0 - y_center)**2 + ( coord_v[:,2]*voxelsize - z_center )**2 )  #sqrt(Y^2 + X^2)
         print("This is zy_offset (all coords for this one PMT):", zy_offset)
 
         SA_list = []
@@ -151,7 +152,12 @@ def makeSA(coord_v, flashTick, ientry):
 # this fn only takes in the coord_np and pmt number
 def makeSA(coord_v, ipmt): 
 
+
+    # convert coords from voxels to cm
     coord_x = coord_v[:,0]*voxelsize
+    coord_y = coord_v[:,1]*voxelsize-117.0 # use microboone detector center
+    coord_z = coord_v[:,2]*voxelsize
+
 
     ####SA_allPMTs = []
 
@@ -159,6 +165,8 @@ def makeSA(coord_v, ipmt):
 
     print("This is PMT #: ", ipmt)
 
+
+    # grabbing centers of pmts in cm
     center = [pmtposmap[ipmt][0]-15.0, pmtposmap[ipmt][1], pmtposmap[ipmt][2] ]
     print("center of pmt is: ", center)
     x_center = center[0]
@@ -166,6 +174,9 @@ def makeSA(coord_v, ipmt):
     z_center = center[2]
     print("y_center",y_center)
     print("z_center",z_center)
+
+
+    '''
 
     print("x-coords are (not in cm): ", coord_v[:,0] )
     print("x-coords are (in cm): ", coord_v[:,0]*voxelsize )
@@ -176,32 +187,37 @@ def makeSA(coord_v, ipmt):
     print("z-coords are (not in cm): ", coord_v[:,2] )
     print("z-coords are (in cm): ", coord_v[:,2]*voxelsize )
 
+    '''
+
     L = coord_x - x_center
-    print("Type of L:", type(L) )
-    print("Size of L: ", L.size)
-    print("Shape of L: ", L.shape)
-    print("This is L (all coords for this one PMT): ", L)
+    #print("Type of L:", type(L) )
+    #print("Size of L: ", L.size)
+    #print("Shape of L: ", L.shape)
+    #print("This is L (all coords for this one PMT): ", L)
     ##print("coord_v[:,2]*voxelsize - z_center:", coord_v[:,2]*voxelsize - z_center)
-    X2 = ( coord_v[:,0]*voxelsize - x_center )**2
-    Y2 = ( coord_v[:,1]*voxelsize - y_center)**2
-    Z2 = ( coord_v[:,2]*voxelsize - z_center )**2
-    print("X^2: ", X2)
-    print("Y^2: ", Y2 )
-    print("Z^2: ", Z2 )
-    print("Y^2+Z^2: ",Y2 + Z2 )
+    X2 = ( coord_x - x_center )**2
+    Y2 = ( coord_y - y_center)**2
+    Z2 = ( coord_z - z_center )**2
+    #print("X^2: ", X2)
+    #print("Y^2: ", Y2 )
+    #print("Z^2: ", Z2 )
+    #print("Y^2+Z^2: ",Y2 + Z2 )
 
     R = np.sqrt(X2 + Y2 + Z2) # this is an array with all coords in the interxn
 
-    print("R is: ", R)
+    #print("R is: ", R)
 
     inverseR2 = 1 / (R**2)
 
-    zy_offset = np.sqrt( ( coord_v[:,1]*voxelsize - y_center)**2 + ( coord_v[:,2]*voxelsize - z_center )**2 )  #sqrt(Y^2 + X^2)
+    zy_offset = np.sqrt( ( coord_y - y_center)**2 + ( coord_z - z_center )**2 )  #sqrt(Y^2 + X^2)
+
     print("This is zy_offset (all coords for this one PMT):", zy_offset)
 
     SA_list = []
     #SA_list.append(ientry)
-    print("L.size is: ", L.size)
+
+    #print("L.size is: ", L.size)
+
     for j in range( L.size ):
         SA = solidAngleCalc(zy_offset[j],radius,L[j])
         ####print("This is the solid angle calc!", SA, "for entry: ", j)
@@ -232,8 +248,8 @@ def makeSA(coord_v, ipmt):
 def fullDetectorCoords(voxsize) :
 
     # detector size in cm
-    # adding a buffer of 10 cm 
-    x_cm = 256+10
+    # here coordinates are (0,0,0) = corner of detector
+    x_cm = 256+10 # add a buffer of 10 cm 
     y_cm = 234+10
     z_cm = 1036+10
 
@@ -301,16 +317,15 @@ if __name__=="__main__":
     coords_fullDetector = fullDetectorCoords(voxelsize)
     print("output of the fullDetectorCoordsFunction: ",  coords_fullDetector )
     print("coords_fullDetector.shape ",  coords_fullDetector.shape)
-    #coords_fullDetector = np.ones((3,3))
-    print("coords_fullDetector.shape ",  coords_fullDetector.shape)
 
-    np.savetxt('fullDetectorCoords_5cmVoxels.csv', coords_fullDetector, delimiter=',')
+    #np.savetxt('fullDetectorCoords_5cmVoxels.csv', coords_fullDetector, delimiter=',')
     
-    #####S##A_out = makeSA(coords_fullDetector, args.PMTID)
+    SA_out = makeSA(coords_fullDetector, args.PMTID)
     ####print("This is the result of calling SA on the full detector coords for PMT number ", args.PMTID, ": ", SA_out )
 
     # now save this list for 1 PMT to a file
-    #######np.savetxt('SA_batchJob_voxelsize5_PMT%d.csv'% (args.PMTID), SA_out, delimiter=',')
+    np.savetxt('SA_batchJob_voxelsize5_PMT%d.csv'% (args.PMTID), SA_out, delimiter=',')
+
 
     ####makeCSV(SA_out)
 
