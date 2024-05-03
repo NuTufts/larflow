@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <set>
 
 #include "larlite/LArUtil/LArProperties.h"
 #include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
@@ -1288,6 +1289,66 @@ namespace voxelizer {
     //std::cout << "  made ssnet truth array" << std::endl;
     return d;
   }
+
+  std::vector<float> VoxelizeTriplets::get_voxel_charge( const int voxel_index ) const
+  {
+
+    std::vector<float> charge_v(3,0.0);
+    
+    if ( voxel_index<0 || voxel_index>=(int)_voxelidx_to_tripidxlist.size() )
+      return charge_v;
+    
+    std::vector<int> nfilled_v(3,0);
+    
+    const std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[voxel_index]; // index of triplet
+    for (int p=0; p<3; p++) {
+      std::set< int > visited;
+      for ( auto const& tripidx : tripidx_v ) {
+	auto const& tripindices = _triplet_maker._triplet_v[tripidx];
+	int pixindex = tripindices[p];
+	auto it_visited = visited.find(pixindex);
+	if ( it_visited==visited.end() ) {
+	  visited.insert(pixindex);
+	  const larflow::prep::FlowTriples::PixData_t& pixdata = _triplet_maker._sparseimg_vv.at(p).at(pixindex);
+	  charge_v[p] += pixdata.val;
+	  nfilled_v[p]++;
+	}
+      }
+    }
+    
+    return charge_v;
+  }
+
+  std::vector<float> VoxelizeTriplets::get_voxel_charge( const std::vector<int>& voxel_indices )  const
+  {
+    std::vector<float> charge(3,0);
+    int vindex = get_voxel_index( voxel_indices );
+    if ( vindex<0 )
+      return charge;
+
+    return get_voxel_charge( vindex );
+  }
+
+  int VoxelizeTriplets::get_voxel_index( const std::vector<int>& voxel_indices ) const
+  {
+
+    std::array<int,3> vindices = { voxel_indices[0], voxel_indices[1], voxel_indices[2] };
+    auto it_index = _voxel_list.find( vindices );
+    if ( it_index!=_voxel_list.end() ) {
+      return it_index->second;
+    }
+
+    return -1;
+  }
+
+
+  int VoxelizeTriplets::get_voxel_index( const std::vector<float>& xyz ) const
+  {
+    std::vector<int> voxel_indices = get_voxel_indices(xyz);
+    return get_voxel_index( voxel_indices );
+  }
+
+  
   
 }
 }

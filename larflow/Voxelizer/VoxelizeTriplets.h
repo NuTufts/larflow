@@ -119,6 +119,14 @@ namespace voxelizer {
 
     std::vector<int> get_voxel_indices( const std::vector<float>& xyz ) const;
 
+    int get_voxel_index( const std::vector<int>& voxel_indices ) const;
+    int get_voxel_index( const std::vector<float>& xyz ) const;
+
+    std::vector<float> get_voxel_charge( const std::vector<int>& voxel_indices )  const;
+    std::vector<float> get_voxel_charge( const int voxel_index ) const;
+
+    const std::map< std::array<int,3>, int >& get_voxel_map() const { return _voxel_list; };
+    const std::vector<int>& get_triplet_idx_list( const int vindex ) const { return _voxelidx_to_tripidxlist.at(vindex); };
     
   protected:
     
