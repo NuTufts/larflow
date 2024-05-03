@@ -48,7 +48,9 @@ namespace voxelizer {
                       std::vector<float> dim_len,
                       float voxel_size );
 
-    ~VoxelizeTriplets() {};
+    ~VoxelizeTriplets() {
+      clear();
+    };
 
     void process_fullchain( larcv::IOManager& iolcv,
                             std::string adc_producer,
@@ -60,7 +62,8 @@ namespace voxelizer {
 				      std::string adc_producer,
 				      std::string chstatus_producer,
 				      bool truth_correct_tdrift=false );
-        
+
+    void clear(); ///< reset
 
   protected:
 

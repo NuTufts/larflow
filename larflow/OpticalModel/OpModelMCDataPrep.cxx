@@ -16,6 +16,16 @@ namespace opticalmodel {
     tagBadFlashMatches( voxelizer, mgr );
     filterBadMCDataMatches();
   }
+
+  void OpModelMCDataPrep::clear()
+  {
+    // should have also implicitly called the base class clear as well
+    
+    flash_isgood.clear();
+    flash_track_frac_intpc.clear();
+    flash_track_frac_intpc_w_charge.clear();
+    
+  }
   
   void OpModelMCDataPrep::tagBadFlashMatches( const larflow::voxelizer::VoxelizeTriplets& voxelizer,
 					      larlite::storage_manager& ioll )
@@ -177,7 +187,14 @@ namespace opticalmodel {
 		continue;
 	      
 	      // get the voxel our test point is in
-	      std::vector<int> voxel_indices = voxelizer.get_voxel_indices( testpt );
+	      std::vector<int> voxel_indices;
+	      try {
+		voxel_indices = voxelizer.get_voxel_indices( testpt );
+	      }
+	      catch (std::exception& err ) {
+		std::cout << "out of bound testpt: " << err.what() << std::endl;
+		continue;
+	      }
 	      int voxelindex = voxelizer.get_voxel_index( voxel_indices );
 	      if ( voxelindex<0 )
 		continue;
@@ -331,8 +348,9 @@ namespace opticalmodel {
 	int tid = voxelizer._triplet_maker._instance_id_v.at(tripidx);
 	int aid = voxelizer._triplet_maker._ancestor_id_v.at(tripidx);
 	auto it_tid = trackid_set.find( tid );
-	auto it_aid = trackid_set.find( aid );
-	if ( it_tid!=trackid_set.end() || it_aid!=trackid_set.end() || aid==ancestorid || tid==ancestorid ) {
+	//auto it_aid = trackid_set.find( aid );
+	//if ( it_tid!=trackid_set.end() || it_aid!=trackid_set.end() || aid==ancestorid || tid==ancestorid ) {
+	if ( it_tid!=trackid_set.end() ) {
 	  accept = true;
 	  break;
 	}

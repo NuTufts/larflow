@@ -44,7 +44,7 @@ input_larlite_rootfile_v = [ data_folder + "/opreco-Run000001-SubRun000001.root"
 larproperties = larutil.LArProperties.GetME()
 voxelsize = 5.0
 voxel_origin = std.vector("float")(3)
-voxel_origin[0] = (2400.0-3200.0)*0.5*larproperties.DriftVelocity()
+voxel_origin[0] = (2399.0-3200.0)*0.5*larproperties.DriftVelocity()
 voxel_origin[1] = -120.0
 voxel_origin[2] = -10.0
 

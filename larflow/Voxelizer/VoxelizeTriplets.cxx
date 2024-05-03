@@ -45,14 +45,14 @@ namespace voxelizer {
     const float driftv = larutil::LArProperties::GetME()->DriftVelocity();
     
     _origin.resize(3,0);
-    _origin[0] = (2399-3200)*0.5*driftv;    
+    _origin[0] = -256.0; // one drift length porch
     _origin[1] = -120.0;
-    _origin[2] = 0;
+    _origin[2] = -10.0;
  
     _len.resize(3,0);
-    _len[0] = 1010*6*0.5*driftv;    
+    _len[0] = 2.0*256.0-_origin[0]; // main drift time beginning at x=0 + one drift back portch
     _len[1] = 2.0*120.0;
-    _len[2] = 1037.0;
+    _len[2] = 1050.0;
 
     _voxel_size = 0.3;
     
@@ -133,6 +133,12 @@ namespace voxelizer {
       ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] invalid dim given: " << axis << " (_ndims=" << _ndims << ")" << std::endl;
       throw std::runtime_error(ss.str());
     }
+
+    if ( std::isnan(coord) || std::isinf(coord) ) {
+      std::stringstream ss;
+      ss << "[VoxelizeTriplets::" << __FUNCTION__ << ".L" << __LINE__ << "] invalid coord value=" << coord << std::endl;
+      throw std::runtime_error(ss.str());
+    }
     
     int vidx = (coord-_origin[axis])/_voxel_size;
     if (vidx<0 || vidx>=_nvoxels[axis] ) {
@@ -146,6 +152,19 @@ namespace voxelizer {
     }
 
     return vidx;
+  }
+
+  /**
+   * @brief clear containers and reset state of triplet maker
+   *
+   */
+  void VoxelizeTriplets::clear()
+  {
+    _voxel_set.clear();
+    _voxel_list.clear();
+    _voxelidx_to_tripidxlist.clear();
+    _trip2voxelidx.clear();
+    _triplet_maker.clear();
   }
   
   /**
@@ -427,7 +446,7 @@ namespace voxelizer {
                                             bool has_mc )
   {
 
-    _triplet_maker.clear();
+    clear();
 
     const float adc_threshold = 10.;
     const bool calc_triplet_pos3d = true;
@@ -468,7 +487,7 @@ namespace voxelizer {
 						      bool truth_correct_tdrift )
   {
 
-    _triplet_maker.clear();
+    clear();
 
     const float adc_threshold = 10.;
     const bool calc_triplet_pos3d = true;

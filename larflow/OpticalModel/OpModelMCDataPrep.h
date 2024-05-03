@@ -63,6 +63,8 @@ namespace opticalmodel {
     PyObject* make_opmodel_data_dict( const ublarcvapp::mctools::RecoFlash_t& recoflash,
 				      const larflow::voxelizer::VoxelizeTriplets& voxelizer,
 				      larlite::storage_manager& ioll );
+
+    virtual void clear();
     
   private:
     
