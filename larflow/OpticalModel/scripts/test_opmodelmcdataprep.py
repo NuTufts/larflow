@@ -134,25 +134,29 @@ for ientry in range( start_entry, end_entry ):
     flash_np_v = get_reco_flash_vectors( ioll )
     
     for iflash in range( opdataprep.recoflash_v.size() ):
+
         flash = opdataprep.recoflash_v.at(iflash)
     
         # get flash match vectors
-        coord_v = std.vector("std::vector<int>")()
-        feat_v  = std.vector("std::vector<float>")()
-        opdataprep.getChargeVoxelsForFlash( flash, voxelizer, coord_v, feat_v )
+        #coord_v = std.vector("std::vector<int>")()
+        #feat_v  = std.vector("std::vector<float>")()
+        #opdataprep.getChargeVoxelsForFlash( flash, voxelizer, coord_v, feat_v )
 
-    
         # get the right flash pe vector
-        if flash.producerid>=0:
-            flash_np = flash_np_v[ (flash.producerid,flash.index) ]
-        else:
-            flash_np = np.zeros( 32, dtype=np.float32 )            
-
+        #if flash.producerid>=0:
+        #    flash_np = flash_np_v[ (flash.producerid,flash.index) ]
+        #else:
+        #    flash_np = np.zeros( 32, dtype=np.float32 )            
+        
+        data_dict = opdataprep.make_opmodel_data_dict( flash, voxelizer, ioll )
+        
         print("flash[",iflash,"]")
         print("  ",opdataprep.strRecoMatchInfo( flash, iflash ))
-        print("  num voxels: ",coord_v.size())
+        print("  pe: ",data_dict["flashpe"].shape)        
+        print("  voxel coord: ",data_dict["voxcoord"].shape)
+        print("  voxel charge: ",data_dict["voxcharge"].shape)
         print("  frac of track traj. in tpc with voxel charge: ",opdataprep.flash_track_frac_intpc_w_charge.at(iflash))            
-        print("  pe: ",flash_np)
+
             
 
 

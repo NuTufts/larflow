@@ -2,8 +2,12 @@
 
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 
+#include "larlite/DataFormat/opflash.h"
+
 namespace larflow {
 namespace opticalmodel {
+
+  bool OpModelMCDataPrep::_setup_numpy = false;
 
   void OpModelMCDataPrep::process( larlite::storage_manager& mgr,
 				   const larflow::voxelizer::VoxelizeTriplets& voxelizer )
@@ -48,7 +52,7 @@ namespace opticalmodel {
     
     for ( int iflash=0; iflash<recoflash_v.size(); iflash++ ) {
 
-      flash_isgood[iflash] = 1;
+      flash_isgood[iflash] = 1; // default is to pass unless proven otherwise
       flash_track_frac_intpc[iflash] = 0.0;
       flash_track_frac_intpc_w_charge[iflash] = 0.0;
       
@@ -364,6 +368,124 @@ namespace opticalmodel {
     
   }
 
+  std::vector<float> OpModelMCDataPrep::get_recoflash_pe( const ublarcvapp::mctools::RecoFlash_t& recoflash,
+							  larlite::storage_manager& ioll )
+  {
+
+    std::string producer = "none";
+    std::vector<float> flashpe_v(32,0.0);
+
+    if ( recoflash.producerid>=0 ) {
+
+      //int group = 0;
+      if ( recoflash.producerid==0 ) {
+	producer = "simpleFlashBeam";
+	//group = 0;
+      }
+      else if (recoflash.producerid==1) {
+	producer = "simpleFlashCosmic";
+	//group = 2;
+      }
+      
+      larlite::event_opflash* ev_opflash_v =
+	(larlite::event_opflash*)ioll.get_data( larlite::data::kOpFlash, producer );
+
+      auto const& opflash = ev_opflash_v->at( recoflash.index );
+
+      // this is probably mc version and data version specific -- careful
+      for (int igroup=0; igroup<4; igroup++) {
+	float group_sum = 0.;	
+	for (int ipmt=0; ipmt<32; ipmt++) {
+	  flashpe_v[ipmt] = 0.;
+	  int iopdet = 100*igroup + ipmt;
+	  if ( iopdet<opflash.nOpDets() ) {
+	    float pe = opflash.PE( iopdet );
+	    group_sum += pe;
+	    flashpe_v[ipmt] = pe;
+	  }
+	}
+	if ( group_sum>0.0 ) {
+	  break;
+	}
+      }//end of group loop
+    }//end of if producer
+
+    return flashpe_v;
+    
+  }
+  
+  PyObject* OpModelMCDataPrep::make_opmodel_data_dict( const ublarcvapp::mctools::RecoFlash_t& recoflash,
+						       const larflow::voxelizer::VoxelizeTriplets& voxelizer,
+						       larlite::storage_manager& ioll )
+  {
+    
+    // ok now we can make the arrays
+    if ( !_setup_numpy ) {
+      std::cout << "[OpModelMCDataPrep::" << __FUNCTION__ << ".L" << __LINE__ << "] setup numpy" << std::endl;
+      import_array1(0);
+      _setup_numpy = true;
+    }       
+
+    std::string producer = "none";
+
+    std::vector<float> flashpe_v = get_recoflash_pe( recoflash, ioll );
+    std::vector< std::vector<int> > voxel_coord_v;
+    std::vector< std::vector<float> > voxel_plane_charge_v;
+    
+    getChargeVoxelsForFlash( recoflash, voxelizer, voxel_coord_v, voxel_plane_charge_v );
+
+    // voxel coordinate array
+    int ndims = 3;
+    size_t nvoxels = voxel_coord_v.size();
+    
+    npy_intp* coord_dims = new npy_intp[2];
+    coord_dims[0] = (int)nvoxels;
+    coord_dims[1] = ndims;
+    PyArrayObject* coord_array = (PyArrayObject*)PyArray_SimpleNew( 2, coord_dims, NPY_LONG );
+    for (size_t ii=0; ii<nvoxels; ii++) {
+      for (int j=0; j<ndims; j++) {
+        *((long*)PyArray_GETPTR2( coord_array, (int)ii, j)) = (long)voxel_coord_v[ii][j];
+      }
+    }
+
+    // voxel charge array
+    npy_intp* feat_dims = new npy_intp[2];
+    feat_dims[0] = (int)nvoxels;
+    feat_dims[1] = ndims;
+    PyArrayObject* feat_array = (PyArrayObject*)PyArray_SimpleNew( 2, feat_dims, NPY_FLOAT );
+    for (size_t ii=0; ii<nvoxels; ii++) {
+      for (int j=0; j<ndims; j++) {
+        *((float*)PyArray_GETPTR2( feat_array, (int)ii, j)) = (float)voxel_plane_charge_v[ii][j];
+      }
+    }
+
+    // voxel PE array
+    npy_intp* pe_dims = new npy_intp[2];
+    pe_dims[0] = 1;
+    pe_dims[1] = (int)flashpe_v.size();
+    PyArrayObject* pe_array = (PyArrayObject*)PyArray_SimpleNew( 2, pe_dims, NPY_FLOAT );
+    for (int j=0; j<(int)flashpe_v.size(); j++) {
+      *((float*)PyArray_GETPTR2( pe_array, 0, j)) = (float)flashpe_v[j];
+    }
+    
+    // the dictionary
+    PyObject *d = PyDict_New();
+    PyObject *key_coord     = Py_BuildValue("s", "voxcoord" );
+    PyObject *key_feat      = Py_BuildValue("s", "voxcharge" );
+    PyObject *key_flashpe   = Py_BuildValue("s", "flashpe" );
+
+    // add to dictionary
+    PyDict_SetItem( d, key_coord,   (PyObject*)coord_array );
+    PyDict_SetItem( d, key_feat,    (PyObject*)feat_array );    
+    PyDict_SetItem( d, key_flashpe, (PyObject*)pe_array );
+
+    Py_DECREF( key_coord );
+    Py_DECREF( key_feat );
+    Py_DECREF( key_flashpe );
+
+    return d;
+    
+  }
 
   
 }

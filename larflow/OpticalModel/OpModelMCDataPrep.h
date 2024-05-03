@@ -1,6 +1,12 @@
 #ifndef __LARFLOW_OPTICALMODEL_FLASHMATCHDATAPREP_H__
 #define __LARFLOW_OPTICALMODEL_FLASHMATCHDATAPREP_H__
 
+#include <Python.h>
+#include "bytesobject.h"
+
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
+
 /**
  * @ingroup larflow_opticalmodel
  * @class OpModelMCDataPrep
@@ -50,6 +56,17 @@ namespace opticalmodel {
     std::vector<float> flash_track_frac_intpc;
     
     void printMatches() const;
+
+    std::vector<float> get_recoflash_pe( const ublarcvapp::mctools::RecoFlash_t& recoflash,
+					 larlite::storage_manager& ioll );
+    
+    PyObject* make_opmodel_data_dict( const ublarcvapp::mctools::RecoFlash_t& recoflash,
+				      const larflow::voxelizer::VoxelizeTriplets& voxelizer,
+				      larlite::storage_manager& ioll );
+    
+  private:
+    
+    static bool _setup_numpy;
     
   };
   
