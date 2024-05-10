@@ -1309,7 +1309,8 @@ namespace voxelizer {
     return d;
   }
 
-  std::vector<float> VoxelizeTriplets::get_voxel_charge( const int voxel_index ) const
+  std::vector<float> VoxelizeTriplets::get_voxel_charge( const int voxel_index,
+							 bool remove_false_triplets ) const
   {
 
     std::vector<float> charge_v(3,0.0);
@@ -1318,12 +1319,15 @@ namespace voxelizer {
       return charge_v;
     
     std::vector<int> nfilled_v(3,0);
+    size_t ntruth = _triplet_maker._truth_v.size();
     
     const std::vector<int>& tripidx_v = _voxelidx_to_tripidxlist[voxel_index]; // index of triplet
     for (int p=0; p<3; p++) {
       std::set< int > visited;
       for ( auto const& tripidx : tripidx_v ) {
-	auto const& tripindices = _triplet_maker._triplet_v[tripidx];
+	if ( remove_false_triplets && tripidx<(int)ntruth && _triplet_maker._truth_v[tripidx]==0 )
+	  continue;
+	auto const& tripindices = _triplet_maker._triplet_v[tripidx];	
 	int pixindex = tripindices[p];
 	auto it_visited = visited.find(pixindex);
 	if ( it_visited==visited.end() ) {
@@ -1338,14 +1342,15 @@ namespace voxelizer {
     return charge_v;
   }
 
-  std::vector<float> VoxelizeTriplets::get_voxel_charge( const std::vector<int>& voxel_indices )  const
+  std::vector<float> VoxelizeTriplets::get_voxel_charge( const std::vector<int>& voxel_indices,
+							 bool remove_false_triplets )  const
   {
     std::vector<float> charge(3,0);
     int vindex = get_voxel_index( voxel_indices );
     if ( vindex<0 )
       return charge;
 
-    return get_voxel_charge( vindex );
+    return get_voxel_charge( vindex, remove_false_triplets );
   }
 
   int VoxelizeTriplets::get_voxel_index( const std::vector<int>& voxel_indices ) const

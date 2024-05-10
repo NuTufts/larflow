@@ -3,6 +3,7 @@
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 
 #include "larlite/DataFormat/opflash.h"
+#include "larlite/LArUtil/LArProperties.h"
 
 namespace larflow {
 namespace opticalmodel {
@@ -31,6 +32,8 @@ namespace opticalmodel {
 					      larlite::storage_manager& ioll )
   {
 
+    //note, we already removed t0 shift from spacepoints!
+    
     if ( _verbose_level>=1 )
       std::cout << "[OpModelMCDataPrep::tagBadFlashMatches]" << std::endl;
     
@@ -85,8 +88,6 @@ namespace opticalmodel {
 
       std::vector<int> trackid_list = recoflash.trackid_list();
 
-      
-      
       for (int itrackid=0; itrackid<(int)trackid_list.size(); itrackid++) {
 
 	int trackid = trackid_list.at(itrackid);
@@ -97,7 +98,7 @@ namespace opticalmodel {
 	auto pnode = mcpg.findTrackID(trackid); // returns pointer to MCPixelPGraph::Node_t struct
 
 	if ( _verbose_level>=2 )
-	  std::cout << "[node] " << mcpg.strNodeInfo( *pnode ) << std::endl;
+	  std::cout << "[node info] " << mcpg.strNodeInfo( *pnode ) << std::endl;
 	
 	if ( pnode->type==0 && pnode->pid!=2112 ) {
 	  
@@ -109,7 +110,7 @@ namespace opticalmodel {
 	  auto const& mctrackinfo = ev_mctrack->at( pnode->vidx );
 	  
 	  // convert track trajectory to list of points
-	  bool apply_t0_shift = true;
+	  bool apply_t0_shift = false; // we already removed this when we made voxels
 	  bool apply_sce = true;
 	  std::vector< std::vector<float> > reco_traj
 	    = ublarcvapp::mctools::MCPos2ImageUtils::Get()->getRecoSpacepoints( mctrackinfo,
@@ -143,6 +144,8 @@ namespace opticalmodel {
 	    float substepsize = len/nsubsteps;
 
 	    int saw_charge = 0;
+	    int in_voxel_bounds_tag = 0;
+	    std::vector<int> vox_indices_tag(3,0);
 	    
 	    for (int isub=0; isub<nsubsteps; isub++) {
 	      float f = float(isub)/float(nsubsteps);
@@ -174,6 +177,7 @@ namespace opticalmodel {
 
 	      if (invoxel_bounds) {
 		npts_in_voxel++;
+		in_voxel_bounds_tag = 1;
 	      }
 	      else {
 		npts_out_voxel++;
@@ -187,6 +191,7 @@ namespace opticalmodel {
 		continue;
 	      
 	      // get the voxel our test point is in
+
 	      std::vector<int> voxel_indices;
 	      try {
 		voxel_indices = voxelizer.get_voxel_indices( testpt );
@@ -195,6 +200,7 @@ namespace opticalmodel {
 		std::cout << "out of bound testpt: " << err.what() << std::endl;
 		continue;
 	      }
+	      vox_indices_tag = voxel_indices;
 	      int voxelindex = voxelizer.get_voxel_index( voxel_indices );
 	      if ( voxelindex<0 )
 		continue;
@@ -219,7 +225,7 @@ namespace opticalmodel {
 	      
 	    }//end of substep loop
 
-	    if ( _verbose_level>=2 ) {
+	    if ( _verbose_level>=3 ) {
 	      std::cout << "  [" << istep << "] "
 			<< "truept=("
 			<< mcpt[0] << " cm,"
@@ -228,6 +234,8 @@ namespace opticalmodel {
 			<< mcstep.T()*1.0e-3 << " usec) "
 			<< "recopt=(" << pt[0] << " cm," << pt[1] << " cm," << pt[2] << " cm, tick=" << pt[3] << ") "
 			<< " charge_voxel=" << saw_charge
+			<< " in_voxels=" << in_voxel_bounds_tag
+			<< " indices=" << vox_indices_tag[0] << "," << vox_indices_tag[1] << "," << vox_indices_tag[2]
 			<< std::endl;
 	    }
 	    
@@ -345,6 +353,10 @@ namespace opticalmodel {
       
       bool accept = false;
       for ( auto const& tripidx : tripidxlist ) {
+
+	if ( voxelizer._triplet_maker._truth_v.at(tripidx)==0 )
+	  continue;
+	
 	int tid = voxelizer._triplet_maker._instance_id_v.at(tripidx);
 	int aid = voxelizer._triplet_maker._ancestor_id_v.at(tripidx);
 	auto it_tid = trackid_set.find( tid );
@@ -360,8 +372,9 @@ namespace opticalmodel {
 	continue;
       
       // store the indices and charge
-      std::vector<int> indices_v  = { indices_array[0], indices_array[1], indices_array[2] };      
-      std::vector<float> charge_v = voxelizer.get_voxel_charge( vindex );
+      std::vector<int> indices_v  = { indices_array[0], indices_array[1], indices_array[2] };
+      bool remove_bad_triplets = true;
+      std::vector<float> charge_v = voxelizer.get_voxel_charge( vindex, remove_bad_triplets );
       
       voxel_indices.push_back( indices_v );
       voxel_features.push_back( charge_v );
@@ -431,6 +444,73 @@ namespace opticalmodel {
     return flashpe_v;
     
   }
+  
+  float OpModelMCDataPrep::get_tdrift_from_truth( const ublarcvapp::mctools::RecoFlash_t& recoflash,
+						  larlite::storage_manager& ioll )
+  {
+
+    larlite::event_mctrack* ev_mctrack
+      = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco" );
+
+    larlite::event_mcshower* ev_mcshower
+      = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
+    
+    // we need to find the most upstream point in the TPC
+    std::vector<float> mostupstream = { 256.0, 0, 0, 0 };
+    bool intpc = false;
+    
+    for ( auto const& trackid : recoflash.trackid_v ) {
+
+      // get node to help us
+      auto pnode = mcpg.findTrackID( trackid );
+      if ( pnode ) {
+      
+	// is this a shower or track?
+	if ( pnode->type==0 ) {
+	  auto& mctrack = ev_mctrack->at( pnode->vidx );
+
+	  for ( int istep=0; istep<(int)mctrack.size(); istep++ ) {
+	    auto const& step = mctrack.at(istep);
+	    std::vector<float> xyz = { (float)step.X(), (float)step.Y(), (float)step.Z(), (float)step.T() };
+	    if ( (xyz[0]>0.0 && xyz[0]<256.0)
+		 && ( fabs(xyz[1])<116.5 )
+		 && ( xyz[2]>0.0 && xyz[2]<1035.5 ) ) {
+	      intpc = true;
+	      if ( xyz[0] < mostupstream[0] ) {
+		mostupstream = xyz;
+	      }
+	    }
+	  }
+	}
+	else {
+	  auto& mcshower = ev_mcshower->at( pnode->vidx );
+	  float x = mcshower.DetProfile().X();	  
+	  if ( !std::isinf(x) ) {
+	    // not infinite if not in TPC
+	    if ( x>0 && x<256 && x < mostupstream[0] ) {
+	      intpc = true;	      
+	      mostupstream[0] = mcshower.DetProfile().X();
+	      mostupstream[1] = mcshower.DetProfile().Y();
+	      mostupstream[2] = mcshower.DetProfile().Z();
+	      mostupstream[3] = mcshower.DetProfile().T();	      
+	    }
+	  }
+	}
+	
+      }//end of if found pnode
+      
+    }//end of track id list loop
+    
+    if ( !intpc )
+      return 0.0;
+
+    float driftv = larutil::LArProperties::GetME()->DriftVelocity();
+    float tdrift_us = mostupstream[0]/driftv;
+
+    return tdrift_us;
+    
+  }
+
   
   PyObject* OpModelMCDataPrep::make_opmodel_data_dict( const ublarcvapp::mctools::RecoFlash_t& recoflash,
 						       const larflow::voxelizer::VoxelizeTriplets& voxelizer,

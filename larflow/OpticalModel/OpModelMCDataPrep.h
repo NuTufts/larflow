@@ -64,6 +64,9 @@ namespace opticalmodel {
 				      const larflow::voxelizer::VoxelizeTriplets& voxelizer,
 				      larlite::storage_manager& ioll );
 
+    float get_tdrift_from_truth( const ublarcvapp::mctools::RecoFlash_t& recoflash,
+				 larlite::storage_manager& ioll );
+
     virtual void clear();
     
   private:
