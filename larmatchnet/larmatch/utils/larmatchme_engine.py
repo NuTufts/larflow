@@ -457,6 +457,37 @@ def save_checkpoint(state, is_best, p, tag=None):
         bestname += ".tar"
         shutil.copyfile(filename, bestname )
 
+def get_weightfile_from_config( yaml_config ):
+    return yaml_config['CHECKPOINT_FILE']
+
+def get_weightfile( arg_path, yaml_config ):
+    weightfile_path = None
+    if arg_path is None:
+        weightfile_path = get_weightfile_from_config( yaml_config )
+    else:
+        weightfile_path = arg_path
+
+    if os.path.exists( weightfile_path ):
+        return weightfile_path
+
+    raise ValueError("The weight file is not found. Given: ",weightfile_path)
+    
+def get_larcv_parameters_from_yaml_config( yaml_config, args ):
+    """
+    yaml_config: Top level YAML config object.
+    args: Output of ArgumentParser from the 'argparse' packagage.
+    """
+    if "LARCV_ADC_NAME" in yaml_config:
+        args.adc_name = yaml_config["LARCV_ADC_NAME"]
+    if "LARCV_CHSTATUS_NAME" in yaml_config:
+        args.chstatus_name = yaml_config["LARCV_CHSTATUS_NAME"]
+    if "LARCV_HAS_WIRECELL" in yaml_config:
+        args.has_wire = yaml_config["LARCV_HAS_WIRECELL"]
+    if "LARCV_TICKBACKWARDS" in yaml_config:
+        args.tickbackwards = yaml_config["LARCV_TICKBACKWARDS"]
+    return args
+    
+
 if __name__ == "__main__":
 
     class argstest:

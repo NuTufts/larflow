@@ -16,6 +16,35 @@ the TPC images where the points project into.
 
 Documentation for the library can be found at [github.io/larflow](https://nutufts.github.io/larflow).
 
+## TL;DR Recipes
+
+Running LArMatch:
+
+The script to run is `larmatchnet/larmatch/deploy_larmatchme.py`.
+
+To run it requires setting up environment variables.
+
+To setup the various packages within ubdl run (in the ubdl folder):
+
+```
+source setenv_py.sh
+source configure.sh
+```
+Then to configure the shell for the larmatch net, run from the `larmatchnet` folder:
+```
+source set_pythonpath.sh
+```
+
+Then you can run the script. Here is an example of running on off-beam data (EXTBNB).
+```
+python3 deploy_larmatchme.py --config-file config/config_larmatchme_deploygpu.yaml --supera [input rootfile] --output [output path] --device-name "cuda:0"
+```
+
+The above runs on a GPU. You can run on a CPU by changing `--device-name` value to `cpu`.
+
+
+The script produces two outputs
+
 ## Contents
 
 * larmatchnet: definition of network, scripts to train and deploy network

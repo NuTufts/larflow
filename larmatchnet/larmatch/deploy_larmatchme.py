@@ -6,10 +6,10 @@ import os,sys,argparse,time
 parser = argparse.ArgumentParser("run LArMatchMinkowskiEngine on data")
 parser.add_argument("--config-file","-c",type=str,default="config.yaml",help="larmatch configuration file")
 parser.add_argument("--supera","-su",required=True,type=str,help="LArCV file with ADC images")
-parser.add_argument("--weights","-w",required=True,type=str,help="Weight files")
 parser.add_argument("--output", "-o",required=True,type=str,help="Stem name of output files: [stem]_larlite.root, [stem]_larcv.root")
+parser.add_argument("--weights","-w",required=False,type=str,default=None,help="Weight file. If not provided, will look for file in config parameter \"CHECKPOINT_FILE:\" [path] ")
 parser.add_argument("--tickbackwards","-tb",action='store_true',default=False,help="Indicate that input larcv file is tick-backward [default: F]")
-parser.add_argument("--min-score","-p",type=float,default=0.5,help="Minimum Score to save point [default: 0.5]")
+parser.add_argument("--min-score","-p",type=float,default=0.8,help="Minimum Score to save point [default: 0.5]")
 parser.add_argument("--num-events","-n",type=int,default=-1,help="Number of events [default: -1 -> All]")
 parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If argument given, input file assumed to have mc truth [default: F]")
 parser.add_argument("--larlite-mcinfo","-llmc",type=str,default=None,help="larlite file containing MC truth [default: None]")
@@ -43,7 +43,9 @@ DEVICE=torch.device(args.device_name)
 
 config = engine.load_config_file(  args )
 single_model    = engine.get_model( config )
-checkpointfile  = args.weights
+
+# Loading weights
+checkpointfile  = engine.get_weightfile( args.weights, config )
 checkpoint_data = engine.load_model_weights( single_model, checkpointfile )
 
 single_model.eval()
@@ -55,9 +57,10 @@ print("loaded MODEL on ",DEVICE)
 #    print("---------------------------------")
 #    print(name," ",par.shape)
 #    print(par)
-#sys.exit(0)
 
-NUM_PAIRS=30000
+# Get LARCV configuration parameters from config if provided:
+engine.get_larcv_parameters_from_yaml_config( config, args )
+
 ADC_PRODUCER=args.adc_name
 CHSTATUS_PRODUCER=args.chstatus_name
 USE_GAPCH=True
