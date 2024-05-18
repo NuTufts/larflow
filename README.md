@@ -43,7 +43,24 @@ python3 deploy_larmatchme.py --config-file config/config_larmatchme_deploygpu.ya
 The above runs on a GPU. You can run on a CPU by changing `--device-name` value to `cpu`.
 
 
-The script produces two outputs
+The script produces two outputs:
+
+* `[outputname_larlite.root]`: This contains the following ROOT trees:
+    ```
+    KEY: TTree	larlite_id_tree;1	LArLite Event ID Tree
+    KEY: TTree	larflow3dhit_larmatch_tree;1	larflow3dhit Tree by larmatch
+    ```
+    The `larlite_id_tree` contains the run, subrun, and event indicies used to help match entries.
+    The `larflow3dhit_larmatch_tree` are the spacepoints produced by the larmatch network and post-processed by `larflow::prep::FlowMatchHitMaker`.
+    (code for the hit-making class is in `larflow/PrepFlowMatchData`.
+* `[outputname_larcv.root]`: This contains the following ROOT trees:
+    ```
+    KEY: TTree	image2d_wire_tree;1	wire tree
+    KEY: TTree	chstatus_wire_tree;1	wire tree
+    KEY: TTree	sparseimg_sparseuresnetout_tree;1	sparseuresnetout tree
+    ```
+    This passes along the inputs. This file can usually be discarded/ignored.
+
 
 ## Contents
 
