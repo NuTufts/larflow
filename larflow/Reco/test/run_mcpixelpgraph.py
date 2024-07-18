@@ -5,6 +5,9 @@ from larlite import larlite
 from larflow import larflow
 
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
+io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
+io.set_data_to_read( larlite.data.kMCTruth,  "generator" )
 ioll.add_in_filename(  "merged_dlreco_eLEE_sample2.root" )
 ioll.open()
 
