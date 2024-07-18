@@ -3,10 +3,12 @@ set(MODULE_NAME MaskRCNNreco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS MaskRCNNreco.h )
+set( HEADERS MaskRCNNreco.h
+  MRCNNCosmicReco.h )
 
 add_library( ${LIBNAME} SHARED
-  MaskRCNNreco.cxx )
+  MaskRCNNreco.cxx
+  MRCNNCosmicReco.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")

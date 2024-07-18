@@ -17,5 +17,6 @@
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::mrcnnreco;
 #pragma link C++ class larflow::mrcnnreco::MaskRCNNreco+;
+#pragma link C++ class larflow::mrcnnreco::MRCNNCosmicReco+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
