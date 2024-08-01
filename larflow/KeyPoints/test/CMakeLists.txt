@@ -5,7 +5,7 @@ file( GLOB LARLITE_LIBS "$ENV{LARLITE_LIBDIR}/lib*.so" )
 message("larlite libs: ${LARLITE_LIBS}")
 
 # larcv libs used
-set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
+set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVCoreROOTUtil )
 
 # ublarcvapp libs used
 set(UBLARCVAPP_LIBS_USED LArCVApp_MCTools LArCVApp_UBImageMod LArCVApp_UBWireTool LArCVApp_ubdllee LArCVApp_LLCVProcessor LArCVApp_Reco3D LArCVApp_ContourTools LArCVApp_UBWireTool )

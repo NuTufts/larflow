@@ -21,8 +21,8 @@ namespace reco {
    *
    * @param[in] inputfile_name Name of output file for non-larcv and non-larlite reco products
    */
-  KPSRecoManager::KPSRecoManager( std::string inputfile_name, int reco_ver )
-    : larcv::larcv_base("KPSRecoManager"),
+  KPSRecoManager::KPSRecoManager( std::string inputfile_name, int reco_ver, std::string basename )
+    : larcv::larcv_base(basename),
     _save_event_mc_info(false),    
     _ana_output_file(inputfile_name),
     _t_event_elapsed(0),
@@ -57,6 +57,10 @@ namespace reco {
                                 larlite::storage_manager& ioll )
   {
 
+    if ( _reco_version!=1 && _reco_version!=2  ) {
+      LARCV_ERROR() << "Did not set a proper reco version. Choices: [1,2]. Use proper constructor or call set_reco_version(int)." << std::endl;
+    }
+    
     std::clock_t start_event = std::clock_t();
 
     _nu_sel_v.clear(); ///< clear vertex selection variable container
@@ -277,7 +281,7 @@ namespace reco {
     //  * larflow3dhit_ssnetsplit_full_showerhit_tree: out-of-time shower hits
     //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
     _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
-    _splithits_full.set_output_tree_stem_name( "ssnetsplit_full" );
+    _splithits_full.set_output_tree_stem_name( "ssnetsplit_offtrigger" );
     _splithits_full.process_splitonly( iolcv, ioll );
 
     // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
@@ -285,8 +289,8 @@ namespace reco {
     //  * larflow3dhit_ssnetsplit_full_trackhit_tree: out-of-time track hits
     // output:
     //  *  larflow3dhit_full_maxtrackhit_tree: reduced out-of-time track hits
-    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_full_trackhit" );
-    _choosemaxhit.set_output_larflow3dhit_treename( "full_maxtrackhit" );
+    _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_offtrigger_trackhit" );
+    _choosemaxhit.set_output_larflow3dhit_treename( "offtrigger_maxtrackhit" );
     _choosemaxhit.process( iolcv, ioll );
 
     // if we're stopping at this stage for debugging/plotting,
@@ -295,11 +299,11 @@ namespace reco {
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "larmatch" ); ///< save all original hits (now ssnet-labeled)
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxtrackhit_wcfilter" ); ///< final set of in-time track hits
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "maxshowerhit" );         ///< final set of in-time shower hits      
-      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "full_maxtrackhit" );     ///< final set of out-of-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "offtrigger_maxtrackhit" );     ///< final set of out-of-time track hits
 
       // intermediate hits
-      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_trackhit" );      //< pre-max out-of-time track hits
-      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_full_showerhit" );     //< pre-max out-of-time shower hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_offtrigger_trackhit" );      //< pre-max out-of-time track hits
+      ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_offtrigger_showerhit" );     //< pre-max out-of-time shower hits
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_trackhit" );  //< pre-max in-time track hits
       ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_wcfilter_showerhit" ); //< pre-max in-time track hits
       
@@ -374,6 +378,29 @@ namespace reco {
       _kpreco_track_cosmic.set_lfhit_score_index( 14 ); // (v1 larmatch network track-score index in hit)
       _kpreco_track_cosmic.process( ioll );
 
+      // shower keypoints
+      _kpreco_shower_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
+      _kpreco_shower_cosmic.set_output_tree_name( "keypointcosmic" );
+      _kpreco_shower_cosmic.set_sigma( 50.0 );    
+      _kpreco_shower_cosmic.set_min_cluster_size(   50.0, 0 );
+      _kpreco_shower_cosmic.set_max_dbscan_dist( 10.0 );
+      _kpreco_shower_cosmic.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_shower_cosmic.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_shower_cosmic.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_shower_cosmic.set_larmatch_threshold( 0.5 );
+      // process showerstarts
+      _kpreco_shower_cosmic.set_keypoint_type( (int)larflow::kShowerStart );
+      _kpreco_shower_cosmic.set_lfhit_score_index( 14 ); // (v1 larmatch network shower-score index in hit)
+      _kpreco_shower_cosmic.process( ioll );
+      // // process Michel Points
+      // _kpreco_shower_cosmic.set_keypoint_type( (int)larflow::kShowerMichel );
+      // _kpreco_shower_cosmic.set_lfhit_score_index( 15 ); // (v1 larmatch network shower-score index in hit)
+      // _kpreco_shower_cosmic.process( ioll );
+      // // process Delta-Points
+      // _kpreco_shower_cosmic.set_keypoint_type( (int)larflow::kShowerDelta );
+      // _kpreco_shower_cosmic.set_lfhit_score_index( 16 ); // (v1 larmatch network shower-score index in hit)
+      // _kpreco_shower_cosmic.process( ioll );
+      
     }
     else if ( _reco_version==2 ) {
       // we take advantage of the fact that we dont want anything stored by the keypoint reco class
@@ -522,15 +549,15 @@ namespace reco {
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );
 
-    // PRIMITIVE TRACK FRAGMENTS: FULL TRACK HITS
-    LARCV_INFO() << "RUN PROJ-SPLITTER ON: full_maxtrackhit (out-of-time hits)" << std::endl;    
+    // PRIMITIVE TRACK FRAGMENTS: OFF-TRIGGER TRACK HITS
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: offtrigger_maxtrackhit (out-of-time hits)" << std::endl;    
     _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
     //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_dbscan_pars( 5.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
     _projsplitter_cosmic.doClusterVetoHits(false);
-    _projsplitter_cosmic.set_input_larmatchhit_tree_name( "full_maxtrackhit" );
+    _projsplitter_cosmic.set_input_larmatchhit_tree_name( "offtrigger_maxtrackhit" );
     _projsplitter_cosmic.set_fit_line_segments_to_clusters( true ); // can be slow
-    _projsplitter_cosmic.set_output_tree_name("trackprojsplit_full");
+    _projsplitter_cosmic.set_output_tree_name("trackprojsplit_offtrigger");
     _projsplitter_cosmic.process( iolcv, ioll );
 
     // SHOWER 1-KP RECO: make shower using clusters and single keypoint
@@ -558,8 +585,8 @@ namespace reco {
       ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_wcfilter" ); // in-time track clusters
       ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_wcfilter" );         // in-time track clusters
       
-      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_full" ); // out-of-time track clusters
-      ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_full" );         // out-of-time track clusters
+      ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_offtrigger" ); // out-of-time track clusters
+      ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_offtrigger" );         // out-of-time track clusters
       
       ioll.set_data_to_write( larlite::data::kLArFlowCluster, "showerkp" ); // shower in-time clusters
       ioll.set_data_to_write( larlite::data::kPCAxis, "showerkp" );         // shower in-time clusters
@@ -586,9 +613,9 @@ namespace reco {
     // configure to use shower and in-time hits
     std::vector<std::string> input_hit_list
       = {"taggerfilterhit",            // all in-time hits
-         "ssnetsplit_full_showerhit"}; // out-of-time shower hits
+         "ssnetsplit_offtrigger_showerhit"}; // out-of-time shower hits
     std::vector<std::string> input_cluster_list
-      = { "trackprojsplit_full"}; // in-time track clusters
+      = { "trackprojsplit_offtrigger"}; // in-time track clusters
 
     _nuvertexactivity.set_input_hit_list( input_hit_list );    
     //_nuvertexactivity.set_input_cluster_list( input_cluster_list );
@@ -755,6 +782,14 @@ namespace reco {
    */
   void KPSRecoManager::make_ana_file()
   {
+
+    if ( _ana_output_file=="" ) {
+      LARCV_ERROR() << "Did not specify an output file." << std::endl;
+    }
+    
+    
+    LARCV_NORMAL() << "Create Ana Output File: " << _ana_output_file << std::endl;
+    
     _ana_file = new TFile(_ana_output_file.c_str(), "recreate");
     _ana_tree = new TTree("KPSRecoManagerTree","Ana Output of KPSRecoManager algorithms");
 

@@ -108,6 +108,9 @@ namespace reco {
   {
 
     output_pt_v.clear();
+    _cluster_v.clear();
+    _initial_pt_pos_v.clear();
+    _initial_pt_used_v.clear();
     
     _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 
@@ -449,9 +452,9 @@ namespace reco {
     //cluster_pca( cluster );
     
     KPCluster kpc;
-    kpc.center_pt_v = { mean[0], mean[1], mean[2] };
-    kpc.center_pt_rmse_v = { rmse[0], rmse[1], rmse[2] };
-    kpc.center_pt_rsqr_v = { rsqr[0], rsqr[1], rsqr[2] };
+    kpc.center_pt_v = { (float)mean[0], (float)mean[1], (float)mean[2] };
+    kpc.center_pt_rmse_v = { (float)rmse[0], (float)rmse[1], (float)rmse[2] };
+    kpc.center_pt_rsqr_v = { (float)rsqr[0], (float)rsqr[1], (float)rsqr[2] };
     
     return kpc;
   }

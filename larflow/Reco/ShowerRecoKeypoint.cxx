@@ -665,7 +665,8 @@ namespace reco {
       std::vector<float> bbox_pt(3,0);
       // make permutation vector
       int state[3] = { 0, 0, 0 };
-      
+
+      // note after freezing: is this just being repeated 8 times for no reason?
       for (int i=0; i<8; i++) {
 
         // generate bounding box pt
@@ -674,6 +675,8 @@ namespace reco {
           bbox_pt[v] = cluster.bbox_v[v][state[v]];
 
         // test
+	// i think this is bug: this is the AABB point closest to the detector origin ???
+	// I think I should have tested the end pts of the shower first PC axis
         float dist = pointLineDistance( trunk_cand.center_v, alongpca, bbox_pt );
         float proj = 0.;
         for (int v=0; v<3; v++ ) {
@@ -929,6 +932,19 @@ namespace reco {
     LARCV_DEBUG() << "Choosing shower with index=" << best_shower_idx << std::endl;
     
     return best_shower_idx;
+  }
+
+  void ShowerRecoKeypoint::make_ana_products() {
+
+    // we define a number of products
+
+    // 1) number of shower clusters formed
+    // 2) hist: a) true shower energy for those primary missed, 2b) for those primary found.
+    // 3) hist: a) true shower energy for those secondary missed, 2b) for those secondary found.
+    // 4) hist: a) true shower energy for those cosmic missed, 2b) for those cosmic found. (if MC available, not urgent)
+    // 5) hist 2d: size of 'good' cluster with second pass clustering of unused points (purity and eff > 0.8)
+    // 6) 
+    
   }
   
 }

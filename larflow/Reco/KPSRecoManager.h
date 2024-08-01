@@ -75,11 +75,22 @@ namespace reco {
   class KPSRecoManager : public larcv::larcv_base {
   public:
 
-    KPSRecoManager( std::string inputfile="outana_kpsrecomanager.root", int reco_ver=1 );
+    // default constructor
+    KPSRecoManager()
+      : KPSRecoManager( "", 0, "KPSRecoManager")
+    {};
+
+    // set only the inputfile and reco version
+    KPSRecoManager( std::string inputfile, int reco_ver )
+      : KPSRecoManager( inputfile, reco_ver, "KPSRecoManager" )
+    {};
+
+    /// This is the full constructor
+    KPSRecoManager( std::string inputfile, int reco_ver, std::string base_name );
     virtual ~KPSRecoManager();
 
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    
+    void set_reco_version( int ver ) { _reco_version=ver; };
 
     // image mods
     ublarcvapp::EmptyChannelAlgo _badchmaker; ///< bad channel image maker. also finds empty channels.
@@ -88,7 +99,8 @@ namespace reco {
     KeypointReco     _kpreco_nu; ///< reconstruct keypoints from network scores for neutrino class
     KeypointReco     _kpreco_track; ///< reconstruct keypoints from network scores for track class
     KeypointReco     _kpreco_shower; ///< reconstruct keypoints from network scores for shower class
-    KeypointReco     _kpreco_track_cosmic; ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
+    KeypointReco     _kpreco_track_cosmic;  ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
+    KeypointReco     _kpreco_shower_cosmic; ///< reconstruct keypoints from network scores for shower class on wirecell cosmic-tagged spacepoints    
     KeypointFilterByClusterSize _kpfilter; ///< filter out reconstructed keypoints on small clusters
     KeypointFilterByWCTagger _wcfilter; ///< filter out keypoints on wirecell cosmic-tagged pixes
 

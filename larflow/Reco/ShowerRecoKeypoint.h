@@ -28,7 +28,8 @@ namespace reco {
       : larcv::larcv_base("ShowerRecoKeypoint"),
       _ssnet_lfhit_tree_name("showerhit"),
       _larmatch_score_threshold(0.5),
-      _shower_rad_threshold_cm(3.0)
+      _shower_rad_threshold_cm(3.0),
+      _fana_file(nullptr)
       {};    
     virtual ~ShowerRecoKeypoint() {};
     
@@ -120,6 +121,9 @@ namespace reco {
     std::string _ssnet_lfhit_tree_name; ///< name of tree to get input larflow3dhit
     float _larmatch_score_threshold;    ///< threshold of larmatch score to use larflow3dhit
     float _shower_rad_threshold_cm;        ///< radius from trunk to absorb clusters
+    // implicit parametr that seems important
+    // int minsize = 20; ///< minimum size of spacepoint cluster for DB-scan. Did I intend this? This is a big cluster.
+    //   above is at: ShowerRecoKeypoint.cxx:L79
     
   public:
 
@@ -128,7 +132,14 @@ namespace reco {
 
     /** @brief set larmatch score threshold */
     void set_larmatch_score_threshold( float thresh ) { _larmatch_score_threshold = thresh; };
-    
+
+
+  protected:
+
+    // Variables to study impact of parameter choices
+    TFile* _fana_file;
+    void add_analysis_rootfile( TFile* fana ) { _fana_file = fana; };
+    void make_ana_products();
     
   };
   
