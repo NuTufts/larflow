@@ -35,7 +35,6 @@
 #pragma link C++ function larflow::reco::cluster_getcontours+;
 #pragma link C++ class larflow::reco::ProjectionDefectSplitter+;
 #pragma link C++ class larflow::reco::PyLArFlow+;
-#pragma link C++ class larflow::reco::ShowerReco+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
@@ -54,7 +53,6 @@
 #pragma link C++ class larflow::reco::NuVertexMaker+;
 #pragma link C++ class larflow::reco::NuVertexActivityReco+;
 #pragma link C++ class larflow::reco::NuTrackBuilder+;
-#pragma link C++ class larflow::reco::VertexTrackTruthRecoInfo+;
 #pragma link C++ class larflow::reco::TrackdQdx+;
 #pragma link C++ class larflow::reco::NuSelectionVariables+;
 #pragma link C++ class std::vector<larflow::reco::NuSelectionVariables>+;

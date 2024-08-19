@@ -41,6 +41,7 @@ namespace reco {
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
     _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
     _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
+
   }
 
   KPSRecoManager::~KPSRecoManager()
@@ -803,6 +804,9 @@ namespace reco {
     _ana_tree->Branch( "kpc_shower_v", &_event_kpc_shower_v );
     _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
     
+
+    _nu_shower_builder.createMCAnalysisTree( _ana_file );
+
   }
   
   /** @brief is true, save MC event summary */  
@@ -813,7 +817,7 @@ namespace reco {
       _event_mcinfo_maker.bindAnaVariables( _ana_tree );
     }
     _save_event_mc_info = savemc;
-
+    _nu_shower_builder.activateMCanalysisMode( savemc );
   };
 
   /** @brief run Truth-Reco analyses for studying performance **/

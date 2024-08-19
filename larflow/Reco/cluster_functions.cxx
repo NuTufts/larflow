@@ -432,7 +432,7 @@ namespace reco {
     }
     
     std::ofstream o(outfilename.c_str());
-    j >> o;
+    o << j;
     o.close();
   }
 
