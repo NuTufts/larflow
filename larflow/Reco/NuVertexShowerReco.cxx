@@ -1,5 +1,9 @@
 #include "NuVertexShowerReco.h"
 
+#include "larlite/DataFormat/mctruth.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
+#include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
+
 #include "geofuncs.h"
 #include "cluster_functions.h"
 
@@ -12,20 +16,80 @@ namespace reco {
    * @param[in] iolcv LArCV IOManager containing event data
    * @param[in] ioll  larlite storage_manager containing event data
    * @param[inout] nu_candidate_v List of neutrino vertex candidates to which we will append shower objects
+   * @param[inout] nu_cluster_book_v Book-keeping struct, one for each neutrino vertex candidate. tracks how clusters are used.
    * 
    */
   void NuVertexShowerReco::process( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll,
                                     std::vector<NuVertexCandidate>& nu_candidate_v,
-				    std::vector<ClusterBookKeeper>& nu_cluster_book_v )
+				                            std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
     loadClusters(ioll);
-    
+
+    if ( _mc_analysis_mode ) {
+      // if we do MC analysis to study/tune this algorithm,
+      //   we need to determine which is the closest neutrino vertex candidate to the real vertex
+      // get true position of neutrino
+      larlite::event_mctruth* ev_mctruth =
+	      (larlite::event_mctruth*)ioll.get_data(larlite::data::kMCTruth,"generator");
+
+      std::vector<float> true_nu_vtx_pos(4,0); // the true nu interaction position
+      std::vector<float> sce_nu_vtx_pos(4,0);  // the observable nu interaction position, after space charge effects and drift
+
+      const larlite::mctruth& mct = ev_mctruth->front();
+      true_nu_vtx_pos[0] = mct.GetNeutrino().Nu().Trajectory().front().X();
+      true_nu_vtx_pos[1] = mct.GetNeutrino().Nu().Trajectory().front().Y();
+      true_nu_vtx_pos[2] = mct.GetNeutrino().Nu().Trajectory().front().Z();
+      true_nu_vtx_pos[3] = mct.GetNeutrino().Nu().Trajectory().front().T();
+
+      // convert to apparent position
+      sce_nu_vtx_pos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->get_sce_shifted_pos( true_nu_vtx_pos[0],
+										  true_nu_vtx_pos[1],
+										  true_nu_vtx_pos[2] );
+			sce_nu_vtx_pos.resize(4,0);
+      sce_nu_vtx_pos[3] = true_nu_vtx_pos[3];
+
+      LARCV_DEBUG() << "true vtx (" << true_nu_vtx_pos[0] << ","
+                    << true_nu_vtx_pos[1] << ","
+                    << true_nu_vtx_pos[2] << ","
+                    << true_nu_vtx_pos[3] << ")" << std::endl;
+      LARCV_DEBUG() << "sce vtx (" << sce_nu_vtx_pos[0] << ","
+                    << sce_nu_vtx_pos[1] << ","
+                    << sce_nu_vtx_pos[2] << ","
+                    << sce_nu_vtx_pos[3] << ")" << std::endl;
+
+      // find the closest vertex
+      _mcana_index_closest_recovtx = -1;
+      _mcana_closest_recovtx_dist = 1.0e9;
+      for ( int ivtx=0; ivtx<(int)nu_candidate_v.size(); ivtx++ ) {
+	      auto& nuvtx = nu_candidate_v.at(ivtx);
+	      float dist = 0.;
+      	for (int ii=0; ii<3; ii++) {
+	        dist += ( nuvtx.pos[ii]-sce_nu_vtx_pos[ii] )*( nuvtx.pos[ii]-sce_nu_vtx_pos[ii] );
+	      }
+	      dist = sqrt(dist);
+	      if ( dist < _mcana_closest_recovtx_dist ) {
+	        _mcana_index_closest_recovtx = ivtx;
+          _mcana_closest_recovtx_dist = dist;
+	      }
+      }
+      LARCV_DEBUG() << "Closest reco neutrino vertex: "
+		    << " index=" << _mcana_index_closest_recovtx
+		    << " closest distance=" << _mcana_closest_recovtx_dist
+		    << std::endl;
+    }
+
+
     for ( size_t ivtx=0; ivtx<nu_candidate_v.size(); ivtx++) {
       auto& nuvtx = nu_candidate_v.at(ivtx);
       auto& book  = nu_cluster_book_v.at(ivtx);
       LARCV_DEBUG() << "Build Vertex Showers: (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
+      _mc_analysis_saveinfo_for_this_vertex = false; // default to false
+      if ( _mc_analysis_mode && ivtx==_mcana_index_closest_recovtx ) {
+        // if the nu vtx is the closest qualifying vertex, then do the analysis
+        _mc_analysis_saveinfo_for_this_vertex = true;
+      }
       build_vertex_showers( nuvtx, book, iolcv, ioll );
     }
     
@@ -39,6 +103,8 @@ namespace reco {
   {
     // load up the clusters
     LARCV_INFO() << "Number of cluster producers: " << _cluster_producers.size() << std::endl;
+    _showercluster_candidates_v.clear();
+
     for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
       LARCV_INFO() << "Load cluster data with tree name[" << it->first << "]" << std::endl;
       it->second = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, it->first );
@@ -49,7 +115,19 @@ namespace reco {
       }
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it->second->size() << " clusters" << std::endl;
+
+      // store in container
+      for (int icluster=0; icluster<(int)it->second->size(); icluster++) {
+        NuVertexCandidate::VtxCluster_t showercluster;
+        showercluster.producer = it->first;
+        showercluster.type = _cluster_type[ it->first ];
+        showercluster.index = icluster;
+        _showercluster_candidates_v.push_back( showercluster );
+      }
+      
     }
+
+    LARCV_INFO() << "Number of clusters registered: " << _showercluster_candidates_v.size() << std::endl;
   }    
 
   /**
@@ -60,6 +138,7 @@ namespace reco {
    * then we absorb nearby fragments within a cone of the closest fragment
    * 
    * @param[in] nuvtx Neutrino candidate vertex
+   * @param[inout] nuclusterbook Tracks how the track and shower clusters in the event are used by the neutrino vertex candidate.
    * @param[in] iolcv LArCV Event data
    * @param[in] ioll  larlite event data
    *
@@ -69,8 +148,18 @@ namespace reco {
 						 larcv::IOManager& iolcv, 
 						 larlite::storage_manager& ioll ) 
   {
+    // We build shower prongs using the neutrino vertex as a seed.
+    // The neutrino vertex provides a guide for which shower fragment might be
+    //  the beginning or "trunk" of a shower. The vertex also provides guidance
+    //  as to what direction the shower is flowing, i.e. the shower should point
+    //  away from the neutrino vertex.
+    // To start, we need to gather information on potential shower prongs.
+    //  These prongs represent the beginning of a shower.
+    // We use the following struct to represent shower prongs and to store
+    //  various information about them.
+    // The information in the struct is used to sort the prongs and
+    //  set the priority for which prongs will seed the beginning of a shower.
 
-    // we want to sort seeding priority
     struct ProngRank_t {
       std::string producer;
       int prong_idx;
@@ -83,6 +172,7 @@ namespace reco {
       ProngRank_t( std::string p, int pi, int ci, float s )
         : producer(p), prong_idx(pi), container_idx(ci), score(s)
       {};
+      // the following operator is used to sort the prongs by score for seeding priority
       bool operator<( const ProngRank_t& rhs ) {
         // threshold on hits, else rank on hits        
         if ( score<rhs.score ) return true;
@@ -90,25 +180,54 @@ namespace reco {
       };
     };
 
+    // these are parameters controlling how the shower prongs are formed and built
+    // we need to optimize them
     const float r_mollier = 9.04; // cm, liquid argon
     const float r_trunk   = 3.0;
     const float tau_startpt = 3.0; // cm
-
     const float max_showerpt_dist = 200.0;
     const float max_showerpt_d2 = max_showerpt_dist*max_showerpt_dist;
     
-    std::vector<ProngRank_t> seed_rank_v; //< rank how we will seed the hits
+    // If we perform MC analysis to tune how this code works, we first need to compile info 
+    //  on true shower prongs. We want to know how well our reco prongs overlap and reconstruct
+    //  the true shower prongs.
     
-    for ( int iprong=0; iprong<(int)nuvtx.cluster_v.size(); iprong++) {
-        
-      auto const& vtxcluster = nuvtx.cluster_v[iprong];
+    if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
 
+      if ( _mcpg )
+	      delete _mcpg;
+
+      LARCV_DEBUG() << " INITIALIZE MC ANALYSIS FOR SHOWER RECO STUDY: build MCPixelPGraph" << std::endl;
+      
+      // we run the MCPixelPGraph to get truth information
+      _mcpg = new ublarcvapp::mctools::MCPixelPGraph();
+      _mcpg->set_verbosity( "info" );
+      _mcpg->buildgraph( iolcv, ioll );
+
+      // initialization: clear container for ShowerRecoInfo_t
+      _map_prongindex_to_mcanainfo.clear();
+      LARCV_DEBUG() << "MCPG and MC Analysis Mode Ready." << std::endl;
+      
+    }//end of mcanalysis mode: initialization, finding the vertex to evaluate
+    
+
+    // the following is a container to hold the prongs
+    // we will sort this container later
+    std::vector<ProngRank_t> seed_rank_v;
+    
+    //for ( int iprong=0; iprong<(int)nuvtx.cluster_v.size(); iprong++) {
+    // loop over entire shower cluster set in the event
+    for ( int iprong=0; iprong<(int)_showercluster_candidates_v.size(); iprong++) {
+        
+      auto const& vtxcluster = _showercluster_candidates_v.at(iprong);
       // -log(exp[-r/tau]) = r/tau
+      
       // only deal with showers
       if ( vtxcluster.type!=NuVertexCandidate::kShower && vtxcluster.type!=NuVertexCandidate::kShowerKP ) {
         continue;
       }
 
+      // check to make sure we aren't testing a duplicate cluster
       bool found = false;
       //std::cout << "check seed: " << vtxcluster.producer << " " << vtxcluster.index << std::endl;
       for ( auto& seed : seed_rank_v ) {
@@ -120,39 +239,105 @@ namespace reco {
       }
 
       if ( found ) {
-        //std::cout << " cluster duplicate." << std::endl;
+        LARCV_INFO() << "ShowerProng[" << iprong << "] is a cluster duplicate "
+                    << "(" << vtxcluster.producer << ", " << vtxcluster.index << ")"
+                    << std::endl;
         continue;
       }
 
+      // get the cluster of hits from the event container
+      // (note: who made these?)
       const larlite::larflowcluster& lfcluster =
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
 
+      // if we are running the MC analysis, we try to match this prong to a true shower trunk
+      if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+        LARCV_INFO() << "run mcanalysis for prong" << std::endl;
+        // convert larlite::cluster into larflow::reco::cluster_t
+        larflow::reco::cluster_t showercluster;
+        showercluster.points_v.reserve( lfcluster.size() );
+        for (int ii=0; ii<(int)lfcluster.size(); ii++) {
+          std::vector<float> pt = { lfcluster[ii][0], lfcluster[ii][1], lfcluster[ii][2] };
+          showercluster.points_v.push_back( pt );
+        }
+        NuVertexShowerReco::RecoShowerInfo_t showerinfo;
+        _gatherTruthShowerFeatures( showercluster, nuvtx, showerinfo );
+        _map_prongindex_to_mcanainfo[ iprong ] = showerinfo;
+      }
+      
 
       // define shower start, dir, ll-score
       std::vector<float> shower_start;
       std::vector<float> shower_dir;
-      float shower_ll;
-      _make_trunk_cand( nuvtx.pos,
-                        lfcluster,
-                        shower_start,
-                        shower_dir,
-                        shower_ll );
+      float shower_ll = 0.0;
+      int ntrunk_clusters = _make_trunk_cand( nuvtx.pos,
+                            lfcluster,
+                            shower_start,
+                            shower_dir,
+                            shower_ll );
 
+      if (ntrunk_clusters==0){
+        // the shower cluster wasn't well-formed enough to return a trunk
+        LARCV_INFO() << "ShowerProng[" << iprong << "] cannot build trunk." << std::endl;
+        if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+          _map_prongindex_to_mcanainfo[ iprong ]._reco_outcome = kFailPreCuts;
+          LARCV_INFO() << " prong ground truth: " <<  _map_prongindex_to_mcanainfo[ iprong ]._correct_outcome << std::endl;
+        }
+        continue; // to next shower cluster prong candidate
+      }
+
+      // we want to calculate parameters for deciding to use as a starting shower prong
+      // maybe we train an xgboost model to turn several variables into a single score
+
+      // making an artifical end point (probably should use pca-end points)
       std::vector<float> shower_end(3,0);
       for (int i=0; i<3; i++)
         shower_end[i] = shower_start[i] + 10.0*shower_dir[i];
       
       // // define shower axis -- start point to vertex
       std::vector<float> axis(3,0);
-      float dist = 0.;
+      float a_dist = 0.;
       for (int i=0; i<3; i++) {
         axis[i] = shower_start[i]-nuvtx.pos[i];
-        dist += axis[i]*axis[i];
+        a_dist += axis[i]*axis[i];
       }
-      if ( dist>0 ) {
-        dist = sqrt(dist);
+      if ( a_dist>0 ) {
+        a_dist = sqrt(a_dist);
         for (int i=0; i<3; i++)
-          axis[i] /= dist;
+          axis[i] /= a_dist;
+      }
+
+      // impact parameter
+      float b_impact_par = larflow::reco::pointLineDistance<float>( shower_start, shower_end, nuvtx.pos );
+
+      // cosine between axis and shower_dir
+      float c_cosine = 0.;
+      for (int v=0; v<3; v++) {
+        c_cosine += axis[v]*shower_dir[v];
+      }
+
+      // get the pixel sum for the cluster
+      larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
+      std::vector<float> cluster_pixsum_v = _get_cluster_pixsum( ev_adc->as_vector(), lfcluster );
+      // how to choose pixsum to eval?
+      float d_pixsum = cluster_pixsum_v[2]*0.0162;
+      if ( d_pixsum < 5.0 ) {
+        d_pixsum = ( cluster_pixsum_v[0] > cluster_pixsum_v[1] ) ? cluster_pixsum_v[0]*0.0162 : cluster_pixsum_v[1]*0.0162;
+      }
+
+      // update the mc ana info
+      if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+        auto it_mcana = _map_prongindex_to_mcanainfo.find( iprong );
+        if ( it_mcana!=_map_prongindex_to_mcanainfo.end() ) {
+          auto& mcana_info = it_mcana->second;
+          mcana_info._recoshower_dist2vtx  = a_dist;
+          mcana_info._recoshower_impactpar = b_impact_par;
+          mcana_info._recoshower_cosine    = c_cosine;
+          mcana_info._recoshower_pixsum_MeV = d_pixsum;
+          mcana_info._recoshower_trunkdir = std::vector<float>{ 0, 0, 0};
+          for (int v=0; v<3; v++)
+            mcana_info._recoshower_trunkdir[v] = shower_dir[v];
+        }
       }
 
       // std::vector<float> axis_start(3,0);
@@ -184,27 +369,33 @@ namespace reco {
       // if ( lfcluster.size()>0 )
       //   score_ll /= float(lfcluster.size());
 
+      // simplified score just based on distance to vertex
       float score_ll = 0;
       if ( lfcluster.size()>10 ) {
-        score_ll = dist;
+        score_ll = a_dist;
       }
       else {
-        score_ll = 100.0 + dist; // blerg
+        score_ll = 10000.0 + a_dist; // blerg
       }
 
       ProngRank_t rank( vtxcluster.producer, iprong, vtxcluster.index, score_ll );
-      rank.dist2vtx = dist;
+      rank.dist2vtx = a_dist;
       rank.axis = shower_dir;
       rank.axis_start = shower_start;
       rank.axis_end   = shower_end;
+
       seed_rank_v.push_back( rank );
     }
 
     std::sort( seed_rank_v.begin(), seed_rank_v.end() );
 
+    LARCV_INFO() << "===============================" << std::endl;
+    LARCV_INFO() << " Start Building Showers" << std::endl;
+    LARCV_INFO() << "===============================" << std::endl;
+
     // now we can begin to build out a shower
     // we need to track which clusters we used up
-    std::vector<int> prong_used_v( nuvtx.cluster_v.size(), 0 );
+    std::vector<int> prong_used_v( _showercluster_candidates_v.size(), 0 );
     // the other clusters
     std::map< std::string, std::vector<int> > cluster_used_v;
     for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++  ) {
@@ -222,31 +413,52 @@ namespace reco {
         continue;
 
       // use the cluster to seed
-      auto const& vtxcluster = nuvtx.cluster_v[prongidx];
+      auto const& vtxcluster = _showercluster_candidates_v.at(prongidx);
+
+      // if doing mcanalysis, get it's ShowerRecoInfo_t struct
+      NuVertexShowerReco::RecoShowerInfo_t* pmcinfo = nullptr;
+      if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+        auto it_mcana = _map_prongindex_to_mcanainfo.find( prongidx );
+        if ( it_mcana!=_map_prongindex_to_mcanainfo.end() )
+          pmcinfo = &(it_mcana->second);
+      }
 
       // check we havent already absorbed the cluster already
       if ( cluster_used_v.find( vtxcluster.producer )!=cluster_used_v.end() ) {
-        if ( cluster_used_v[vtxcluster.producer].at( vtxcluster.index )!=0 )
+        if ( cluster_used_v[vtxcluster.producer].at( vtxcluster.index )!=0 ) {
+          // looks like the cluster is already being used
+          if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex && pmcinfo ) {
+            pmcinfo->_reco_outcome = kSubCluster;
+          }
           continue;
+        }
       }
       // using cluster as seed
       cluster_used_v[vtxcluster.producer][vtxcluster.index] = 1;
+      LARCV_INFO() << "ShowerProng[" << prongidx << "] used as shower start." << std::endl;
+      if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+        pmcinfo->_reco_outcome = kAccept; // as starting prong
+        LARCV_DEBUG() << "  Ground Truth=" << pmcinfo->_correct_outcome << std::endl;
+      }
       
       const larlite::larflowcluster& lfcluster =
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
 
-      LARCV_DEBUG() << "RankedProng[" << vtxcluster.producer << "," << rankedprong.container_idx << ",prong " << prongidx << "] "
+      LARCV_INFO() << "ShowerProng[" << vtxcluster.producer << "," << rankedprong.container_idx << ",prong " << prongidx << "] "
                     << " score=" << rankedprong.score
                     << " npts=" << lfcluster.size()
                     << std::endl;
       
-      // absorb hits into shower_hit_v
+      // This cluster will become the basis for a potential new shower prong.
+      // The container, shower_hit_v, below will represent this new shower object, 
+      //   which is a cluster of 3d hits
       larlite::larflowcluster shower_hit_v;
+      // absorb hits into shower_hit_v
       for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
         shower_hit_v.push_back( lfcluster[ihit] );
       }
 
-      // loop over trunk clusters, find those along the shower axis.
+      // loop over TRACK clusters, find those along the shower axis.
       // we are assuming this is ssnet mislabeling
       int ntrunk_hits_added = 0;
       std::vector<float> track_s_v;
@@ -289,7 +501,7 @@ namespace reco {
         if ( max_gap_s < fabs(track_s_v[i]-track_s_v[i-1]) )
           max_gap_s = fabs(track_s_v[i]-track_s_v[i-1]);
       }
-      LARCV_DEBUG() << "Number of trunk hits found: " << ntrunk_hits_added << " max gap=" << max_gap_s << std::endl;      
+      LARCV_DEBUG() << "Number of TRACK hits found: " << ntrunk_hits_added << " max gap=" << max_gap_s << std::endl;      
       if ( max_gap_s<3.0 ) {
         for (auto& hit : trunk_hit_v )
           shower_hit_v.push_back(hit);
@@ -344,6 +556,9 @@ namespace reco {
             float frac_within_cone = nhits_within_cone/float(shower_lfcluster.size());
             if ( frac_within_cone>0.5 ) {
               // add the shower cluster
+              LARCV_INFO() << "ShowerProng[" << ishower << "] added to ShowerProng[" << prongidx << "] "
+                          << " frac_within_cone=" << frac_within_cone 
+                          << std::endl;
               for ( auto const& showerhit : shower_lfcluster )
                 shower_hit_v.push_back( showerhit );
               cluster_used_v[it->first][ishower] =  1;
@@ -386,21 +601,23 @@ namespace reco {
 
     }//end of seed prong loop
 
+    LARCV_INFO() << "Number of showers added to vertex: " << nuvtx.shower_v.size() << std::endl;
+
     // book the clusters we used
     // loop over pairs of (producer, used vector)
     for ( auto itc=cluster_used_v.begin(); itc!=cluster_used_v.end(); itc++ ) {
       for (size_t idx=0; idx<itc->second.size(); idx++) {
-	if ( itc->second[idx]>0 ) {
-	  // this cluster was used by this vertex
-	  const larlite::larflowcluster& lfcluster =
-	    ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, itc->first))->at( idx );
-	  if ( lfcluster.matchedflash_idx>=0 && lfcluster.matchedflash_idx<nuclusterbook.cluster_status_v.size() ) {
-	    nuclusterbook.cluster_status_v[ lfcluster.matchedflash_idx ] = 1; // book it!
-	  }
-	  else {
-	    LARCV_WARNING() << "Used cluster index outside the cluster book range!" << std::endl;
-	  }
-	}
+        if ( itc->second[idx]>0 ) {
+          // this cluster was used by this vertex
+          const larlite::larflowcluster& lfcluster =
+            ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, itc->first))->at( idx );
+          if ( lfcluster.matchedflash_idx>=0 && lfcluster.matchedflash_idx<nuclusterbook.cluster_status_v.size() ) {
+            nuclusterbook.cluster_status_v[ lfcluster.matchedflash_idx ] = 1; // book it!
+          }
+          else {
+            LARCV_WARNING() << "Used cluster index outside the cluster book range!" << std::endl;
+          }
+        }
       }
     }
     
@@ -414,8 +631,14 @@ namespace reco {
    * @param[out] shower_start Start of defined shower trunk.
    * @param[out] shower_dir   Direction of defined shower trunk.
    * @param[out] shower_ll    Score for choosing best trunk for shower cluster.
+   *
+   * What we do is fit the points within the cluster closest to the neutrino vertex position (pos).
+   * The points we fit for the trunk are no more than an addition 3.5 cm
+   *   over the minimum distance of the cluster points to the vertex.
+   * We also provide a score for how "straight" the trunk is and how well it fits within a cone.
+   *   this has never been tuned ...
    */
-  void NuVertexShowerReco::_make_trunk_cand( const std::vector<float>& pos,
+  int NuVertexShowerReco::_make_trunk_cand( const std::vector<float>& pos,
                                              const larlite::larflowcluster& lfcluster,
                                              std::vector<float>& shower_start,
                                              std::vector<float>& shower_dir,
@@ -447,7 +670,9 @@ namespace reco {
 
     std::vector<cluster_t> trunk_cand_v;
     larflow::reco::cluster_spacepoint_v( close_hit_v, trunk_cand_v );
-    
+    if ( trunk_cand_v.size()==0 ) {
+      return 0;
+    }    
 
     struct CandRank_t {
       int idx;
@@ -587,8 +812,333 @@ namespace reco {
     shower_dir   = rank_v.front().dir;
     shower_ll    = rank_v.front().llscore;
 
+    return rank_v.size();
+
+  }//end of NuVertexShowerReco::_make_trunk_cand
+
+  /**
+   * @brief here we record both truth-based and reco-based quantities to evaluate/tune 
+   *        the shower to neutrino vertex attachment algorithm
+   *
+   */
+  void NuVertexShowerReco::_gatherTruthShowerFeatures( larflow::reco::cluster_t& prong,
+						    larflow::reco::NuVertexCandidate& vtx,
+                NuVertexShowerReco::RecoShowerInfo_t& showerinfo )
+  {
+    // What we want to know?
+    // Ultimately, should we attach the shower prong to the vertex, treating it like a trunk
+    // right now the criteria is:
+    // prong.impactdist<20.0 && prong.nhits>10
+    // does this make sense? can we do something more sophisticated? (e.g. xgboost)
+    
+    // we call this before making pre-cuts on the shower
+    // this is based on the number of hits essentially.
+    // we ask: how well are reconstructing the size of the cluster?
+    // does this reco prong correlate to a detectable trunk? a fragment? partially the trunk?
+
+    // define a struct to hold the information we want to gather for each reco prong
+    struct TrueShowerInfo_t {
+      int geant_track_id;
+      const std::vector< larcv::Image2D >* pix_mask_v; //< we are going to crop out the image per plane around the trunk
+      std::vector< float > pix_sum_v; //< the pixel sum per plane
+      TrueShowerInfo_t()
+      : geant_track_id(-1),
+      pix_mask_v(nullptr)
+      {};
+    };
+
+    std::vector< TrueShowerInfo_t > trueprong_v;
+
+    // first we loop througuh the true shower in the events
+    bool exclude_neutrons = true;
+    auto pnode_v = _mcpg->getNeutrinoParticles( exclude_neutrons );
+    for (int inode=0; inode<(int)pnode_v.size(); inode++) {
+      auto& pnode = pnode_v.at(inode);
+      if ( pnode->pid==22 || std::abs(pnode->pid)==11 ) {
+	      // photons
+	      auto const& pointlist = _mcpg->getTruePhotonTrunk3DPoints( *pnode );
+	      // check if this particle node has a photon trunk
+	      if ( pointlist.size()==0 )
+	        continue;
+
+	      TrueShowerInfo_t prongtruth;
+	      prongtruth.geant_track_id = pnode->tid;
+	      prongtruth.pix_sum_v  = _mcpg->getTruePhotonTrunkPlanePixelSums( pnode->tid );
+	      prongtruth.pix_mask_v = &(_mcpg->getTruePhotonTrunkPlaneImage2DMasks( pnode->tid ));
+	      trueprong_v.emplace_back( std::move( prongtruth ) );
+      } // if gamma node      
+    }// end of loop over nodes of particles recorded by the simulation
+
+    // we have to convert the 3d positions of the shower fragment to pixel locations
+    typedef std::set< std::pair<int,int> > PixelSet_t;
+    std::vector< PixelSet_t > plane_pixelsets_v(3);
+    for (int ihit=0; ihit<(int)prong.points_v.size(); ihit++) {
+      auto const& pt = prong.points_v.at(ihit);
+      std::vector<float> imgpos =
+	      ublarcvapp::mctools::MCPos2ImageUtils::Get()->to_imagepos( pt[0], pt[1], pt[2], 0.0 );
+      // imagepos is (u,v,y,tick)
+      if ( imgpos[3]<=0 ) {
+	      // if the tick equals to 0000, then 3d point outside tpc
+	      continue;
+      }
+      
+      for (int p=0; p<3; p++) {
+	      plane_pixelsets_v[p].insert( std::pair<int,int>( (int)imgpos[p], (int)imgpos[3] ) );
+      }
+    }//end of pixel gathering portion
+    // Now we loop over the shower fragments and calculate variables for them
+    float max_frac = 0;
+    int max_frac_index = -1;
+    int max_frac_trackid = -1;
+    int max_frac_plane = -1;
+    float max_frac_masksum = 0.;
+    float max_frac_coverage = 0.;
+    for (int iphoton=0; iphoton<(int)trueprong_v.size(); iphoton++) {
+      auto const& trueprong = trueprong_v.at(iphoton);
+      
+      // get the plane with the most pixels
+      int maxplane = -1;
+      int maxplane_sum = 0;
+      for (int p=0; p<(int)trueprong.pix_mask_v->size(); p++) {
+	      const larcv::Image2D& maskcrop = trueprong.pix_mask_v->at(p);
+	      float masksum = 0.;
+	      for ( auto& mask : maskcrop.as_vector()  )
+	        masksum += mask;
+	      if (masksum>maxplane_sum) {
+	        maxplane_sum = masksum;
+	        maxplane = p;
+	      }
+      }
+
+      // completely empty
+      if ( maxplane==-1 || maxplane_sum<=0.0 )
+	      continue;
+      
+      // ok now compare reco shower pixelset to ours in the larcv images
+      // we loop over the reco prong's pixels
+      int num_on_mask = 0;
+      const larcv::Image2D& maxtruecrop = trueprong.pix_mask_v->at(maxplane);
+      for ( auto& pix : plane_pixelsets_v[ maxplane ] ) {
+	      float wire = (float)pix.first;
+	      float tick = (float)pix.second;
+	      if ( maxtruecrop.meta().contains( wire,tick ) ) {
+          int pixrow = maxtruecrop.meta().row( tick );
+          int pixcol = maxtruecrop.meta().col( wire );
+	        if ( maxtruecrop.pixel( pixrow, pixcol, __FILE__, __LINE__ )>0.5 )
+	          num_on_mask++;
+	      }
+      }
+      // calculate the fraction of reco fragment's pixels belong to the true prong
+      float frac = float(num_on_mask)/float(plane_pixelsets_v[maxplane].size());
+      if ( frac>0.0 && frac > max_frac ) {
+	      max_frac = frac;
+	      max_frac_index = iphoton;
+	      max_frac_trackid = trueprong.geant_track_id;
+	      max_frac_coverage = float(num_on_mask)/float(maxplane_sum);
+	      max_frac_plane = maxplane;
+      }
+    }//end of loop over true photons
+
+    if ( max_frac_index>=0 ) {
+      LARCV_DEBUG() << "Shower Reco fragment matched to true photon trunk (trackid=" << max_frac_trackid << "): "
+		    << " frac pixel overlap=" << max_frac
+		    << std::endl;
+      LARCV_DEBUG() << "True prong pixelsums: ("
+		    << trueprong_v.at( max_frac_index ).pix_sum_v[0] << ", "
+		    << trueprong_v.at( max_frac_index ).pix_sum_v[1] << ", "
+		    << trueprong_v.at( max_frac_index ).pix_sum_v[2] << ")"
+		    << std::endl;
+    }
+    else {
+      LARCV_DEBUG() << "Shower Reco fragment unmatched to true photon trunks" << std::endl;
+      // fill sentinal values and return
+      showerinfo._trueprong_trackid   = -1;  ///< unmatched sentinal valuesthe true prong that had the highest pixel overlap with the reco fragment's pixels
+      showerinfo._frac_truetrunk      = 0.; ///< the fraction of the true prong's pixels covered by the reco fragment
+      showerinfo._frac_recopurity     = -1.0;          ///< how much of the reco fragment pixels overlap with the matched true prong
+      showerinfo._cluster_pixsum_MeV  = 0.;
+      showerinfo._true_trunkdir       = std::vector<float>{ 0, 0, 0 };
+      showerinfo._trueprong_dist2vtx  = -1.0;
+      showerinfo._recoshower_dist2vtx = -1.0;
+      showerinfo._recoshower_impactpar = -1.0;
+      showerinfo._recoshower_cosine    = -2.0;
+      showerinfo._recoshower_pixsum_MeV = -1.0;
+      showerinfo._recoshower_trunkdir = std::vector<float>{ 0, 0, 0};
+      // we do not match to any true photon trunks
+      // so the true outcome for initial attachment should to not attach
+      showerinfo._correct_outcome = 0;
+      showerinfo._reco_outcome = -1; // not yet determined
+      return;
+    }
+
+    // get the mcpg node, containing info about the true prong photon
+    auto const& pnode_matched_trunk = _mcpg->findTrackID( max_frac_trackid );
+
+    // get the true start point of the prong, in 3d
+    std::vector<float> trueprong_first_edep_pos = pnode_matched_trunk->first_edep_pos;
+
+    // we calculate the true trunk direction
+    std::vector<float> trueprong_dir(3,0.0);
+    auto const& ptlist = _mcpg->getTruePhotonTrunk3DPoints( max_frac_trackid );
+
+    // we need to put the points into the cluster struct
+    larflow::reco::cluster_t trueprong_cluster;
+    trueprong_cluster.points_v.reserve( ptlist.size() );
+    for (auto const& pt : ptlist ) {
+      trueprong_cluster.points_v.push_back( pt );
+    }
+
+    try {
+      // run pca code to calculate principle component of 3d points
+      larflow::reco::cluster_pca( trueprong_cluster );
+
+      // extract the ends of a line segment parallel to the 1st pc component that bounds the 3d points
+      // nuvtx.pos is a reference point, meant to ensure that the pc axis line segment
+      // has the closest point first.
+      larlite::pcaxis clust_axis
+	      = larflow::reco::cluster_make_pcaxis_wrt_point( trueprong_cluster, vtx.pos );
+      float trueprong_mag = 0.;
+      for (int v=0; v<3; v++) {
+        trueprong_dir[v] = (clust_axis.getEigenVectors().at(4)[v]-clust_axis.getEigenVectors().at(3)[v]);
+        trueprong_mag += trueprong_dir[v]*trueprong_dir[v];
+      }
+      trueprong_mag = sqrt(trueprong_mag);
+      if ( trueprong_mag>0.0 ) {
+      for (int v=0; v<3; v++)
+        trueprong_dir[v] /= trueprong_mag;
+      }
+    }
+    catch (...) {
+      // problem running pca code. we define the trunk direction as the direction between the closest and first point from the trunk start
+      float maxdist = 0.0;
+      std::vector<float> maxpt(3,0.0);
+      for ( auto const& pt : ptlist ) {
+        float dist = 0.;
+        for (int v=0; v<3; v++) {
+          dist += (pt[v]-trueprong_first_edep_pos[v])*(pt[v]-trueprong_first_edep_pos[v]);
+        }
+        if ( dist > maxdist )  {
+          maxpt = pt;
+          maxdist = dist;
+        }
+      }
+      maxdist = sqrt(maxdist);
+      if ( maxdist>0.0 ) {
+        for (int v=0; v<3; v++) {
+          trueprong_dir[v] = (maxpt[v]-trueprong_first_edep_pos[v])/maxdist;
+        }
+      }
+    }
+
+    // calculate distance between true prong and reco vertex
+    float dist2vtx = 0.;
+    for (int v=0; v<3; v++) {
+      float dd = trueprong_first_edep_pos[v]-vtx.pos[v];
+      dist2vtx += dd*dd;
+    }
+    dist2vtx = sqrt(dist2vtx);
+
+    // put info into the struct assigned to each reco fragment
+    showerinfo._trueprong_trackid   = max_frac_trackid;  ///< the true prong that had the highest pixel overlap with the reco fragment's pixels
+    showerinfo._frac_truetrunk      = max_frac_coverage; ///< the fraction of the true prong's pixels covered by the reco fragment
+    showerinfo._frac_recopurity     = max_frac;          ///< how much of the reco fragment pixels overlap with the matched true prong
+    showerinfo._cluster_pixsum_MeV  = trueprong_v.at( max_frac_index ).pix_sum_v[max_frac_plane]*0.0162;
+    showerinfo._true_trunkdir       = trueprong_dir;
+    showerinfo._trueprong_dist2vtx  = dist2vtx;
+    showerinfo._recoshower_dist2vtx = -1.0;
+    showerinfo._recoshower_impactpar = -1.0;
+    showerinfo._recoshower_cosine    = -2.0;
+    showerinfo._recoshower_pixsum_MeV = -1.0;
+    showerinfo._recoshower_trunkdir = std::vector<float>{ 0, 0, 0};
+    // what is the "ground truth correct" outcome?
+    // set detectable threshold
+    if ( showerinfo._cluster_pixsum_MeV>10.0 )
+      showerinfo._correct_outcome = 1;
+    else
+      showerinfo._correct_outcome = 0;
+    
+  }//end of _gatherTruthShowerFeatures
+  
+  void NuVertexShowerReco::createMCAnalysisTree( TFile* outfile )
+  {
+    outfile->cd();
+    _mcana_per_recoshower_tree = new TTree("nushowerbuilder_mcana_tree", "MC Analysis to evaluate and tune NuShowerBuilder Algorithm");
+
   }
 
-  
+  void NuVertexShowerReco::_fill_mcanalysis_tree()
+  {
+
+    if ( !_mc_analysis_mode )
+      return;
+
+    // transfer variables for each reco shower fragment that was evaluated
+    for ( auto it : _map_prongindex_to_mcanainfo ) {
+      int nuvtx_icluster = it.first;
+      auto& mcanainfo = it.second;
+
+      _mcana_trueprong_pixsum_MeV   = mcanainfo._cluster_pixsum_MeV;
+      _mcana_trueprong_efficiency   = mcanainfo._frac_truetrunk;
+      _mcana_trueprong_dist2vtx     = mcanainfo._trueprong_dist2vtx;
+      _mcana_recofragment_purity    = mcanainfo._frac_recopurity;
+      _mcana_recofragment_dist2vtx  = mcanainfo._recoshower_dist2vtx;
+      _mcana_recofragment_impactpar = mcanainfo._recoshower_impactpar;
+      _mcana_recofragment_cosine    = mcanainfo._recoshower_cosine;
+      _mcana_recofragment_pixsum    = mcanainfo._recoshower_pixsum_MeV;
+      _mcana_reco_outcome           = mcanainfo._reco_outcome;
+      _mcana_groundtruth_outcome    = mcanainfo._correct_outcome;
+      for (int v=0; v<3; v++) {
+        _mcana_trueprong_trunkdir[v]    = mcanainfo._true_trunkdir[v];
+        _mcana_recofragment_trunkdir[v] = mcanainfo._recoshower_trunkdir[v];
+      }
+
+      // save the values of the variables to the tree 
+      _mcana_per_recoshower_tree->Fill();
+    }
+    
+  }//end of NuVertexShowerReco::_gatherTruthShowerFeatures
+
+  std::vector<float> NuVertexShowerReco::_get_cluster_pixsum( const std::vector<larcv::Image2D>& adc_v,
+                                                              const larlite::larflowcluster& lfcluster ) 
+  {
+    std::vector<float> pixsum_v( adc_v.size(), 0.0 );
+    std::vector< std::set< std::pair<int,int> > > pixvisited_v;
+
+    for (auto const& pt : lfcluster ) {
+      std::vector<float> imgpos =
+      ublarcvapp::mctools::MCPos2ImageUtils::Get()->to_imagepos( pt[0], pt[1], pt[2], 0.0 );
+
+      for (int p=0; p<(int)adc_v.size(); p++) {
+        auto const& img = adc_v.at(p);
+        const larcv::ImageMeta& meta = img.meta();
+
+        if ( meta.contains( imgpos[p], imgpos[3] ) ) {
+          int pixrow = meta.row( imgpos[3] );
+          int pixcol = meta.col( imgpos[p] );
+
+          for (int dr=-1; dr<=1; dr++) {
+            for (int dc=-1; dc<=1; dc++) {
+              int r = pixrow + dr;
+              int c = pixcol + dc;
+
+              std::pair<int,int> pix(r,c);
+              auto it_pix = pixvisited_v[p].find( pix );
+              if ( it_pix==pixvisited_v[p].end() ) {
+                float wire = meta.pos_x(c);
+                float tick = meta.pos_y(r);
+                if ( meta.contains(wire,tick) ) {
+                  pixsum_v[p] += img.pixel(r,c, __FILE__, __LINE__ );
+                }
+                pixvisited_v[p].insert( pix );
+              }
+
+            }//end of col loop
+          }//end of row loop
+        }//if center pixel is inside the image
+      }//end of loop over plane
+    }//end of loop over cluster hits
+
+    return pixsum_v;
+  }
+
 }
 }

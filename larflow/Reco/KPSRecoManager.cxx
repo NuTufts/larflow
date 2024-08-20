@@ -494,13 +494,13 @@ namespace reco {
       _event_kpc_shower_v.clear();
       _event_kpc_cosmic_v.clear();      
       for ( auto& kpc : _kpreco_nu.output_pt_v )
-	_event_kpc_nu_v.push_back( kpc );
+	      _event_kpc_nu_v.push_back( kpc );
       for ( auto& kpc : _kpreco_track.output_pt_v  )
-	_event_kpc_track_v.push_back( kpc );
+	      _event_kpc_track_v.push_back( kpc );
       for ( auto& kpc : _kpreco_shower.output_pt_v  )
-	_event_kpc_shower_v.push_back( kpc );
+	      _event_kpc_shower_v.push_back( kpc );
       for ( auto& kpc : _kpreco_track_cosmic.output_pt_v  )
-	_event_kpc_cosmic_v.push_back( kpc );
+	      _event_kpc_cosmic_v.push_back( kpc );
     }
     
   }
@@ -677,8 +677,8 @@ namespace reco {
     // _nu_shower_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
 
     // simpler, cone-based reco
-    //_nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
+    _nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
+    //_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
     _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
@@ -805,7 +805,7 @@ namespace reco {
     _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
     
 
-    _nu_shower_builder.createMCAnalysisTree( _ana_file );
+    _nuvertex_shower_reco.createMCAnalysisTree( _ana_file );
 
   }
   
@@ -817,7 +817,7 @@ namespace reco {
       _event_mcinfo_maker.bindAnaVariables( _ana_tree );
     }
     _save_event_mc_info = savemc;
-    _nu_shower_builder.activateMCanalysisMode( savemc );
+    _nuvertex_shower_reco.activateMCanalysisMode( savemc );
   };
 
   /** @brief run Truth-Reco analyses for studying performance **/

@@ -253,7 +253,8 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         traces_v += mctrack_v
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"),
-                                                                   return_origtraj=False,
+                                                                   return_origtraj_cone=False,
+                                                                   return_detprofile=False,
                                                                    return_dirplot=False )
         traces_v += mcshower_v # add profile
         

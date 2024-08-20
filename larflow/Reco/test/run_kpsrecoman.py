@@ -38,6 +38,12 @@ from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
 
+# check we have the spline files
+if not os.path.exists( os.environ["LARFLOW_BASEDIR"]+"/larflow/Reco/data/Proton_Muon_Range_dEdx_LAr_TSplines.root" ):
+    print("Did not find Range and dE/dx spline file: Proton_Muon_Range_dEdx_LAr_TSplines.root")
+    print("file should be in larflow/Reco/data")
+    sys.exit(0)
+
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
