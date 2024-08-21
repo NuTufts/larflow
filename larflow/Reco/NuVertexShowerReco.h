@@ -30,7 +30,8 @@ namespace reco {
 
     NuVertexShowerReco()
       : larcv::larcv_base("NuVertexShowerReco"),
-      _mcpg(nullptr)
+      _mcpg(nullptr),
+      _trunk_maxdist_from_closest_cm(10.0)
     {};
     virtual ~NuVertexShowerReco() {};
 
@@ -85,6 +86,7 @@ namespace reco {
     } RecoShowerInfo_t;
     
     void createMCAnalysisTree( TFile* outfile );
+    void writeAnaTree();
 
   protected:
 
@@ -118,7 +120,7 @@ namespace reco {
     
   protected:
 
-    
+    float _trunk_maxdist_from_closest_cm;
     int _make_trunk_cand( const std::vector<float>& pos,
                            const larlite::larflowcluster& lfcluster,
                            std::vector<float>& shower_start,

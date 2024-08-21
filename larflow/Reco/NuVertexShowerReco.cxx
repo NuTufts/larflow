@@ -166,6 +166,9 @@ namespace reco {
       int container_idx;
       float score;
       float dist2vtx;
+      float impactpar;
+      float cosine;
+      float pixsum;
       std::vector<float> axis;
       std::vector<float> axis_start;
       std::vector<float> axis_end;
@@ -321,7 +324,7 @@ namespace reco {
       std::vector<float> cluster_pixsum_v = _get_cluster_pixsum( ev_adc->as_vector(), lfcluster );
       // how to choose pixsum to eval?
       float d_pixsum = cluster_pixsum_v[2]*0.0162;
-      if ( d_pixsum < 5.0 ) {
+      if ( d_pixsum < 1.0 ) {
         d_pixsum = ( cluster_pixsum_v[0] > cluster_pixsum_v[1] ) ? cluster_pixsum_v[0]*0.0162 : cluster_pixsum_v[1]*0.0162;
       }
 
@@ -379,13 +382,16 @@ namespace reco {
       }
 
       ProngRank_t rank( vtxcluster.producer, iprong, vtxcluster.index, score_ll );
-      rank.dist2vtx = a_dist;
       rank.axis = shower_dir;
       rank.axis_start = shower_start;
       rank.axis_end   = shower_end;
+      rank.dist2vtx   = a_dist;
+      rank.impactpar  = b_impact_par;
+      rank.cosine     = c_cosine;
+      rank.pixsum     = d_pixsum;
 
       seed_rank_v.push_back( rank );
-    }
+    }//end of loop over prong
 
     std::sort( seed_rank_v.begin(), seed_rank_v.end() );
 
@@ -435,19 +441,50 @@ namespace reco {
       }
       // using cluster as seed
       cluster_used_v[vtxcluster.producer][vtxcluster.index] = 1;
-      LARCV_INFO() << "ShowerProng[" << prongidx << "] used as shower start." << std::endl;
+      LARCV_INFO() << "------------------------------------------------------------" << std::endl;
+      LARCV_INFO() << "ShowerProng[" << prongidx << "] proposed as shower start." << std::endl;
+      LARCV_INFO() << "   dist2vtx: " << rankedprong.dist2vtx << " cm" << std::endl;
+      LARCV_INFO() << "   impactpar: " << rankedprong.impactpar << " cm" << std::endl;
+      LARCV_INFO() << "   cosine: " << rankedprong.cosine << std::endl;
+      LARCV_INFO() << "   pixsum: " << rankedprong.pixsum << " MeV-ish" << std::endl;
+      LARCV_INFO() << "   score: " << rankedprong.score << std::endl;
+      
+
       if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
         pmcinfo->_reco_outcome = kAccept; // as starting prong
-        LARCV_DEBUG() << "  Ground Truth=" << pmcinfo->_correct_outcome << std::endl;
+        LARCV_INFO() << "  ** Ground Truth=" << pmcinfo->_correct_outcome << std::endl;
+        LARCV_INFO() << "     - trackid: " << pmcinfo->_trueprong_trackid << std::endl; 
+        LARCV_INFO() << "     - true prong completeness: " << pmcinfo->_frac_truetrunk << std::endl; 
+        LARCV_INFO() << "     - reco purity: " << pmcinfo->_frac_recopurity << std::endl;
       }
+      LARCV_INFO() << "------------------------------------------------------------" << std::endl;
+
+      if ( rankedprong.pixsum<10.0 ) {
+        // reject, minimum threshold?
+          LARCV_INFO() << "  fails minimum energy" << std::endl;	
+        if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+          pmcinfo->_reco_outcome = kFailPreCuts;
+        }
+        continue;
+            }
+            if ( rankedprong.dist2vtx > 50.0 && rankedprong.pixsum<50.0 ) {
+        // reject, too far
+        LARCV_INFO() << "  fail precut: shower fragments < 50 MeV must be within 50 cm" << std::endl;	
+        if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+          pmcinfo->_reco_outcome = kFailPreCuts;
+        }
+        continue;
+      }
+      
       
       const larlite::larflowcluster& lfcluster =
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
 
-      LARCV_INFO() << "ShowerProng[" << vtxcluster.producer << "," << rankedprong.container_idx << ",prong " << prongidx << "] "
-                    << " score=" << rankedprong.score
-                    << " npts=" << lfcluster.size()
-                    << std::endl;
+      // LARCV_INFO() << "ShowerProng[" << vtxcluster.producer << "," << rankedprong.container_idx << ", prong " << prongidx << "] "
+      //               << " score=" << rankedprong.score
+      //               << " npts=" << lfcluster.size()
+      //               << std::endl;
+
       
       // This cluster will become the basis for a potential new shower prong.
       // The container, shower_hit_v, below will represent this new shower object, 
@@ -620,6 +657,11 @@ namespace reco {
         }
       }
     }
+
+    if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+      // save the results of the mc analysis records
+      _fill_mcanalysis_tree();
+    }
     
   }
 
@@ -662,7 +704,7 @@ namespace reco {
     close_hit_v.reserve( lfcluster.size() );
     
     for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
-      if ( dist2vertex[ihit]-min_dist < 3.5 ) {
+      if ( dist2vertex[ihit]-min_dist < _trunk_maxdist_from_closest_cm ) {
         std::vector<float> pt = { lfcluster[ihit][0], lfcluster[ihit][1], lfcluster[ihit][2] };
         close_hit_v.push_back( pt );
       }
@@ -934,7 +976,7 @@ namespace reco {
 	      max_frac = frac;
 	      max_frac_index = iphoton;
 	      max_frac_trackid = trueprong.geant_track_id;
-	      max_frac_coverage = float(num_on_mask)/float(maxplane_sum);
+	      max_frac_coverage = frac;//float(num_on_mask)/float(maxplane_sum);
 	      max_frac_plane = maxplane;
       }
     }//end of loop over true photons
@@ -1063,12 +1105,26 @@ namespace reco {
     outfile->cd();
     _mcana_per_recoshower_tree = new TTree("nushowerbuilder_mcana_tree", "MC Analysis to evaluate and tune NuShowerBuilder Algorithm");
 
+    _mcana_per_recoshower_tree->Branch( "closest_recovtx_dist",   &_mcana_closest_recovtx_dist,   "closest_recovtx_dist/F" );
+    _mcana_per_recoshower_tree->Branch( "trueprong_pixsum_MeV",   &_mcana_trueprong_pixsum_MeV,   "trueprong_pixsum_MeV/F" );
+    _mcana_per_recoshower_tree->Branch( "trueprong_efficiency",   &_mcana_trueprong_efficiency,   "trueprong_efficiency/F" );
+    _mcana_per_recoshower_tree->Branch( "trueprong_dist2vtx",     &_mcana_trueprong_dist2vtx,     "trueprong_dist2vtx/F" );
+    _mcana_per_recoshower_tree->Branch( "recofragment_purity",    &_mcana_recofragment_purity,    "recofragment_purity/F" );
+    _mcana_per_recoshower_tree->Branch( "recofragment_dist2vtx",  &_mcana_recofragment_dist2vtx,  "recofragment_dist2vtx/F" );
+    _mcana_per_recoshower_tree->Branch( "recofragment_impactpar", &_mcana_recofragment_impactpar, "recofragment_impactpar/F" );
+    _mcana_per_recoshower_tree->Branch( "recofragment_cosine",    &_mcana_recofragment_cosine,    "recofragment_cosine/F" );
+    _mcana_per_recoshower_tree->Branch( "recofragment_pixsum",    &_mcana_recofragment_pixsum,    "recofragment_pixsum/F" );
+    _mcana_per_recoshower_tree->Branch( "reco_outcome",           &_mcana_reco_outcome,           "reco_outcome/I" );
+    _mcana_per_recoshower_tree->Branch( "groundtruth_outcome",    &_mcana_groundtruth_outcome,    "groundtruth_outcome/I" );
+    _mcana_per_recoshower_tree->Branch( "trueprong_trunkdir",     _mcana_trueprong_trunkdir,      "trueprong_trunkdir[3]/F" );
+    _mcana_per_recoshower_tree->Branch( "recofragment_trunkdir",  _mcana_recofragment_trunkdir,   "recofragment_trunkdir[3]/F" );
+
   }
 
   void NuVertexShowerReco::_fill_mcanalysis_tree()
   {
 
-    if ( !_mc_analysis_mode )
+    if ( !_mc_analysis_mode && !_mc_analysis_saveinfo_for_this_vertex )
       return;
 
     // transfer variables for each reco shower fragment that was evaluated
@@ -1097,11 +1153,19 @@ namespace reco {
     
   }//end of NuVertexShowerReco::_gatherTruthShowerFeatures
 
+  void NuVertexShowerReco::writeAnaTree()
+  {
+    if ( _mc_analysis_mode && _mcana_per_recoshower_tree ) {
+      _mcana_per_recoshower_tree->Write();
+    }
+  }
+
   std::vector<float> NuVertexShowerReco::_get_cluster_pixsum( const std::vector<larcv::Image2D>& adc_v,
                                                               const larlite::larflowcluster& lfcluster ) 
   {
     std::vector<float> pixsum_v( adc_v.size(), 0.0 );
     std::vector< std::set< std::pair<int,int> > > pixvisited_v;
+    pixvisited_v.resize( adc_v.size() );
 
     for (auto const& pt : lfcluster ) {
       std::vector<float> imgpos =

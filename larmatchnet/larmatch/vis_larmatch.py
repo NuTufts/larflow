@@ -77,9 +77,10 @@ ssnet2dcolor = {0:np.array((0,255,255)), # HIP
 # LOAD TREES
 io = larlite.storage_manager(larlite.storage_manager.kREAD)
 io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
-io.set_data_to_read( larlite.data.kOpFlash, "simpleFlashBeam" )
-io.set_data_to_read( larlite.data.kMCTrack, "mcreco" )
+io.set_data_to_read( larlite.data.kOpFlash,  "simpleFlashBeam" )
+io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
+io.set_data_to_read( larlite.data.kMCTruth,  "generator" )
 io.add_in_filename( args.input_file )
 if args.dlmerged is not None:
     io.add_in_filename( args.dlmerged )
@@ -88,6 +89,21 @@ io.open()
 
 nentries = io.get_entries()
 print("NENTRIES: ",nentries)
+
+tickdir = larcv.IOManager.kTickBackward
+iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcvio", tickdir )
+iolcv.add_in_file( args.dlmerged )
+iolcv.set_verbosity(1)
+iolcv.specify_data_read( larcv.kProductImage2D,  "wire" )
+iolcv.specify_data_read( larcv.kProductChStatus, "wire" )
+iolcv.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
+if args.has_mc:
+    iolcv.specify_data_read( larcv.kProductImage2D, "instance" )
+    iolcv.specify_data_read( larcv.kProductImage2D, "ancestor" )
+    iolcv.specify_data_read( larcv.kProductImage2D, "segment" )
+    iolcv.specify_data_read( larcv.kProductImage2D, "larflow" )
+iolcv.reverse_all_products()
+iolcv.initialize()
     
 
 from larlite import larutil
@@ -99,6 +115,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
     global io
 
     io.go_to(entry)
+    iolcv.read_entry(entry)
     
     ev_lfhits = io.get_data(larlite.data.kLArFlow3DHit,"larmatch")
     npoints = ev_lfhits.size()
@@ -247,6 +264,12 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
         traces_v += [fig]
 
     if args.has_mc:
+        mcpg = ublarcvapp.mctools.MCPixelPGraph()
+        mcpg.set_cluster_neutrino_particles( True )
+        mcpg.set_verbosity( "debug" )
+        mcpg.buildgraph( iolcv, io )
+        mcpg.printGraph()
+        
         mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"),
                                                                  origin=1,
                                                                  do_sce_correction=True )
@@ -254,7 +277,7 @@ def make_figures(entry,plotby="larmatch",minprob=0.0):
 
         mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"),
                                                                    return_origtraj_cone=False,
-                                                                   return_detprofile=False,
+                                                                   return_detprofile=True,
                                                                    return_dirplot=False )
         traces_v += mcshower_v # add profile
         

@@ -42,6 +42,8 @@ namespace reco {
     _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
     _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
 
+    _nuvertex_shower_reco.activateMCanalysisMode( true );
+    
   }
 
   KPSRecoManager::~KPSRecoManager()
