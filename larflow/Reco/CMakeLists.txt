@@ -120,7 +120,25 @@ add_library( ${LIBNAME} SHARED cluster_functions.cxx
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 
 # DEFINE SOME VARS THAT MIGHT BE USEFUL FOR SUBMODULES
-message("python include: ${PYTHON_INCLUDE_PATH}")
+#message("python include: ${PYTHON_INCLUDE_PATH}")
+get_target_property(xgboost_include_dirs xgboost::xgboost INTERFACE_INCLUDE_DIRECTORIES)
+#message("xgboost include: ${xgboost_include_dirs}")
+
+set( PUB_INC_DIRS  ${LARCV_INCLUDE_DIR}
+  ${UBLARCVAPP_INCLUDE_DIR}
+  ${LARLITE_INC_DIRS}
+  ${PYTHON_INCLUDE_PATH}
+  ${NUMPY_INCLUDES} )
+set( PRI_INC_DIRS
+  ${PROJECT_SOURCE_DIR}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${CILANTRO_INC_DIR}
+  ${OpenCV_INCLUDE_DIRS} )
+set( PRIVATE_LIBS_USED "" )
+if(xgboost_FOUND)
+  set( PRI_INC_DIRS ${PRI_INC_DIRS} ${xgboost_include_dirs} )
+  set( PRIVATE_LIBS_USED xgboost::xgboost )
+endif()
 
 # larcv libs used
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan LArCVApp_MCTools )
@@ -133,20 +151,18 @@ get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 target_include_directories(${LIBNAME}
   PUBLIC
   $<INSTALL_INTERFACE:include/larflow/${MODULE_NAME}>
-  ${LARCV_INCLUDE_DIR}
-  ${UBLARCVAPP_INCLUDE_DIR}
-  ${LARLITE_INC_DIRS}
-  ${PYTHON_INCLUDE_PATH}
-  ${NUMPY_INCLUDES}
+  ${PUB_INC_DIRS}
   PRIVATE
-  ${PROJECT_SOURCE_DIR}
-  ${EIGEN3_INCLUDE_DIRS}
-  ${CILANTRO_INC_DIR}
-  ${OpenCV_INCLUDE_DIRS}
-  )
-target_link_libraries(${LIBNAME} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES})
+  ${PRI_INC_DIRS} )
+target_link_libraries(${LIBNAME} PUBLIC
+  ${UBLARCVAPP_LIBS_USED}
+  ${LARCV_LIBS_USED}
+  ${LARLITE_LIBS}
+  ${PYTHON_LIBRARIES}
+  PRIVATE
+  ${PRIVATE_LIBS_USED} )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${UBLARCVAPP_INCLUDE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${UBLARCVAPP_INCLUDE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} ${OpenCV_INCLUDE_DIRS} ${xgboost_include_dirs} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} ${HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 

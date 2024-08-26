@@ -12,6 +12,16 @@
 #include "cluster_functions.h"
 #include "ClusterBookKeeper.h"
 
+#include <xgboost/c_api.h>
+
+#define nuvertexshowerreco_safe_xgboost(call) {  \
+  int err = (call); \
+  if (err != 0) { \
+    fprintf(stderr, "%s:%d: error in %s: %s\n", __FILE__, __LINE__, #call, XGBGetLastError());  \
+    exit(1); \
+  } \
+}
+
 namespace larflow {
 namespace reco {
 
@@ -28,12 +38,8 @@ namespace reco {
 
   public:
 
-    NuVertexShowerReco()
-      : larcv::larcv_base("NuVertexShowerReco"),
-      _mcpg(nullptr),
-      _trunk_maxdist_from_closest_cm(10.0)
-    {};
-    virtual ~NuVertexShowerReco() {};
+    NuVertexShowerReco();
+    virtual ~NuVertexShowerReco();
 
 
     void process( larcv::IOManager& iolcv,
@@ -129,7 +135,10 @@ namespace reco {
     std::vector<float> _get_cluster_pixsum( const std::vector<larcv::Image2D>& adc_v,
                                             const larlite::larflowcluster& lfcluster );
 
-
+    // XGBoost 
+  protected:
+    BoosterHandle* _boosterhandle;
+    
   };
 
 }

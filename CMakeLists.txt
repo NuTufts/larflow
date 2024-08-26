@@ -104,6 +104,24 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+#-- xgboost
+set( xgboost_DIR "$ENV{XGBOOST_CMAKE_DIR}" )
+find_package(xgboost REQUIRED)
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    if(_variableName MATCHES "^xgboost")
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endif()
+endforeach()
+message( STATUS "xgboost includes: ${xgboost_INCLUDE_DIRS}")  
+if(TARGET xgboost::xgboost)
+    message(STATUS "XGBoost target exists")
+    get_target_property(xgboost_include_dirs xgboost::xgboost INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "XGBoost include dirs: ${xgboost_include_dirs}")
+else()
+    message(STATUS "XGBoost target does not exist")
+endif()
+  
 ## Setup
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)

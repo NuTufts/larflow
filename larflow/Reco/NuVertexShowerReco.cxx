@@ -10,6 +10,21 @@
 namespace larflow {
 namespace reco {
 
+  NuVertexShowerReco::NuVertexShowerReco()
+    : larcv::larcv_base("NuVertexShowerReco"),
+      _mcpg(nullptr),
+      _trunk_maxdist_from_closest_cm(10.0),
+      _boosterhandle(nullptr)
+  {
+    nuvertexshowerreco_safe_xgboost( XGBoosterCreate(NULL, 0, _boosterhandle) );
+  }
+
+  NuVertexShowerReco::~NuVertexShowerReco()
+  {
+    nuvertexshowerreco_safe_xgboost(XGBoosterFree(*_boosterhandle));
+  }
+  
+  
   /**
    * @brief process data from one event
    *

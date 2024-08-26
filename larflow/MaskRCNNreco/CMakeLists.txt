@@ -14,7 +14,18 @@ add_library( ${LIBNAME} SHARED
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 
 # DEFINE SOME VARS THAT MIGHT BE USEFUL FOR SUBMODULES
-message("python include: ${PYTHON_INCLUDE_PATH}")
+# message("python include: ${PYTHON_INCLUDE_PATH}")
+get_target_property(xgboost_include_dirs xgboost::xgboost INTERFACE_INCLUDE_DIRECTORIES)
+set( PRIVATE_INC_DIRS
+  ${EIGEN3_INCLUDE_DIRS}
+  ${CILANTRO_INC_DIR}
+  ${OpenCV_INCLUDE_DIRS} )
+  
+set( PRIVATE_LIBS_USED "" )
+if(xgboost_FOUND)
+  set( PRIVATE_INC_DIRS ${PRIVATE_INC_DIRS} ${xgboost_include_dirs} )
+  set( PRIVATE_LIBS_USED xgboost::xgboost )
+endif()
 
 # larcv libs used
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan LArCVApp_MCTools )
@@ -30,12 +41,16 @@ target_include_directories(${LIBNAME}
   ${PYTHON_INCLUDE_PATH}
   ${NUMPY_INCLUDES}
   PRIVATE
-  ${PROJECT_SOURCE_DIR}
-  ${EIGEN3_INCLUDE_DIRS}
-  ${CILANTRO_INC_DIR}
-  ${OpenCV_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}  
+  ${PRIVATE_INC_DIRS}
   )
-target_link_libraries(${LIBNAME} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} )
+target_link_libraries(${LIBNAME}
+  PUBLIC
+  ${LARCV_LIBS_USED}
+  ${LARLITE_LIBS}
+  ${PYTHON_LIBRARIES}
+  PRIVATE
+  ${PRIVATE_LIBS_USED} )
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}
@@ -45,7 +60,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
   ${LARLITE_INC_DIRS}
   ${PYTHON_INCLUDE_PATH}
   ${NUMPY_INCLUDES}
-  ${OpenCV_INCLUDE_DIRS} )
+  ${PRIVATE_INC_DIRS} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} ${HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 
