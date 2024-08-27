@@ -61,9 +61,9 @@ namespace reco {
     std::map<std::string, larlite::event_larflowcluster* > _cluster_producers;       ///< map from tree name to event container for larflowcluster
     std::map<std::string, larlite::event_pcaxis* >         _cluster_pca_producers;   ///< map from tree name to pca info for clusters
     std::map<std::string, larlite::event_track* >          _cluster_track_producers; ///< map from tree name to track line fit for track clusters
-    std::map<std::string, NuVertexCandidate::ClusterType_t > _cluster_type;        ///< cluster type
-    std::map<NuVertexCandidate::ClusterType_t, float>        _cluster_type_max_impact_radius; ///< max distance from cluster pca to vertex allowed, per class type
-    std::map<NuVertexCandidate::ClusterType_t, float>        _cluster_type_max_gap; ///< maximum gap between vertex and start of cluster, per class type
+    std::map<std::string, ClusterType_t > _cluster_type;        ///< cluster type
+    std::map<ClusterType_t, float>        _cluster_type_max_impact_radius; ///< max distance from cluster pca to vertex allowed, per class type
+    std::map<ClusterType_t, float>        _cluster_type_max_gap; ///< maximum gap between vertex and start of cluster, per class type
     
   public:
 
@@ -75,7 +75,7 @@ namespace reco {
 
     /** @brief add name and type to the list clusterat */    
     void add_cluster_producer( std::string name,
-                               NuVertexCandidate::ClusterType_t ctype ) {
+                               ClusterType_t ctype ) {
       _cluster_producers[name] = nullptr;
       _cluster_pca_producers[name] = nullptr;
       _cluster_track_producers[name] = nullptr;
@@ -123,7 +123,7 @@ namespace reco {
     bool _attachClusterToCandidate( NuVertexCandidate& vertex,
                                     const larlite::larflowcluster& lfcluster,
                                     const larlite::pcaxis& lfpca,
-                                    NuVertexCandidate::ClusterType_t ctype,
+                                    ClusterType_t ctype,
                                     std::string producer,
                                     int icluster,                                    
                                     bool apply_cut );

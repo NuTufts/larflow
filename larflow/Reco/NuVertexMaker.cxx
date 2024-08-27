@@ -23,8 +23,21 @@ namespace reco {
     : larcv::larcv_base("NuVertexMaker"),
       _output_stage( kMerged ),
       _num_input_clusters(0),
-      _ana_tree(nullptr)
+      _own_tree(false),
+      _ana_run(0),
+      _ana_event(0),
+      _ana_tree(nullptr),
+      _apply_cosmic_veto(false)
   {
+    _keypoint_producers.clear();
+    _keypoint_pca_producers.clear();
+    _cluster_producers.clear();
+    _cluster_pca_producers.clear();
+    _cluster_track_producers.clear();
+    _cluster_type.clear();
+    _cluster_type_max_impact_radius.clear();
+    _cluster_type_max_gap.clear();
+    clear();
     _set_defaults();
   }
 
@@ -91,7 +104,7 @@ namespace reco {
       it_pca->second = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, it->first );
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it_pca->second->size() << " pcaxes" << std::endl;
 
-      if ( _cluster_type[it->first]==NuVertexCandidate::kTrack ) {
+      if ( _cluster_type[it->first]==kTrack ) {
 	auto it_track = _cluster_track_producers.find( it->first );
 	it_track->second = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, it->first );
 	LARCV_INFO() << "clusters from [" << it->first << "]: " << it_track->second->size() << " tracks" << std::endl;
@@ -248,7 +261,7 @@ namespace reco {
           
           auto const& lfcluster = it->second->at(icluster);
           auto const& lfpca     = _cluster_pca_producers[it->first]->at(icluster);
-          NuVertexCandidate::ClusterType_t ctype   = _cluster_type[it->first];
+          ClusterType_t ctype   = _cluster_type[it->first];
 
           bool attached = _attachClusterToCandidate( vertex, lfcluster, lfpca,
                                                      ctype, it->first, icluster, true );
@@ -317,16 +330,16 @@ namespace reco {
   void NuVertexMaker::_set_defaults()
   {
     // Track
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kTrack ] = 5.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kTrack ] = 10.0;
+    _cluster_type_max_impact_radius[ kTrack ] = 5.0;
+    _cluster_type_max_gap[ kTrack ] = 10.0;
 
     // ShowerKP
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 10.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kShowerKP ]           = 50.0;
+    _cluster_type_max_impact_radius[ kShowerKP ] = 10.0;
+    _cluster_type_max_gap[ kShowerKP ]           = 50.0;
 
     // Shower
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 10.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
+    _cluster_type_max_impact_radius[ kShower ] = 10.0;
+    _cluster_type_max_gap[ kShower ]           = 50.0;
 
     _apply_cosmic_veto = false;
     _num_input_clusters = 0;
@@ -357,7 +370,7 @@ namespace reco {
     
     for ( auto& cluster : vtx.cluster_v ) {
       float clust_score = 1.0;
-      if ( cluster.type==NuVertexCandidate::kTrack ) {
+      if ( cluster.type==kTrack ) {
         if ( cluster.gap>3.0 )
           clust_score *= (1.0/tau_gap_track)*exp( -cluster.gap/tau_gap_track );
         if ( cluster.impact>3.0 )
@@ -577,7 +590,7 @@ namespace reco {
   bool NuVertexMaker::_attachClusterToCandidate( NuVertexCandidate& vertex,
                                                  const larlite::larflowcluster& lfcluster,
                                                  const larlite::pcaxis& lfpca,
-                                                 NuVertexCandidate::ClusterType_t ctype,
+                                                 ClusterType_t ctype,
                                                  std::string producer,
                                                  int icluster,
                                                  bool apply_cut )
@@ -628,7 +641,7 @@ namespace reco {
       return false;
     }
 
-    if ( ctype==NuVertexCandidate::kTrack && len>20.0 ) {
+    if ( ctype==kTrack && len>20.0 ) {
 
       // replace with end of track
       auto const& track = _cluster_track_producers[producer]->at(icluster);
@@ -706,14 +719,14 @@ namespace reco {
       if ( r>_cluster_type_max_impact_radius[ctype] )
         return false;
 
-      if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
+      if ( ctype==kShowerKP || ctype==kShower ) {
         if ( projs>2.0 && projs < (ends-2.0) )
           return false;
       }
     }
 
     // else attach
-    NuVertexCandidate::VtxCluster_t cluster;
+    VtxCluster_t cluster;
     cluster.producer = producer;
     cluster.index = icluster;
     cluster.dir.resize(3,0);

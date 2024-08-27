@@ -17,6 +17,7 @@
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::scb;
 #pragma link C++ class larflow::scb::SCBoundary+;
+#pragma link C++ enum  larflow::scb::SCBoundary::Boundary_t+;
 
 //ADD_NEW_CLASS ... do not change this line
 #endif

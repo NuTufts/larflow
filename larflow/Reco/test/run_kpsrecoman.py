@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os,sys,argparse,time
+sys.path.remove( '/home/twongjirad/.local/lib/python3.10/site-packages' )
 
 """
 Run the PCA-based clustering routine for track space-points.
@@ -31,12 +32,17 @@ args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
     raise ValueError("--product argument must either be {rerun,min,debug}")
 
+
 import ROOT as rt
 from ROOT import std
 from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
+
+print("here")
+input()
+sys.exit(0)
 
 # check we have the spline files
 if not os.path.exists( os.environ["LARFLOW_BASEDIR"]+"/larflow/Reco/data/Proton_Muon_Range_dEdx_LAr_TSplines.root" ):
@@ -53,9 +59,14 @@ print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
 print("[OUTPUT]    ",args.output)
 
 # ALGORITHMS
-recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
+#recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
+print("here")
+input()
+sys.exit(0)
+
 recoman.set_verbosity(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
+
 if args.ismc:
     recoman.saveEventMCinfo( args.ismc )
     if args.run_perfect_mcreco:

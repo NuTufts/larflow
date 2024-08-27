@@ -7,6 +7,57 @@ namespace larflow {
 namespace reco {
 
   /**
+   * @brief struct to store track-level variables
+   */  
+  class TrackVar_t
+  {
+    
+  public:
+    
+    TrackVar_t()
+      : length(0),
+        pca_ratio(0),
+        proton_ll(0),
+        frac_hip(0),
+        protonid(0),
+        muonid(0),
+        pionid(0)
+    {};
+    
+    virtual ~TrackVar_t() {};
+
+    float length;     ///< sum of track segment lengths
+
+    // variables targeting proton ID
+    float pca_ratio;  ///< ratio of 2nd to 1st PCA eigenvalue (measure of straightness)
+    float proton_ll;  ///< likilihood ratio of proton to muon dq/dx curve (
+    float frac_hip;   ///< fraction of spacepoints where majority of plane pixel is HIP class
+    
+    // results/summaries
+    float protonid;   ///< reserved for some kind of proton score
+    float muonid;     ///< reserved for muon id
+    float pionid;     ///< reserved for pion id
+    
+    
+  };
+
+  /** 
+   *   @brief struct to store shower-level variables 
+   */
+  class ShowerVar_t {
+  public:
+    ShowerVar_t()
+      : dqdx_ave(0.0),
+	llshower(0.0)
+    {};
+    virtual ~ShowerVar_t()
+    {};
+    
+    float dqdx_ave; ///< filled by NuSelShowerTrunkAna
+    float llshower; ///< filled by NuSelShowerTrunkAna
+  };
+    
+  /**
    * @brief A class that stores results from different algorithms
    *
    * Each instance corresponds to a NuVertexCandidate.
@@ -47,41 +98,41 @@ namespace reco {
     };
 
 
-    /**
-     * @brief struct to store track-level variables
-     */
-    struct TrackVar_t {
+    // /**
+    //  * @brief struct to store track-level variables
+    //  */
+    // struct TrackVar_t {
       
-      float length;     ///< sum of track segment lengths
+    //   float length;     ///< sum of track segment lengths
 
-      // variables targeting proton ID
-      float pca_ratio;  ///< ratio of 2nd to 1st PCA eigenvalue (measure of straightness)
-      float proton_ll;  ///< likilihood ratio of proton to muon dq/dx curve (
-      float frac_hip;   ///< fraction of spacepoints where majority of plane pixel is HIP class
+    //   // variables targeting proton ID
+    //   float pca_ratio;  ///< ratio of 2nd to 1st PCA eigenvalue (measure of straightness)
+    //   float proton_ll;  ///< likilihood ratio of proton to muon dq/dx curve (
+    //   float frac_hip;   ///< fraction of spacepoints where majority of plane pixel is HIP class
 
-      // results/summaries
-      float protonid;   ///< reserved for some kind of proton score
-      float muonid;     ///< reserved for muon id
-      float pionid;     ///< reserved for pion id
+    //   // results/summaries
+    //   float protonid;   ///< reserved for some kind of proton score
+    //   float muonid;     ///< reserved for muon id
+    //   float pionid;     ///< reserved for pion id
 
-      TrackVar_t()
-      : length(0),
-        pca_ratio(0),
-        proton_ll(0),
-        frac_hip(0),
-        protonid(0),
-        muonid(0),
-        pionid(0)
-      {};
+    //   TrackVar_t()
+    //   : length(0),
+    //     pca_ratio(0),
+    //     proton_ll(0),
+    //     frac_hip(0),
+    //     protonid(0),
+    //     muonid(0),
+    //     pionid(0)
+    //   {};
       
-    };
+    // };
     std::vector< TrackVar_t > _track_var_v;
 
-    /** @brief struct to store shower-level variables */
-    struct ShowerVar_t {
-      float dqdx_ave; ///< filled by NuSelShowerTrunkAna
-      float llshower; ///< filled by NuSelShowerTrunkAna
-    };
+    // /** @brief struct to store shower-level variables */
+    // struct ShowerVar_t {
+    //   float dqdx_ave; ///< filled by NuSelShowerTrunkAna
+    //   float llshower; ///< filled by NuSelShowerTrunkAna
+    //};
     std::vector< ShowerVar_t > _shower_var_v;
 
     // SUMMARY

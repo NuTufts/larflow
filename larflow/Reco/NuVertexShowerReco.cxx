@@ -13,15 +13,15 @@ namespace reco {
   NuVertexShowerReco::NuVertexShowerReco()
     : larcv::larcv_base("NuVertexShowerReco"),
       _mcpg(nullptr),
-      _trunk_maxdist_from_closest_cm(10.0),
-      _boosterhandle(nullptr)
+      _trunk_maxdist_from_closest_cm(10.0)
+      //_boosterhandle(nullptr)
   {
-    nuvertexshowerreco_safe_xgboost( XGBoosterCreate(NULL, 0, _boosterhandle) );
+    //nuvertexshowerreco_safe_xgboost( XGBoosterCreate(NULL, 0, _boosterhandle) );
   }
 
   NuVertexShowerReco::~NuVertexShowerReco()
   {
-    nuvertexshowerreco_safe_xgboost(XGBoosterFree(*_boosterhandle));
+    //nuvertexshowerreco_safe_xgboost(XGBoosterFree(*_boosterhandle));
   }
   
   
@@ -133,7 +133,7 @@ namespace reco {
 
       // store in container
       for (int icluster=0; icluster<(int)it->second->size(); icluster++) {
-        NuVertexCandidate::VtxCluster_t showercluster;
+        VtxCluster_t showercluster;
         showercluster.producer = it->first;
         showercluster.type = _cluster_type[ it->first ];
         showercluster.index = icluster;
@@ -241,7 +241,7 @@ namespace reco {
       // -log(exp[-r/tau]) = r/tau
       
       // only deal with showers
-      if ( vtxcluster.type!=NuVertexCandidate::kShower && vtxcluster.type!=NuVertexCandidate::kShowerKP ) {
+      if ( vtxcluster.type!=kShower && vtxcluster.type!=kShowerKP ) {
         continue;
       }
 
@@ -516,7 +516,7 @@ namespace reco {
       std::vector<float> track_s_v;
       larlite::larflowcluster trunk_hit_v;
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
-        if ( _cluster_type[it->first]==NuVertexCandidate::kTrack ) {
+        if ( _cluster_type[it->first]==kTrack ) {
           // loop over track cluster in this event container
           for ( auto const& track_lfcluster : *it->second ) {
             // track cluster
@@ -563,8 +563,8 @@ namespace reco {
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
 
         auto const& cluster_type = _cluster_type[it->first];
-        if ( cluster_type==NuVertexCandidate::kShowerKP ||
-             cluster_type==NuVertexCandidate::kShower ) {
+        if ( cluster_type==kShowerKP ||
+             cluster_type==kShower ) {
 
           for ( int ishower=0; ishower< (*it->second).size(); ishower++ ) {
 

@@ -52,13 +52,13 @@ namespace reco {
 
     std::map<std::string, larlite::event_larflowcluster* >   _cluster_producers;     ///< map from tree name to event container for larflowcluster
     std::map<std::string, larlite::event_pcaxis* >           _cluster_pca_producers; ///< map from tree name to pca info for cluster
-    std::map<std::string, NuVertexCandidate::ClusterType_t > _cluster_type;          ///< cluster type
-    std::vector< NuVertexCandidate::VtxCluster_t >           _showercluster_candidates_v;
+    std::map<std::string, ClusterType_t > _cluster_type;          ///< cluster type
+    std::vector< VtxCluster_t >           _showercluster_candidates_v;
 
   public:
     
     /** @brief add name of tree to get shower clusters from. call before running process. */
-    void add_cluster_producer( std::string name, NuVertexCandidate::ClusterType_t ctype ) {
+    void add_cluster_producer( std::string name, ClusterType_t ctype ) {
       _cluster_producers[name] = nullptr;
       _cluster_pca_producers[name] = nullptr;
       _cluster_type[name] = ctype;      
@@ -137,7 +137,7 @@ namespace reco {
 
     // XGBoost 
   protected:
-    BoosterHandle* _boosterhandle;
+    //BoosterHandle* _boosterhandle;
     
   };
 

@@ -171,8 +171,8 @@ namespace reco {
         auto const& vtxcluster = nuvtx.cluster_v[ivtx];
 
         // only deal with showers
-        if ( vtxcluster.type!=NuVertexCandidate::kShower 
-          && vtxcluster.type!=NuVertexCandidate::kShowerKP ) {
+        if ( vtxcluster.type!=kShower 
+          && vtxcluster.type!=kShowerKP ) {
           continue;
         }
 

@@ -68,7 +68,7 @@ namespace reco {
       for ( auto const& vtxcluster : nuvtx.cluster_v ) {
 
         // only deal with tracks        
-        if ( vtxcluster.type!=NuVertexCandidate::kTrack ) {
+        if ( vtxcluster.type!=kTrack ) {
           nodes_near_cluster_start.push_back( nullptr );
           nodes_far_cluster_start.push_back( nullptr );          
           segment_near_cluster_start.push_back(-1);
@@ -125,7 +125,7 @@ namespace reco {
         ivtx++;
         
         // only deal with tracks        
-        if ( vtxcluster.type!=NuVertexCandidate::kTrack )
+        if ( vtxcluster.type!=kTrack )
           continue;
 
         // get the cluster

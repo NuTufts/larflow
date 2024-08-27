@@ -154,7 +154,7 @@ namespace reco {
     for ( size_t ishower=0; ishower<nuvtx.shower_v.size(); ishower++) {
 
       // save shower variables
-      larflow::reco::NuSelectionVariables::ShowerVar_t shrvar;
+      larflow::reco::ShowerVar_t shrvar;
       shrvar.dqdx_ave = _shower_avedqdx_v[3][ishower];
       shrvar.llshower = _shower_ll_v[3][ishower];
       output._shower_var_v.emplace_back( std::move(shrvar) );

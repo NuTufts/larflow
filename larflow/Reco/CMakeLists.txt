@@ -177,3 +177,5 @@ install( FILES
   ${CMAKE_CURRENT_BINARY_DIR}/lib${LIBNAME}_rdict.pcm
   ${CMAKE_CURRENT_BINARY_DIR}/lib${LIBNAME}.rootmap
   DESTINATION lib  )
+
+add_subdirectory( bin )

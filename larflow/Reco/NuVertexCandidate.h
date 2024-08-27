@@ -12,6 +12,33 @@
 namespace larflow {
 namespace reco {
 
+  typedef enum { kTrack=0, kShowerKP, kShower } ClusterType_t;;
+  
+  class VtxCluster_t {
+  public:
+    VtxCluster_t()
+      : producer(""),
+	index(0),
+	dir( std::vector<float>{ 0., 0., 0. } ),
+	pos( std::vector<float>{ 0., 0., 0. } ),
+	gap(0.0),
+	impact(0.0),
+	npts(0),
+	type(kTrack)
+    {};
+    virtual ~VtxCluster_t() {};
+    
+    std::string producer;    ///< larflowcluster tree name this cluster came from
+    int index;               ///< the cluster's index in the cluster container
+    std::vector<float> dir;  ///< direction along first principle component
+    std::vector<float> pos;  ///< start position
+    float gap;               ///< distance from vertex
+    float impact;            ///< distance of first pc axis to the vertex position
+    int npts;                ///< number of points in cluster
+    ClusterType_t type;      ///< type of cluster
+  };
+  
+  
   /**
    * @ingroup Reco
    * @class NuVertexCandidate
@@ -30,22 +57,21 @@ namespace reco {
     /**
      * @brief Type of Vertex Candidate
      */
-    typedef enum { kTrack=0, kShowerKP, kShower } ClusterType_t;
 
-    /**
-     * @struct VtxCluster_t
-     * @brief structure representing particle cluster associated to vertex
-    */    
-    struct VtxCluster_t {
-      std::string producer;    ///< larflowcluster tree name this cluster came from
-      int index;               ///< the cluster's index in the cluster container
-      std::vector<float> dir;  ///< direction along first principle component
-      std::vector<float> pos;  ///< start position
-      float gap;               ///< distance from vertex
-      float impact;            ///< distance of first pc axis to the vertex position
-      int npts;                ///< number of points in cluster
-      ClusterType_t type;      ///< type of cluster
-    };
+    // /**
+    //  * @struct VtxCluster_t
+    //  * @brief structure representing particle cluster associated to vertex
+    // */    
+    // struct VtxCluster_t {
+    //   std::string producer;    ///< larflowcluster tree name this cluster came from
+    //   int index;               ///< the cluster's index in the cluster container
+    //   std::vector<float> dir;  ///< direction along first principle component
+    //   std::vector<float> pos;  ///< start position
+    //   float gap;               ///< distance from vertex
+    //   float impact;            ///< distance of first pc axis to the vertex position
+    //   int npts;                ///< number of points in cluster
+    //   ClusterType_t type;      ///< type of cluster
+    // };
     
     std::string keypoint_producer;  ///< name of tree containing keypoints used to seed candidates
     int keypoint_index;             ///< index of vertex candidate in container above

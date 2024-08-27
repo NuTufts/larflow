@@ -23,11 +23,22 @@ namespace reco {
    */
   KPSRecoManager::KPSRecoManager( std::string inputfile_name, int reco_ver, std::string basename )
     : larcv::larcv_base(basename),
-    _save_event_mc_info(false),    
+    _save_event_mc_info(false),
+    _ana_file(nullptr),
+    _ana_tree(nullptr),
     _ana_output_file(inputfile_name),
+    _ana_run(0),
+    _ana_subrun(0),
+    _ana_event(0),
     _t_event_elapsed(0),
     _save_selected_only(false),
     _save_keypoints_in_anafile(false),
+      //_nu_sel_v(nullptr),
+      //_nu_perfect_v(nullptr),
+      // _event_kpc_nu_v(nullptr),
+      // _event_kpc_track_v(nullptr),
+      // _event_kpc_shower_v(nullptr),
+      // _event_kpc_cosmic_v(nullptr),      
     _kMinize_outputfile_size(false),
     _reco_version(reco_ver),
     _stop_after_prepspacepoints(false),
@@ -37,17 +48,19 @@ namespace reco {
     _run_perfect_mcreco(false)
   {
     make_ana_file();
+    //_nu_sel_v = new std::vector< larflow::reco::NuSelectionVariables >;
+    std::cout << "made ana_tree: " << _ana_tree << std::endl;
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
-    _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
-    _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
-    _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
 
     _nuvertex_shower_reco.activateMCanalysisMode( true );
-    
+    _nuvertex_shower_reco.createMCAnalysisTree( _ana_file );    
+
   }
 
   KPSRecoManager::~KPSRecoManager()
   {
+    if ( _ana_file )
+      _ana_file->Close();
   }
 
   /**
@@ -629,11 +642,11 @@ namespace reco {
     _nuvertexmaker.set_verbosity( larcv::msg::kINFO );
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
-    _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-    _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
-    //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
-    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", kTrack );
+    _nuvertexmaker.add_cluster_producer("cosmicproton", kTrack );
+    //_nuvertexmaker.add_cluster_producer("hip", kTrack );    
+    _nuvertexmaker.add_cluster_producer("showerkp", kShowerKP );
+    _nuvertexmaker.add_cluster_producer("showergoodhit", kShower );
     
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
@@ -681,9 +694,9 @@ namespace reco {
     // simpler, cone-based reco
     _nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
     //_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
-    _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-    _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-    _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+    _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", kTrack );
+    _nuvertex_shower_reco.add_cluster_producer("showerkp", kShowerKP );
+    _nuvertex_shower_reco.add_cluster_producer("showergoodhit", kShower );    
     //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     _nuvertex_shower_reco.process( iolcv, ioll,
 				   _nuvertexmaker.get_mutable_output_candidates(),
@@ -800,14 +813,16 @@ namespace reco {
     _ana_tree->Branch("run",&_ana_run,"run/I");
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
     _ana_tree->Branch("event",&_ana_event,"event/I");
+    _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
 
+    //_nu_sel_v = new std::vector< larflow::reco::NuSelectionVariables >;
+    _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
+    _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
+    
     _ana_tree->Branch( "kpc_nu_v",     &_event_kpc_nu_v );
     _ana_tree->Branch( "kpc_track_v",  &_event_kpc_track_v );
     _ana_tree->Branch( "kpc_shower_v", &_event_kpc_shower_v );
-    _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
-    
-
-    _nuvertex_shower_reco.createMCAnalysisTree( _ana_file );
+    _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );
 
   }
   
@@ -922,7 +937,8 @@ namespace reco {
         std::cout << "  [track " << itrack << "]" << std::endl;
         std::cout << "    npts: " << lltrack.NumberTrajectoryPoints() << std::endl;
 
-        larflow::reco::NuSelectionVariables::TrackVar_t trackvars;
+        //larflow::reco::NuSelectionVariables::TrackVar_t trackvars;
+	larflow::reco::TrackVar_t trackvars;	
 
         trackvars.proton_ll = _sel_llpmu.calculateLL( lltrack, nuvtx.pos );
         if ( trackvars.proton_ll<nusel.max_proton_pid )

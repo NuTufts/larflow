@@ -9,15 +9,14 @@ for basedir in ['LARLITE_BASEDIR','LAROPENCV_BASEDIR','LARCV_BASEDIR','UBLARCVAP
 
 
 # LOAD DEPENDENCIES
-
-if 'LARLITE_BASEDIR' in os.environ:
-    from larlite import larlite
-if 'LAROPENCV_BASEDIR' in os.environ:
-    from larocv import larocv
-if 'LARCV_BASEDIR' in os.environ:
-    from larcv import larcv
-if 'UBLARCVAPP_BASEDIR' in os.environ:
-    from ublarcvapp import ublarcvapp
+#if 'LARLITE_BASEDIR' in os.environ:
+#    from larlite import larlite
+#if 'LAROPENCV_BASEDIR' in os.environ:
+#    from larocv import larocv
+#if 'LARCV_BASEDIR' in os.environ:
+#    from larcv import larcv
+#if 'UBLARCVAPP_BASEDIR' in os.environ:
+#    from ublarcvapp import ublarcvapp
     
 lib_dir = os.environ['LARFLOW_LIBDIR']
 

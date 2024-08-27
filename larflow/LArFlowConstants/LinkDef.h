@@ -17,7 +17,8 @@
 
 //#pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow;
-#pragma link C++ enum  larflow::FlowDir_t+;
+#pragma link C++ enum larflow::FlowDir_t+;
+#pragma link C++ enum larflow::KeyPoint_t+;
 #pragma link C++ class larflow::LArFlowConstants+;
 //ADD_NEW_CLASS ... do not change this line
 #endif

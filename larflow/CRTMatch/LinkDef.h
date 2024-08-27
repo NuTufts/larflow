@@ -16,7 +16,9 @@
 
 #pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::crtmatch;
+#pragma link C++ enum   larflow::crtmatch::CRTHitMatch::InputDataType_t+;
 #pragma link C++ class larflow::crtmatch::CRTHitMatch+;
+#pragma link C++ struct larflow::crtmatch::CRTHitMarch::match_t+;
 #pragma link C++ class larflow::crtmatch::CRTTrackMatch+;
 #pragma link C++ class larflow::crtmatch::CRTMatch+;
 #pragma link C++ class larflow::crtmatch::CRTMatchManager+;

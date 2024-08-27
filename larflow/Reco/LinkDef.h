@@ -40,7 +40,11 @@
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+;
 #pragma link C++ class larflow::reco::KPCluster+;
+#pragma link C++ enum larflow::reco::ClusterType_t+;
+#pragma link C++ class larflow::reco::VtxCluster_t+;
+#pragma link C++ class std::vector<larflow::reco::VtxCluster_t>+;
 #pragma link C++ class larflow::reco::NuVertexCandidate+;
+#pragma link C++ class std::vector<larflow::reco::NuVertexCandidate>+;
 #pragma link C++ class larflow::reco::SplitHitsBySSNet+;
 #pragma link C++ class larflow::reco::SplitHitsByParticleSSNet+;
 #pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+;
@@ -51,9 +55,18 @@
 #pragma link C++ class larflow::reco::CosmicTrackBuilder+;
 #pragma link C++ class larflow::reco::TrackOTFit+;
 #pragma link C++ class larflow::reco::NuVertexMaker+;
+#pragma link C++ enum  larflow::reco::NuVertexMaker::OutStage_t+;
 #pragma link C++ class larflow::reco::NuVertexActivityReco+;
 #pragma link C++ class larflow::reco::NuTrackBuilder+;
+#pragma link C++ class larflow::reco::NuVertexShowerReco+;
+#pragma link C++ enum  larflow::reco::NuVertexShowerReco::RecoOutCome_t+;
+#pragma link C++ class larflow::reco::NuShowerBuilder+;
+#pragma link C++ enum  larflow::reco::NuShowerBuilder::RecoOutCome_t+;
 #pragma link C++ class larflow::reco::TrackdQdx+;
+#pragma link C++ class larflow::reco::TrackVar_t+;
+#pragma link C++ class larflow::reco::ShowerVar_t+;
+#pragma link C++ class std::vector<larflow::reco::TrackVar_t>+;
+#pragma link C++ class std::vector<larflow::reco::ShowerVar_t>+;
 #pragma link C++ class larflow::reco::NuSelectionVariables+;
 #pragma link C++ class std::vector<larflow::reco::NuSelectionVariables>+;
 #pragma link C++ class larflow::reco::LikelihoodProtonMuon+;
@@ -72,6 +85,7 @@
 #pragma link C++ class larflow::reco::NuSelTruthOnNuPixel+;
 #pragma link C++ class larflow::reco::NuSelUnrecoCharge+;
 #pragma link C++ class larflow::reco::NuSel1e1pEventSelection+;
+#pragma link C++ enum  larflow::reco::NuSel1e1pEventSelection::CutStages_t+;
 #pragma link C++ class larflow::reco::NuSelCosmicTagger+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 //ADD_NEW_CLASS ... do not change this line

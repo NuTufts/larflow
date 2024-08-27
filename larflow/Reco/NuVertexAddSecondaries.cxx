@@ -153,9 +153,9 @@ namespace reco {
 	nuvtx2.pos = candidate.seedpos;
 
 	// must provide the seed cluster
-	NuVertexCandidate::VtxCluster_t vtxcluster;
+	VtxCluster_t vtxcluster;
 	vtxcluster.producer = candidate.producername;
-	vtxcluster.type = NuVertexCandidate::kTrack;
+	vtxcluster.type = kTrack;
 	vtxcluster.index = candidate.clusteridx;
 	vtxcluster.pos = candidate.seedpos;
 	nuvtx2.cluster_v.push_back( vtxcluster );
@@ -178,18 +178,18 @@ namespace reco {
 	// shower
 	NuVertexShowerReco _nuvertex_shower_reco;
 	_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
-	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-	_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", kTrack );
+	_nuvertex_shower_reco.add_cluster_producer("showerkp", kShowerKP );
+	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", kShower );    
 
 	// make a fake nuvtx candididate for the secondary attach point
 	NuVertexCandidate nuvtx2;
 	nuvtx2.pos = candidate.seedpos;
 
 	// must provide the seed cluster
-	NuVertexCandidate::VtxCluster_t vtxcluster;
+	VtxCluster_t vtxcluster;
 	vtxcluster.producer = candidate.producername;
-	vtxcluster.type = NuVertexCandidate::kShowerKP;
+	vtxcluster.type = kShowerKP;
 	vtxcluster.index = candidate.clusteridx;
 	vtxcluster.pos = candidate.attach_pos;
 	nuvtx2.cluster_v.push_back( vtxcluster );
