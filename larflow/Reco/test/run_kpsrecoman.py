@@ -26,6 +26,7 @@ parser.add_argument('--stop-after-subclustering',default=False,action='store_tru
 parser.add_argument('--stop-after-nutracker',default=False,action='store_true',help="If true, stop at subcluster reco")
 parser.add_argument("--run-perfect-mcreco",default=False,action='store_true',help="If true, and --ismc also provided, then perfecto reco module is run")
 parser.add_argument("--save-all-keypoints",default=False,action="store_true",help="If flag given, all reconstructed keypoints are saved to the ana file")
+parser.add_argument("--run-nuvertexshowerreco-mcana-mode", default=False, action='store_true', help="If flag given, run MC analysis for NuVertexShowerReco")
 
 args = parser.parse_args()
 if args.products not in ["rerun","min","debug"]:
@@ -52,7 +53,7 @@ print("[INPUT: DL MERGED] ",args.input_dlmerged)
 print("[INPUT: LARMATCH-KPS]  ",args.input_larflow)
 print("[OUTPUT]    ",args.output)
 
-# ALGORITHMS
+# RECO ALGORITHM MANAGER: larflow::reco::KPSRecoManager
 recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
 recoman.set_verbosity(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
@@ -60,6 +61,9 @@ if args.ismc:
     recoman.saveEventMCinfo( args.ismc )
     if args.run_perfect_mcreco:
         recoman.runPerfectMCreco( True )
+    if args.run_nuvertexshowerreco_mcana_mode:
+        recoman._nuvertex_shower_reco.activateMCanalysisMode( True )
+        
 if args.event_filter:
     recoman.saveSelectedNuVerticesOnly( args.event_filter )
 if args.stop_after_keypointreco:

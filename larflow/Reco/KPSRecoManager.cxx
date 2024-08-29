@@ -42,7 +42,7 @@ namespace reco {
     _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
     _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
 
-    _nuvertex_shower_reco.activateMCanalysisMode( true );
+    //_nuvertex_shower_reco.activateMCanalysisMode( true );
     
   }
 
@@ -819,7 +819,7 @@ namespace reco {
       _event_mcinfo_maker.bindAnaVariables( _ana_tree );
     }
     _save_event_mc_info = savemc;
-    _nuvertex_shower_reco.activateMCanalysisMode( savemc );
+    //_nuvertex_shower_reco.activateMCanalysisMode( savemc );
   };
 
   /** @brief run Truth-Reco analyses for studying performance **/

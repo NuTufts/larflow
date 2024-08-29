@@ -1205,6 +1205,8 @@ namespace reco {
     _mcana_per_recoshower_tree->Branch( "trueprong_trunkdir",     _mcana_trueprong_trunkdir,      "trueprong_trunkdir[3]/F" );
     _mcana_per_recoshower_tree->Branch( "recofragment_trunkdir",  _mcana_recofragment_trunkdir,   "recofragment_trunkdir[3]/F" );
 
+    // clear the variables in the branch
+    _set_default_mcana_variable_values();
   }
 
   void NuVertexShowerReco::_fill_mcanalysis_tree()
@@ -1334,6 +1336,26 @@ namespace reco {
     std::sort( seed_v.begin(), seed_v.end() );
 
     nuvertexshowerreco_safe_xgboost(XGDMatrixFree(dmatrix));
+    
+  }
+
+  void NuVertexShowerReco::_set_default_mcana_variable_values()
+  {
+    _mcana_closest_recovtx_dist = -1.0;
+    _mcana_trueprong_pixsum_MeV = 0.;
+    _mcana_trueprong_efficiency = 0.;
+    _mcana_trueprong_dist2vtx   = -1.0;
+    _mcana_recofragment_purity  = 0.0;
+    _mcana_recofragment_dist2vtx = -1.0;
+    _mcana_recofragment_impactpar = -1.0;
+    _mcana_recofragment_cosine = -2.0;
+    _mcana_recofragment_pixsum = 0.0;
+    _mcana_reco_outcome = -1;
+    _mcana_groundtruth_outcome = -1;
+    for (int i=0; i<3; i++) {
+      _mcana_trueprong_trunkdir[i] = 0.;
+      _mcana_recofragment_trunkdir[i] = 0.;
+    }
     
   }
 

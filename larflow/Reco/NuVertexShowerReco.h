@@ -149,6 +149,7 @@ namespace reco {
     int   _mcana_groundtruth_outcome;
     float _mcana_trueprong_trunkdir[3];
     float _mcana_recofragment_trunkdir[3];
+    void _set_default_mcana_variable_values();
     void _fill_mcanalysis_tree(); ///< save variables for each shower fragment to the tree
     // end of mc analysis functions and variables ==================================================
     
