@@ -17,8 +17,9 @@
 #define nuvertexshowerreco_safe_xgboost(call) {  \
   int err = (call); \
   if (err != 0) { \
-    fprintf(stderr, "%s:%d: error in %s: %s\n", __FILE__, __LINE__, #call, XGBGetLastError());  \
-    exit(1); \
+    std::cout << "xgboost error: " << XGBGetLastError() << std::endl; \
+    throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + \
+                        ": error in " + #call + ":" + XGBGetLastError());  \
   } \
 }
 
@@ -93,6 +94,33 @@ namespace reco {
     
     void createMCAnalysisTree( TFile* outfile );
     void writeAnaTree();
+
+  protected:
+
+    struct ProngRank_t {
+      std::string producer;
+      int prong_idx;
+      int container_idx;
+      float score;
+      float dist2vtx;
+      float impactpar;
+      float cosine;
+      float pixsum;
+      std::vector<float> axis;
+      std::vector<float> axis_start;
+      std::vector<float> axis_end;
+      ProngRank_t( std::string p, int pi, int ci, float s )
+        : producer(p), prong_idx(pi), container_idx(ci), score(s)
+      {};
+      // the following operator is used to sort the prongs by score for seeding priority
+      bool operator<( const ProngRank_t& rhs ) {
+        // threshold on hits, else rank on hits        
+        if ( score>rhs.score ) return true;
+        return false;
+      };
+    };
+
+    void getBDTseedscore( std::vector< NuVertexShowerReco::ProngRank_t >& seed_v );
 
   protected:
 

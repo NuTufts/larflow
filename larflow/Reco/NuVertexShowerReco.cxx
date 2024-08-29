@@ -16,12 +16,31 @@ namespace reco {
       _trunk_maxdist_from_closest_cm(10.0),
       _boosterhandle(nullptr)
   {
+    std::cout << "CREATE XGBOOST HANDLER" << std::endl;
+    _boosterhandle = new BoosterHandle;
     nuvertexshowerreco_safe_xgboost( XGBoosterCreate(NULL, 0, _boosterhandle) );
+    
+    std::string model_path = std::string( std::getenv("LARFLOW_BASEDIR") )+"/larflow/Reco/data/nuvertexshowerreco_showertrunk_bdt.model";
+    std::cout << "LOAD MODEL PARAMETERS" << std::endl;
+    std::cout << "path: " << model_path << std::endl;
+    try {
+      nuvertexshowerreco_safe_xgboost(XGBoosterLoadModel( *_boosterhandle, model_path.c_str()));
+    }
+    catch ( std::exception& err ) {
+      std::stringstream ss;
+      ss << "[NuVertexShowerReco::NuVertexShowerReco] Error when trying to load model. Check if BDT model file is in larflow/Reco/data folder." << std::endl;
+      ss << err.what() << std::endl;
+      throw std::runtime_error( ss.str() );
+    }
+    
   }
 
   NuVertexShowerReco::~NuVertexShowerReco()
   {
-    nuvertexshowerreco_safe_xgboost(XGBoosterFree(*_boosterhandle));
+    if ( _boosterhandle ) {
+      nuvertexshowerreco_safe_xgboost(XGBoosterFree(*_boosterhandle));
+      delete _boosterhandle;
+    }
   }
   
   
@@ -175,28 +194,6 @@ namespace reco {
     // The information in the struct is used to sort the prongs and
     //  set the priority for which prongs will seed the beginning of a shower.
 
-    struct ProngRank_t {
-      std::string producer;
-      int prong_idx;
-      int container_idx;
-      float score;
-      float dist2vtx;
-      float impactpar;
-      float cosine;
-      float pixsum;
-      std::vector<float> axis;
-      std::vector<float> axis_start;
-      std::vector<float> axis_end;
-      ProngRank_t( std::string p, int pi, int ci, float s )
-        : producer(p), prong_idx(pi), container_idx(ci), score(s)
-      {};
-      // the following operator is used to sort the prongs by score for seeding priority
-      bool operator<( const ProngRank_t& rhs ) {
-        // threshold on hits, else rank on hits        
-        if ( score<rhs.score ) return true;
-        return false;
-      };
-    };
 
     // these are parameters controlling how the shower prongs are formed and built
     // we need to optimize them
@@ -408,11 +405,37 @@ namespace reco {
       seed_rank_v.push_back( rank );
     }//end of loop over prong
 
-    std::sort( seed_rank_v.begin(), seed_rank_v.end() );
+    // use information for each prong (in ProngRank_t) to run BDT
+    // and get score for use in building showers
+    getBDTseedscore( seed_rank_v );
 
     LARCV_INFO() << "===============================" << std::endl;
     LARCV_INFO() << " Start Building Showers" << std::endl;
     LARCV_INFO() << "===============================" << std::endl;
+
+    // notes
+    // (1) first isolate prongs as those that pass quality cut
+    // (2) then sort quality prongs by distance
+    // (3) then allow it to absorb shower hit clusters
+    struct ProngDistanceSorter_t {
+      int index;
+      float distance;
+      ProngDistanceSorter_t( int idx, float dist )
+	: index(idx),
+	  distance(dist)
+      {};
+      bool operator<( ProngDistanceSorter_t& rhs ) {
+	if ( distance < rhs.distance )
+	  return true;
+	return false;
+      };
+    };
+    std::vector< ProngDistanceSorter_t > sort_by_distance;
+    sort_by_distance.reserve( seed_rank_v.size() );
+    for (int idx=0; idx<(int)seed_rank_v.size(); idx++) {
+      sort_by_distance.push_back( ProngDistanceSorter_t(idx,seed_rank_v.at(idx).dist2vtx) );
+    }
+    std::sort( sort_by_distance.begin(), sort_by_distance.end() );
 
     // now we can begin to build out a shower
     // we need to track which clusters we used up
@@ -424,14 +447,30 @@ namespace reco {
         cluster_used_v[it->first] = std::vector<int>( it->second->size(), 0 );
     }
 
-    // loop through the seeds and start building showers
-    for ( auto const& rankedprong : seed_rank_v) {
+    int num_seeds_defined = 0;
+    
+    // loop through the seeds, sorted by smallest distance to last, and start building showers
+    for ( int idist=0; idist<(int)sort_by_distance.size(); idist++ ) {
+      
+      auto const& prong_by_distance = sort_by_distance.at(idist);
 
+      auto& rankedprong = seed_rank_v.at( prong_by_distance.index );
       int prongidx = rankedprong.prong_idx;
       
       // if prong used skip it
-      if ( prong_used_v[prongidx]!=0 )
+      if ( prong_used_v[prongidx]!=0 ) {
         continue;
+      }
+
+      // decide if this is going to be a seeding prong
+      bool passes = false;
+      if ( num_seeds_defined<2 && rankedprong.score>=-3.0 )
+	passes = true;
+      // when we've added more than the pi0 decay number of photons, we require a stricture requirement
+      if ( num_seeds_defined>=2 && rankedprong.score>0.0 && rankedprong.pixsum>20.0 )
+	passes = true;
+
+      num_seeds_defined++;
 
       // use the cluster to seed
       auto const& vtxcluster = _showercluster_candidates_v.at(prongidx);
@@ -454,8 +493,7 @@ namespace reco {
           continue;
         }
       }
-      // using cluster as seed
-      cluster_used_v[vtxcluster.producer][vtxcluster.index] = 1;
+
       LARCV_INFO() << "------------------------------------------------------------" << std::endl;
       LARCV_INFO() << "ShowerProng[" << prongidx << "] proposed as shower start." << std::endl;
       LARCV_INFO() << "   dist2vtx: " << rankedprong.dist2vtx << " cm" << std::endl;
@@ -463,7 +501,32 @@ namespace reco {
       LARCV_INFO() << "   cosine: " << rankedprong.cosine << std::endl;
       LARCV_INFO() << "   pixsum: " << rankedprong.pixsum << " MeV-ish" << std::endl;
       LARCV_INFO() << "   score: " << rankedprong.score << std::endl;
+
       
+      // if ( rankedprong.score>-4.0 ) {
+      // 	passes = true;
+      // if ( rankedprong.pixsum<10.0 ) {
+      //   // reject, minimum threshold?
+      //     LARCV_INFO() << "  fails minimum energy" << std::endl;	
+      //   if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+      //     pmcinfo->_reco_outcome = kFailPreCuts;
+      //   }
+      //   continue;
+      //       }
+      //       if ( rankedprong.dist2vtx > 50.0 && rankedprong.pixsum<50.0 ) {
+      //   // reject, too far
+      //   LARCV_INFO() << "  fail precut: shower fragments < 50 MeV must be within 50 cm" << std::endl;	
+      //   if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
+      //     pmcinfo->_reco_outcome = kFailPreCuts;
+      //   }
+      //   continue;
+      // }
+      if ( passes ) {
+	LARCV_INFO() << "  ** accepted as prong seed" << std::endl;
+      }
+      else {
+	LARCV_INFO() << "  ( rejected as prong seed )" << std::endl;	
+      }
 
       if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
         pmcinfo->_reco_outcome = kAccept; // as starting prong
@@ -473,25 +536,18 @@ namespace reco {
         LARCV_INFO() << "     - reco purity: " << pmcinfo->_frac_recopurity << std::endl;
       }
       LARCV_INFO() << "------------------------------------------------------------" << std::endl;
+      
 
-      if ( rankedprong.pixsum<10.0 ) {
-        // reject, minimum threshold?
-          LARCV_INFO() << "  fails minimum energy" << std::endl;	
-        if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
-          pmcinfo->_reco_outcome = kFailPreCuts;
-        }
-        continue;
-            }
-            if ( rankedprong.dist2vtx > 50.0 && rankedprong.pixsum<50.0 ) {
-        // reject, too far
-        LARCV_INFO() << "  fail precut: shower fragments < 50 MeV must be within 50 cm" << std::endl;	
-        if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
-          pmcinfo->_reco_outcome = kFailPreCuts;
-        }
-        continue;
+      if ( !passes ) {
+	// reject
+	continue;
       }
+
+      // using cluster as seed
+      cluster_used_v[vtxcluster.producer][vtxcluster.index] = 1;
+      prong_used_v[prongidx] = 1;
       
-      
+      // get the shower cluster
       const larlite::larflowcluster& lfcluster =
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
 
@@ -560,67 +616,82 @@ namespace reco {
       }
       
       // absorb shower clusters within cone. we sample from all producers given, not just within vertex.
-      for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
+      // we call the cluster we are testing to add as a "subcluster"
+      for (int jj=idist+1; jj<sort_by_distance.size(); jj++) {
 
-        auto const& cluster_type = _cluster_type[it->first];
+	// by starting at index jj=idist+1 in the sort_by_distance container,
+	// we only add clusters further from the vertex
+	
+	auto& subprong = seed_rank_v.at( sort_by_distance.at(jj).index );
+
+	int sub_prongidx = subprong.prong_idx; // we track usage with this index (refers to position in seed_rank_v)
+	auto const& sub_showercluster = _showercluster_candidates_v.at(sub_prongidx);
+	std::string sub_producer = sub_showercluster.producer;
+	int sub_index = sub_showercluster.index; // we access larflow cluster and its hits with this index
+
+	// don't absorb points from seeding cluster
+	// vtxcluster is a struct containing info from the seeding prong shower
+	if ( vtxcluster.producer==sub_producer && vtxcluster.index==sub_index )
+	  continue;
+
+	// don't absorb points from previous used cluster
+	if ( prong_used_v[sub_prongidx]==1 )
+	  continue;
+	
+	//for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
+	
+        auto const& cluster_type = _cluster_type[sub_producer];
         if ( cluster_type==NuVertexCandidate::kShowerKP ||
              cluster_type==NuVertexCandidate::kShower ) {
 
-          for ( int ishower=0; ishower< (*it->second).size(); ishower++ ) {
+	  // the cluster is a "shower type"
 
-            // don't absorb points from seeding cluster
-            if ( vtxcluster.producer==it->first && vtxcluster.index==ishower )
-              continue;
-
-            // don't absorb points from previous used cluster
-            if ( cluster_used_v[it->first][ishower]!=0 )
-              continue;
-
-            // get the cluster
-            auto const& shower_lfcluster = (*it->second).at(ishower);
-
-            // skip zero clusters
-            if ( shower_lfcluster.size()==0 )
-              continue;
+	  // get the cluster
+	  larlite::event_larflowcluster* sub_cluster_v = _cluster_producers[sub_producer];	  
+	  auto const& shower_lfcluster = (*sub_cluster_v).at(sub_index);
+	  
+	  // skip zero clusters
+	  if ( shower_lfcluster.size()==0 )
+	    continue;
             
-            // make sure its not the clsuter we are using as the seed
-            int nhits_within_cone = 0;
-            for ( auto const& showerhit : shower_lfcluster ) {
-              std::vector<float> showerpt = { showerhit[0], showerhit[1], showerhit[2] };
-              float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
-              float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, showerpt );
+	  // make sure its not the clsuter we are using as the seed
+	  int nhits_within_cone = 0;
+	  for ( auto const& showerhit : shower_lfcluster ) {
+	    std::vector<float> showerpt = { showerhit[0], showerhit[1], showerhit[2] };
+	    float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
+	    float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis,     showerpt );
+	    
+	    // set max distance from prong start to the point in question
+	    float d2 = 0.;
+	    for (int i=0; i<3; i++)
+	      d2 += ( rankedprong.axis_start[i]-showerpt[i] )*( rankedprong.axis_start[i]-showerpt[i] );
 
-              // set max distance from prong start to the point in question
-              float d2 = 0.;
-              for (int i=0; i<3; i++)
-                d2 += ( rankedprong.axis_start[i]-showerpt[i] )*( rankedprong.axis_start[i]-showerpt[i] );
+	    if ( s>0.0 && d2<max_showerpt_d2 ) {
+	      float rovers = r/s;
+	      //if ( rovers < 9.0/14.0 ) {
+	      if ( (s<5.0 && r<r_trunk) || (s>=5.0 && r<r_mollier ) ) {
+		// mollier/radiation length
+		nhits_within_cone++;
+	      }
+	    }
+	  }//end of loop over hits in shower cluster
 
-              if ( s>0.0 && d2<max_showerpt_d2 ) {
-                float rovers = r/s;
-                //if ( rovers < 9.0/14.0 ) {
-                if ( (s<5.0 && r<r_trunk) || (s>=5.0 && r<r_mollier ) ) {
-                  // mollier/radiation length
-                  nhits_within_cone++;
-                }
-              }
-            }
-
-            float frac_within_cone = nhits_within_cone/float(shower_lfcluster.size());
-            if ( frac_within_cone>0.5 ) {
-              // add the shower cluster
-              LARCV_INFO() << "ShowerProng[" << ishower << "] added to ShowerProng[" << prongidx << "] "
-                          << " frac_within_cone=" << frac_within_cone 
-                          << std::endl;
-              for ( auto const& showerhit : shower_lfcluster )
-                shower_hit_v.push_back( showerhit );
-              cluster_used_v[it->first][ishower] =  1;
-            }
-          }//end of shower cluster loop for given producer
+	  float frac_within_cone = nhits_within_cone/float(shower_lfcluster.size());
+	  if ( frac_within_cone>0.5 ) {
+	    // add the shower cluster
+	    LARCV_INFO() << "Shower(sub)Prong[" << sub_prongidx << "] added to Shower(seed)Prong[" << prongidx << "] "
+			 << " frac_within_cone=" << frac_within_cone 
+			 << std::endl;
+	    for ( auto const& showerhit : shower_lfcluster )
+	      shower_hit_v.push_back( showerhit );
+	    cluster_used_v[sub_producer][sub_index] =  1;
+	    prong_used_v[sub_prongidx] = 1;
+	  }//end of if inside cone
         }//end of if cluster is shower type
       }//loop over producers to build showers
 
 
-      // get pca of shower
+      // get pca of final shower
       larflow::reco::cluster_t shower_cluster_t = larflow::reco::cluster_from_larflowcluster(shower_hit_v);
       larflow::reco::cluster_pca( shower_cluster_t );
       larlite::pcaxis shower_hit_pca = larflow::reco::cluster_make_pcaxis( shower_cluster_t );
@@ -652,7 +723,7 @@ namespace reco {
       nuvtx.shower_pcaxis_v.emplace_back( std::move(shower_hit_pca) );
 
     }//end of seed prong loop
-
+    
     LARCV_INFO() << "Number of showers added to vertex: " << nuvtx.shower_v.size() << std::endl;
 
     // book the clusters we used
@@ -1217,6 +1288,53 @@ namespace reco {
     }//end of loop over cluster hits
 
     return pixsum_v;
+  }
+
+  /**
+   * @brief get the score for all of the seeds using a bdt
+   */
+  void NuVertexShowerReco::getBDTseedscore( std::vector< NuVertexShowerReco::ProngRank_t >& seed_v )
+  {
+    // first we transfer the data into a DMatrix form
+    int nrows = seed_v.size();
+    std::vector<float> data_v( nrows*4, -1 );
+
+    // variable list used during training (in larflow/Reco/ana/nuvertexshowerreco/train_xgboost.py)
+    // varlist = ["recofragment_cosine",
+    // 	       "recofragment_dist2vtx",
+    // 	       "recofragment_impactpar",
+    // 	       "recofragment_pixsum"]
+    
+    
+    for (int i=0; i<nrows; i++) {
+      auto& seed = seed_v.at(i);
+      data_v[ 4*i ]     = seed.cosine;
+      data_v[ 4*i + 1 ] = seed.dist2vtx;
+      data_v[ 4*i + 2 ] = seed.impactpar;
+      data_v[ 4*i + 3 ] = seed.pixsum;
+    }
+    
+    DMatrixHandle dmatrix;
+    nuvertexshowerreco_safe_xgboost( XGDMatrixCreateFromMat( data_v.data(), nrows, 4, -1, &dmatrix) );
+
+    float const* out_result = NULL;
+    uint64_t const* out_shape;
+    uint64_t out_dim;    
+    char const config[] =
+      "{\"training\": false, \"type\": 0, "
+      "\"iteration_begin\": 0, \"iteration_end\": 0, \"strict_shape\": false}";
+    nuvertexshowerreco_safe_xgboost(XGBoosterPredictFromDMatrix(*_boosterhandle, dmatrix, config, &out_shape, &out_dim, &out_result));
+
+    // copy into seed structs
+    for (int i=0; i<nrows; i++) {
+      auto& seed = seed_v.at(i);
+      seed.score = -log( 1.0/out_result[i] - 1.0  );
+    }
+
+    std::sort( seed_v.begin(), seed_v.end() );
+
+    nuvertexshowerreco_safe_xgboost(XGDMatrixFree(dmatrix));
+    
   }
 
 }
