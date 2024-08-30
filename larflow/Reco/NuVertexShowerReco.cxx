@@ -14,6 +14,7 @@ namespace reco {
     : larcv::larcv_base("NuVertexShowerReco"),
       _mcpg(nullptr),
       _trunk_maxdist_from_closest_cm(10.0),
+      _calc_cosmic_overlap(true),
       _boosterhandle(nullptr)
   {
     std::cout << "CREATE XGBOOST HANDLER" << std::endl;
@@ -334,11 +335,32 @@ namespace reco {
       // get the pixel sum for the cluster
       larcv::EventImage2D* ev_adc = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wire");
       std::vector<float> cluster_pixsum_v = _get_cluster_pixsum( ev_adc->as_vector(), lfcluster );
+      std::vector<float> cluster_cosmic_pixsum_v(3,0.);
+
+      if ( _calc_cosmic_overlap ) {
+	larcv::EventImage2D* ev_thrumu = nullptr;
+	try {
+	  ev_thrumu = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"thrumu");
+	  cluster_cosmic_pixsum_v = _get_cluster_pixsum( ev_thrumu->as_vector(), lfcluster );
+	}
+	catch (std::exception& err) {
+	  // pass
+	}
+      }
+      
       // how to choose pixsum to eval?
       float d_pixsum = cluster_pixsum_v[2]*0.0162;
       if ( d_pixsum < 1.0 ) {
         d_pixsum = ( cluster_pixsum_v[0] > cluster_pixsum_v[1] ) ? cluster_pixsum_v[0]*0.0162 : cluster_pixsum_v[1]*0.0162;
       }
+
+      // combine cosmic contributions max ratio to plane
+      float e_cosmic = 0.;
+      for (int p=0; p<3; p++) {
+	e_cosmic += cluster_cosmic_pixsum_v[p]*0.0162/3.0;
+      }
+      if ( d_pixsum>0.0 )
+	e_cosmic /= d_pixsum;
 
       // update the mc ana info
       if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
@@ -349,6 +371,7 @@ namespace reco {
           mcana_info._recoshower_impactpar = b_impact_par;
           mcana_info._recoshower_cosine    = c_cosine;
           mcana_info._recoshower_pixsum_MeV = d_pixsum;
+	  mcana_info._recoshower_cosmic_pixsum = e_cosmic;
           mcana_info._recoshower_trunkdir = std::vector<float>{ 0, 0, 0};
           for (int v=0; v<3; v++)
             mcana_info._recoshower_trunkdir[v] = shower_dir[v];
@@ -401,6 +424,7 @@ namespace reco {
       rank.impactpar  = b_impact_par;
       rank.cosine     = c_cosine;
       rank.pixsum     = d_pixsum;
+      rank.cosmic     = e_cosmic;
 
       seed_rank_v.push_back( rank );
     }//end of loop over prong
@@ -464,13 +488,23 @@ namespace reco {
 
       // decide if this is going to be a seeding prong
       bool passes = false;
-      if ( num_seeds_defined<2 && rankedprong.score>=-3.0 )
-	passes = true;
-      // when we've added more than the pi0 decay number of photons, we require a stricture requirement
-      if ( num_seeds_defined>=2 && rankedprong.score>0.0 && rankedprong.pixsum>20.0 )
-	passes = true;
+      if ( rankedprong.cosmic < 0.5 ) {
+	// non-cosmic seeds
+	// be more confident for small showers
+	if ( rankedprong.pixsum<50.0 && rankedprong.score>=0.0 )
+	  passes = true;
+	// be more open for large showers
+	if ( rankedprong.pixsum>=50.0 && rankedprong.score>=-3.0 )
+	  passes = true; // loose cut, rely on prong CNN to reject garbage
+      }
+      else {
+	// cosmic seeds: requires more confident prong score for both large and small showers
+	if ( rankedprong.score>=0.0 )
+	  passes = true;
+      }
 
-      num_seeds_defined++;
+      if ( passes )
+	num_seeds_defined++;
 
       // use the cluster to seed
       auto const& vtxcluster = _showercluster_candidates_v.at(prongidx);
@@ -500,7 +534,8 @@ namespace reco {
       LARCV_INFO() << "   impactpar: " << rankedprong.impactpar << " cm" << std::endl;
       LARCV_INFO() << "   cosine: " << rankedprong.cosine << std::endl;
       LARCV_INFO() << "   pixsum: " << rankedprong.pixsum << " MeV-ish" << std::endl;
-      LARCV_INFO() << "   score: " << rankedprong.score << std::endl;
+      LARCV_INFO() << "   cosmic: " << rankedprong.cosmic << std::endl;
+      LARCV_INFO() << "   score (bdt logit): " << rankedprong.score << std::endl;
 
       
       // if ( rankedprong.score>-4.0 ) {

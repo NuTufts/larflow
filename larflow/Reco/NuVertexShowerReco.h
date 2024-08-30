@@ -87,6 +87,7 @@ namespace reco {
       float _recoshower_impactpar; //< distance of vtx along shower trunk line
       float _recoshower_cosine;   //< cosine between trunk dir and line from vertex to shower start
       float _recoshower_pixsum_MeV; //< total energy
+      float _recoshower_cosmic_pixsum; //< overlap of trunk points onto cosmic-tagged pixels
       std::vector<float> _recoshower_trunkdir;
       int   _reco_outcome;  //< outcome of reco for shower fragment
       int   _correct_outcome;  ///< correct outcome label for this shower fragment
@@ -106,6 +107,7 @@ namespace reco {
       float impactpar;
       float cosine;
       float pixsum;
+      float cosmic;
       std::vector<float> axis;
       std::vector<float> axis_start;
       std::vector<float> axis_end;
@@ -156,6 +158,7 @@ namespace reco {
   protected:
 
     float _trunk_maxdist_from_closest_cm;
+    bool  _calc_cosmic_overlap;
     int _make_trunk_cand( const std::vector<float>& pos,
                            const larlite::larflowcluster& lfcluster,
                            std::vector<float>& shower_start,
