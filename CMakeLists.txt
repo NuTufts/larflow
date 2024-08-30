@@ -105,7 +105,7 @@ if (OPENMP_FOUND)
 endif()
 
 #-- xgboost
-set( xgboost_DIR "$ENV{XGBOOST_CMAKE_DIR}" )
+set( xgboost_DIR "$ENV{XGBOOST_DIR}/lib/cmake/xgboost" )
 find_package(xgboost REQUIRED)
 get_cmake_property(_variableNames VARIABLES)
 foreach (_variableName ${_variableNames})

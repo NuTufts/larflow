@@ -2,6 +2,7 @@ import os,sys
 import uproot
 import numpy as np
 import xgboost as xgb
+import pickle
 
 # make file list
 data_dir="/cluster/tufts/wongjiradlabnu/nutufts/data/v3dev_shower_mcanalysis/mcc9_v40_NC_Pi0_run3b/larflowreco/ana/"
@@ -69,9 +70,13 @@ results = bst.evals_result()
 # results is a dict
 for k,v in results.items():
     print(k,": ",type(v))
-
+    
 print("save mode")
 bst.save_model('test.model')
+
+# save eval results
+fout = open("training_eval_results.pkl",'wb')
+pickle.dump( results, fout)
 
 # make predictions
 print("make predictions")

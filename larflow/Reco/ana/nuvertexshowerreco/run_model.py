@@ -68,7 +68,7 @@ prob_Y_full = bst.predict_proba(valid_X)
 
 # save to a root file with uproot!
 
-out = uproot.recreate("xgb_validout.root")
+out = uproot.recreate("xgb_validout_v1.4.0.root")
 
 # make a ttree
 out["modelout"] = { "score":prob_Y_full[:,1], "label":valid_Y }
