@@ -40,6 +40,7 @@ namespace keypoints {
     std::stringstream ss;
     ss << "KPdata[type=" << crossingtype << " pid=" << pid
        << " vid=" << vid
+       << " tid=" << trackid
        << " isshower=" << is_shower
        << " origin=" << origin << "] "
        << " kptype=" << kptype << " ";

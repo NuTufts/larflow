@@ -98,6 +98,7 @@ namespace keypoints {
     auto ev_segment  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
     auto ev_instance = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
     auto ev_ancestor = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
+    auto ev_larflow  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");    
 
     auto ev_mctrack  = (larlite::event_mctrack*)ioll.get_data(  larlite::data::kMCTrack,  "mcreco" );
     auto ev_mcshower = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
@@ -116,6 +117,7 @@ namespace keypoints {
     std::cout << "  segment images: "  << ev_segment->Image2DArray().size() << std::endl;
     std::cout << "  instance images: " << ev_instance->Image2DArray().size() << std::endl;
     std::cout << "  ancestor images: " << ev_ancestor->Image2DArray().size() << std::endl;
+    std::cout << "  larflow images:  " << ev_larflow->Image2DArray().size() << std::endl;    
     std::cout << "  mctracks: " << ev_mctrack->size() << std::endl;
     std::cout << "  mcshowers: " << ev_mcshower->size() << std::endl;
     std::cout << "  mctruths: " << ev_mctruth->size() << std::endl;
@@ -129,9 +131,11 @@ namespace keypoints {
              ev_segment->Image2DArray(),
              ev_instance->Image2DArray(),
              ev_ancestor->Image2DArray(),
+	     ev_larflow->Image2DArray(),
              *ev_mctrack,
              *ev_mcshower,
              *ev_mctruth );
+    //process( iolcv, ioll );
   }
 
   /**
@@ -142,7 +146,8 @@ namespace keypoints {
                                   const std::vector<larcv::Image2D>&    badch_v,
                                   const std::vector<larcv::Image2D>&    segment_v,
                                   const std::vector<larcv::Image2D>&    instance_v,
-                                  const std::vector<larcv::Image2D>&    ancestor_v,                                  
+                                  const std::vector<larcv::Image2D>&    ancestor_v,
+                                  const std::vector<larcv::Image2D>&    larflow_v,				  
                                   const larlite::event_mctrack&  mctrack_v,
                                   const larlite::event_mcshower& mcshower_v,
                                   const larlite::event_mctruth&  mctruth_v ) {
@@ -155,8 +160,10 @@ namespace keypoints {
     // make particle graph
     LARCV_DEBUG() << "build graph" << std::endl;    
     ublarcvapp::mctools::MCPixelPGraph mcpg;
+    mcpg.set_cluster_neutrino_particles(true);
+    //mcpg.set_verbosity( larcv::msg::kDEBUG );
     try {
-      mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v,
+      mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v, larflow_v,
                        mcshower_v, mctrack_v, mctruth_v );
     }
     catch (std::exception& err) {
@@ -164,9 +171,9 @@ namespace keypoints {
       throw std::runtime_error("error running mcpg");
     }
     LARCV_DEBUG() << "finished graph" << std::endl;        
-    mcpg.printGraph();
+    mcpg.printGraph(nullptr,false);
 
-    // build key-points
+    // build key-points container
     _kpd_v.clear();
     for (int i=0; i<6; i++) {
       _kppos_v[i].clear();
@@ -184,15 +191,20 @@ namespace keypoints {
     }
 
     // add points for shower starts
+    LARCV_NORMAL() << "Make Shower Keypoints" << std::endl;
     std::vector<KPdata> shower_kpd
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
-    std::cout << "[Shower Endpoint Results]" << std::endl;
+    LARCV_NORMAL() << "[Shower Endpoint Results]" << std::endl;
+    LARCV_NORMAL() << "number of shower keypoints found: " << shower_kpd.size() << std::endl;
+    int ishr=0; 
     for ( auto const& kpd : shower_kpd ) {
-      std::cout << "  " << kpd.str() << std::endl;
+      std::cout << "  [" << ishr << "] " << kpd.str() << std::endl;
+      ishr++;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
     // we change the kptype to neutrino vertex for those on it
+    LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
     _label_nu_keypoints( mctruth_v, adc_v, &sce, _kpd_v );
     
     // filter duplicates
@@ -341,7 +353,7 @@ namespace keypoints {
     std::vector<KPdata> kpd_v;
 
     // loop over nodes, look for electron/gamma pixels
-    for ( auto const& pnode : mcpg.node_v ) {
+    for ( auto& pnode : mcpg.node_v ) {
 
       if ( abs(pnode.pid)!=11
            && abs(pnode.pid)!=22 )
@@ -358,7 +370,8 @@ namespace keypoints {
         continue;
 
       auto const& shower = mcshower_v.at( pnode.vidx );
-      LARCV_DEBUG() << "shower(tid=" << pnode.tid << ","
+      LARCV_DEBUG() << "found shower start: "
+		    << "tid=" << pnode.tid << ","
 		    << "mtid=" << pnode.mtid << ","
 		    << "aid=" << pnode.aid << ") "
 		    << "process: " << shower.Process()
@@ -397,28 +410,44 @@ namespace keypoints {
       // 	throw std::runtime_error(msg);
       // }
 
+      std::vector< float > pixsum_v = mcpg.getTruePhotonTrunkPlanePixelSums( pnode.tid );
+      auto const& pointlist = mcpg.getTruePhotonTrunk3DPoints( pnode );
+      std::sort( pixsum_v.begin(), pixsum_v.end() );
+      float ave_toptwo = (pixsum_v[1]+pixsum_v[2])/2.0*0.0162;
+      
+
       kpd.keypt.resize(3,0);
       for (int i=0; i<3; i++)
-        kpd.keypt[i]   = pnode.imgpos4[i];
+        kpd.keypt[i]   = pnode.first_edep_pos[i];
+      LARCV_DEBUG() << "  shower startpt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ")" << std::endl;
 
       std::vector<double> dpos(3,0);
-      for (int i=0; i<3; i++ ) dpos[i] = pnode.imgpos4[i];
+      for (int i=0; i<3; i++ ) dpos[i] = pnode.first_edep_pos[i];
 
-      kpd.imgcoord.resize(4,0);      
+      kpd.imgcoord.resize(4,0.0);
       try {
         for (int p=0; p<3; p++)
           kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( dpos, p );
       }
       catch (...) {
+	LARCV_DEBUG() << "  shower start could not find a proper nearest wire" << std::endl;
         continue;
       }
       float tick = pnode.imgpos4[3];
       if ( tick>adc_v[0].meta().min_y() && tick<adc_v[0].meta().max_y() ) {
-        kpd.imgcoord[0] = adc_v[0].meta().row( tick );
+        kpd.imgcoord[0] = adc_v[0].meta().row( tick ); // wants row?
       }
       else {
+	LARCV_DEBUG() << "  shower start has tick outside of image bounds" << std::endl;
         continue;
       }
+
+
+      if ( ave_toptwo < 15.0 ) {
+	LARCV_DEBUG() << "  shower has too little energy deposited in the trunk (when ave. top two planes): " << ave_toptwo << " < 15.0 MeV" << std::endl;
+	continue;
+      }
+      
       kpd_v.emplace_back( std::move(kpd) );
 
     }//end of node loop

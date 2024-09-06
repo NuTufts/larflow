@@ -87,6 +87,7 @@ namespace keypoints {
                   const std::vector<larcv::Image2D>&    segment_v,
                   const std::vector<larcv::Image2D>&    instance_v,
                   const std::vector<larcv::Image2D>&    ancestor_v,
+		  const std::vector<larcv::Image2D>&    larflow_v,
                   const larlite::event_mctrack&  mctrack_v,
                   const larlite::event_mcshower& mcshower_v,
                   const larlite::event_mctruth&  mctruth_v );

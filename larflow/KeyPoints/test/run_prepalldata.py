@@ -111,7 +111,23 @@ for ientry in range(start_entry,end_entry,1):
     #lmc.process(ioll)
 
     tripmaker = ev_triplet[0]
-    mcpg = ublarcvapp.mctools.MCPixelPGraph()
+
+    if True:
+        print("MCPGRAPH ==================================")
+        mcpg = ublarcvapp.mctools.MCPixelPGraph()
+        mcpg.set_cluster_neutrino_particles(True)
+        mcpg.set_verbosity(1)    
+        mcpg.buildgraph(iolcv,ioll)
+        # dump pgraph
+        #mcpg.buildgraphonly( ioll )
+        #mcpg.printGraph(0,False)
+        for inode in range( mcpg.node_v.size() ):
+            nnode = mcpg.node_v.at(inode)
+            print("[",inode,"] ----------------------")
+            print(mcpg.printNodeInfo(nnode))    
+        print("===========================================")
+        sys.stdout.flush()
+    
     
     ev_adc = iolcv.get_data( larcv.kProductImage2D, args.adc )
     print("number of images: ",ev_adc.Image2DArray().size())
@@ -133,30 +149,42 @@ for ientry in range(start_entry,end_entry,1):
     # make triplet proposals
     tripmaker.process( adc_v, badch_v, 10.0, True )
 
-    # dump pgraph
-    mcpg.buildgraphonly( ioll )
-    #mcpg.printGraph(0,False)
 
     # make good/bad triplet ground truth
     tripmaker.process_truth_labels( iolcv, ioll, args.adc )
 
     # fix up some labels
+    print("RUN TRIPLET TRUTHFIXER")
     truthfixer = larflow.prep.TripletTruthFixer()    
     truthfixer.calc_reassignments( tripmaker, iolcv, ioll )    
 
     # make keypoint score ground truth
+    print("RUN PrepKeypoint")    
     kpana.process( iolcv, ioll )
     kpana.make_proposal_labels( tripmaker )
     kpana.fillAnaTree()
 
     # make ssnet ground truth
+    print("Make SSNet ground truth")
     ssnet.make_ssnet_labels( iolcv, ioll, tripmaker )
     
     # fill happens automatically (ugh so ugly)
 
     # make affinity field ground truth
     kpflow.process( iolcv, ioll, tripmaker )
-    kpflow.fillAnaTree()    
+    kpflow.fillAnaTree()
+
+
+    ev_mcshower = ioll.get_data( larlite.data.kMCShower, "mcreco" )
+    print("number of mcshower objects: ",ev_mcshower.size())
+    for i in range(ev_mcshower.size()):
+        shower = ev_mcshower.at(i)
+        print("[",i,"] geantid=",shower.TrackID()," pid=",shower.PdgCode(),")")
+    ev_mctrack = ioll.get_data( larlite.data.kMCTrack, "mcreco" )
+    print("number of mctrack objects: ",ev_mctrack.size())
+    for i in range(ev_mctrack.size()):
+        track = ev_mctrack.at(i)
+        print("[",i,"] geantid=",track.TrackID()," pid=",track.PdgCode(),")")
     
     if args.save_triplets:
         triptree.Fill()
