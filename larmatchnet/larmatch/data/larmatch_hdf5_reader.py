@@ -23,7 +23,10 @@ class LArMatchHDF5Dataset(Dataset):
         "paf_weight",
         "origin_label",
         "keypoint_truth_kptype_pdg_trackid",
-        "keypoint_truth_pos"]
+        "keypoint_truth_pos",
+        "wireimage_plane0",
+        "wireimage_plane1",
+        "wireimage_plane2"]
 
     def __init__(self, file_paths):
         self.file_paths = file_paths
