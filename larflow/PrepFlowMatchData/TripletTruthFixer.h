@@ -1,6 +1,7 @@
 #ifndef __LARFLOW_PREP_TRIPLETTRUTHFIXER_H__
 #define __LARFLOW_PREP_TRIPLETTRUTHFIXER_H__
 
+#include "larcv/core/Base/larcv_base.h"
 #include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/mcshower.h"
@@ -20,7 +21,7 @@ namespace prep {
    * @brief Uses clustering and larlite truth to repair triplet spacepoint instance labels
    *
    */
-  class TripletTruthFixer {
+  class TripletTruthFixer : public larcv::larcv_base {
 
   public:
 

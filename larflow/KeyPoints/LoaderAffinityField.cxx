@@ -149,7 +149,7 @@ namespace keypoints {
    * @return always returns 0  
    */
   int LoaderAffinityField::make_paf_arrays( const int nfilled,
-                                           const std::vector<int>& pos_match_index,
+					   const std::vector<int>& pos_match_index,
                                            const bool exclude_neg_examples,
                                            PyArrayObject* match_array,
                                            PyArrayObject*& paf_label,

@@ -80,7 +80,8 @@ namespace keypoints {
     virtual ~PrepKeypointData();
 
     void process( larcv::IOManager& iolcv,
-                  larlite::storage_manager& ioll );
+                  larlite::storage_manager& ioll,
+		  const larflow::prep::PrepMatchTriplets& match_proposals );
     
     void process( const std::vector<larcv::Image2D>&    adc_v,
                   const std::vector<larcv::Image2D>&    badch_v,
@@ -113,10 +114,21 @@ namespace keypoints {
                        const larlite::event_mcshower& mcshower_v,
                        larutil::SpaceChargeMicroBooNE* psce );
 
+    std::vector<KPdata>
+      getNonMuonTrackStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                              const std::vector<larcv::Image2D>& adc_v,
+                              const larlite::event_mctrack& mctrack_v,
+                              larutil::SpaceChargeMicroBooNE* psce );
+
     void _label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
                               const std::vector<larcv::Image2D>& adc_v,
                               larutil::SpaceChargeMicroBooNE* psce,
                               std::vector<KPdata>& kpdata_v  );
+
+    void _move_floating_keypoints(  const larflow::prep::PrepMatchTriplets& match_proposals );
+
+    void _clear_output();
+    void _copy_to_vectors();
     
     void filter_duplicates();
 

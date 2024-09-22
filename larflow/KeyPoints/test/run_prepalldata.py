@@ -116,7 +116,7 @@ for ientry in range(start_entry,end_entry,1):
         print("MCPGRAPH ==================================")
         mcpg = ublarcvapp.mctools.MCPixelPGraph()
         mcpg.set_cluster_neutrino_particles(True)
-        mcpg.set_verbosity(1)    
+        mcpg.set_verbosity(0)    
         mcpg.buildgraph(iolcv,ioll)
         # dump pgraph
         #mcpg.buildgraphonly( ioll )
@@ -160,7 +160,7 @@ for ientry in range(start_entry,end_entry,1):
 
     # make keypoint score ground truth
     print("RUN PrepKeypoint")    
-    kpana.process( iolcv, ioll )
+    kpana.process( iolcv, ioll, tripmaker )
     kpana.make_proposal_labels( tripmaker )
     kpana.fillAnaTree()
 

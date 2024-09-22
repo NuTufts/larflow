@@ -19,7 +19,13 @@ namespace keypoints {
       ttriplet(nullptr),
       tkeypoint(nullptr),
       tssnet(nullptr),
-      tlarbysmc(nullptr)
+      tlarbysmc(nullptr),
+      triplet_v(nullptr),
+      kpshift_v(nullptr),
+      ssnet_label_v(nullptr),
+      ssnet_weight_v(nullptr),
+      kpflow_labels_v(nullptr),
+      _use_data_from_ttree(true)
   {
     input_files.clear();
     input_files = input_v;
@@ -60,6 +66,7 @@ namespace keypoints {
       kppos_v[i] = 0;
       kptruth_v[i] = 0;
     }
+    kpflow_labels_v = 0;
     ssnet_label_v = 0;
     ssnet_weight_v = 0;
     _run    = 0;
@@ -181,15 +188,26 @@ namespace keypoints {
       LARCV_DEBUG() << "exclude negative examples" << std::endl;
     else
       LARCV_DEBUG() << "include both negative and positive examples" << std::endl;
-    
-    PyArrayObject* matches =
-      (PyArrayObject*)triplet_v->at(0).sample_triplet_matches( num_max_samples, nfilled, withtruth );
 
+    // get pointer to the PrepMatchTriplets instance that has made and stored our spacepoints and labels
+    larflow::prep::PrepMatchTriplets* ptripletmaker = nullptr;
+    if ( _use_data_from_ttree )
+      ptripletmaker = &(triplet_v->at(0));
+    else
+      ptripletmaker = ptriplet_v.at(0);
+
+    LARCV_NORMAL() << "Sample labels for triplets." << std::endl;   
+    PyArrayObject* matches =
+      (PyArrayObject*)ptripletmaker->sample_triplet_matches( num_max_samples, nfilled, withtruth );
+
+    LARCV_NORMAL() << "Copying labels for " << nfilled << " triplets to numpy arrays" << std::endl;    
+    
     // count npos, nneg examples
     // also make list of indices of positive examples, these are the ones we will evaluate ssnet not
     int npos=0;
     int nneg=0;
     std::vector<int> pos_index_v;
+    pos_index_v.reserve(nfilled);
     for (size_t i=0; i<nfilled; i++) {
       long ispositive = *((long*)PyArray_GETPTR2(matches,i,3));
       if (ispositive==1) {
@@ -204,12 +222,12 @@ namespace keypoints {
     PyObject *match_key = Py_BuildValue("s", "matchtriplet");
 
     // make match weight array
-    npy_intp match_weight_dim[] = { num_max_samples };
+    npy_intp match_weight_dim[] = { nfilled };
     PyArrayObject* match_weights = (PyArrayObject*)PyArray_SimpleNew( 1, match_weight_dim, NPY_FLOAT );
     float w_pos = (npos) ? float(npos+nneg)/float(npos) : 0.;
     float w_neg = (nneg) ? float(npos+nneg)/float(nneg) : 0.;
     float w_norm = w_pos*npos + w_neg*nneg;
-    for (int i=0; i<num_max_samples; i++ ) {
+    for (int i=0; i<nfilled; i++ ) {
       long ispositive = *((long*)PyArray_GETPTR2(matches,i,3));      
       if ( ispositive )
         *((float*)PyArray_GETPTR1(match_weights,i)) = w_pos/w_norm;
@@ -217,6 +235,24 @@ namespace keypoints {
         *((float*)PyArray_GETPTR1(match_weights,i)) = w_neg/w_norm;
     }
     PyObject *match_weight_key = Py_BuildValue("s", "match_weight");
+
+    LARCV_NORMAL() << "Prepare 3D positions of triplets" << std::endl;
+
+    // make spacepoint position array
+    int spacepoint_nd = 2;
+    npy_intp spacepoint_dims[] = { (long)nfilled, 3 };    
+    PyArrayObject* spacepoint_array = (PyArrayObject*)PyArray_SimpleNew( 2, spacepoint_dims, NPY_FLOAT );
+    for (int ii=0; ii<nfilled; ii++) {
+      // get the index of the triplet at array row ii
+      long idx = *((long*)PyArray_GETPTR2(matches,ii,4));
+      // fill the array row ii with the (x,y,z) position of the triplet with index idx
+      for (int v=0; v<3; v++) {
+	*((float*)PyArray_GETPTR2(spacepoint_array,ii,v)) = ptripletmaker->_pos_v.at(idx)[v];
+      }
+    }
+    PyObject* spacepoint_key = Py_BuildValue("s", "spacepoints");
+
+    LARCV_NORMAL() << "make positive (i.e. non-ghost) index array" << std::endl;
     
     // make index array
     npy_intp pos_dim[] = { (long)pos_index_v.size() };
@@ -226,9 +262,10 @@ namespace keypoints {
     }
     PyObject *pos_indices_key = Py_BuildValue("s", "positive_indices");
 
+    LARCV_NORMAL() << "there are " << pos_dim[0] << " positive spacepoints" << std::endl;
 
     // SSNET Arrays
-    LARCV_DEBUG() << "call make_ssnet_arrays" << std::endl;
+    LARCV_NORMAL() << "call make_ssnet_arrays" << std::endl;
     PyArrayObject* ssnet_label  = nullptr;
     PyArrayObject* ssnet_weight = nullptr;
     PyArrayObject* ssnet_class_weight = nullptr;
@@ -244,6 +281,7 @@ namespace keypoints {
     PyObject *ssnet_class_weight_key = Py_BuildValue("s", "ssnet_class_weight" );        
 
     // KP-LABEL ARRAY
+    LARCV_NORMAL() << "make keypoint labels" << std::endl;    
     PyArrayObject* kplabel_label  = nullptr;
     PyArrayObject* kplabel_weight = nullptr;
     make_kplabel_arrays( num_max_samples, nfilled, withtruth, pos_index_v,
@@ -252,15 +290,72 @@ namespace keypoints {
     PyObject *kp_weight_key    = Py_BuildValue("s", "kplabel_weight" );
 
     // KP-SHIFT ARRAY
+    LARCV_NORMAL() << "make keypoint shift labels" << std::endl;        
     PyArrayObject* kpshift_label = nullptr;
     make_kpshift_arrays( num_max_samples, nfilled, withtruth,
                          matches, kpshift_label );
     PyObject *kp_shift_key     = Py_BuildValue("s", "kpshift" );
 
+    // KP-ENERGY FLOW ARRAY (PAF: Particle affinity flow)
+    LARCV_NORMAL() << "make spacepoint momentum flow array" << std::endl;            
+    PyArrayObject* paf_label  = nullptr;
+    PyArrayObject* paf_weight = nullptr;
+    bool exclude_neg_examples = false;
+    make_paf_arrays( nfilled, ///number of spacepoints to provide labels for
+		     pos_index_v, // vector<int> where 1=true spaceoint and 0=ghost
+		     exclude_neg_examples, //option to remove labels for ghost points (not used)
+                     matches,
+		     paf_label,
+		     paf_weight );
+    PyObject *paf_label_key     = Py_BuildValue("s", "paf_label" );
+    PyObject *paf_weight_key    = Py_BuildValue("s", "paf_weight" );
+
+    // ORIGIN FLAG: 0=noise, 1=neutrino, 2=cosmic
+    LARCV_NORMAL() << "make origin flag array" << std::endl;            
+    PyArrayObject* origin_array = nullptr;
+    int err_origin = make_origin_array( nfilled,
+					pos_index_v,
+					exclude_neg_examples,
+					matches,
+					origin_array );
+    PyObject* origin_key = Py_BuildValue("s","origin_label");
+
+    // List of true keypoint positions
+    LARCV_NORMAL() << "Gathering true keypoint positions" << std::endl;
+    std::vector< std::vector<float> > kp_pos_v = get_keypoint_pos();
+    LARCV_NORMAL() << "Gathering true keypoint types" << std::endl;    
+    std::vector< int >  kp_class               = get_keypoint_types();    
+    LARCV_NORMAL() << "Gathering true keypoint PDGs and TrackIDs" << std::endl;    
+    std::vector< std::vector<int> >   kp_ids   = get_keypoint_pdg_and_trackid();
+    
+    int nkps = kp_class.size();
+    LARCV_NORMAL() << "Gathered truth for " << nkps << "keypoints" << std::endl;
+
+    if ( nkps!=kp_pos_v.size() )
+      LARCV_ERROR() << "number of keypoint types does not match number of keypoint positions" << std::endl;
+    if ( nkps!=kp_ids.size() )
+      LARCV_ERROR() << "number of keypoint types does not match number of keypoint PDGs and Trackids" << std::endl;
+    
+    npy_intp kptruth_dims[] = { nkps, 3 };
+    npy_intp kppos_dims[]   = { nkps, 3 };
+    PyArrayObject* kptruth_ids = (PyArrayObject*)PyArray_SimpleNew( 2, kptruth_dims, NPY_LONG );
+    PyArrayObject* kptruth_pos = (PyArrayObject*)PyArray_SimpleNew( 2, kppos_dims, NPY_FLOAT );        
+    for (int ikp=0; ikp<nkps; ikp++) {
+      *((long*)PyArray_GETPTR2(kptruth_ids,ikp,0)) = (long)kp_class[ikp];  // keypoint class
+      *((long*)PyArray_GETPTR2(kptruth_ids,ikp,1)) = (long)kp_ids[ikp][0]; // keypoint pdg
+      *((long*)PyArray_GETPTR2(kptruth_ids,ikp,2)) = (long)kp_ids[ikp][1]; // keypoint geant4 trackid
+      for (int v=0; v<3; v++) {
+	*((float*)PyArray_GETPTR2(kptruth_pos,ikp,v)) = (float)kp_pos_v.at(ikp)[v];
+      }
+    }
+    PyObject* kp_truth_ids_key = Py_BuildValue("s","keypoint_truth_kptype_pdg_trackid");
+    PyObject* kp_truth_pos_key = Py_BuildValue("s","keypoint_truth_pos");
+
 
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, match_key,              (PyObject*)matches);        
-    PyDict_SetItem(d, match_weight_key,       (PyObject*)match_weights);    
+    PyDict_SetItem(d, match_weight_key,       (PyObject*)match_weights);
+    PyDict_SetItem(d, spacepoint_key,         (PyObject*)spacepoint_array);
     PyDict_SetItem(d, pos_indices_key,        (PyObject*)positive_index);
     PyDict_SetItem(d, ssnet_label_key,        (PyObject*)ssnet_label );
     PyDict_SetItem(d, ssnet_top_weight_key,   (PyObject*)ssnet_weight );
@@ -268,27 +363,44 @@ namespace keypoints {
     PyDict_SetItem(d, kp_label_key,           (PyObject*)kplabel_label );
     PyDict_SetItem(d, kp_weight_key,          (PyObject*)kplabel_weight ); 
     PyDict_SetItem(d, kp_shift_key,           (PyObject*)kpshift_label );
+    PyDict_SetItem(d, paf_label_key,          (PyObject*)paf_label );
+    PyDict_SetItem(d, paf_weight_key,         (PyObject*)paf_weight );
+    PyDict_SetItem(d, origin_key,             (PyObject*)origin_array );
+    PyDict_SetItem(d, kp_truth_ids_key,       (PyObject*)kptruth_ids );
+    PyDict_SetItem(d, kp_truth_pos_key,       (PyObject*)kptruth_pos );    
 
     Py_DECREF(match_key);
     Py_DECREF(match_weight_key);
+    Py_DECREF(spacepoint_key);
     Py_DECREF(pos_indices_key);
     Py_DECREF(ssnet_label_key);
     Py_DECREF(ssnet_top_weight_key);
     Py_DECREF(ssnet_class_weight_key);
     Py_DECREF(kp_label_key);
     Py_DECREF(kp_weight_key);
-    Py_DECREF(kp_shift_key); 
+    Py_DECREF(kp_shift_key);
+    Py_DECREF(paf_label_key);
+    Py_DECREF(paf_weight_key);
+    Py_DECREF(origin_key);
+    Py_DECREF(kp_truth_ids_key);
+    Py_DECREF(kp_truth_pos_key);    
     
     Py_DECREF(matches);
     Py_DECREF(match_weights);
+    Py_DECREF(spacepoint_array);
     Py_DECREF(positive_index);
     Py_DECREF(ssnet_label);
     Py_DECREF(ssnet_weight);
     Py_DECREF(ssnet_class_weight);
     Py_DECREF(kplabel_label);
     Py_DECREF(kplabel_weight);
-    Py_DECREF(kpshift_label);    
-
+    Py_DECREF(kpshift_label);
+    Py_DECREF(paf_label);
+    Py_DECREF(paf_weight);
+    Py_DECREF(origin_array);
+    Py_DECREF(kptruth_pos);
+    Py_DECREF(kptruth_ids);
+    
     return d;
   }
 
@@ -329,9 +441,9 @@ namespace keypoints {
 
     if ( !_exclude_neg_examples ) {
       // we're going to load negative triplet examples too
-      ssnet_label_dims1[0] = num_max_samples;
-      ssnet_label_dims2[0] = num_max_samples;
-      ssnet_label_dims3[0] = num_max_samples;
+      ssnet_label_dims1[0] = nfilled;
+      ssnet_label_dims2[0] = nfilled;
+      ssnet_label_dims3[0] = nfilled;
     }
 
     ssnet_label        = (PyArrayObject*)PyArray_SimpleNew( ssnet_label_nd, ssnet_label_dims1, NPY_LONG );
@@ -358,25 +470,25 @@ namespace keypoints {
 
       // get ssnet index
       if (index<0 || index>=(int)ssnet_label_v->size()) {
-	std::stringstream msg;
-	msg << "invalid index for ssnet_label_v. index=" << index
-	    << " size=" << ssnet_label_v->size()
-	    << " i=" << i	  
-	    << " idx=" << idx
-	    << " exclude=" << _exclude_neg_examples
-	    << std::endl;
-	LARCV_CRITICAL() << msg.str() << std::endl;
-	throw std::runtime_error( msg.str() );
+        std::stringstream msg;
+        msg << "invalid index for ssnet_label_v. index=" << index
+            << " size=" << ssnet_label_v->size()
+            << " i=" << i	  
+            << " idx=" << idx
+            << " exclude=" << _exclude_neg_examples
+            << std::endl;
+        LARCV_CRITICAL() << msg.str() << std::endl;
+        throw std::runtime_error( msg.str() );
       }
       
       int label = ssnet_label_v->at( index );
       if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
-	std::stringstream msg;
-	msg << "invalid class label=" << label << " from the Tree" << std::endl;
-	//throw std::runtime_error( msg.str() );
-	label = 0;
-	nbad_labels++;
-	//std::cout << msg.str() << std::endl;
+        std::stringstream msg;
+        msg << "invalid class label=" << label << " from the Tree" << std::endl;
+        //throw std::runtime_error( msg.str() );
+        label = 0;
+        nbad_labels++;
+        //std::cout << msg.str() << std::endl;
       }
       nclass[label]++;
 
@@ -392,17 +504,17 @@ namespace keypoints {
     float w_norm  = 0.;
     for (int i=0; i<(int)nclass.size(); i++) {
       if ( nclass[i]>0 )
-	w_class[i] = 1.0/float(nclass[i]);
+	      w_class[i] = 1.0/float(nclass[i]);
       else
-	w_class[i] = 0.0;
+	      w_class[i] = 0.0;
     }
     
     for ( int i=0; i<(int)ssnet_label_dims1[0]; i++ ) {
       long label = *((long*)PyArray_GETPTR1(ssnet_label,i));
       if (label<0 || label>=larflow::prep::PrepSSNetTriplet::kNumClasses) {
-	std::stringstream msg;
-	msg << "invalid class label=" << label << " from the Tree" << std::endl;
-	throw std::runtime_error( msg.str() );
+        std::stringstream msg;
+        msg << "invalid class label=" << label << " from the Tree" << std::endl;
+        throw std::runtime_error( msg.str() );
       }      
       *((float*)PyArray_GETPTR1(ssnet_class_weight,i)) = w_class[label];
     }
@@ -441,10 +553,10 @@ namespace keypoints {
     npy_intp kplabel_dims[] = { (long)pos_match_index.size(), (long)nclasses };
 
     if ( !_exclude_neg_examples ) {
-      kplabel_dims[0] = num_max_samples;
+      kplabel_dims[0] = nfilled;
     }
     
-    //std::cout << "make kplabel: " << kplabel_dims[0] << std::endl;    
+    std::cout << "make kplabel array with " << kplabel_dims[0] << " rows" << std::endl;    
     kplabel_label = (PyArrayObject*)PyArray_SimpleNew( kplabel_nd, kplabel_dims, NPY_FLOAT );
 
     std::vector<int> npos(nclasses,0);
@@ -494,7 +606,7 @@ namespace keypoints {
     int kpweight_nd = 2;
     npy_intp kpweight_dims[] = { (long)pos_match_index.size(), nclasses };
     if ( !_exclude_neg_examples )
-      kpweight_dims[0] = num_max_samples;
+      kpweight_dims[0] = nfilled;
     kplabel_weight = (PyArrayObject*)PyArray_SimpleNew( kpweight_nd, kpweight_dims, NPY_FLOAT );
 
     for (int c=0; c<nclasses; c++ ) {
@@ -550,11 +662,11 @@ namespace keypoints {
     // make keypoint shift array
     int kpshift_nd = 3;
     int nclasses = 3;
-    npy_intp kpshift_dims[] = { num_max_samples, nclasses, 3 };
+    npy_intp kpshift_dims[] = { nfilled, nclasses, 3 };
     //std::cout << "make kpshift: " << kpshift_dims[0] << "," << kpshift_dims[1] << std::endl;    
     kpshift_label = (PyArrayObject*)PyArray_SimpleNew( kpshift_nd, kpshift_dims, NPY_FLOAT );
 
-    for (int i=0; i<num_max_samples; i++ ) {
+    for (int i=0; i<kpshift_dims[0]; i++ ) {
       long index = *((long*)PyArray_GETPTR2(match_array,i,index_col));
       for (int c=0; c<nclasses; c++ ) {
 	
@@ -608,6 +720,186 @@ namespace keypoints {
     }
     return kp_pdgtrackid;
   }
+
+  void LoaderKeypointData::provide_entry_data( larflow::prep::PrepMatchTriplets& triplets,
+					       larflow::keypoints::PrepKeypointData& kpdata,
+					       larflow::prep::PrepSSNetTriplet& ssnetdata,
+					       larflow::keypoints::PrepAffinityField& kpdirflow )
+  {
+    
+    ptriplet_v.clear();    
+    ptriplet_v.push_back( &triplets );
+    
+    // transfer info from these members in PrepKeypointData
+    //std::vector< std::vector<float> > _kppos_v[6]; ///< container of true keypoint 3D positions in cm, for each of the 6 classes
+    //std::vector< std::vector<int> >   _kp_pdg_trackid_v[6]; ///< each entry maps (pdg, trackid) for truth meta-data matching
+    for (int ikptype=0; ikptype<6; ikptype++) {
+      kppos_v[ikptype]   = &(kpdata._kppos_v[ikptype]);
+      kplabel_v[ikptype] = &(kpdata._match_proposal_labels_v[ikptype]);
+      kptruth_v[ikptype] = &(kpdata._kp_pdg_trackid_v[ikptype]);
+    }
+
+    // ssnet containers
+    ssnet_label_v   = &(ssnetdata._ssnet_label_v);
+    ssnet_weight_v  = &(ssnetdata._ssnet_weight_v);
+
+    // spacepoint direction containers
+    kpflow_labels_v = &(kpdirflow._match_labels_v);
+
+  }
+
+  /**
+   * @brief make particle affinity field ground truth numpy arrays
+   *
+   * @param[in]  nfilled number of samples actually returned
+   * @param[in]  pos_match_index vector index in return samples for space points which are true/good
+   * @param[in]  exclude_neg_examples If true, training samples return do not have negative/bad spacepoint examples
+   * @param[in]  match_array numpy array containing indices to sparse image for each spacepoint
+   * @param[out] paf_label  numpy array containing target direction for each spacepoint. shape (N,3)
+   * @param[out] paf_weight numpy array containing weight for each spacepoint. shape (N,)
+   * @return always returns 0  
+   */
+  int LoaderKeypointData::make_paf_arrays( const int nfilled,
+                                           const std::vector<int>& pos_match_index,
+                                           const bool exclude_neg_examples,
+                                           PyArrayObject* match_array,
+                                           PyArrayObject*& paf_label,
+                                           PyArrayObject*& paf_weight )
+  {
+
+    int index_col = 4;
+
+    int nd = 2;
+    npy_intp dims[] = { (long)pos_match_index.size(), 3 };
+    
+    if ( !exclude_neg_examples ) {
+      dims[0] = (long)nfilled;
+    }
+    paf_label  = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
+    
+    int nd_weight = 1;
+    npy_intp dims_weight[] = { dims[0] };
+    paf_weight = (PyArrayObject*)PyArray_SimpleNew( nd_weight, dims_weight, NPY_FLOAT ); 
+    
+    int npos = 0;
+    int nneg = 0;
+    int nmissing = 0;
+
+    std::vector<int> pixtype(dims[0],0);
+    for (int i=0; i<(int)dims[0]; i++ ) {
+      // sample array index
+      int idx = (exclude_neg_examples) ? pos_match_index[i] : (int)i;
+      // triplet index
+      long index = *((long*)PyArray_GETPTR2(match_array,idx,index_col));
+      // ground truth for triplet
+      long isgood = *((long*)PyArray_GETPTR2(match_array,idx,3));
+
+      const std::vector<float>& label_v = kpflow_labels_v->at(index);
+
+      // if good spacepoint but we don't have a direction label, we zero out the event (missing)
+      // if good spacepoint and has direction label, counted as positive example
+      // if bad spacepoint point but doesnt matter if have a label, counted as negative example,
+      //   correct answer will be zero vector
+                      
+      if ( isgood==1 && label_v.size()==10 ) {
+        // positive examples
+        npos++;
+        for (int j=0; j<3; j++)
+          *((float*)PyArray_GETPTR2(paf_label,i,j)) = label_v[j];
+        pixtype[i] = 1;
+      }
+      else if (isgood==0) {
+        // negative examples
+        nneg++;
+        for (int j=0; j<3; j++)
+          *((float*)PyArray_GETPTR2(paf_label,i,j)) = 0.0;
+        pixtype[i] = 0;        
+      }
+      else if (isgood==1 && label_v.size()<10) {
+        nmissing++;
+        for (int j=0; j<3; j++)
+          *((float*)PyArray_GETPTR2(paf_label,i,j)) = 0.0;
+        pixtype[i] = 2;        
+      }        
+    }
+    nneg = 0;
+
+    // weights for positive and negative examples
+    float w_pos = (npos) ? float(npos+nneg)/float(npos) : 0.0;
+    float w_neg = (nneg) ? float(npos+nneg)/float(nneg) : 0.0;
+    float w_norm = w_pos*npos + w_neg*nneg;
+
+    //std::cout << "KPWEIGHT: W(POS)=" << w_pos/w_norm << " W(NEG)=" << w_neg/w_norm << std::endl;
+    
+    for (int i=0; i<dims[0]; i++ ) {
+      if (pixtype[i]==1) {
+        *((float*)PyArray_GETPTR1(paf_weight,i)) = w_pos/w_norm;
+      }
+      else if (pixtype[i]==0) {
+        *((float*)PyArray_GETPTR1(paf_weight,i))  = w_neg/w_norm;
+      }
+      else if (pixtype[i]==2) {
+        *((float*)PyArray_GETPTR1(paf_weight,i))  = 0.0;
+      }
+    }
+
+    return 0;
+  }
+
+
+  /**
+   * @brief Get the neutrino origin flag for spacepoints
+   * 
+   * Go into the PrepMatchTriplet class and transfer the neutrino origin flags for each spacepoint
+   * and put them into a numpy array
+   *
+   */
+  int LoaderKeypointData::make_origin_array( const int nfilled,
+					     const std::vector<int>& pos_match_index,
+					     const bool exclude_neg_examples,
+					     PyArrayObject* match_array,					     
+					     PyArrayObject*& origin_array )
+  {
+    
+    int nd = 1;
+    npy_intp dims[] = { nfilled };
+    
+    if ( !exclude_neg_examples ) {
+      dims[0] = (long)nfilled;
+    }
+    origin_array  = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_LONG );
+    
+    larflow::prep::PrepMatchTriplets* ptriplet = nullptr;
+    if ( _use_data_from_ttree ) {
+      ptriplet = &(triplet_v->at(0));
+    }
+    else {
+      ptriplet = ptriplet_v.at(0);
+    }
+    
+    if ( ptriplet->_origin_v.size()!=dims[0] ) {
+      LARCV_ERROR() << "Size of origin_v container (with " << ptriplet->_origin_v.size() << " entries) does not match"
+		    << " the expected number of entries (" << dims[0] << ")"
+		    << std::endl;
+    }
+
+    
+    for (int i=0; i<(int)dims[0]; i++ ) {
+      int tripletidx = *((int*)PyArray_GETPTR2(match_array,i,4));
+      if ( tripletidx>=0 && tripletidx < (long)ptriplet->_origin_v.size() ) {
+	long origin_flag = (long)ptriplet->_origin_v[tripletidx];
+	*((long*)PyArray_GETPTR1(origin_array,i)) = origin_flag;
+      }
+      else {
+	*((long*)PyArray_GETPTR1(origin_array,i)) = 0;	
+      }
+    }
+    
+    return 0;
+  }
+  
+  
+  
   
 }
 }

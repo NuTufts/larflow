@@ -10,6 +10,7 @@
 #include "TH2D.h"
 
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
+#include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
@@ -23,6 +24,8 @@
 #include "larlite/DataFormat/mctrack.h"
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctruth.h"
+
+#include "larflow/Reco/cluster_functions.h"
 
 namespace larflow {
 namespace keypoints {
@@ -92,8 +95,11 @@ namespace keypoints {
    * @param[in] iolcv LArCV IOManager containing event data
    * @param[in] ioll  LArLite storage_manager containing event data
    */
-  void PrepKeypointData::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
+  void PrepKeypointData::process( larcv::IOManager& iolcv,
+				  larlite::storage_manager& ioll,
+				  const larflow::prep::PrepMatchTriplets& match_proposals )
   {
+    
     auto ev_adc      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,_adc_image_treename);
     auto ev_segment  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
     auto ev_instance = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
@@ -131,11 +137,17 @@ namespace keypoints {
              ev_segment->Image2DArray(),
              ev_instance->Image2DArray(),
              ev_ancestor->Image2DArray(),
-	     ev_larflow->Image2DArray(),
+	           ev_larflow->Image2DArray(),
              *ev_mctrack,
              *ev_mcshower,
              *ev_mctruth );
-    //process( iolcv, ioll );
+
+    // refine the points to sit on the nearest true spacepoint that matches its trackid
+    _move_floating_keypoints( match_proposals );
+    
+    _clear_output();
+    _copy_to_vectors();
+    
   }
 
   /**
@@ -170,8 +182,10 @@ namespace keypoints {
       LARCV_CRITICAL() << "Error running mcpg: " << err.what() << std::endl;
       throw std::runtime_error("error running mcpg");
     }
-    LARCV_DEBUG() << "finished graph" << std::endl;        
-    mcpg.printGraph(nullptr,false);
+    LARCV_DEBUG() << "finished graph" << std::endl;
+    if ( logger().level()==larcv::msg::kDEBUG ) {
+      mcpg.printGraph(nullptr,false);
+    }
 
     // build key-points container
     _kpd_v.clear();
@@ -184,8 +198,16 @@ namespace keypoints {
     std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
 
-    std::cout << "[Track Endpoint Results]" << std::endl;
+    std::cout << "[Muon Track Endpoint Results]" << std::endl;
     for ( auto const& kpd : track_kpd ) {
+      std::cout << "  " << kpd.str() << std::endl;
+      _kpd_v.emplace_back( std::move(kpd) );
+    }
+
+    std::vector<KPdata> nonmuon_track_kpd 
+      = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
+    std::cout << "[Muon Track Endpoint Results]" << std::endl;
+    for ( auto const& kpd : nonmuon_track_kpd ) {
       std::cout << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
@@ -206,23 +228,25 @@ namespace keypoints {
     // we change the kptype to neutrino vertex for those on it
     LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
     _label_nu_keypoints( mctruth_v, adc_v, &sce, _kpd_v );
-    
+
     // filter duplicates
     //filter_duplicates();
 
     // copy positions of keypoints into flat vector for storage
-    for ( auto const& kpd : _kpd_v ) {
-      if ( kpd.kptype>=0 && kpd.kptype<6 ) {
-        _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
-	std::vector<int> pdg_trackid(2);
-	pdg_trackid[0] = kpd.pid;
-	pdg_trackid[1] = kpd.trackid;
-	_kp_pdg_trackid_v[ kpd.kptype ].push_back( pdg_trackid );
-      }
-      else {
-        throw std::runtime_error("unrecognized keypoint type");
-      }          
-    }
+    _clear_output();
+    _copy_to_vectors();
+    // for ( auto const& kpd : _kpd_v ) {
+    //   if ( kpd.kptype>=0 && kpd.kptype<6 ) {
+    //     _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
+    //     std::vector<int> pdg_trackid(2);
+    //     pdg_trackid[0] = kpd.pid;
+    //     pdg_trackid[1] = kpd.trackid;
+    //     _kp_pdg_trackid_v[ kpd.kptype ].push_back( pdg_trackid );
+    //   }
+    //   else {
+    //     throw std::runtime_error("unrecognized keypoint type");
+    //   }          
+    // }
     
   }
 
@@ -262,9 +286,11 @@ namespace keypoints {
 
     for ( auto const& pnode : primaries ) {
 
-      if ( abs(pnode->pid)!=13
-           && abs(pnode->pid)!=2212
-           && abs(pnode->pid)!=211 )
+      // if ( abs(pnode->pid)!=13
+      //      && abs(pnode->pid)!=2212
+      //      && abs(pnode->pid)!=211 )
+      //   continue;
+      if ( abs(pnode->pid)!=13 )
         continue;
 
       auto const& mctrk = mctrack_v.at( pnode->vidx );
@@ -391,18 +417,18 @@ namespace keypoints {
 	
       // priveledge showers from muons
       if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
-	// mother is a muon or ancestor is a muon
-	if ( process=="Decay" || process=="muMinusCaptureAtRest")
-	  kpd.kptype = larflow::kShowerMichel;
-	else
-	  kpd.kptype = larflow::kShowerDelta;
+        // mother is a muon or ancestor is a muon
+        if ( process=="Decay" || process=="muMinusCaptureAtRest")
+          kpd.kptype = larflow::kShowerMichel;
+        else
+          kpd.kptype = larflow::kShowerDelta;
       }
       else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" || process=="eBrem" || process=="muBrem") {
         kpd.kptype = larflow::kShowerDelta;
       }
       else {
-	// everything else
-	kpd.kptype = larflow::kShowerStart;
+        // everything else
+        kpd.kptype = larflow::kShowerStart;
       }
       // }
       // else {
@@ -415,14 +441,22 @@ namespace keypoints {
       std::sort( pixsum_v.begin(), pixsum_v.end() );
       float ave_toptwo = (pixsum_v[1]+pixsum_v[2])/2.0*0.0162;
       
+      std::vector<float> start_reco(4,0.0);
+      if ( abs(pnode.pid)==11) {
+        start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3] );
+      }
+      else {
+        start_reco = pnode.first_edep_pos;
+      }
+
 
       kpd.keypt.resize(3,0);
       for (int i=0; i<3; i++)
-        kpd.keypt[i]   = pnode.first_edep_pos[i];
+        kpd.keypt[i]   = start_reco[i];
       LARCV_DEBUG() << "  shower startpt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ")" << std::endl;
 
       std::vector<double> dpos(3,0);
-      for (int i=0; i<3; i++ ) dpos[i] = pnode.first_edep_pos[i];
+      for (int i=0; i<3; i++ ) dpos[i] = start_reco[i];
 
       kpd.imgcoord.resize(4,0.0);
       try {
@@ -430,7 +464,7 @@ namespace keypoints {
           kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( dpos, p );
       }
       catch (...) {
-	LARCV_DEBUG() << "  shower start could not find a proper nearest wire" << std::endl;
+      	LARCV_DEBUG() << "  shower start could not find a proper nearest wire" << std::endl;
         continue;
       }
       float tick = pnode.imgpos4[3];
@@ -438,14 +472,14 @@ namespace keypoints {
         kpd.imgcoord[0] = adc_v[0].meta().row( tick ); // wants row?
       }
       else {
-	LARCV_DEBUG() << "  shower start has tick outside of image bounds" << std::endl;
+	      LARCV_DEBUG() << "  shower start has tick outside of image bounds" << std::endl;
         continue;
       }
 
 
       if ( ave_toptwo < 15.0 ) {
-	LARCV_DEBUG() << "  shower has too little energy deposited in the trunk (when ave. top two planes): " << ave_toptwo << " < 15.0 MeV" << std::endl;
-	continue;
+        LARCV_DEBUG() << "  shower has too little energy deposited in the trunk (when ave. top two planes): " << ave_toptwo << " < 15.0 MeV" << std::endl;
+        continue;
       }
       
       kpd_v.emplace_back( std::move(kpd) );
@@ -453,6 +487,194 @@ namespace keypoints {
     }//end of node loop
     
     return kpd_v;
+  }
+
+    /**
+   * make list of end-points for non0-muon track-like particles
+   *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any).
+   *                 We get a list of showers using this graph, and only consider
+   *                 those who have at least 10 visible pixels in one of the planes.
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
+   *                       information of shower-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of KPdata instances, one for each ground truth shower start
+   * 
+   */  
+  std::vector<KPdata>
+  PrepKeypointData::getNonMuonTrackStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
+                                     const std::vector<larcv::Image2D>& adc_v,
+                                     const larlite::event_mctrack& mctrack_v,
+                                     larutil::SpaceChargeMicroBooNE* psce )
+  {
+
+    LARCV_DEBUG() << "start" << std::endl;\
+    std::vector<KPdata> output;
+    
+    Double_t tpc_bounds[3][2] = { {0,255.0},
+                                  {-116.5,116.5},
+                                  {0.5,1035.5}}; // so dumb that this is hard-coded.
+    // we have to space-charge correct, so we bump a little inside
+
+    // output vector of keypoint data
+    std::vector<KPdata> kpd_v;
+
+    // loop over nodes, look for electron/gamma pixels
+    for ( auto& pnode : mcpg.node_v ) {
+
+      if ( abs(pnode.pid)==11 || abs(pnode.pid)==22 || pnode.pid==2112 ) {
+        // no showers and no neutrons
+        continue;
+      }
+      if ( abs(pnode.pid)==13 ) {
+        // no muons
+        continue;
+      }
+      if (pnode.origin==-1)
+        continue;
+
+      auto const& track = mctrack_v.at( pnode.vidx );
+      LARCV_INFO() << "  found non-muon track: "
+		    << "tid=" << pnode.tid << ","
+		    << "mtid=" << pnode.mtid << ","
+		    << "aid=" << pnode.aid << ") "
+		    << "process: " << track.Process()
+		    << std::endl;
+      std::string process = track.Process();
+
+      if ( track.size()==0 ) {
+        // there are no steps inside the cryostat by this particle. skip it
+        continue;
+      }
+
+      // we ignore low energy stuff we really cannot reconstruct
+      // we need to verify what is inside and outside the detector...
+      // probably should push this back into the mcpg ... along with pion work by Andy
+      bool inside_det = false;
+      float total_len = 0.;
+      float total_len_indet = 0.;
+      std::vector<float> pos_start_tpc(4,0);
+      std::vector<float> pos_end_tpc(4,0);
+      for (int istep=0; istep<(int)track.size()-1; istep++) {
+        const TLorentzVector lpt1 = track.at(istep).Position();
+        const TLorentzVector lpt2 = track.at(istep+1).Position();
+        TVector3 pt1 = lpt1.Vect();
+        TVector3 pt2 = lpt2.Vect();
+        TVector3 dstep = pt2-pt1;
+
+        bool in_tpc1=false;
+        for (int i=0; i<3; i++) {
+          if ( tpc_bounds[i][0]<=pt1[i] && pt1[i]<=tpc_bounds[i][1]){
+            in_tpc1 = true;
+          }
+        }
+
+        bool in_tpc2=false;
+        for (int i=0; i<3; i++) {
+          if ( tpc_bounds[i][0]<=pt2[i] && pt2[i]<=tpc_bounds[i][1]){
+            in_tpc2 = true;
+          }
+        }
+
+        if (!inside_det) {
+          if ( in_tpc1 ) {
+            pos_start_tpc = std::vector<float>{ (float)lpt1.X(), (float)lpt1.Y(), (float)lpt1.Z(), (float)(lpt1.T()*1.0e-3) };
+          }
+          else if (in_tpc2) {
+            pos_start_tpc = std::vector<float>{ (float)lpt2.X(), (float)lpt2.Y(), (float)lpt2.Z(), (float)(lpt2.T()*1.0e-3) };
+          }
+          // we do we determine the crossing pt midstep?
+          // we could ... not worry for now ... assume geant4 steps are small enough that we can tolerate imprecision
+          inside_det = true;
+        }
+        else if ( inside_det ) {
+          if ( in_tpc1 )
+            pos_end_tpc = std::vector<float>{ (float)lpt1.X(), (float)lpt1.Y(), (float)lpt1.Z(), (float)(lpt1.T()*1.0e-3) };
+          if ( in_tpc2 )
+            pos_end_tpc = std::vector<float>{ (float)lpt2.X(), (float)lpt2.Y(), (float)lpt2.Z(), (float)(lpt2.T()*1.0e-3) };
+        }
+
+        if (inside_det)
+          total_len += dstep.Mag();
+      }
+
+      bool above_threshold = true;
+      if ( total_len < 3.0 ) {
+        // we anticipate using a scoring sigma of 5 cm
+        // also, 3 cm is about 10 pixels in microboone. at that point, we should be able to identify it as a prong
+        above_threshold = false;
+      }
+
+      // also check how much visible energy it has made in the image
+      int nplanes = 0;
+      for (int p=0; p<pnode.pix_vv.size(); p++) {
+        if ( pnode.pix_vv.at(p).size()/2>=10 ) {
+          nplanes++;
+        }
+      }
+      if (nplanes==0) {
+        above_threshold = false;
+      }
+
+      if ( !above_threshold ) {
+        LARCV_INFO() << "track visible energy deposition is below threshold. skip." << std::endl;
+      }
+      
+      // track start
+      KPdata kpd_start;
+      kpd_start.crossingtype = 0;
+      kpd_start.trackid = pnode.tid;
+      kpd_start.pid     = pnode.pid;
+      kpd_start.vid     = pnode.vidx;
+      kpd_start.origin  = pnode.origin;
+      kpd_start.is_shower = 0;
+      kpd_start.kptype = larflow::kTrackStart;
+      std::vector<float> pos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pos_start_tpc[0],
+                                                                                                 pos_start_tpc[1],
+                                                                                                 pos_start_tpc[2],                                                                                                  
+                                                                                                 pos_start_tpc[3]*1.0e-3 );
+      kpd_start.keypt = std::vector<float>{ (float)pos[0], (float)pos[1], (float)pos[2] };                                                                                       
+
+      kpd_start.imgcoord = 
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
+                                                                                       4050.0, true, 0.3, 0.1,
+                                                                                       kpd_start.keypt, psce, false );
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+      
+      // track end 
+      KPdata kpd_end;
+      kpd_end.crossingtype = 1;
+      kpd_end.trackid = pnode.tid;
+      kpd_end.pid     = pnode.pid;
+      kpd_end.vid     = pnode.vidx;
+      kpd_end.origin  = pnode.origin;
+      kpd_end.is_shower = 0;
+      kpd_end.kptype = larflow::kTrackEnd;
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+      std::vector<float> fendpos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pos_end_tpc[0],
+                                                                                                 pos_end_tpc[1],
+                                                                                                 pos_end_tpc[2],                                                                                                  
+                                                                                                 pos_end_tpc[3]*1.0e-3 );
+      kpd_end.keypt = std::vector<float>{ (float)fendpos[0], (float)fendpos[1], (float)fendpos[2] };
+      kpd_end.imgcoord = 
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
+                                                                                       4050.0, false, 0.3, 0.1,
+                                                                                       kpd_end.keypt, psce, false );
+      if ( kpd_start.keypt.size()>=3 )
+        output.emplace_back( std::move(kpd_start) );
+      if ( kpd_end.keypt.size()>=3 )
+        output.emplace_back( std::move(kpd_end) );
+
+    }//end of node loop
+    
+    return output;
   }
   
   /**
@@ -739,9 +961,9 @@ namespace keypoints {
         // make label vector
 
         // within 50 pixels/15 cm
-	bool is_close = false;
+	      bool is_close = false;
         if ( dist<max_dist_to_label ) {
-	  is_close = true;
+	        is_close = true;
           label_v[0] = 1.0;
           _nclose++;
         }
@@ -750,28 +972,28 @@ namespace keypoints {
           _nfar++;
         }
 
-	if ( is_close ) {	
-	  // make shift in 3D label
-          for (int i=0; i<3; i++ ) {
-            label_v[1+i] = leafpos[i]-pos[i];
-            if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
-          }
+        if ( is_close ) {	
+          // make shift in 3D label
+                for (int i=0; i<3; i++ ) {
+                  label_v[1+i] = leafpos[i]-pos[i];
+                  if ( hdist[i] ) hdist[i]->Fill(label_v[1+i]);
+                }
 
-          // shift in imgcoords
-          std::vector<int> imgcoords(4,0);
-          imgcoords[0] = match_proposals._sparseimg_vv[0][triplet[0]].row;
-          for (int p=0; p<3; p++ ) {
-            imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
-          }
-          for (int i=0; i<4; i++) {
-            label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
-            if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
-          }
-	}
-	else {
-	  // empy label to save space
-	  //label_v.clear(); // this messes up file
-	}
+                // shift in imgcoords
+                std::vector<int> imgcoords(4,0);
+                imgcoords[0] = match_proposals._sparseimg_vv[0][triplet[0]].row;
+                for (int p=0; p<3; p++ ) {
+                  imgcoords[1+p] = match_proposals._sparseimg_vv[p][triplet[p]].col;
+                }
+                for (int i=0; i<4; i++) {
+                  label_v[4+i] = imgcoords[i]-kpd->imgcoord[i];
+                  if ( hdpix[i] ) hdpix[i]->Fill( label_v[4+i] );
+                }
+        }
+        else {
+          // empy label to save space
+          //label_v.clear(); // this messes up file
+        }
         _match_proposal_labels_v[ikpclass].push_back(label_v);
       }//end of keypoint class loop
     }//end of match proposal loop
@@ -914,6 +1136,207 @@ namespace keypoints {
     }
     
     return hist_v;
+  }
+
+  /**
+   *
+   * @brief move keypoints such that all are within some distance from a reconstructable spacepoint
+   *
+   * We want to avoid 'floating' keypoints that are not on an energy deposit.
+   *
+   */
+  void PrepKeypointData::_move_floating_keypoints(  const larflow::prep::PrepMatchTriplets& match_proposals )
+  {
+    LARCV_INFO() << "adjust " << _kpd_v.size() << " keypoints" << std::endl;
+    int ikp=-1;
+    for ( auto& kpd : _kpd_v ) {
+      ikp++;
+      LARCV_INFO() << "[" << ikp << "] check to move keypoint to reconstructable spacepoint" << std::endl;
+      
+      // dont do this for the neutrino keypoint
+      if ( kpd.kptype==larflow::kNuVertex ) {
+        LARCV_INFO() << "  do not move neutrino vertices" << std::endl;
+        continue;
+      }
+
+      // loop through 
+      float min_dist = 1.0e9;
+      int ipt = -1;
+
+      int npts = match_proposals._instance_id_v.size();
+
+      // find the closest 20 pts to cluster
+      struct spacepoint_t {
+        float dist; // distance from keypoint
+        float pos[3];
+        bool operator< ( spacepoint_t& rhs ) {
+          if ( dist<rhs.dist )
+            return true;
+          return false;
+        };
+      };
+      std::vector<spacepoint_t> pt_v;
+      pt_v.reserve( npts );
+      
+      for (int ii=0; ii<npts; ii++) {
+
+        if ( match_proposals._instance_id_v[ii]==kpd.trackid ) {
+          spacepoint_t sp;
+          float dist = 0.;
+          for (int v=0; v<3; v++) {
+            float dd = match_proposals._pos_v[ii][v]-kpd.keypt[v];
+            dist += dd*dd;
+            sp.pos[v] = match_proposals._pos_v[ii][v];
+          }
+          dist = sqrt(dist);
+          sp.dist = dist;
+          if ( dist < min_dist ) {
+            ipt = ii;
+            min_dist = dist;
+          }
+          pt_v.push_back( sp );
+        }
+	
+      }//end of loop over npts
+      
+      std::sort( pt_v.begin(), pt_v.end() );
+
+      // cluster and get pca
+      int maxn = 200;
+      int n = ( pt_v.size()<maxn ) ? pt_v.size() : maxn;
+      std::vector< std::vector<float> > point_vv;
+      for (int i=0; i<n; i++) {
+        auto& pt = pt_v[i];
+        point_vv.push_back( std::vector<float>{pt.pos[0],pt.pos[1],pt.pos[2]} );
+      }
+      
+      std::vector< larflow::reco::cluster_t > cluster_v;
+      float maxdist = 20.0;
+      int minsize=5;
+      int maxkd=200;
+      larflow::reco::cluster_spacepoint_v( point_vv, cluster_v, maxdist, minsize, maxkd );
+      LARCV_INFO() << "  clustered same-trackid spacepoints. nclusters= " << cluster_v.size() << std::endl;
+
+      bool cluster_ok = true;
+      
+      if ( cluster_v.size()>0 ) {
+        try {
+          larflow::reco::cluster_runpca( cluster_v );
+        }
+        catch (...) {
+          cluster_ok = false;
+        }
+      }
+      else {
+      	cluster_ok = false;
+      }
+
+      std::vector<float> orig = kpd.keypt;
+      int closest_end = -1;
+      if ( !cluster_ok ) {
+        if ( ipt>=0 ) {
+          // found a reconstructable spacepoint
+          // we'll place the point there (should there be a limit?)
+          for (int v=0; v<3; v++) {
+            kpd.keypt[v] = match_proposals._pos_v[ipt][v];
+          }
+        }
+      }//end of cluster not ok
+      else {
+
+        int nlargest = 0;
+        int ilargest = 0;
+        float cmin_dist = 1e9;
+        int min_ic = 0;
+        std::vector<float> new_end;
+        for (int ic=0; ic<(int)cluster_v.size(); ic++) {
+
+          // which end is the keypoint on?
+          int index0 = cluster_v[ic].ordered_idx_v.front();
+          std::vector<float> end0 = cluster_v[ic].points_v.at(index0);
+          int index1 = cluster_v[ic].ordered_idx_v.back();
+          std::vector<float> end1 = cluster_v[ic].points_v.at(index1);
+
+
+          int closest_end = larflow::reco::cluster_closest_pcaend( cluster_v[ic], kpd.keypt );
+          std::vector<float> testend;
+          if ( closest_end==0 )
+            testend = end0;
+          else
+            testend = end1;
+
+          float dd = 0.;
+          for (int v=0; v<3; v++) {
+            dd += ( testend[v]-kpd.keypt[v])*(testend[v]-kpd.keypt[v]);
+          }
+          if ( dd < cmin_dist ) {
+            cmin_dist = dd;
+            min_ic = ic;
+            new_end = testend;
+          }
+
+          if ( (int)cluster_v[ic].points_v.size()>nlargest ) {
+            ilargest = ic;
+            nlargest = cluster_v[ic].points_v.size();
+          }
+        }
+        LARCV_INFO() << "  largest cluster idx=" << ilargest << " nlargest=" << nlargest << std::endl;
+        LARCV_INFO() << "  cluster index with closest endpt: " << min_ic << std::endl;
+        auto* cluster = &(cluster_v.at(min_ic));
+
+        // which end is the keypoint on?
+        int index0 = cluster->ordered_idx_v.front();
+        std::vector<float> end0 = cluster->points_v.at(index0);
+        int index1 = cluster->ordered_idx_v.back();
+        std::vector<float> end1 = cluster->points_v.at(index1);
+        LARCV_INFO() << "  number of clusters with same trackid=" << cluster_v.size() << std::endl;
+        LARCV_INFO() << "  largest cluster=" << nlargest << std::endl;
+        LARCV_INFO() << "  1st PCA endpoints: pt0=(" << end0[0] << "," << end0[1] << "," << end0[2] << ") pt1=(" << end1[0] << "," << end1[1] << "," << end1[2] << ")" << std::endl;
+        
+        
+        closest_end = larflow::reco::cluster_closest_pcaend( *cluster, kpd.keypt );
+        if ( closest_end==0 ) {
+          kpd.keypt = end0;
+        }
+        else if (closest_end==1) {
+          kpd.keypt = end1;
+        }
+      }
+      LARCV_INFO() << "  trackid=" << kpd.trackid 
+		   << " original=(" << orig[0] << "," << orig[1] << "," << orig[2] << ") --> "
+		   << " keypt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ")"
+		   << " dist=" << min_dist
+		   << " n=" << n
+		   << " end=" << closest_end
+		   << " clok=" << cluster_ok
+		   << std::endl;
+    }// End of loop over keypoint list
+    
+  }
+
+  void PrepKeypointData::_clear_output()
+  {
+    for (int i=0; i<6; i++) {
+      _kppos_v[i].clear();
+      _kp_pdg_trackid_v[i].clear();
+    }
+  }
+
+  void PrepKeypointData::_copy_to_vectors()
+  {
+    // copy positions of keypoints into flat vector for storage
+    for ( auto const& kpd : _kpd_v ) {
+      if ( kpd.kptype>=0 && kpd.kptype<6 ) {
+        _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
+        std::vector<int> pdg_trackid(2);
+        pdg_trackid[0] = kpd.pid;
+        pdg_trackid[1] = kpd.trackid;
+        _kp_pdg_trackid_v[ kpd.kptype ].push_back( pdg_trackid );
+      }
+      else {
+        throw std::runtime_error("unrecognized keypoint type");
+      }          
+    }
   }
   
 }

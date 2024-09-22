@@ -959,53 +959,56 @@ namespace prep {
 	return Py_None;
       }
     }
+    
+    long  max_triplet_index = _triplet_v.size();
 
+    int end_idx = start_idx + max_num_samples;
+    end_idx = ( end_idx>(long)idx_v.size() )   ?  (long)idx_v.size() : end_idx; // cap to number of indices
+    nsamples = end_idx-start_idx;
+
+    std::cout << "[PrepMatchTriplets::make_triplet_array] withtruth=" << withtruth << " " << std::endl;
+    std::cout << "  make numpy array with indices from triplets[" << start_idx << ":" << end_idx << "]" << std::endl;
+    std::cout << "  number of triplets proposed: " << max_triplet_index << std::endl;
+    std::cout << "  number of indices: " << idx_v.size() << std::endl;
+    std::cout << "  number of entries in output array: " << nsamples << std::endl;
+
+    // output array    
     int nd = 2;
     int ndims2 = 5;
-    npy_intp dims[] = { max_num_samples, ndims2 };
+    npy_intp dims[] = { nsamples, ndims2 };
+    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_LONG );    
 
-    // output array
-    PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_LONG );
-
-    // number of pairs we've stored
-    nsamples = 0;
-    
-    int end_idx = start_idx + max_num_samples;
-    end_idx = ( end_idx>(int)idx_v.size() )   ?  idx_v.size() : end_idx; // cap to number of indices
-
-    // std::cout << "[PrepMatchTriplets::make_triplet_array] withtruth=" << withtruth << " "
-    //           << "make numpy array with indices from triplets[" << start_idx << ":" << end_idx << "]"
-    //           << std::endl;
-    
-    for ( int idx=start_idx; idx<end_idx; idx++ ) {
+    int nfilled = 0;
+    for ( long idx=start_idx; idx<end_idx; idx++ ) {
       int tripidx = idx_v[idx];
-      for (size_t p=0; p<3; p++ )
-        *((long*)PyArray_GETPTR2( array, nsamples, p)) = (long)_triplet_v[tripidx][p];
-      if ( withtruth ) {
-        *((long*)PyArray_GETPTR2( array, nsamples, 3)) = (long)_truth_v[tripidx];
-        *((long*)PyArray_GETPTR2( array, nsamples, 4)) = (long)tripidx;
+      if ( tripidx>=0 && tripidx < max_triplet_index ) {
+	for (size_t p=0; p<3; p++ )
+	  *((long*)PyArray_GETPTR2( array, nfilled, p)) = (long)_triplet_v[tripidx][p];
+	if ( withtruth ) {
+	  *((long*)PyArray_GETPTR2( array, nfilled, 3)) = (long)_truth_v[tripidx];
+	  *((long*)PyArray_GETPTR2( array, nfilled, 4)) = (long)tripidx;
+	}
+	else {
+	  *((long*)PyArray_GETPTR2( array, nfilled, 3)) = 0;        
+	  *((long*)PyArray_GETPTR2( array, nfilled, 4)) = (long)tripidx;
+	}
       }
       else {
-        *((long*)PyArray_GETPTR2( array, nsamples, 3)) = 0;        
-        *((long*)PyArray_GETPTR2( array, nsamples, 4)) = (long)tripidx;
-      }
-      nsamples++;
-      if (nsamples==max_num_samples)
-        break;
-    }//end of indices loop
-
-    //std::cout << "[PrepMatchTriplets::make_triplet_array] nsamples=" << nsamples << std::endl;
-
-    // zero rest of array
-    if ( nsamples<max_num_samples ) {
-      for ( size_t i=nsamples; i<max_num_samples; i++ ) {
+	// outside the number of triplets. fill with zeros
         for (int j=0; j<dims[1]; j++) {
-          *((long*)PyArray_GETPTR2( array, i, j)) = 0;
+          *((long*)PyArray_GETPTR2( array, nfilled, j)) = 0;
         }
       }
-    }
+      // increment the row to fill next
+      nfilled++;      
+      // don't fill outside the array bound
+      if (nfilled==nsamples)
+	break;
+    }//end of indices loop
 
-    
+    if ( nfilled!=nsamples ) {
+      throw std::runtime_error("Number of filled array entries did not match the expected array size");
+    }
     
     // return the array
     return (PyObject*)array;

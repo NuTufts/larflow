@@ -81,10 +81,12 @@ namespace keypoints {
 
     larutil::SpaceChargeMicroBooNE* psce; ///< pointer to a copy of the space charge calculation utility class
 
-  protected:
-
+  public:
+    
     std::vector< std::vector<float> > _match_labels_v; ///< container holding the calculated direction labels for the current event
 
+  protected:
+    
     void _determine_triplet_labels( const std::vector< std::vector<int> >& pixlist_v,
                                     const std::vector<float>& spacepoint_v,
                                     const std::vector< larcv::Image2D >& instance_v,

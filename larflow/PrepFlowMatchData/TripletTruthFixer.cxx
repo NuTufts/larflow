@@ -11,7 +11,8 @@ namespace prep {
 
 
   TripletTruthFixer::TripletTruthFixer()
-    : _kExcludeCosmicShowers(true),
+    : larcv::larcv_base("TripletTruthFixer"),
+      _kExcludeCosmicShowers(true),
       _p_sce(nullptr)
   {
     _p_sce = new larutil::SpaceChargeMicroBooNE();
@@ -32,14 +33,16 @@ namespace prep {
    */
   void TripletTruthFixer::calc_reassignments( PrepMatchTriplets& tripmaker,
                                               larcv::IOManager& iolcv,
-                                              larlite::storage_manager& ioll ) 
+                                              larlite::storage_manager& ioll )
   {
 
     
     // get the mc pixel graph
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     mcpg.buildgraphonly( ioll );
-    mcpg.printGraph(nullptr,false);
+    if ( logger().level()==larcv::msg::kINFO ) {
+      mcpg.printGraph(nullptr,false);
+    }
     std::vector<ublarcvapp::mctools::MCPixelPGraph::Node_t*> nu_v = mcpg.getNeutrinoParticles();
 
     larlite::event_mcshower* ev_mcshower
@@ -587,24 +590,29 @@ namespace prep {
     merged_cluster_v.clear();
     // we calculate a trunk endpt as well
     std::vector< std::vector<float> > trunk_end_vv(shower_info_v.size());
+    
     for ( size_t ish=0; ish<shower_info_v.size(); ish++ ) {
       auto& info = shower_info_v[ish];
       if (info.matched_cluster>=0 ) {
         std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
-                  << " add shower fragment for trunk" << std::endl;
+                  << " add matched cluster ID=" << info.matched_cluster << " to trunk[tid=" << info.trackid << "]"
+		  << std::endl;
+	std::cout << "  shower-start=(" << info.shower_vtx[0] << "," << info.shower_vtx[1] << "," << info.shower_vtx[2] << ")" << std::endl;
         merged_cluster_v.push_back( shower_fragment_v[info.matched_cluster] );
         cluster_used_v[info.matched_cluster] = 1;
       }
       else {
         // an empty cluster
         std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
-                  << " no fragment found for shower info" << std::endl;
+                  << " no fragment found for shower info trackid="
+		  << info.trackid
+		  << std::endl;
         merged_cluster_v.push_back( larflow::reco::cluster_t() );
       }
       auto& trunk_end_v = trunk_end_vv[ish];
       trunk_end_v.resize(3,0);
       for (int i=0; i<3; i++)
-        trunk_end_v[i] = info.shower_vtx[i] + 3.0*info.shower_dir[i];
+        trunk_end_v[i] = info.shower_vtx[i] + 3.0*info.shower_dir[i]; // should i use the pca?
     }
 
     // loop over all fragments and assign to best matching shower
@@ -682,19 +690,20 @@ namespace prep {
           }
         }
         
-      }//end of shower loop
+      }//end of loop over shower trunks
 
       float frac = float(max_nhits_in_cone)/float(cluster.points_v.size());
       //std::cout << "ShowerLikelihoodBuilder:: cluster[" << icluster << "] most frac inside shower cone info[" << best_shower_index << "] = " << frac << std::endl;
       
       if ( frac>0.5 && best_shower_index>=0 ) {
         // add cluster
-        // std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
-        //           << " merge fragment into shower[" << best_shower_index << "]"
-        //           << " nhits-before-merge=" << merged_cluster_v[best_shower_index].points_v.size()
-        //           << " fragment-size=" << cluster.points_v.size()
-        //           << std::endl;
-
+        std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
+                  << " merge fragment[" << icluster << "] "
+		  << " into showertrunk[" << best_shower_index << ",trackid=" << shower_info_v.at(best_shower_index).trackid << "]"
+                  << " nhits-before-merge=" << merged_cluster_v[best_shower_index].points_v.size()
+                  << " fragment-size=" << cluster.points_v.size()
+                  << std::endl;
+	
         cluster_used_v[icluster] = 1;
         shower_info_v[best_shower_index].absorbed_cluster_index_v.push_back(icluster);
         // merged_cluster_v[best_shower_index].push_back( truehit_v[hitidx] ); // copy of hit
@@ -861,11 +870,11 @@ namespace prep {
               }
             }
 
-            std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
-                      << "number relabeled=" << nrelabeled
-                      << " to instance-id=" << max_iid_value+1
-                      << " with pid=" << second_pid
-                      << std::endl;
+            // std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+            //           << "number relabeled=" << nrelabeled
+            //           << " to instance-id=" << max_iid_value+1
+            //           << " with pid=" << second_pid
+            //           << std::endl;
             max_iid_value++;
           }//end of node found, so make modifications
         }
@@ -882,14 +891,14 @@ namespace prep {
           origin_label = 1;
         
         // majority wins
-        std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
-                  << "instance[" << it->first << "] has " << n_non_zero << " classes: ";
-        for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
-          if ( it->second[pid]>0 )
-            std::cout << "[" << pid << "](" << it->second[pid] << ") ";
-        }
-        std::cout << " origin[" << origin_label << "," << origin_frac << "] ";
-        std::cout << " :: set to " << max_pid << std::endl;
+        // std::cout << "[TripletTruthFixer::_enforce_instance_and_class_consistency.L" << __LINE__ << "] "
+        //           << "instance[" << it->first << "] has " << n_non_zero << " classes: ";
+        // for ( int pid=0; pid<(int)larcv::kROITypeMax; pid++) {
+        //   if ( it->second[pid]>0 )
+        //     std::cout << "[" << pid << "](" << it->second[pid] << ") ";
+        // }
+        // std::cout << " origin[" << origin_label << "," << origin_frac << "] ";
+        // std::cout << " :: set to " << max_pid << std::endl;
 
         
         for ( size_t idx=0; idx<tripmaker._instance_id_v.size(); idx++ ) {

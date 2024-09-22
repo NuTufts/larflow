@@ -17,6 +17,9 @@
 
 #include "TChain.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
+#include "larflow/KeyPoints/PrepAffinityField.h"
+#include "larflow/KeyPoints/PrepKeypointData.h"
 
 namespace larflow {
 namespace keypoints {
@@ -44,13 +47,20 @@ namespace keypoints {
 
     LoaderKeypointData()
       : larcv::larcv_base("LoaderKeypointData"),
-	_exclude_neg_examples(false),	
-	ttriplet(nullptr),
-	tkeypoint(nullptr),
-	tssnet(nullptr),
-	_run(0),
-	_subrun(0),
-	_event(0)
+        _exclude_neg_examples(false),	
+        ttriplet(nullptr),
+        tkeypoint(nullptr),
+        tssnet(nullptr),
+        _run(0),
+        _subrun(0),
+        _event(0),
+        tlarbysmc(nullptr),
+        triplet_v(nullptr),
+        kpshift_v(nullptr),
+        ssnet_label_v(nullptr),
+        ssnet_weight_v(nullptr),
+        kpflow_labels_v(nullptr),
+        _use_data_from_ttree(false)
     {};
     
     LoaderKeypointData( std::vector<std::string>& input_v );
@@ -63,6 +73,11 @@ namespace keypoints {
     /** @brief add an individual ROOT file to be loaded */
     void add_input_file( std::string input ) { input_files.push_back(input); };
 
+    void provide_entry_data( larflow::prep::PrepMatchTriplets& triplets,
+			     larflow::keypoints::PrepKeypointData& kpdata,
+			     larflow::prep::PrepSSNetTriplet& ssnetdata,
+			     larflow::keypoints::PrepAffinityField& kpdirflow );
+
     TChain* ttriplet;   ///< TTree containing space point information (TChain can be thought of as a TTree loading data over several input files)
     TChain* tkeypoint;  ///< TTree containing keypoint information (TChain can be thought of as a TTree loading data over several input files)
     TChain* tssnet;     ///< TTree containing sssnet information (TChain can be though of as a TTree loading data over several input files)
@@ -72,13 +87,16 @@ namespace keypoints {
     int _run;    ///< run number ID
     int _subrun; ///< subrun number ID
     int _event;  ///< event number ID
-    std::vector<larflow::prep::PrepMatchTriplets>* triplet_v; ///< pointer to triplet data loaded from ttriplet ROOT tree
-    std::vector< std::vector<float> >*       kplabel_v[6];    ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
-    std::vector< std::vector<float> >*       kppos_v[6];      ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
-    std::vector< std::vector<int> >*         kptruth_v[6];    ///< pointer to keypoint true (pdg,trackid) for tkeypoint ROOT tree        
-    std::vector< std::vector<float> >*       kpshift_v;       ///< pointer to vector to closet true keypoint loaded from the tkeypoint ROOT tree
-    std::vector< int   >*                    ssnet_label_v;   ///< pointer to ssnet label for each space point loaded from the tssnet ROOT tree
-    std::vector< float >*                    ssnet_weight_v;  ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree
+    std::vector<larflow::prep::PrepMatchTriplets>* triplet_v;  ///< pointer to triplet data loaded from ttriplet ROOT tree
+    std::vector<larflow::prep::PrepMatchTriplets*> ptriplet_v; ///< container of pointers to triplet data for each TPC (in principle/the future)
+    std::vector< std::vector<float> >*       kplabel_v[6];     ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
+    std::vector< std::vector<float> >*       kppos_v[6];       ///< pointer to keypoint labels loaded from the tkeypoint ROOT tree
+    std::vector< std::vector<int> >*         kptruth_v[6];     ///< pointer to keypoint true (pdg,trackid) for tkeypoint ROOT tree        
+    std::vector< std::vector<float> >*       kpshift_v;        ///< pointer to vector to closet true keypoint loaded from the tkeypoint ROOT tree
+    std::vector< int   >*                    ssnet_label_v;    ///< pointer to ssnet label for each space point loaded from the tssnet ROOT tree
+    std::vector< float >*                    ssnet_weight_v;   ///< pointer to class-weights for each space point loaded from the tssnet ROOT tree
+    std::vector< std::vector<float> >*       kpflow_labels_v;  ///< pointer to direction of energy flow at spacepoint
+    bool _use_data_from_ttree;
 
     /** @brief set flag that, if True, only loads true (non-ghost) spacepoints for training ssnet and keypoint labels (default is false)*/
     void exclude_false_triplets( bool exclude ) { _exclude_neg_examples = exclude; };
@@ -130,7 +148,21 @@ namespace keypoints {
                              PyArrayObject* match_array,
                              PyArrayObject*& kpshift_label );
 
+
+   int make_paf_arrays( const int nfilled,
+                        const std::vector<int>& pos_match_index,
+                        const bool exclude_neg_examples,
+                        PyArrayObject* match_array,
+                        PyArrayObject*& paf_label,
+                        PyArrayObject*& paf_weight );
+
+    int make_origin_array( const int nfilled,
+			   const std::vector<int>& pos_match_index,
+			   const bool exclude_neg_examples,
+			   PyArrayObject* match_array,
+			   PyArrayObject*& origin_array );
     
+
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)
 
     
