@@ -38,13 +38,13 @@ def run(gpu, args ):
     # larmatch imports
     import larmatch
     import larmatch.utils.larmatchme_engine as engine
-    from larmatch_dataset import larmatchDataset
-
+    from larmatch.data.larmatch_hdf5_reader import LArMatchHDF5Dataset, get_data_loader
+    
     # ROOT, larcv
-    import ROOT as rt
-    from ROOT import std
-    from larcv import larcv
-    from larflow import larflow
+    #import ROOT as rt
+    #from ROOT import std
+    #from larcv import larcv
+    #from larflow import larflow
 
     #========================================================
     # CREATE PROCESS
@@ -114,35 +114,47 @@ def run(gpu, args ):
     #    print("optimizer params")
     #    for n,par in enumerate(optimizer.param_groups):
     #        print(n,": ",par)
-    
+
     if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
         print("RESUME OPTIM CHECKPOINT")
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
     
-    train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
-                                     random_access=True,
-                                     verbose=config["TRAIN_DATASET_VERBOSE"],
-                                     load_truth=True )
-    if args.world_size>0:
-        train_dataset.set_partition( rank, args.world_size )
-    TRAIN_NENTRIES = len(train_dataset)
+    #train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
+    #                                 random_access=True,
+    #                                 verbose=config["TRAIN_DATASET_VERBOSE"],
+    #                                 load_truth=True )
+    #if args.world_size>0:
+    #    train_dataset.set_partition( rank, args.world_size )
+    #TRAIN_NENTRIES = len(train_dataset)
+    #print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
+    #train_loader = torch.utils.data.DataLoader(train_dataset,
+    #                                           batch_size=config["BATCH_SIZE"],
+    #                                           collate_fn=larmatchDataset.collate_fn)
+    train_loader = get_data_loader( config["TRAIN_DATASET_INPUT_TXTFILE"],
+                                    batch_size=config["BATCH_SIZE"],
+                                    num_workers=config["NUM_TRAIN_WORKERS"],
+                                    shuffle=True )
+    TRAIN_NENTRIES = len(train_loader)
     print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=config["BATCH_SIZE"],
-                                               collate_fn=larmatchDataset.collate_fn)
     sys.stdout.flush()
 
     if rank==0:
-        valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
-                                         random_access=True,
-                                         load_truth=True,
-                                         verbose=config["VALID_DATASET_VERBOSE"],
-                                         npairs=None )
-        VALID_NENTRIES = len(valid_dataset)
+        #valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
+        #                                 random_access=True,
+        #                                 load_truth=True,
+        #                                 verbose=config["VALID_DATASET_VERBOSE"],
+        #                                 npairs=None )
+        #VALID_NENTRIES = len(valid_dataset)
+        #print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
+        #valid_loader = torch.utils.data.DataLoader(valid_dataset,
+        #                                           batch_size=config["BATCH_SIZE"],
+        #                                           collate_fn=larmatchDataset.collate_fn)
+        valid_loader = get_data_loader( config["VALID_DATASET_INPUT_TXTFILE"],
+                                        batch_size=config["BATCH_SIZE"],
+                                        num_workers=config["NUM_TRAIN_WORKERS"],
+                                        shuffle=True )
+        VALID_NENTRIES = len(valid_loader)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
-        valid_loader = torch.utils.data.DataLoader(valid_dataset,
-                                                   batch_size=config["BATCH_SIZE"],
-                                                   collate_fn=larmatchDataset.collate_fn)
     
     
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
@@ -182,13 +194,16 @@ def run(gpu, args ):
                 # make averages and save to tensorboard, only if rank-0 process
                 engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
                 if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
-                    print("loss weights")
-                    if config["RUN_LARMATCH"]:
-                        print("  lm weight: ",torch.exp(-criterion.task_weights["lm"].detach()).item())
-                    if config["RUN_SSNET"]:
-                        print("  ssnet: ",torch.exp(-criterion.task_weights["ssnet"].detach()).item())
-                    if config["RUN_KPLABEL"]:
-                        print("  kp: ",torch.exp(-criterion.task_weights["kp"].detach()).item())
+                    with torch.no_grad():
+                        print("loss weights")
+                        if config["RUN_LARMATCH"]:
+                            print("  lm weight: ",torch.exp(-criterion.task_weights["lm"].detach()).item())
+                        if config["RUN_SSNET"]:
+                            print("  ssnet: ",torch.exp(-criterion.task_weights["ssnet"].detach()).item())
+                        if config["RUN_KPLABEL"]:
+                            print("  kp: ",torch.exp(-criterion.task_weights["kp"].detach()).item())
+                        if config["RUN_PAF"]:
+                            print("  paf: ",torch.exp(-criterion.task_weights['paf'].detach()).item())
 
                 # write to tensorboard
                 # --------------------

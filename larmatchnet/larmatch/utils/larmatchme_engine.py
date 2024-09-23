@@ -32,7 +32,8 @@ def get_model( config, dump_model=False ):
     # create model, mark it to run on the device
     model = LArMatchMinkowski(run_lm=config["RUN_LARMATCH"],
                               run_ssnet=config["RUN_SSNET"],
-                              run_kp=config["RUN_KPLABEL"])
+                              run_kp=config["RUN_KPLABEL"],
+                              run_paf=config["RUN_PAF"])
 
     if dump_model:
         # DUMP MODEL (for debugging)
@@ -346,8 +347,13 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
         kp_truth_t.requires_grad = False
         kp_weight_t.requires_grad = False
 
-        truth_data = {"lm":lm_truth_t,"ssnet":ssnet_truth_t,"kp":kp_truth_t}
-        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t}
+        paf_truth_t  = torch.from_numpy(data['paf_label']).to(DEVICE)
+        paf_weight_t = torch.from_numpy(data['paf_weight']).to(DEVICE)
+        paf_truth_t.requires_grad = False
+        paf_weight_t.requires_grad = False
+
+        truth_data  = {"lm":lm_truth_t, "ssnet":ssnet_truth_t, "kp":kp_truth_t, "paf":paf_truth_t}
+        weight_data = {"lm":lm_weight_t,"ssnet":ssnet_weight_t,"kp":kp_weight_t,"paf":paf_weight_t}
     
         batch_truth.append( truth_data )
         batch_weight.append( weight_data )

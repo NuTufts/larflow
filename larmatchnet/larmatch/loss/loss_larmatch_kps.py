@@ -12,7 +12,9 @@ class SparseLArMatchKPSLoss(nn.Module):
                  eval_keypoint_shift=False,
                  eval_affinity_field=False,
                  init_lm_weight=0.0,
-                 init_kp_weight=0.0,
+                 init_kp_weight=1.0,
+                 init_paf_weight=1.0,
+                 init_ssnet_weight=1.0,
                  larmatch_name="lm",
                  ssnet_name="ssnet",
                  keypoint_name="kp",
@@ -32,9 +34,9 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.affinity_name = affinity_name
         self.learnable_weights = learnable_weights
         self.task_weights = {larmatch_name:nn.Parameter(torch.ones(1)*init_lm_weight),
-                             ssnet_name:nn.Parameter( torch.ones(1)*5.29 ),
+                             ssnet_name:nn.Parameter( torch.ones(1)*init_ssnet_weight ),
                              keypoint_name:nn.Parameter(torch.ones(1)*init_kp_weight),
-                             affinity_name:nn.Parameter(torch.zeros(1))}
+                             affinity_name:nn.Parameter(torch.ones(1)*init_paf_weight)}
         for k,w in self.task_weights.items():
             
             if k==ssnet_name and not eval_ssnet:
@@ -168,13 +170,26 @@ class SparseLArMatchKPSLoss(nn.Module):
         # else:
         #     fshiftloss = 0.0
 
-        # # AFFINITY FIELD
-        # if self.eval_affinity_field:
-        #     pafloss = self.affinity_field_loss( affinity_pred, affinity_label, affinity_weight, truematch_index, verbose )
-        #     loss += pafloss
-        #     fpafloss = pafloss.detach().item()
-        # else:
-        #     fpafloss = 0.0
+        # AFFINITY FIELD
+        if self.eval_affinity_field:
+            affinity_pred   = predictions['paf']
+            affinity_label  = truthlabels['paf']
+            affinity_weight = weights['paf']
+            pafloss = self.affinity_field_loss( affinity_pred, affinity_label, affinity_weight, truthlabels[self.larmatch_name], verbose )
+            if not self.learnable_weights:
+                if loss["tot"] is None:
+                    loss["tot"] = pafloss
+                else:
+                    loss["tot"] += pafloss
+            else:
+                weighted_pafloss = pafloss*torch.exp(-self.task_weights['paf']) + self.task_weights['paf']
+                if loss['tot'] is None:
+                    loss['tot'] = weighted_pafloss
+                else:
+                    loss['tot'] += weighted_pafloss
+            loss['paf'] = pafloss.detach().item()
+        else:
+            loss['paf'] = 0.0
         
         return loss
 
@@ -298,12 +313,19 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_weight: ",ssnet_weight.shape)
 
         fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
-        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*ssnet_weight).sum()
+        with torch.no_grad():
+            weight_sum = ssnet_weight.sum()
+            print(" ssnet weight_sum: ",weight_sum)
+        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*(ssnet_weight/weight_sum)).sum()
             
         if self.ssnet_use_lovasz_loss:
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
             ssnet_truth_y = ssnet_truth.reshape( (1,npairs,1) )
-            ssnet_loss += lovasz_softmax( ssnet_pred_x, ssnet_truth_y )
+            ssnet_lovasz = lovasz_softmax( ssnet_pred_x, ssnet_truth_y )
+            ssnet_loss += ssnet_lovasz            
+            flovasz = ssnet_lovasz.detach().item()
+            if verbose:
+                print(" loss-ssnet-lovasz: ",flovasz)
             
         if verbose:
             ssnet_floss = ssnet_loss.detach().item()            
@@ -319,6 +341,10 @@ class SparseLArMatchKPSLoss(nn.Module):
                              truematch_index,
                              verbose=False):
         npairs = affinity_field_pred.shape[0]
+        if verbose:
+            print("  paf pred tensor: ",affinity_field_pred.shape)
+            print("  paf truth tensor: ",affinity_field_truth.shape)
+            
         if affinity_field_pred.shape[0]!=affinity_field_truth.shape[0]:
             raise RuntimeError("dont trust this mode of calculation right now")            
             sel_pred   = torch.index_select( affinity_field_pred, 0, truematch_index )

@@ -21,8 +21,10 @@ class LArMatchMinkowski(nn.Module):
                  run_lm=True,
                  run_ssnet=True,
                  run_kp=True,
+                 run_paf=True,
                  num_ssnet_classes=7,
-                 num_kp_classes=6):
+                 num_kp_classes=6,
+                 norm_layer='batchnorm'):
         """
         parameters
         -----------
@@ -41,18 +43,24 @@ class LArMatchMinkowski(nn.Module):
         stem_layers = OrderedDict()
         if stem_nlayers==1:
             respath = ME.MinkowskiConvolution( input_nfeatures, stem_nfeatures, kernel_size=1, stride=1, dimension=ndimensions )
-            block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
-            #block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )            
+            if norm_layer=='instancenorm':            
+                block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+            elif norm_layer=='batchnorm':
+                block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
             stem_layers["stem_layer0"] = block
         else:
             for istem in range(stem_nlayers):
                 if istem==0:
                     respath = ME.MinkowskiConvolution( input_nfeatures, stem_nfeatures, kernel_size=1, stride=1, dimension=ndimensions )
-                    block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
-                    #block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )                    
+                    if norm_layer=='instancenorm':
+                        block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
+                    elif norm_layer=='batchnorm':
+                        block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )                    
                 else:
-                    block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )
-                    #block   = BasicBlock( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )                    
+                    if norm_layer=='instancenorm':
+                        block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )
+                    elif norm_layer=='batchnorm':
+                        block   = BasicBlock( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )                    
                 stem_layers["stem_layer%d"%(istem)] = block
             
         self.stem = nn.Sequential(stem_layers)
@@ -71,14 +79,19 @@ class LArMatchMinkowski(nn.Module):
         self.run_lm      = run_lm
         self.run_ssnet   = run_ssnet
         self.run_kplabel = run_kp
-        self.run_paf     = False
+        self.run_paf     = run_paf
         self.use_kp_bn   = False
+
+        # For the tasks per spacepoint, we run several MLPs that use a feature vector
+        # made by concatenating three feature vectors, one from each of the pixels from the three wire planes.
+        spacepoint_nfeatures = stem_nfeatures*3
+        
         
         # CLASSIFERS
-        if self.run_lm:      self.lm_classifier = LArMatchSpacepointClassifier( num_input_feats=stem_nfeatures*3 )
+        if self.run_lm:      self.lm_classifier = LArMatchSpacepointClassifier( num_input_feats=spacepoint_nfeatures )
         if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=stem_nfeatures,num_classes=num_ssnet_classes)
         if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=stem_nfeatures,nclasses=num_kp_classes,use_bn=self.use_kp_bn)
-        if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=features_per_layer)
+        if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=stem_nfeatures)
         
 
     def forward( self, input_wireplane_sparsetensors, matchtriplets, batch_size ):
@@ -121,6 +134,9 @@ class LArMatchMinkowski(nn.Module):
 
             if self.run_kplabel:
                 output["kp"] = self.kplabel_head( x )
+
+            if self.run_paf:
+                output['paf'] = self.affinity_head( x )
             
             batch_output.append( output )
 
