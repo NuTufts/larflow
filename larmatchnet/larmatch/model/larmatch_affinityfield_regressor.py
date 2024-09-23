@@ -15,8 +15,8 @@ class LArMatchAffinityFieldRegressor(nn.Module):
         # REGRESSION: 3D-SHIFT-TO-NEAREST-KEYPOINT
         layers = OrderedDict()
         layers["paf_conv0"] = torch.nn.Conv1d(ninput_planes*input_features,
-                                                 layer_nfeatures[0],1)
-        #layers["paf_bn0"]   = torch.nn.BatchNorm1d(layer_nfeatures[0])
+                                              layer_nfeatures[0],1)
+        layers["paf_bn0"]   = torch.nn.BatchNorm1d(layer_nfeatures[0])
         layers["paf_relu0"] = torch.nn.LeakyReLU()
         for ilayer,nfeats in enumerate(layer_nfeatures[1:]):
             layers["paf_conv%d"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)

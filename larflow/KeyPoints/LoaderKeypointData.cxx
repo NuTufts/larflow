@@ -351,6 +351,14 @@ namespace keypoints {
     PyObject* kp_truth_ids_key = Py_BuildValue("s","keypoint_truth_kptype_pdg_trackid");
     PyObject* kp_truth_pos_key = Py_BuildValue("s","keypoint_truth_pos");
 
+    // Need the ADC images
+    PyObject* wireimg_plane0 = ptripletmaker->make_sparse_image(0);
+    PyObject* wireimg_plane1 = ptripletmaker->make_sparse_image(1);
+    PyObject* wireimg_plane2 = ptripletmaker->make_sparse_image(2);
+    PyObject* wireimgkey_p0  = Py_BuildValue("s","wireimage_plane0");
+    PyObject* wireimgkey_p1  = Py_BuildValue("s","wireimage_plane1");
+    PyObject* wireimgkey_p2  = Py_BuildValue("s","wireimage_plane2");    
+
 
     PyObject *d = PyDict_New();
     PyDict_SetItem(d, match_key,              (PyObject*)matches);        
@@ -367,7 +375,10 @@ namespace keypoints {
     PyDict_SetItem(d, paf_weight_key,         (PyObject*)paf_weight );
     PyDict_SetItem(d, origin_key,             (PyObject*)origin_array );
     PyDict_SetItem(d, kp_truth_ids_key,       (PyObject*)kptruth_ids );
-    PyDict_SetItem(d, kp_truth_pos_key,       (PyObject*)kptruth_pos );    
+    PyDict_SetItem(d, kp_truth_pos_key,       (PyObject*)kptruth_pos );
+    PyDict_SetItem(d, wireimgkey_p0,          wireimg_plane0 );
+    PyDict_SetItem(d, wireimgkey_p1,          wireimg_plane1 );
+    PyDict_SetItem(d, wireimgkey_p2,          wireimg_plane2 );
 
     Py_DECREF(match_key);
     Py_DECREF(match_weight_key);
@@ -383,7 +394,10 @@ namespace keypoints {
     Py_DECREF(paf_weight_key);
     Py_DECREF(origin_key);
     Py_DECREF(kp_truth_ids_key);
-    Py_DECREF(kp_truth_pos_key);    
+    Py_DECREF(kp_truth_pos_key);
+    Py_DECREF(wireimgkey_p0);
+    Py_DECREF(wireimgkey_p1);
+    Py_DECREF(wireimgkey_p2);    
     
     Py_DECREF(matches);
     Py_DECREF(match_weights);
@@ -400,6 +414,9 @@ namespace keypoints {
     Py_DECREF(origin_array);
     Py_DECREF(kptruth_pos);
     Py_DECREF(kptruth_ids);
+    Py_DECREF(wireimg_plane0);
+    Py_DECREF(wireimg_plane1);
+    Py_DECREF(wireimg_plane2);    
     
     return d;
   }
