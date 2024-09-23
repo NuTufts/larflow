@@ -133,7 +133,8 @@ def run(gpu, args ):
     train_loader = get_data_loader( config["TRAIN_DATASET_INPUT_TXTFILE"],
                                     batch_size=config["BATCH_SIZE"],
                                     num_workers=config["NUM_TRAIN_WORKERS"],
-                                    shuffle=True )
+                                    shuffle=True,
+                                    collate_for_training=True)
     TRAIN_NENTRIES = len(train_loader)
     print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
     sys.stdout.flush()
@@ -151,8 +152,9 @@ def run(gpu, args ):
         #                                           collate_fn=larmatchDataset.collate_fn)
         valid_loader = get_data_loader( config["VALID_DATASET_INPUT_TXTFILE"],
                                         batch_size=config["BATCH_SIZE"],
-                                        num_workers=config["NUM_TRAIN_WORKERS"],
-                                        shuffle=True )
+                                        num_workers=config["NUM_VALID_WORKERS"],
+                                        shuffle=True,
+                                        collate_for_training=True)
         VALID_NENTRIES = len(valid_loader)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
     

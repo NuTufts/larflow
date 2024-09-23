@@ -28,10 +28,13 @@ class LArMatchHDF5Dataset(Dataset):
         "wireimage_plane1",
         "wireimage_plane2"]
 
+    COLLATE_FOR_TRAINING = False
+    
     def __init__(self, file_paths, collate_for_training=False):
         self.file_paths = file_paths
         self.dataset_lengths = []
         self.cumulative_lengths = [0]
+        LArMatchHDF5Dataset.collate_for_training = collate_for_training
         # we have to scan the files to map out which file has which indices
         for file_path in file_paths:
             with h5py.File(file_path, 'r') as hf:
@@ -65,7 +68,7 @@ class LArMatchHDF5Dataset(Dataset):
     def collate_fn(batch):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         #print(batch)
-        if self.collate_for_training:
+        if LArMatchHDF5Dataset.collate_for_training:
             rebatch = []
             for batchdata in batch:
                 rebatchdata = {}
@@ -93,7 +96,7 @@ class LArMatchHDF5Dataset(Dataset):
             return batch
 
 # Usage example
-def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True):
+def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True, collate_for_training=False):
     xpaths = []
     if type(file_paths) is str:
         if os.path.exists(file_paths) and os.path.isfile(file_paths):
@@ -114,7 +117,7 @@ def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True):
         print("Loading data files from list of file paths")
         xpaths = file_paths
         
-    dataset = LArMatchHDF5Dataset(xpaths)
+    dataset = LArMatchHDF5Dataset(xpaths, collate_for_training=collate_for_training)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=LArMatchHDF5Dataset.collate_fn)
 
 
