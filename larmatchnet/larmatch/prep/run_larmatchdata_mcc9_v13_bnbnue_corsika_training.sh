@@ -1,18 +1,17 @@
 #!/bin/bash
 
-tag=bnb_nu
+tag=bnbnue
 WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
 UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl
 PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/run_lardata2hdf5.py
 
 # TRAINING DATA
-OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_training/
-#INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika_training.paired.list
-INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/makeuplist.mcc9_v13_bnb_nu_corsika_training.paired.txt
+OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_training/
+#INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika_training.paired.list
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/makeuplist.mcc9_v13_bnbnue_corsika_training.paired.txt
 
 # VALIDATION DATA
-#INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnb_nu_corsika_validation.paired.list
-#OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_validation/
+
 
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
@@ -52,14 +51,12 @@ do
     larlite_input=`sed -n ${lineno}p $INPUTLIST | awk '{ print $2 }'`    
     larcv_input_base=`basename ${larcv_input}`
     larcv_input_dir=`dirname ${larcv_input}`
-    output_base=`echo ${larcv_input_base} | sed 's|larcv\_mctruth|larmatch\_trainingdata|' | sed 's|root|h5|'`
+    output_base=`echo ${larcv_input_base} | sed 's|larcvtruth|larmatch\_trainingdata|' | sed 's|root|h5|'`
 
     COMMAND="python3 ${PYSCRIPT} --input-larlite ${larlite_input} --input-larcv ${larcv_input} -tb -tri --adc wiremc -o ./${output_base}"
     echo $COMMAND
-    echo $COMMAND >> ${local_logfile} 2>&1
     #$COMMAND >> ${local_logfile} 2>&1
     $COMMAND >> ${local_logfile}
-    #$COMMAND
     cp ${output_base}* ${OUTPUT_DIR}/
     rm ${output_base}*
     #break

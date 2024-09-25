@@ -150,6 +150,7 @@ def run(gpu, args ):
                                     batch_size=config["BATCH_SIZE"],
                                     num_workers=config["NUM_TRAIN_WORKERS"],
                                     shuffle=True,
+                                    load_from_cachefile=config["TRAIN_DATASET_LOAD_FROM_CACHE"],
                                     collate_for_training=True)
     TRAIN_NENTRIES = len(train_loader)
     print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
@@ -160,6 +161,7 @@ def run(gpu, args ):
                                         batch_size=config["BATCH_SIZE"],
                                         num_workers=config["NUM_VALID_WORKERS"],
                                         shuffle=True,
+                                        load_from_cachefile=config["VALID_DATASET_LOAD_FROM_CACHE"],
                                         collate_for_training=True)
         VALID_NENTRIES = len(valid_loader)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")

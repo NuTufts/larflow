@@ -3,10 +3,12 @@
 tag=bnbnue
 WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
 UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl
-INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.paired.list
-OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika/
 PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/run_lardata2hdf5.py
 
+# VALIDATION DATA
+OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_validation/
+#INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika_training.paired.list
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/makeuplist.mcc9_v13_bnbnue_corsika_validation.paired.txt
 
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
