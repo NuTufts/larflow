@@ -36,7 +36,8 @@ namespace prep {
                                               larlite::storage_manager& ioll )
   {
 
-    
+    LARCV_INFO() << "Begin: build MCPixelPGraph (graph only)" << std::endl;
+
     // get the mc pixel graph
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     mcpg.buildgraphonly( ioll );
@@ -49,17 +50,23 @@ namespace prep {
       = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
     larlite::event_mctrack* ev_mctrack
       = (larlite::event_mctrack*)ioll.get_data( larlite::data::kMCTrack, "mcreco" );
+
+    LARCV_INFO() << "Get neutrino vertex position" << std::endl;
     std::vector<float> nuvtx = ublarcvapp::mctools::NeutrinoVertex::getPos3DwSCE( ioll, getSCE() );
+    LARCV_DEBUG() << "nu vertex found: (" << nuvtx[0] << ", " << nuvtx[1] << ", " << nuvtx[2] << ")" << std::endl;
 
     // fix up missing cosmic pixels if any
+    LARCV_INFO() << "fix up missing cosmic pixels" << std::endl;
     _label_cosmic_pid( tripmaker, mcpg, iolcv );
     
     // we start by resolving instance and class consistency checks
+    LARCV_INFO() << "make sure spacepoints associated to a given particle has the same SSNet class" << std::endl;
     _enforce_instance_and_class_consistency( tripmaker, mcpg, *ev_mctrack );    
     
     // start off by separately clustering points with different segment ids
     // then match clusters with mcshower objects using shower profile
     // these seed shower objects to which we assign instance labels
+    LARCV_INFO() << "build up shower info" << std::endl;
     _shower_info_v.clear();
     _make_shower_info( *ev_mcshower, _shower_info_v, _kExcludeCosmicShowers );
     
@@ -69,6 +76,7 @@ namespace prep {
     std::vector<int> pid_v;
     std::vector<int> shower_instance_v;
     std::vector<larflow::reco::cluster_t> cluster_v;
+    LARCV_INFO() << "cluster shower spacepoints by geant4 trackid" << std::endl;
     _cluster_same_showerpid_spacepoints( _shower_info_v, cluster_v, pid_v, shower_instance_v, tripmaker, true );
 
 
@@ -76,17 +84,20 @@ namespace prep {
     // will reassign to ancestor or nearest proton id
     larcv::EventImage2D* ev_instance
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "instance" );
+    LARCV_INFO() << "absorb small proton clusters into parent/ancestor" << std::endl;
     _reassignSmallTrackClusters( tripmaker, ev_instance->as_vector(), 10 );
     
     // associate shower cluster fragments
     // for each larlite mcshower and mctrack, we find closest trunk.
     // then we absorb fragments. save as graph
-    std::vector<larflow::reco::cluster_t> merged_showers_v;    
+    std::vector<larflow::reco::cluster_t> merged_showers_v;  
+    LARCV_INFO() << "use shower info to cluster shower fragments with missing mother connections to primary showers" << std::endl;  
     _merge_shower_fragments( cluster_v, pid_v, shower_instance_v, merged_showers_v );
     _reassign_merged_shower_instance_labels( merged_showers_v, _shower_info_v, tripmaker );
 
     // track relabel
     // we follow along the path of the trunk. hits within 0.5 cm are absorbed as track
+    LARCV_INFO() << "make sure regions with delta shower maintain a core of track-labeled spacepoints." << std::endl;
     _reassign_showers_along_tracks( tripmaker, *ev_mctrack, *ev_mcshower, nuvtx );
 
   }

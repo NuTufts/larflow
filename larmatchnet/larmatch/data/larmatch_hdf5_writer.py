@@ -2,7 +2,7 @@ import os,sys
 
 class LArMatchHDF5Writer:
 
-
+    ModuleList = ['preptriplets','kpana','ssnet','kpflow','truthfixer']
 
     def __init__(self, treename_for_adc_image="wire" ):
         
@@ -48,8 +48,26 @@ class LArMatchHDF5Writer:
         #tmp.cd()
         #kpflow.defineAnaTree()
 
+        # truth label corrections
+        self.truthfixer = larflow.prep.TripletTruthFixer()    
+
         self.tick_backward = True
         self.entry_data = []
+
+
+    def set_verbosity(self,verbosity,module):
+        if module not in LArMatchHDF5Writer.ModuleList:
+            print("WARNING: [set_verbosity] module asked to set verbosity for does not exist")
+            print("possible modules: ",LArMatchHDF5Writer.ModuleList)
+            return
+        
+        if module=='truthfixer':
+            print("Setting TripletTruthFixer module, truthfixer, to verbosity level: ",verbosity)
+            self.truthfixer.set_verbosity(verbosity)
+        else:
+            pass
+        
+        return
 
 
     def larlite_larcv_to_hdf5_entry( self, ioll, iolcv,
@@ -65,9 +83,10 @@ class LArMatchHDF5Writer:
         print("==== [[ LArMatchHDF5Writer ]] ========================")
         
         self.preptriplets.clear()
-        self.kpana
-        self.ssnet
-        self.kpflow
+        #self.kpana
+        #self.ssnet
+        #self.kpflow
+        #self.truthfixer
         
         ev_adc = iolcv.get_data( larcv.kProductImage2D, self.adc_treename )
         print("number of images: ",ev_adc.Image2DArray().size())
@@ -94,8 +113,7 @@ class LArMatchHDF5Writer:
 
         # fix up some labels: handles edge cases due to the unoptimal way we stored information
         print("RUN TRIPLET TRUTHFIXER")
-        truthfixer = larflow.prep.TripletTruthFixer()    
-        truthfixer.calc_reassignments( self.preptriplets, iolcv, ioll )
+        self.truthfixer.calc_reassignments( self.preptriplets, iolcv, ioll )
 
         # make keypoint score ground truth
         print("RUN PrepKeypoint")    
