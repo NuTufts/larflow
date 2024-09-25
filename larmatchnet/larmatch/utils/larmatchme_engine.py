@@ -158,7 +158,8 @@ def make_meters(config):
     for n in ("total","lm","ssnet","kp","paf"):
         loss_meters[n] = AverageMeter()
     
-    accnames = LM_CLASS_NAMES+KP_CLASS_NAMES+["paf"]+SSNET_CLASS_NAMES+["ssnet-all"]
+    accnames = LM_CLASS_NAMES+KP_CLASS_NAMES+SSNET_CLASS_NAMES+["ssnet-all"]
+    accnames += ['paf_pos_in20deg','paf_pos_meancos','paf_neg_normave']
     acc_meters  = {}
     for n in accnames:
         acc_meters[n] = AverageMeter()
@@ -228,29 +229,39 @@ def accuracy(predictions, truthdata,
                 if kp_n_pos>0:
                     acc_meters[kpname].update( kp_pos/kp_n_pos )
 
-    # # PARTICLE AFFINITY FLOW
-    # if paf_pred_t is not None:
-    #     # we define accuracy with the direction is less than 20 degress
-    #     if paf_pred_t.shape[0]!=paf_label_t.shape[0]:
-    #         paf_pred  = torch.index_select( paf_pred_t.detach(),  0, truematch_indices_t )
-    #         paf_label = torch.index_select( paf_label_t.detach(), 0, truematch_indices_t )
-    #     else:
-    #         paf_pred  = paf_pred_t.detach()
-    #         paf_label = paf_label_t.detach()[:npairs]
-    #     # calculate cosine
-    #     paf_truth_lensum = torch.sum( paf_label*paf_label, 1 )
-    #     paf_pred_lensum  = torch.sum( paf_pred*paf_pred, 1 )
-    #     paf_pred_lensum  = torch.sqrt( paf_pred_lensum )
-    #     paf_posexamples = paf_truth_lensum.gt(0.5)
-    #     #print paf_pred[paf_posexamples,:].shape," ",paf_label[paf_posexamples,:].shape," ",paf_pred_lensum[paf_posexamples].shape
-    #     paf_cos = torch.sum(paf_pred[paf_posexamples,:]*paf_label[paf_posexamples,:],1)/(paf_pred_lensum[paf_posexamples]+0.001)
-    #     paf_npos  = paf_cos.shape[0]
-    #     paf_ncorr = paf_cos.gt(0.94).sum().item()
-    #     paf_acc = float(paf_ncorr)/float(paf_npos)
-    #     if verbose: print("paf: npos=",paf_npos," acc=",paf_acc)
-    #     if paf_npos>0:
-    #         acc_meters["paf"].update( paf_acc )
-    
+        # PARTICLE AFFINITY FLOW
+        if "paf" in data:
+            # we split by 'true' and 'ghost' spacepoints
+            # length of  true spacepoints are one
+            # length of ghost spacepoints are zero
+            paf_truth_len = torch.sum( labels['paf']*labels['paf'], 1 )
+            print('acc paf: paf_truth_len.shape: ',paf_truth_len.shape)
+            paf_posexamples = paf_truth_len.gt(0.2)
+            paf_npos = (paf_posexamples==True).sum()
+
+            # norm for prediction vectors
+            paf_pred_len = torch.sqrt( torch.sum( data['paf'].detach()*data['paf'].detach(), 1 ) )
+
+            # positive examples, use dot product: pred*true
+            paf_dot = torch.sum( data['paf'].detach()*labels['paf'].detach(), 1 )
+            paf_dot[ paf_pred_len[:]>0 ] /= paf_pred_len[ paf_pred_len[:]>0 ]
+            paf_dot_pos = paf_dot[ paf_posexamples ]
+
+            # positive example metric: mean cosine -- should be 1.0 eventually
+            paf_meandot_pos = torch.mean( paf_dot_pos ).item()
+
+            # positive example accuracy for positive examples is frac above 20
+            paf_pos_frac_inside_20deg = float(paf_dot_pos.gt(0.94).sum())/float(paf_npos)
+
+            # negative examples, use the norm
+            nneg = (paf_posexamples==False ).sum()
+            paf_normave_neg = paf_pred_len[ paf_posexamples==False ].mean().item()
+
+            if npos>0:
+                acc_meters['paf_pos_in20deg'].update( paf_pos_frac_inside_20deg )
+                acc_meters['paf_pos_meancos'].update( paf_meandot_pos )
+            if nneg>0:
+                acc_meters['paf_neg_normave'].update( paf_normave_neg )
     
     return True
 

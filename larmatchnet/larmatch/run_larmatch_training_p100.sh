@@ -1,16 +1,18 @@
 #!/bin/bash
 
 NGPUS=$1
-CONFIG=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/config/config_larmatchme_p100.yaml
+#CONFIG=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/config/config_larmatchme_p100.yaml
+UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/
+CONFIG=${UBDL_DIR}/larflow/larmatchnet/larmatch/config/config_larmatchme.yaml
 
-cd /cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/
+cd $UBDL_DIR
 source setenv_py3.sh
 source configure.sh
-cd /cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/
+cd ${UBDL_DIR}/larflow/larmatchnet/
 source set_pythonpath.sh
-cd /cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch
-
+cd ${UBDL_DIR}/larflow/larmatchnet/larmatch
 
 rm -f /tmp/sharedfile
-python3 train_dist_larmatchme.py --config ${CONFIG} --gpus ${NGPUS} > /tmp/larmatch_training_out.log
-cp /tmp/larmatch_training_out.log /cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/
+echo "CONFIG: ${CONFIG}"
+python3 train_dist_larmatchme.py --config ${CONFIG} -n 1 --gpus 1 --no-parallel > /tmp/larmatch_training_out.log
+cp /tmp/larmatch_training_out.log ${UBDL_DIR}/larflow/larmatchnet/larmatch/

@@ -1,17 +1,17 @@
 #!/bin/bash
 
 tag=bnbnue
-WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
-UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl
-INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/inputlists/mcc9_v13_bnbnue_corsika.triplettruth.list
+WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/workdir/
+UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl
+INPUTLIST=${UBDL_DIR}/larflow/larmatchnet/dataprep/inputlists/mcc9_v13_bnbnue_corsika.paired.list
 OUTPUT_DIR=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika/
-PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/prep/make_larmatch_training_data_from_tripletfile.py
+PYSCRIPT=${UBDL_DIR}/larflow/larmatchnet/larmatch/run_lardata2hdf5.py
 
 
 #FOR DEBUG
 #SLURM_ARRAY_TASK_ID=5
 
-stride=1
+stride=5
 jobid=${SLURM_ARRAY_TASK_ID}
 let startline=$(expr "${stride}*${jobid}")
 
@@ -31,6 +31,8 @@ local_logfile=`echo ${local_jobdir}/log_${tag}_jobid${jobid}.txt`
 cd $UBDL_DIR
 source setenv_py3.sh >> ${local_logfile} 2>&1
 source configure.sh >>	${local_logfile} 2>&1
+cd $UBDL_DIR/larflow/larmatchnet/
+source set_pythonpath.sh
 cd $local_jobdir
 
 CMD="python3 ${PYSCRIPT}"
@@ -40,17 +42,19 @@ echo "startline: ${startline}" >> ${local_logfile} 2>&1
 for i in {1..5}
 do
     let lineno=$startline+$i
-    larmatchdata=`sed -n ${lineno}p $INPUTLIST`
-    larmatchdata_base=`basename ${larmatchdata}`
-    larmatchdata_dir=`dirname ${larmatchdata}`
-    voxel_filesuffix=`echo ${larmatchdata_base} | sed 's|larmatchtriplet\_||g'`
+    larcv_input=`sed -n ${lineno}p $INPUTLIST | awk '{ print $1 }'`
+    larlite_input=`sed -n ${lineno}p $INPUTLIST | awk '{ print $2 }'`    
+    larcv_input_base=`basename ${larcv_input}`
+    larcv_input_dir=`dirname ${larcv_input}`
+    output_base=`echo ${larcv_input_base} | sed 's|larcvtruth|larmatch\_trainingdata|' | sed 's|root|h5|'`
 
-    COMMAND="python3 ${PYSCRIPT} --output larmatchdata_${tag}_${voxel_filesuffix} --single ${larmatchdata}"
+    COMMAND="python3 ${PYSCRIPT} --input-larlite ${larlite_input} --input-larcv ${larcv_input} -tb -tri --adc wiremc -o ./${output_base}"
     echo $COMMAND
-    $COMMAND >> ${local_logfile} 2>&1
-    cp larmatchdata_${tag}_${voxel_filesuffix}* ${OUTPUT_DIR}/
-    rm larmatchdata_${tag}_${voxel_filesuffix}*
-    break
+    #$COMMAND >> ${local_logfile} 2>&1
+    $COMMAND >> ${local_logfile}
+    cp ${output_base}* ${OUTPUT_DIR}/
+    rm ${output_base}*
+    #break
 done
 
 cp log_${tag}_jobid* ${jobworkdir}/

@@ -32,14 +32,11 @@ def run(gpu, args ):
     """
     ME.set_gpu_allocator(ME.GPUMemoryAllocatorType.CUDA)
     
-    # tensorboardX
-    from torch.utils.tensorboard import SummaryWriter
-    
     # larmatch imports
     import larmatch
     import larmatch.utils.larmatchme_engine as engine
     from larmatch.data.larmatch_hdf5_reader import LArMatchHDF5Dataset, get_data_loader
-    
+
     # ROOT, larcv
     #import ROOT as rt
     #from ROOT import std
@@ -69,7 +66,24 @@ def run(gpu, args ):
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
 
     if rank==0:
-        tb_writer = SummaryWriter()
+        made_logger = False
+        if "LOGGER" in config:
+            if config["LOGGER"]=="wandb":
+                print("LOG INFO TO WANDB")
+                import wandb
+                made_logger = True
+                wandb_writer = wandb.init(
+                    project='larmatch-hdf5',
+                    config=config )
+            elif config["LOGGER"]=="tensorboard":
+                # tensorboardX
+                print("LOG WITH TENSORBOARD")
+                from torch.utils.tensorboard import SummaryWriter
+                made_logger = True
+                tb_writer = SummaryWriter()                
+        if not made_logger:
+            print("Need to set valid logger. Set 'LOGGER' parameter in config file to either 'wandb' or 'tensorboard'")
+            sys.exit(0)
 
     single_model = engine.get_model( config, dump_model=False )
 
@@ -97,6 +111,8 @@ def run(gpu, args ):
         model = single_model
     else:
         model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
+
+    wandb_writer.watch(model, log="all", log_freq=100)
 
     #print("RANK-%d Loaded Model"%(rank),model)
     print("RANK-%d Loaded Model"%(rank))    
@@ -140,16 +156,6 @@ def run(gpu, args ):
     sys.stdout.flush()
 
     if rank==0:
-        #valid_dataset = larmatchDataset( txtfile=config["VALID_DATASET_INPUT_TXTFILE"],
-        #                                 random_access=True,
-        #                                 load_truth=True,
-        #                                 verbose=config["VALID_DATASET_VERBOSE"],
-        #                                 npairs=None )
-        #VALID_NENTRIES = len(valid_dataset)
-        #print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
-        #valid_loader = torch.utils.data.DataLoader(valid_dataset,
-        #                                           batch_size=config["BATCH_SIZE"],
-        #                                           collate_fn=larmatchDataset.collate_fn)
         valid_loader = get_data_loader( config["VALID_DATASET_INPUT_TXTFILE"],
                                         batch_size=config["BATCH_SIZE"],
                                         num_workers=config["NUM_VALID_WORKERS"],
@@ -207,11 +213,17 @@ def run(gpu, args ):
                         if config["RUN_PAF"]:
                             print("  paf: ",torch.exp(-criterion.task_weights['paf'].detach()).item())
 
-                # write to tensorboard
+                # write to tensorboard/WANDB
                 # --------------------
+                all_log_variables = {'step':iiter,'epoch':float(iiter)/float(TRAIN_NENTRIES)}
+                
                 # losses go into same plot
                 loss_scalars = { x:y.avg for x,y in loss_meters.items() }
-                tb_writer.add_scalars('data/train_loss', loss_scalars, train_iteration )
+                if config["LOGGER"]=="tensorboard":
+                    tb_writer.add_scalars('data/train_loss', loss_scalars, train_iteration )
+                elif config["LOGGER"]=="wandb":
+                    for x,v in loss_scalars.items():
+                        all_log_variables["train/loss/"+x] = v
                 
                 # split acc into different types
                 # larmatch
@@ -220,7 +232,11 @@ def run(gpu, args ):
                     if acc_meters[accname].count>0:
                         acc_scalars[accname] = acc_meters[accname].avg
                 if len(acc_scalars)>0:
-                    tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
+                    if config['LOGGER']=="tensorboard":
+                        tb_writer.add_scalars('data/train_larmatch_accuracy', acc_scalars, train_iteration )
+                    elif config['LOGGER']=="wandb":
+                        for x,v in acc_scalars.items():
+                            all_log_variables['train/larmatch/'+x] = v
 
                 # ssnet
                 ssnet_scalars = {}
@@ -228,7 +244,11 @@ def run(gpu, args ):
                     if acc_meters[accname].count>0:
                         ssnet_scalars[accname] = acc_meters[accname].avg
                 if len(ssnet_scalars)>0:
-                    tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
+                    if config['LOGGER']=="tensorboard":
+                        tb_writer.add_scalars('data/train_ssnet_accuracy', ssnet_scalars, train_iteration )
+                    elif config['LOGGER']=="wandb":
+                        for x,v in ssnet_scalars.items():
+                            all_log_variables['train/ssnet/'+x] = v
                 
                 # keypoint
                 kp_scalars = {}
@@ -236,18 +256,35 @@ def run(gpu, args ):
                     if acc_meters[accname].count>0:
                         kp_scalars[accname] = acc_meters[accname].avg
                 if len(kp_scalars)>0:
-                    tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
+                    if config['LOGGER']=="tensorboard":
+                        tb_writer.add_scalars('data/train_kp_accuracy', kp_scalars, train_iteration )
+                    elif config['LOGGER']=="wandb":
+                        for x,v in kp_scalars.items():
+                            all_log_variables['train/keypoint/'+x] = v
                 
                 # paf
-                if acc_meters["paf"].count>0:
-                    paf_acc_scalars = { "paf":acc_meters["paf"].avg  }
+                paf_acc_scalars = {}
+                for paf_metric in ['paf_pos_in20deg','paf_pos_meancos', 'paf_neg_normave']:
+                    if acc_meters[paf_metric].count>0:
+                        paf_acc_scalars[paf_metric] = acc_meters[paf_metric].avg
+                if config['LOGGER']=="tensorboard":
                     tb_writer.add_scalars("data/train_paf_accuracy", paf_acc_scalars, train_iteration )
+                elif config['LOGGER']=="wandb":
+                    for x,v in paf_acc_scalars.items():
+                        all_log_variables['train/paf/'+x] = v
 
                 # loss params
                 loss_weight_scalars = {}
                 for k,par in criterion.named_parameters():
                     loss_weight_scalars[k] = torch.exp( -par.detach() ).item()
-                tb_writer.add_scalars("data/loss_weights", loss_weight_scalars, train_iteration )
+                if config['LOGGER']=="tensorboard":
+                    tb_writer.add_scalars("data/loss_weights", loss_weight_scalars, train_iteration )
+                elif config['LOGGER']=="wandb":
+                    for x,v in loss_weight_scalars.items():
+                        all_log_variables['train/loss_weights/'+x] = v
+
+                # PASS INFO TO WANDB
+                wandb_writer.log( data=all_log_variables, step=iiter )
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
@@ -264,9 +301,15 @@ def run(gpu, args ):
                                                 valid_time_meters )
                     # write to tensorboard
                     # --------------------
+                    all_log_variables = {'step':iiter, 'epoch':float(iiter)/float(TRAIN_NENTRIES)}
+                    
                     # losses go into same plot
                     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
-                    tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
+                    if config['LOGGER']=="tensorboard":
+                        tb_writer.add_scalars('data/valid_loss', loss_scalars, train_iteration )
+                    elif config['LOGGER']=="wandb":
+                        for x,v in loss_scalars.items():
+                            all_log_variables['valid/loss/'+x] = v
                 
                     # split acc into different types
                     # larmatch
@@ -275,7 +318,11 @@ def run(gpu, args ):
                         if valid_acc_meters[accname].count>0:
                             val_acc_scalars[accname] = valid_acc_meters[accname].avg
                     if len(val_acc_scalars)>0:
-                        tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
+                        if config['LOGGER']=="tensorboard":
+                            tb_writer.add_scalars('data/valid_larmatch_accuracy', val_acc_scalars, train_iteration )
+                        elif config['LOGGER']=="wandb":
+                            for x,v in val_acc_scalars.items():
+                                all_log_variables['valid/larmatch/'+x] = v
 
                     # ssnet
                     val_ssnet_scalars = {}
@@ -283,7 +330,11 @@ def run(gpu, args ):
                         if valid_acc_meters[accname].count>0:
                             val_ssnet_scalars[accname] = valid_acc_meters[accname].avg
                     if len(val_ssnet_scalars)>0:
-                        tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
+                        if config['LOGGER']=="tensorboard":
+                            tb_writer.add_scalars('data/valid_ssnet_accuracy', val_ssnet_scalars, train_iteration )
+                        elif config['LOGGER']=="wandb":
+                            for x,v in val_ssnet_scalars.items():
+                                all_log_variables['valid/ssnet/'+x] = v
                 
                     # keypoint
                     val_kp_scalars = {}
@@ -291,12 +342,25 @@ def run(gpu, args ):
                         if valid_acc_meters[accname].count>0:
                             val_kp_scalars[accname] = valid_acc_meters[accname].avg
                     if len(val_kp_scalars)>0:
-                        tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
+                        if config['LOGGER']=="tensorboard":
+                            tb_writer.add_scalars('data/valid_kp_accuracy', val_kp_scalars, train_iteration )
+                        elif config['LOGGER']=="wandb":
+                            for x,v in val_kp_scalars.items():
+                                all_log_variables['valid/keypoints/'+x] = v
                 
                     # paf
-                    if valid_acc_meters["paf"].count>0:
-                        val_paf_acc_scalars = { "paf":valid_acc_meters["paf"].avg  }
-                        tb_writer.add_scalars("data/valid_paf_accuracy", val_paf_acc_scalars, train_iteration )
+                    valid_paf_acc_scalars = {}
+                    for paf_metric in ['paf_pos_in20deg','paf_pos_meancos', 'paf_neg_normave']:
+                        if valid_acc_meters[paf_metric].count>0:
+                            valid_paf_acc_scalars[paf_metric] = valid_acc_meters[paf_metric].avg
+                    if config['LOGGER']=="tensorboard":
+                        tb_writer.add_scalars("data/valid_paf_accuracy", valid_paf_acc_scalars, train_iteration )
+                    elif config['LOGGER']=="wandb":
+                        for x,v in valid_paf_acc_scalars.items():
+                            all_log_variables['valid/paf/'+x] = v
+
+                    if config['LOGGER']=="wandb":
+                        wandb_writer.log( all_log_variables, step=iiter )
 
                 else:
                     if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))

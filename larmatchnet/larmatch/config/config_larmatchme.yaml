@@ -20,6 +20,7 @@ VERBOSE_MAIN_LOOP: false
 VERBOSE_ITER_LOOP: false
 VERBOSE_LOSS: true
 VERBOSE_ACCURACY: false
+LOGGER: "wandb"
 
 # DATASET PARAMETERS
 #TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
@@ -28,8 +29,8 @@ TRAIN_DATASET_VERBOSE: false
 #VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
 VALID_DATASET_INPUT_TXTFILE: "test_h5data.txt"
 VALID_DATASET_VERBOSE: false
-NUM_TRAIN_WORKERS: 1
-NUM_VALID_WORKERS: 1
+NUM_TRAIN_WORKERS: 2
+NUM_VALID_WORKERS: 2
 
 # MODEL PARAMETERS
 
