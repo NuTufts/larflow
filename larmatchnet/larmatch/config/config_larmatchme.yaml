@@ -23,11 +23,13 @@ VERBOSE_ACCURACY: false
 LOGGER: "wandb"
 
 # DATASET PARAMETERS
-#TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.train.list"
-TRAIN_DATASET_INPUT_TXTFILE: "test_h5data.txt"
+TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_training_dataset.txt"
+#TRAIN_DATASET_INPUT_TXTFILE: "test_h5data.txt"
 TRAIN_DATASET_VERBOSE: false
-#VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/filelists/larmatchdata_comboned.valid.list"
-VALID_DATASET_INPUT_TXTFILE: "test_h5data.txt"
+TRAIN_DATASET_LOAD_FROM_CACHE: true
+VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_validation_dataset.txt"
+#VALID_DATASET_INPUT_TXTFILE: "test_h5data.txt"
+VALID_DATASET_LOAD_FROM_CACHE: true
 VALID_DATASET_VERBOSE: false
 NUM_TRAIN_WORKERS: 2
 NUM_VALID_WORKERS: 2

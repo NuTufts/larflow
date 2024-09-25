@@ -51,24 +51,44 @@ class LArMatchHDF5Dataset(Dataset):
 
     COLLATE_FOR_TRAINING = False
     
-    def __init__(self, file_paths, collate_for_training=False):
+    def __init__(self, file_paths=None, collate_for_training=False, load_from_cachefile=None):
+        if file_paths is None and load_from_cachefile is None:
+            print("to specify input files, you must provide a value to one of the keyword arguments: ")
+            print("  file_paths: a list of file paths to include in the dataset")
+            print("  load_from_cachefile: a text file with a list of files with number of entries information. make this with make_cache_file")
         self.file_paths = file_paths
         self.dataset_lengths = []
         self.cumulative_lengths = [0]
+        
         self.COLS = LArMatchHDF5Dataset.COLUMNS
         LArMatchHDF5Dataset.collate_for_training = collate_for_training
         if collate_for_training:
             self.COLS = LArMatchHDF5Dataset.TRAINING_COLUMNS
-            
+
         # we have to scan the files to map out which file has which indices
-        for file_path in file_paths:
-            with h5py.File(file_path, 'r') as hf:
-                # because each entry has its own column, we can infer the number of entries
-                nkeys = len(hf.keys())
-                length = nkeys // len(LArMatchHDF5Dataset.COLUMNS)  # Divide by number of columns in each entry
-                print("length=",length," for ",file_path)
-                self.dataset_lengths.append(length)
-                self.cumulative_lengths.append(self.cumulative_lengths[-1] + length)
+        if file_paths is not None:
+            print("LOADING FROM LIST OF FILE PATHS")
+            for file_path in file_paths:
+                with h5py.File(file_path, 'r') as hf:
+                    # because each entry has its own column, we can infer the number of entries
+                    nkeys = len(hf.keys())
+                    length = nkeys // len(LArMatchHDF5Dataset.COLUMNS)  # Divide by number of columns in each entry
+                    print("length=",length," for ",file_path)
+                    self.dataset_lengths.append(length)
+                    self.cumulative_lengths.append(self.cumulative_lengths[-1] + length)
+        elif load_from_cachefile is not None:
+            print("LOADING FROM CACHED LIST OF FILES")            
+            self.file_paths = []
+            with open(load_from_cachefile,'r') as fcache:
+                ll = fcache.readlines()
+                for l in ll:
+                    linfo = l.strip().split()
+                    fname   = linfo[0]
+                    flength = int(linfo[1])
+                    cdf     = int(linfo[2])
+                    self.file_paths.append(fname)
+                    self.dataset_lengths.append(flength)
+                    self.cumulative_lengths.append(cdf)
         
     def __len__(self):
         return self.cumulative_lengths[-1]
@@ -89,6 +109,12 @@ class LArMatchHDF5Dataset(Dataset):
         # do we mask out the ghost and cosmic spacepoints?
         
         return entry_data
+
+    def make_cache_file(self,cache_file_name):
+        print("Dumping fileset length into into a cache file: ",cache_file_name)
+        with open(cache_file_name,'w') as f:
+            for i,fname in enumerate(self.file_paths):
+                print(fname,' ',self.dataset_lengths[i],' ',self.cumulative_lengths[i+1],file=f)
 
     def collate_fn(batch):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
@@ -121,29 +147,36 @@ class LArMatchHDF5Dataset(Dataset):
             return batch
 
 # Usage example
-def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True, collate_for_training=False):
-    xpaths = []
-    if type(file_paths) is str:
-        if os.path.exists(file_paths) and os.path.isfile(file_paths):
-            # treat as text file
-            print("Loading data files from text file: ",file_paths)
-            with open(file_paths) as f:
-                flines = f.readlines()
-                for l in flines:
-                    l = l.strip()
-                    if os.path.exists(l):
-                        xpaths.append(l.strip())
-                    else:
-                        raise RuntimeError("bad input file path: ",l)
-        elif os.path.exists(file_paths) and os.path.isdir(file_paths):
-            print("Loading data files from directory: ",file_paths)
-            raise RuntimeError("Not yet implemented")
-    elif type(file_paths) is list:
-        print("Loading data files from list of file paths")
-        xpaths = file_paths
+def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True,
+                    load_from_cachefile=False,
+                    collate_for_training=False):
+    if not load_from_cachefile:
+        xpaths = []
+        if type(file_paths) is str:
+            if os.path.exists(file_paths) and os.path.isfile(file_paths):
+                # treat as text file
+                print("Loading data files from text file: ",file_paths)
+                with open(file_paths) as f:
+                    flines = f.readlines()
+                    for l in flines:
+                        l = l.strip()
+                        if os.path.exists(l):
+                            xpaths.append(l.strip())
+                        else:
+                            raise RuntimeError("bad input file path: ",l)
+            elif os.path.exists(file_paths) and os.path.isdir(file_paths):
+                print("Loading data files from directory: ",file_paths)
+                raise RuntimeError("Not yet implemented")
+        elif type(file_paths) is list:
+            print("Loading data files from list of file paths")
+            xpaths = file_paths
+        dataset = LArMatchHDF5Dataset(file_paths=xpaths, collate_for_training=collate_for_training)
+    else:
+        dataset = LArMatchHDF5Dataset(load_from_cachefile=file_paths, collate_for_training=collate_for_training)
         
-    dataset = LArMatchHDF5Dataset(xpaths, collate_for_training=collate_for_training)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=LArMatchHDF5Dataset.collate_fn)
+    
 
 
 
+    

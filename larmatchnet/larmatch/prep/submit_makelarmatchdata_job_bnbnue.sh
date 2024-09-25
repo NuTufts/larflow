@@ -3,10 +3,10 @@
 # slurm submission script for making larmatch training data
 
 #SBATCH --job-name=lmdata
-#SBATCH --output=lmdata_bnbnue_sub1.log
+#SBATCH --output=lmdata_bnbnue_makeup_training_sub02.log
 #SBATCH --mem-per-cpu=8000
 #SBATCH --time=8:00:00
-#SBATCH --array=200-493
+#SBATCH --array=0-15
 ##SBATCH --partition=preempt
 #SBATCH --partition=batch
 #SBATCH --error=gridlog_makelarmatchdata_bnb_nue.%j.%N.err
@@ -19,6 +19,7 @@ cd /cluster/tufts/
 
 # mcc9_v13_bnbnue_corsika: 2461 files
 # running 5 files per job: 493 jobs
-srun singularity exec ${container} bash -c "cd ${DATA_PREP_DIR} && source run_larmatchdata_mcc9_v13_bnbnue_corsika.sh"
+srun singularity exec ${container} bash -c "cd ${DATA_PREP_DIR} && source run_larmatchdata_mcc9_v13_bnbnue_corsika_training.sh"
+#srun singularity exec ${container} bash -c "cd ${DATA_PREP_DIR} && source run_larmatchdata_mcc9_v13_bnbnue_corsika_validation.sh"
 
 
