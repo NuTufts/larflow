@@ -30,7 +30,11 @@ class LArMatchHDF5Dataset(Dataset):
 
     COLLATE_FOR_TRAINING = False
     
-    def __init__(self, file_paths=None, collate_for_training=False, load_from_cachefile=None):
+    def __init__(self, file_paths=None,
+                 collate_for_training=False,
+                 load_from_cachefile=None,
+                 apply_max_filter=True,
+                 max_num_spacepoints=300000):
         if file_paths is None and load_from_cachefile is None:
             print("to specify input files, you must provide a value to one of the keyword arguments: ")
             print("  file_paths: a list of file paths to include in the dataset")
@@ -38,6 +42,8 @@ class LArMatchHDF5Dataset(Dataset):
         self.file_paths = file_paths
         self.dataset_lengths = []
         self.cumulative_lengths = [0]
+        self.max_num_spacepoints=max_num_spacepoints
+        self.apply_max_filter=apply_max_filter
         LArMatchHDF5Dataset.collate_for_training = collate_for_training
         
         # we have to scan the files to map out which file has which indices
@@ -82,6 +88,18 @@ class LArMatchHDF5Dataset(Dataset):
         # do we subsample to limit the number of spacepoints?
         # do we crop around the neutrino vertex or crop within some box
         # do we mask out the ghost and cosmic spacepoints?
+        npts = entry_data['matchtriplet'].shape[0]
+        if self.max_num_spacepoints<npts and self.apply_max_filter:
+            filter_ratio = 0.9*self.max_num_spacepoints/float(npts)
+            xfilter = np.random.random( npts )<filter_ratio
+            #print("reduce num spacepoints: ",npts," --> ",int(xfilter.sum()))
+            # reduce the number of spacepoints we evaluate
+            name_v = ['matchtriplet','match_weight',
+                      'ssnet_label','ssnet_class_weight','ssnet_top_weight',
+                      'kplabel','kplabel_weight',
+                      'paf_label','paf_weight']
+            for name in name_v:
+                entry_data[name] = entry_data[name][xfilter]
         
         return entry_data
 
@@ -105,7 +123,7 @@ class LArMatchHDF5Dataset(Dataset):
                 rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight']*batchdata['ssnet_top_weight']
                 rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
                 rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )
-                rebatchdata['positive_indices'] = batchdata['positive_indices']
+                #rebatchdata['positive_indices'] = batchdata['positive_indices']
                 rebatchdata['paf_label']        = np.expand_dims( np.transpose( batchdata['paf_label'],  (1,0) ), 0 )
                 rebatchdata['paf_weight']       = batchdata['paf_weight']
                 for p in range(3):

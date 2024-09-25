@@ -6,9 +6,9 @@ import os,sys
 #outdirs=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_training"]
 #inputlist="../../dataprep/inputlists/mcc9_v13_bnbnue_corsika_training.paired.list"
 
-samplename="mcc9_v13_bnbnue_corsika_validation"
-outdirs=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_validation"]
-inputlist="../../dataprep/inputlists/mcc9_v13_bnbnue_corsika_validation.paired.list"
+#samplename="mcc9_v13_bnbnue_corsika_validation"
+#outdirs=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_validation"]
+#inputlist="../../dataprep/inputlists/mcc9_v13_bnbnue_corsika_validation.paired.list"
 
 
 # BNB NU 
@@ -17,9 +17,9 @@ inputlist="../../dataprep/inputlists/mcc9_v13_bnbnue_corsika_validation.paired.l
 #outdirs=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_training"]
 #inputlist="../../dataprep/inputlists/mcc9_v13_bnb_nu_corsika_training.paired.list"
 
-#samplename = "mcc9_v13_bnb_nu_corsika_validation"
-#outdirs=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_validation"]
-#inputlist="../../dataprep/inputlists/mcc9_v13_bnb_nu_corsika_validation.paired.list"
+samplename = "mcc9_v13_bnb_nu_corsika_validation"
+outdirs=["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_validation"]
+inputlist="../../dataprep/inputlists/mcc9_v13_bnb_nu_corsika_validation.paired.list"
 
 # get the source list
 file_hashes = {}

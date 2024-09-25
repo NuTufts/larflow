@@ -87,7 +87,6 @@ class SparseLArMatchKPSLoss(nn.Module):
                 print("eval LARMATCH loss")            
             larmatch_pred = predictions[self.larmatch_name]                        
             npairs     = larmatch_pred.shape[0]
-            #ntruematch = truematch_index.shape[0]
             larmatch_weight = weights[self.larmatch_name]
             larmatch_label  = truthlabels[self.larmatch_name]        
             lm_loss = self.larmatch_loss( larmatch_pred, larmatch_label, larmatch_weight, verbose=verbose )
@@ -421,7 +420,6 @@ if __name__ == "__main__":
                 print("  ",name)
 
         # we copy the truth to make the "predictions"
-        print("num positive examples: ",data["positive_indices"].shape[0])
 
         # larmatch
         larmatch_truth   = torch.from_numpy( data["larmatchlabels"] )
@@ -437,7 +435,6 @@ if __name__ == "__main__":
         kploss = lossfn.keypoint_loss(  keypoint_predict,
                                         keypoint_truth,
                                         torch.from_numpy( data["kplabel_weight"] ),
-                                        torch.from_numpy( data["positive_indices"]),
                                         verbose=True )
 
         # affinity
@@ -446,7 +443,7 @@ if __name__ == "__main__":
         pafloss = lossfn.affinity_field_loss(  affinity_predict,
                                                affinity_truth,
                                                torch.from_numpy( data["paf_weight"] ),
-                                               torch.from_numpy( data["positive_indices"]),
+                                               data['matchtriplets'][:,3],
                                                verbose=True )
 
         
