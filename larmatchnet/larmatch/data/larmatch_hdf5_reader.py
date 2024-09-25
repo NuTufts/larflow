@@ -27,6 +27,27 @@ class LArMatchHDF5Dataset(Dataset):
         "wireimage_plane0",
         "wireimage_plane1",
         "wireimage_plane2"]
+    
+    # a limited set of columns to read to make data-loading slightly more efficient
+    TRAINING_COLUMNS = [
+        "matchtriplet",
+        "match_weight",
+        #"spacepoints",
+        #"positive_indices",
+        "ssnet_label",
+        "ssnet_top_weight",
+        "ssnet_class_weight",
+        "kplabel",
+        "kplabel_weight",
+        #"kpshift",
+        "paf_label",
+        "paf_weight",
+        #"origin_label",
+        #"keypoint_truth_kptype_pdg_trackid",
+        #"keypoint_truth_pos",
+        "wireimage_plane0",
+        "wireimage_plane1",
+        "wireimage_plane2"]
 
     COLLATE_FOR_TRAINING = False
     
@@ -44,8 +65,12 @@ class LArMatchHDF5Dataset(Dataset):
         self.cumulative_lengths = [0]
         self.max_num_spacepoints=max_num_spacepoints
         self.apply_max_filter=apply_max_filter
+
+        self.COLS = LArMatchHDF5Dataset.COLUMNS
         LArMatchHDF5Dataset.collate_for_training = collate_for_training
-        
+        if collate_for_training:
+            self.COLS = LArMatchHDF5Dataset.TRAINING_COLUMNS
+
         # we have to scan the files to map out which file has which indices
         if file_paths is not None:
             print("LOADING FROM LIST OF FILE PATHS")
@@ -80,7 +105,7 @@ class LArMatchHDF5Dataset(Dataset):
         
         entry_data = {}
         with h5py.File(self.file_paths[file_idx], 'r') as hf:
-            for col in LArMatchHDF5Dataset.COLUMNS:
+            for col in self.COLS:
                 #print("retrieve key=",f'{col}_{local_idx}')
                 entry_data[col] = np.array(hf[f'{col}_{local_idx}'])
 
