@@ -33,7 +33,8 @@ def get_model( config, dump_model=False ):
     model = LArMatchMinkowski(run_lm=config["RUN_LARMATCH"],
                               run_ssnet=config["RUN_SSNET"],
                               run_kp=config["RUN_KPLABEL"],
-                              run_paf=config["RUN_PAF"])
+                              run_paf=config["RUN_PAF"],
+                              norm_layer='batchnorm')
 
     if dump_model:
         # DUMP MODEL (for debugging)
@@ -286,7 +287,7 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     npts = -1
     ntries = 0
     while (npts>config["BATCH_TRIPLET_LIMIT"] or npts<0) and ntries<20:
-        batchdata = next(iter(data_loader))
+        batchdata = next(data_loader)
         npts = 0
         for data in batchdata:
             npts += data["matchtriplet_v"].shape[0]

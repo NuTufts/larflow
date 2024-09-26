@@ -49,10 +49,10 @@ class LArMatchHDF5Dataset(Dataset):
         "wireimage_plane1",
         "wireimage_plane2"]
 
-    COLLATE_FOR_TRAINING = False
+    COLLATE_FOR_TRAINING = True
     
     def __init__(self, file_paths=None,
-                 collate_for_training=False,
+                 collate_for_training=True,
                  load_from_cachefile=None,
                  apply_max_filter=True,
                  max_num_spacepoints=300000):
@@ -61,20 +61,31 @@ class LArMatchHDF5Dataset(Dataset):
             print("  file_paths: a list of file paths to include in the dataset")
             print("  load_from_cachefile: a text file with a list of files with number of entries information. make this with make_cache_file")
         self.file_paths = file_paths
-        self.dataset_lengths = []
-        self.cumulative_lengths = [0]
+        self.load_from_cachefile = load_from_cachefile
         self.max_num_spacepoints=max_num_spacepoints
         self.apply_max_filter=apply_max_filter
 
         self.COLS = LArMatchHDF5Dataset.COLUMNS
-        LArMatchHDF5Dataset.collate_for_training = collate_for_training
+        LArMatchHDF5Dataset.COLLATE_FOR_TRAINING = collate_for_training
         if collate_for_training:
             self.COLS = LArMatchHDF5Dataset.TRAINING_COLUMNS
 
-        # we have to scan the files to map out which file has which indices
-        if file_paths is not None:
-            print("LOADING FROM LIST OF FILE PATHS")
-            for file_path in file_paths:
+        self.nlength = 0
+        if self.load_from_cachefile is not None:
+            with open(self.load_from_cachefile,'r') as fcache:
+                ll = fcache.readlines()
+                self.nlength = int(ll[-1].strip().split()[-1])
+            print("using cache to set number of entries in dataset to ",self.nlength)
+
+
+    def make_entry_table(self):
+        # we have to scan the files to map out which file has which indices        
+        self.dataset_lengths = []
+        self.cumulative_lengths = [0]
+        
+        if self.file_paths is not None:
+            print("MAKE_ENTRY_TABLE: Loading from list of file paths")
+            for file_path in self.file_paths:
                 with h5py.File(file_path, 'r') as hf:
                     # because each entry has its own column, we can infer the number of entries
                     nkeys = len(hf.keys())
@@ -82,10 +93,11 @@ class LArMatchHDF5Dataset(Dataset):
                     print("length=",length," for ",file_path)
                     self.dataset_lengths.append(length)
                     self.cumulative_lengths.append(self.cumulative_lengths[-1] + length)
-        elif load_from_cachefile is not None:
-            print("LOADING FROM CACHED LIST OF FILES")            
+            self.nlength = self.cumulative_lengths[-1]
+        elif self.load_from_cachefile is not None:
+            print("MAKE_ENTRY_TABLE: Loading from cached list of files")
             self.file_paths = []
-            with open(load_from_cachefile,'r') as fcache:
+            with open(self.load_from_cachefile,'r') as fcache:
                 ll = fcache.readlines()
                 for l in ll:
                     linfo = l.strip().split()
@@ -95,11 +107,19 @@ class LArMatchHDF5Dataset(Dataset):
                     self.file_paths.append(fname)
                     self.dataset_lengths.append(flength)
                     self.cumulative_lengths.append(cdf)
+            self.nlength = self.cumulative_lengths[-1]
+        
         
     def __len__(self):
-        return self.cumulative_lengths[-1]
+        #return self.cumulative_lengths[-1]        
+        return self.nlength
+    
     
     def __getitem__(self, idx):
+
+        if not hasattr(self,'dataset_lengths'):
+            self.make_entry_table()
+        
         file_idx = np.searchsorted(self.cumulative_lengths, idx, side='right') - 1
         local_idx = idx - self.cumulative_lengths[file_idx]
         
@@ -137,7 +157,7 @@ class LArMatchHDF5Dataset(Dataset):
     def collate_fn(batch):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         #print(batch)
-        if LArMatchHDF5Dataset.collate_for_training:
+        if LArMatchHDF5Dataset.COLLATE_FOR_TRAINING:
             rebatch = []
             for batchdata in batch:
                 rebatchdata = {}

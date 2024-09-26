@@ -5,7 +5,7 @@ import MinkowskiEngine as ME
 
 class LArMatchSpacepointClassifier( nn.Module ):
 
-    def __init__(self, num_input_feats, classifier_nfeatures=[32,32], ndimensions=2 ):
+    def __init__(self, num_input_feats, classifier_nfeatures=[32,32], ndimensions=2, norm="batchnorm" ):
         super(LArMatchSpacepointClassifier,self).__init__()
 
         # larmatch classifier
@@ -16,7 +16,12 @@ class LArMatchSpacepointClassifier( nn.Module ):
                 lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(num_input_feats,nfeat,1)
             else:
                 lm_class_layers["lmclassifier_layer%d"%(i)] = torch.nn.Conv1d(classifier_nfeatures[i-1],nfeat,1)
-            lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
+            if norm=="instance":
+                lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
+            elif norm=="batchnorm":
+                lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
+            else:
+                raise ValueError("invalid norm option: ",norm," options=['batchnorm','instance']")
             lm_class_layers["lmclassifier_relu%d"%(i)] = torch.nn.ReLU()
         lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1)
         self.lm_classifier = nn.Sequential( lm_class_layers )

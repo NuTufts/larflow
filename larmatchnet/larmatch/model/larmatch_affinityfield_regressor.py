@@ -9,6 +9,7 @@ class LArMatchAffinityFieldRegressor(nn.Module):
                  layer_nfeatures=[64,64],
                  ninput_planes=3,
                  output_dim=3,
+                 norm="batchnorm",
                  device=torch.device("cpu")):
         super(LArMatchAffinityFieldRegressor,self).__init__()
 
@@ -20,7 +21,12 @@ class LArMatchAffinityFieldRegressor(nn.Module):
         layers["paf_relu0"] = torch.nn.LeakyReLU()
         for ilayer,nfeats in enumerate(layer_nfeatures[1:]):
             layers["paf_conv%d"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
-            #layers["paf_bn%d"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats)
+            if norm=="batchnorm":
+                layers["paf_bn%d"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats)
+            elif norm=="instance":
+                layers["paf_bn%d"%(ilayer+1)]   = torch.nn.InstanceNorm1d(nfeats)
+            else:
+                raise ValueError("Invalid norm option: ",norm," options=['batchnorm','instance']")
             layers["paf_relu%d"%(ilayer+1)] = torch.nn.LeakyReLU()
         layers["paf_out"] = torch.nn.Conv1d(nfeats,output_dim,1)
         self.paf_layers = torch.nn.Sequential( layers )

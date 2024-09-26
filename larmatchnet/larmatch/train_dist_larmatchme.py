@@ -48,11 +48,16 @@ def run(gpu, args ):
     rank = args.nr * args.gpus + gpu
     print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
     if not args.no_parallel:
+        if "SLURM_JOBID" in os.environ:
+            tag = "slurm%s"%(os.environ["SLURM_JOBID"])
+        else:
+            tag = "local_%s"%(os.environ["USER"])
+        xfile = 'file:///tmp/sharedfile_%s'%(tag)
         dist.init_process_group(                                   
 	    #backend='nccl',
             backend='gloo',        
             #init_method='env://',
-            init_method='file:///tmp/sharedfile',
+            init_method=xfile,
 	    world_size=args.world_size,                              
 	    rank=rank,
             timeout=datetime.timedelta(0, 1800)
@@ -111,8 +116,13 @@ def run(gpu, args ):
         model = single_model
     else:
         model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
+        model = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm( model )
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm( model )
+        if rank==0:
+            print(model)
 
-    wandb_writer.watch(model, log="all", log_freq=100)
+    if rank==0:
+        wandb_writer.watch(model, log="all", log_freq=100)
 
     #print("RANK-%d Loaded Model"%(rank),model)
     print("RANK-%d Loaded Model"%(rank))    
@@ -153,6 +163,7 @@ def run(gpu, args ):
                                     load_from_cachefile=config["TRAIN_DATASET_LOAD_FROM_CACHE"],
                                     collate_for_training=True)
     TRAIN_NENTRIES = len(train_loader)
+    train_iterator = iter(train_loader)
     print("RANK-%d TRAIN DATASET NENTRIES: "%(rank),TRAIN_NENTRIES," = 1 epoch")
     sys.stdout.flush()
 
@@ -163,6 +174,7 @@ def run(gpu, args ):
                                         shuffle=True,
                                         load_from_cachefile=config["VALID_DATASET_LOAD_FROM_CACHE"],
                                         collate_for_training=True)
+        valid_iterator = iter(valid_loader)
         VALID_NENTRIES = len(valid_loader)
         print("RANK-%d: LOAD VALID DATASET NENTRIES: "%(rank),VALID_NENTRIES," = 1 epoch")
     
@@ -178,7 +190,7 @@ def run(gpu, args ):
             torch.cuda.empty_cache() # clear cache and avoid fragmentation + memory overflow issues
             gc.collect()
             loss_meters,acc_meters,time_meters = engine.make_meters(config)
-            engine.do_one_iteration(config,model,train_loader,criterion,optimizer,
+            engine.do_one_iteration(config,model,train_iterator,criterion,optimizer,
                                     acc_meters,loss_meters,time_meters,True,device,
                                     verbose=config["VERBOSE_ITER_LOOP"])
 
@@ -294,7 +306,7 @@ def run(gpu, args ):
                     for viter in range(int(config["NUM_VALID_ITERS"])):
                         with torch.no_grad():
                             engine.do_one_iteration(config,single_model,
-                                                    valid_loader,criterion,optimizer,
+                                                    valid_iterator,criterion,optimizer,
                                                     valid_acc_meters,valid_loss_meters,valid_time_meters,
                                                     False,device,verbose=False)
                     engine.prep_status_message( "Valid-Iteration", train_iteration,

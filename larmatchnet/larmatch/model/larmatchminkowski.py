@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import MinkowskiEngine as ME
 from MinkowskiEngine.modules.resnet_block import BasicBlock, Bottleneck
-from .backbone_resunetme import MinkEncode6Layer, MinkDecode6Layer
+from .backbone_resunetme import MinkEncode6LayerInstance, MinkDecode6LayerInstance, MinkEncode6LayerBasicBlock, MinkDecode6LayerBasicBlock
 from .resnetinstance_block import BasicBlockInstanceNorm
 from .larmatch_spacepoint_classifier import LArMatchSpacepointClassifier
 from .larmatch_ssnet_classifier import LArMatchSSNetClassifier
@@ -24,6 +24,7 @@ class LArMatchMinkowski(nn.Module):
                  run_paf=True,
                  num_ssnet_classes=7,
                  num_kp_classes=6,
+                 use_kp_bn=True,
                  norm_layer='batchnorm'):
         """
         parameters
@@ -66,8 +67,15 @@ class LArMatchMinkowski(nn.Module):
         self.stem = nn.Sequential(stem_layers)
 
         # RESIDUAL UNET FOR FEATURE CONSTRUCTION
-        self.encoder = MinkEncode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
-        self.decoder = MinkDecode6Layer( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+        if norm_layer=="instancenorm":
+            self.encoder = MinkEncode6LayerInstance( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+            self.decoder = MinkDecode6LayerInstance( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+        elif norm_layer=="batchnorm":
+            self.encoder = MinkEncode6LayerBasicBlock( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+            self.decoder = MinkDecode6LayerBasicBlock( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+        else:
+            raise ValueError("unrecognized norm_layer value: ",norm_layer)
+            
 
         # sparse to dense operation
         self.sparse_to_dense = [ ME.MinkowskiToFeature() for p in range(input_nplanes) ]
@@ -80,7 +88,7 @@ class LArMatchMinkowski(nn.Module):
         self.run_ssnet   = run_ssnet
         self.run_kplabel = run_kp
         self.run_paf     = run_paf
-        self.use_kp_bn   = False
+        self.use_kp_bn   = use_kp_bn
 
         # For the tasks per spacepoint, we run several MLPs that use a feature vector
         # made by concatenating three feature vectors, one from each of the pixels from the three wire planes.
