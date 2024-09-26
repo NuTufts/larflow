@@ -1,7 +1,7 @@
 import os,sys,random
 from larmatch.data.larmatch_hdf5_reader import LArMatchHDF5Dataset
 
-MAKE_TRAIN_CACHE = False
+MAKE_TRAIN_CACHE = True
 MAKE_VALID_CACHE = True
 
 datasets = {"training":["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_training",
