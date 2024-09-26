@@ -34,6 +34,7 @@ from MinkowskiEngine.modules.resnet_block import BasicBlock, Bottleneck
 
 class ResNetBase(nn.Module):
     BLOCK = None
+    NORM  = None
     LAYERS = ()
     INIT_DIM = 64
     PLANES = (64, 128, 256, 512)
@@ -42,6 +43,7 @@ class ResNetBase(nn.Module):
         nn.Module.__init__(self)
         self.D = D
         assert self.BLOCK is not None
+        assert self.NORM  is not None
 
         self.network_initialization(in_channels, out_channels, D)
         self.weight_initialization()
@@ -53,7 +55,8 @@ class ResNetBase(nn.Module):
             ME.MinkowskiConvolution(
                 in_channels, self.inplanes, kernel_size=3, stride=2, dimension=D
             ),
-            ME.MinkowskiInstanceNorm(self.inplanes),
+            #ME.MinkowskiInstanceNorm(self.inplanes),
+            self.NORM(self.inplanes),
             ME.MinkowskiReLU(inplace=True),
             ME.MinkowskiMaxPooling(kernel_size=2, stride=2, dimension=D),
         )
@@ -76,7 +79,8 @@ class ResNetBase(nn.Module):
             ME.MinkowskiConvolution(
                 self.inplanes, self.inplanes, kernel_size=3, stride=3, dimension=D
             ),
-            ME.MinkowskiInstanceNorm(self.inplanes),
+            #ME.MinkowskiInstanceNorm(self.inplanes),
+            self.NORM(self.inplanes),
             ME.MinkowskiGELU(),
         )
 
@@ -104,7 +108,8 @@ class ResNetBase(nn.Module):
                     stride=stride,
                     dimension=self.D,
                 ),
-                ME.MinkowskiBatchNorm(planes * block.expansion) if use_bn else ME.MinkowskiInstanceNorm(planes * block.expansion),
+                #ME.MinkowskiBatchNorm(planes * block.expansion) if use_bn else ME.MinkowskiInstanceNorm(planes * block.expansion),
+                self.NORM(planes*block.expansion),
             )
         layers = []
         layers.append(

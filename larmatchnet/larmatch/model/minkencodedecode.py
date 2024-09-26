@@ -53,14 +53,16 @@ class MinkEncodeBase(ResNetBase):
         self.conv0p1s1 = ME.MinkowskiConvolution(
             in_channels, self.inplanes, kernel_size=5, dimension=D)
 
-        self.bn0 = ME.MinkowskiInstanceNorm(self.inplanes)
+        #self.bn0 = ME.MinkowskiInstanceNorm(self.inplanes)
+        self.bn0 = self.NORM(self.inplanes)
 
         nlayers = len( self.LAYERS )
 
         for ilayer in range(nlayers):
 
             conv  = ME.MinkowskiConvolution(self.inplanes, self.inplanes, kernel_size=2, stride=2, dimension=D)                
-            bn    = ME.MinkowskiInstanceNorm(self.inplanes)
+            #bn    = ME.MinkowskiInstanceNorm(self.inplanes)
+            bn    = self.NORM(self.inplanes)
             block = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer])
             setattr(self,"layer%02d_convs2"%(ilayer),conv)
             setattr(self,"layer%02d_bn"%(ilayer),bn)
@@ -117,7 +119,8 @@ class MinkDecodeBase(ResNetBase):
             
             convtr = ME.MinkowskiConvolutionTranspose(self.IN_PLANES[-1-ilayer], self.PLANES[ilayer],
                                                       kernel_size=2, stride=2, dimension=D)
-            bntr   = ME.MinkowskiInstanceNorm(self.PLANES[ilayer])
+            #bntr   = ME.MinkowskiInstanceNorm(self.PLANES[ilayer])
+            bntr   = self.NORM(self.PLANES[ilayer])
 
             if ilayer+1<nlayers:
                 self.inplanes = self.IN_PLANES[-2-ilayer] + self.PLANES[ilayer] * self.BLOCK.expansion

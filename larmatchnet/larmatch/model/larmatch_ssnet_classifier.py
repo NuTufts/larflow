@@ -8,18 +8,31 @@ class LArMatchSSNetClassifier(nn.Module):
     def __init__(self,features_per_layer=16,
                  ssnet_classifier_nfeatures=[32,32],                 
                  ninput_planes=3,
-                 num_classes=7 ):
+                 num_classes=7,
+                 norm="batchnorm"):
         super(LArMatchSSNetClassifier,self).__init__()
 
         # CLASSIFER: SSNET (background,track,shower)
         ssnet_classifier_layers = OrderedDict()
         ssnet_classifier_layers["ssnet0conv"] = torch.nn.Conv1d(ninput_planes*features_per_layer,
                                                                 ssnet_classifier_nfeatures[0],1)
-        ssnet_classifier_layers["ssnet0bn"]   = torch.nn.InstanceNorm1d(ssnet_classifier_nfeatures[0])
+        if norm=="instance":
+            ssnet_classifier_layers["ssnet0bn"]   = torch.nn.InstanceNorm1d(ssnet_classifier_nfeatures[0])
+        elif norm=="batchnorm":
+            ssnet_classifier_layers["ssnet0bn"]   = torch.nn.BatchNorm1d(ssnet_classifier_nfeatures[0])
+        else:
+            raise ValueError("invalid option for norm: ",norm," options=['batchnorm','instance']")
+            
         ssnet_classifier_layers["ssnet0relu"] = torch.nn.ReLU()
         for ilayer,nfeats in enumerate(ssnet_classifier_nfeatures[1:]):
             ssnet_classifier_layers["ssnet%dconv"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
-            ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.InstanceNorm1d(nfeats)
+            if norm=="instance":
+                ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.InstanceNorm1d(nfeats)
+            elif norm=="batchnorm":
+                ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats)
+            else:
+                raise ValueError("invalid option for norm: ",norm," options=['batchnorm','instance']")
+            
             ssnet_classifier_layers["ssnet%drelu"%(ilayer+1)] = torch.nn.ReLU()
         ssnet_classifier_layers["ssnetout"] = torch.nn.Conv1d(nfeats,num_classes,1)
         self.ssnet_classifier = torch.nn.Sequential( ssnet_classifier_layers )
