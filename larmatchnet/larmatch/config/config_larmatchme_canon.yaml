@@ -1,0 +1,43 @@
+# TRAINING PARAMETERS
+RESUME_FROM_CHECKPOINT: false
+RESUME_OPTIM_FROM_CHECKPOINT: false
+CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/checkpoint.14000th.tar"
+LEARNING_RATE: 1.0e-2
+WEIGHT_DECAY: 1.0e-6
+NUM_ITERATIONS: 1000000
+START_ITER: 0
+DEVICE: cuda
+RUN_PROFILER: false
+BATCH_SIZE: 24
+BATCH_TRIPLET_LIMIT: 33000000
+CLIP_GRAD_NORM: false
+TRAIN_ITER_PER_RECORD: 1
+TRAIN_ITER_PER_VALIDPT: 10
+NUM_VALID_ITERS: 1
+ITER_PER_CHECKPOINT: 1000
+ITER_PER_CACHECLEAR: 1
+VERBOSE_MAIN_LOOP: false
+VERBOSE_ITER_LOOP: false
+VERBOSE_LOSS: false
+VERBOSE_ACCURACY: false
+LOGGER: "wandb"
+
+# DATASET PARAMETERS
+TRAIN_DATASET_INPUT_TXTFILE: "/n/home01/twongjirad/larmatch_retrain/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_training_dataset_iaifi_scratch.txt"
+TRAIN_DATASET_VERBOSE: false
+TRAIN_DATASET_LOAD_FROM_CACHE: true
+VALID_DATASET_INPUT_TXTFILE: "/n/home01/twongjirad/larmatch_retrain/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_validation_dataset_iaifi_scratch.txt"
+VALID_DATASET_LOAD_FROM_CACHE: true
+VALID_DATASET_VERBOSE: false
+NUM_TRAIN_WORKERS: 12
+NUM_VALID_WORKERS: 4
+
+# MODEL PARAMETERS
+
+# LOSS PARAMETERS
+USE_LEARNABLE_LOSS_WEIGHTS: true
+RUN_LARMATCH: true
+RUN_SSNET: true
+RUN_KPLABEL: true
+RUN_KPSHIFT: false
+RUN_PAF: true
