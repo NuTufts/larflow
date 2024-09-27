@@ -4,10 +4,15 @@ from larmatch.data.larmatch_hdf5_reader import LArMatchHDF5Dataset
 MAKE_TRAIN_CACHE = True
 MAKE_VALID_CACHE = True
 
-datasets = {"training":["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_training",
-                        "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_training"],
-            "validation":["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_validation",
-                          "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_validation"]}
+#datasets = {"training":["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_training",
+#                        "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_training"],
+#            "validation":["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_validation",
+#                          "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_validation"]}
+
+datasets = {"training":["/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnb_nu_corsika_training",
+                        "/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnbnue_corsika_training"],
+            "validation":["/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnb_nu_corsika_validation",
+                          "/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnbnue_corsika_validation"]}
 
 for dataset in datasets:
     if dataset=="training" and not MAKE_TRAIN_CACHE:
@@ -26,6 +31,7 @@ for dataset in datasets:
     random.shuffle(flist_out)
 
     lm_dataset = LArMatchHDF5Dataset(file_paths=flist_out)
+    lm_dataset.make_entry_table()
     lm_dataset.make_cache_file( "cache_list_larmatch_%s_dataset.txt"%(dataset) )
 
     
