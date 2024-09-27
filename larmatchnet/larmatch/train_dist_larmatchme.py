@@ -46,6 +46,7 @@ def run(gpu, args ):
     #========================================================
     # CREATE PROCESS
     rank = args.nr * args.gpus + gpu
+    NGPUS = args.gpus
     print("START run() PROCESS: rank=%d gpu=%d"%(rank,gpu))
     if not args.no_parallel:
         if "SLURM_JOBID" in os.environ:
@@ -124,12 +125,11 @@ def run(gpu, args ):
     if rank==0:
         wandb_writer.watch(model, log="all", log_freq=100)
 
-    #print("RANK-%d Loaded Model"%(rank),model)
     print("RANK-%d Loaded Model"%(rank))    
     if not args.no_parallel:
         torch.distributed.barrier()
 
-    print("model.parameters() type: ",type(model.parameters()))
+    #print("model.parameters() type: ",type(model.parameters()))
     param_list = list(model.parameters())
     if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
         param_list += list(criterion.parameters())
@@ -190,7 +190,8 @@ def run(gpu, args ):
             torch.cuda.empty_cache() # clear cache and avoid fragmentation + memory overflow issues
             gc.collect()
             loss_meters,acc_meters,time_meters = engine.make_meters(config)
-            engine.do_one_iteration(config,model,train_iterator,criterion,optimizer,
+            engine.do_one_iteration(config,model,train_iterator,train_loader,
+                                    criterion,optimizer,
                                     acc_meters,loss_meters,time_meters,True,device,
                                     verbose=config["VERBOSE_ITER_LOOP"])
 
@@ -203,7 +204,7 @@ def run(gpu, args ):
                     print("RANK-0: saving periodic checkpoint")
                     engine.save_checkpoint({
                         'iter':train_iteration,
-                        'epoch': train_iteration/float(TRAIN_NENTRIES),
+                        'epoch': float(NGPUS)*train_iteration/float(TRAIN_NENTRIES),
                         'state_larmatch': model.state_dict(),
                         'state_lossweights':criterion.state_dict(),
                         'optimizer' : optimizer.state_dict(),
@@ -229,7 +230,7 @@ def run(gpu, args ):
 
                 # write to tensorboard/WANDB
                 # --------------------
-                all_log_variables = {'step':iiter,'epoch':float(iiter)/float(TRAIN_NENTRIES)}
+                all_log_variables = {'step':iiter,'epoch':float(iiter*NGPUS)/float(TRAIN_NENTRIES)}
                 
                 # losses go into same plot
                 loss_scalars = { x:y.avg for x,y in loss_meters.items() }
@@ -306,7 +307,8 @@ def run(gpu, args ):
                     for viter in range(int(config["NUM_VALID_ITERS"])):
                         with torch.no_grad():
                             engine.do_one_iteration(config,single_model,
-                                                    valid_iterator,criterion,optimizer,
+                                                    valid_iterator,valid_loader,
+                                                    criterion,optimizer,
                                                     valid_acc_meters,valid_loss_meters,valid_time_meters,
                                                     False,device,verbose=False)
                     engine.prep_status_message( "Valid-Iteration", train_iteration,
@@ -315,7 +317,7 @@ def run(gpu, args ):
                                                 valid_time_meters )
                     # write to tensorboard
                     # --------------------
-                    all_log_variables = {'step':iiter, 'epoch':float(iiter)/float(TRAIN_NENTRIES)}
+                    all_log_variables = {'step':iiter, 'epoch':float(iiter*NGPUS)/float(TRAIN_NENTRIES)}
                     
                     # losses go into same plot
                     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
@@ -391,7 +393,7 @@ def run(gpu, args ):
                 tag = config["CHECKPOINT_TAG"]            
             engine.save_checkpoint({
                 'iter':train_iteration,
-                'epoch': train_iteration/float(TRAIN_NENTRIES),
+                'epoch': float(NGPUS*train_iteration)/float(TRAIN_NENTRIES),
                 'state_larmatch': model.state_dict(),
                 'state_lossweights':criterion.state_dict(),                
                 'optimizer' : optimizer.state_dict(),

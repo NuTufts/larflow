@@ -236,7 +236,7 @@ def accuracy(predictions, truthdata,
             # length of  true spacepoints are one
             # length of ghost spacepoints are zero
             paf_truth_len = torch.sum( labels['paf']*labels['paf'], 1 )
-            print('acc paf: paf_truth_len.shape: ',paf_truth_len.shape)
+            #print('acc paf: paf_truth_len.shape: ',paf_truth_len.shape)
             paf_posexamples = paf_truth_len.gt(0.2)
             paf_npos = (paf_posexamples==True).sum()
 
@@ -266,7 +266,7 @@ def accuracy(predictions, truthdata,
     
     return True
 
-def do_one_iteration( config, model, data_loader, criterion, optimizer,
+def do_one_iteration( config, model, data_iter, data_loader, criterion, optimizer,
                       acc_meters, loss_meters, time_meters, is_train, device,
                       verbose=False ):
     """
@@ -287,11 +287,18 @@ def do_one_iteration( config, model, data_loader, criterion, optimizer,
     npts = -1
     ntries = 0
     while (npts>config["BATCH_TRIPLET_LIMIT"] or npts<0) and ntries<20:
-        batchdata = next(data_loader)
+        try:
+            batchdata = next(data_iter)
+        except:
+            # reset the iterator, try agin
+            data_iter = iter(data_loader)
+            ntries += 1
+            continue
+            
         npts = 0
         for data in batchdata:
             npts += data["matchtriplet_v"].shape[0]
-        print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+        #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
         ntries+=1
 
 

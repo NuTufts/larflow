@@ -3,12 +3,11 @@
 slurmtag="slurm${SLURM_JOBID}"
 
 NGPUS=$1
-#CONFIG=/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/config/config_larmatchme_p100.yaml
-UBDL_DIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/
-CONFIG=${UBDL_DIR}/larflow/larmatchnet/larmatch/config/config_larmatchme.yaml
+UBDL_DIR=/n/home01/twongjirad/larmatch_retrain/ubdl/
+CONFIG=${UBDL_DIR}/larflow/larmatchnet/larmatch/config/config_larmatchme_canon.yaml
 
 cd $UBDL_DIR
-source setenv_py3.sh
+source setenv_canon.sh
 source configure.sh
 cd ${UBDL_DIR}/larflow/larmatchnet/
 source set_pythonpath.sh
