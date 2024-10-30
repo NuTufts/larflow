@@ -38,6 +38,14 @@ class MinkDecode6LayerBasicBlock(MinkDecodeBase):
     LAYERS = (1, 1, 1, 1, 1, 1)    
     PLANES = (256, 128, 64, 32, 16, 16)
     INIT_DIM = 16
+
+class MinkAEDecode6LayerBasicBlock(MinkDecodeBase):
+    BLOCK = BasicBlock
+    NORM  = ME.MinkowskiBatchNorm    
+    IN_PLANES = (16, 32, 64, 128, 256, 512)    
+    LAYERS = (1, 1, 1, 1, 1, 1)    
+    PLANES = (256, 128, 64, 32, 16, 16)
+    INIT_DIM = 16
     
 class MEResUNet6Layer(nn.Module):
     """

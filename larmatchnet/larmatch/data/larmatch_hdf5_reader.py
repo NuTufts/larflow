@@ -32,7 +32,7 @@ class LArMatchHDF5Dataset(Dataset):
     TRAINING_COLUMNS = [
         "matchtriplet",
         "match_weight",
-        #"spacepoints",
+        "spacepoints",
         #"positive_indices",
         "ssnet_label",
         "ssnet_top_weight",
@@ -43,8 +43,8 @@ class LArMatchHDF5Dataset(Dataset):
         "paf_label",
         "paf_weight",
         #"origin_label",
-        #"keypoint_truth_kptype_pdg_trackid",
-        #"keypoint_truth_pos",
+        "keypoint_truth_kptype_pdg_trackid",
+        "keypoint_truth_pos",
         "wireimage_plane0",
         "wireimage_plane1",
         "wireimage_plane2"]
@@ -76,6 +76,9 @@ class LArMatchHDF5Dataset(Dataset):
                 ll = fcache.readlines()
                 self.nlength = int(ll[-1].strip().split()[-1])
             print("using cache to set number of entries in dataset to ",self.nlength)
+        else:
+            print("Make entry table for list of files (len=",len(self.file_paths),")")
+            self.make_entry_table()
 
 
     def make_entry_table(self):
@@ -139,7 +142,7 @@ class LArMatchHDF5Dataset(Dataset):
             xfilter = np.random.random( npts )<filter_ratio
             #print("reduce num spacepoints: ",npts," --> ",int(xfilter.sum()))
             # reduce the number of spacepoints we evaluate
-            name_v = ['matchtriplet','match_weight',
+            name_v = ['matchtriplet','match_weight','spacepoints',
                       'ssnet_label','ssnet_class_weight','ssnet_top_weight',
                       'kplabel','kplabel_weight',
                       'paf_label','paf_weight']
@@ -171,6 +174,9 @@ class LArMatchHDF5Dataset(Dataset):
                 #rebatchdata['positive_indices'] = batchdata['positive_indices']
                 rebatchdata['paf_label']        = np.expand_dims( np.transpose( batchdata['paf_label'],  (1,0) ), 0 )
                 rebatchdata['paf_weight']       = batchdata['paf_weight']
+                rebatchdata['spacepoints']      = batchdata['spacepoints']
+                rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
+                rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
                 for p in range(3):
                     rebatchdata['coord_%d'%(p)] = batchdata['wireimage_plane%d'%(p)][:,:2].astype(np.int64)
                     feat_t = np.expand_dims( batchdata['wireimage_plane%d'%(p)][:,2].astype(np.float32), 1 )
@@ -187,7 +193,8 @@ class LArMatchHDF5Dataset(Dataset):
 # Usage example
 def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True,
                     load_from_cachefile=False,
-                    collate_for_training=False):
+                    collate_for_training=False,
+                    apply_max_filter=False):
     if not load_from_cachefile:
         xpaths = []
         if type(file_paths) is str:
@@ -208,9 +215,9 @@ def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True,
         elif type(file_paths) is list:
             print("Loading data files from list of file paths")
             xpaths = file_paths
-        dataset = LArMatchHDF5Dataset(file_paths=xpaths, collate_for_training=collate_for_training)
+        dataset = LArMatchHDF5Dataset(file_paths=xpaths, collate_for_training=collate_for_training, apply_max_filter=apply_max_filter)
     else:
-        dataset = LArMatchHDF5Dataset(load_from_cachefile=file_paths, collate_for_training=collate_for_training)
+        dataset = LArMatchHDF5Dataset(load_from_cachefile=file_paths, collate_for_training=collate_for_training, apply_max_filter=apply_max_filter)
         
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=LArMatchHDF5Dataset.collate_fn)
     
