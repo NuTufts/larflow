@@ -2,8 +2,8 @@
 RESUME_FROM_CHECKPOINT: false
 RESUME_OPTIM_FROM_CHECKPOINT: false
 CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/ubdl/larflow/larmatchnet/larmatch/checkpoint.14000th.tar"
-LEARNING_RATE: 1.0e-2
-WEIGHT_DECAY: 1.0e-6
+LEARNING_RATE: 1.0e-4
+WEIGHT_DECAY: 1.0e-2
 NUM_ITERATIONS: 100000
 START_ITER: 0
 DEVICE: cuda
@@ -23,16 +23,18 @@ VERBOSE_ACCURACY: false
 LOGGER: "wandb"
 
 # DATASET PARAMETERS
-TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_training_dataset.txt"
-#TRAIN_DATASET_INPUT_TXTFILE: "test_h5data.txt"
+#TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_training_dataset.txt"
+TRAIN_DATASET_INPUT_TXTFILE: "cache_list_larmatch_training_dataset.txt"
 TRAIN_DATASET_VERBOSE: false
 TRAIN_DATASET_LOAD_FROM_CACHE: true
-VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_validation_dataset.txt"
-#VALID_DATASET_INPUT_TXTFILE: "test_h5data.txt"
+TRAIN_MAX_SPACEPOINTS_PER_ENTRY: 100000
+#VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_validation_dataset.txt"
+VALID_DATASET_INPUT_TXTFILE: "cache_list_larmatch_validation_dataset.txt"
 VALID_DATASET_LOAD_FROM_CACHE: true
 VALID_DATASET_VERBOSE: false
-NUM_TRAIN_WORKERS: 6
-NUM_VALID_WORKERS: 6
+VALID_MAX_SPACEPOINTS_PER_ENTRY: 100000
+NUM_TRAIN_WORKERS: 4
+NUM_VALID_WORKERS: 4
 
 # MODEL PARAMETERS
 

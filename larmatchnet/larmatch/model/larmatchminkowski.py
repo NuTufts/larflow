@@ -22,7 +22,7 @@ class LArMatchMinkowski(nn.Module):
                  run_ssnet=True,
                  run_kp=True,
                  run_paf=True,
-                 num_ssnet_classes=7,
+                 num_ssnet_classes=5,
                  num_kp_classes=6,
                  use_kp_bn=True,
                  norm_layer='batchnorm'):
@@ -102,7 +102,7 @@ class LArMatchMinkowski(nn.Module):
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=stem_nfeatures)
         
 
-    def forward( self, input_wireplane_sparsetensors, matchtriplets, batch_size ):
+    def forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
 
         # check input
         
@@ -120,7 +120,7 @@ class LArMatchMinkowski(nn.Module):
             x_feat_v.append( x_decode )
 
         # then we have to extract a feature tensor
-        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, batch_size )
+        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, query_v, batch_size )
         #for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
         #    print("--------------------------------------------------------")
         #    print("extracted features batch[",b,"]_spacepoint_feat")            
@@ -150,7 +150,7 @@ class LArMatchMinkowski(nn.Module):
 
         return batch_output
                                         
-    def extract_features(self, feat_v, index_t, batch_size, verbose=False ):
+    def extract_features(self, feat_v, index_t, query_v, batch_size, verbose=False ):
         """ 
         take in index list and concat the triplet feature vector.
         the feature vectors are those produced by the forward_feature method.
@@ -159,7 +159,7 @@ class LArMatchMinkowski(nn.Module):
         
         inputs
         ------
-        feat_v []
+        feat_v [] a list of SparseTensor, output of model
         index_t  [torch tensor shape (N_m,3)] N_m triplets containing indices to feat_u_t, feat_v_t, feat_y_t that should be combined
         npts [int] number of points in index_t to evaluate
         DEVICE [torch device] device to put output tensors
@@ -170,33 +170,37 @@ class LArMatchMinkowski(nn.Module):
         feature vector for spacepoint triplet [torch tensor shape (1,3C,npts)]
         """
 
-        #for p,x in enumerate(feat_v):
-        #    print("----------------------------------------")
-        #    print("feat_v[",p,"] decomposition_permutations")
-        #    print(x.decomposition_permutations)
-        #    print("----------------------------------------")        
-        
-        plane_feat_v = [ self.sparse_to_dense[p](x) for p,x in enumerate(feat_v) ]
+        spacepoint_feat_v = [ feat_v[p].features_at_coordinates( query_v[p] ) for p in range(3) ]
+        for p in range(3):
+            print("plane[",p,"] spacepoint_feat_v: ",spacepoint_feat_v[p].shape)
+
+        # the feature tensor covers the whole batch
+        #plane_feat_v = [ self.sparse_to_dense[p](x) for p,x in enumerate(feat_v) ]
         #for p,x in enumerate(plane_feat_v):
         #    print("-------------------------------------------------------")
         #    print("sparse to dense out plane[",p,"]: ",x.shape)
-        #    print(x)
         #print("---------------------------------------------------------")
 
-        batch_feats = []            
+        batch_feats = []     
+        bstart = 0      
         for b in range(batch_size):
             batch_triplets = index_t[b]
             batch_spacepoint_v = []
 
-            for p,x in enumerate(plane_feat_v):
-                #print("----------------------------------")
+            npts = batch_triplets.shape[0]
+
+            #plane_feat_v = [ feat_v[p].features_at(batch_index=b) for p in range(3) ]
+
+            for p,x in enumerate(spacepoint_feat_v):
+                print("----------------------------------")
+                print("plane[",p,"] feat: ",x.shape)
                 #batch_indices,batch_feats = x.coordinates_and_features_at(b)
                 #batch_decomp = x.decomposition_permutations[b]
                 #print("(extract) batch indices: ",batch_indices.shape)
                 #print(batch_indices)
                 #print("(extract) batch feats: ",batch_feats.shape)
                 #print(batch_feats)
-                #print("(extract) batch_triplets: ",batch_triplets[:,p].shape)
+                #print("(extract) batch_triplets: ",batch_triplets.shape)
                 #print(batch_triplets[:,p])                
                 #batch_plane_feat  = torch.index_select( batch_feats,   0, batch_decomp )
                 #batch_plane_coord = torch.index_select( batch_indices, 0, batch_decomp )
@@ -206,13 +210,16 @@ class LArMatchMinkowski(nn.Module):
                 #print("(extract) batch[%d]_plane[%d]_feat: "%(b,p),batch_plane_feat.shape)                
                 #print(batch_plane_feat)                
                 #spacepoint_feat = torch.index_select( batch_plane_feat, 0, batch_triplets[:,p] )
-                spacepoint_feat = torch.index_select( x, 0, batch_triplets[:,p] )
+                #spacepoint_feat = torch.index_select( x, 0, batch_triplets[:,p] )
+                #spacepoint_feat = x[ batch_triplets[:,p]
                 #print("(extract) batch[%d]_plane[%d] spacepoint_feat: "%(b,p),spacepoint_feat.shape)
+                #query_coordinates = torch.zeros( 
                 #print( spacepoint_feat )
-                batch_spacepoint_v.append( spacepoint_feat )
+                batch_spacepoint_v.append( x[bstart:bstart+npts] )
             spacepoint_feats_t = torch.transpose( torch.cat( batch_spacepoint_v, dim=1 ), 1, 0 )
             #print("------------------------------------------------------------")
-            #print("(extract) batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
+            print("(extract) batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
+            bstart += npts
             #print(spacepoint_feats_t)
             #print("------------------------------------------------------------")            
             batch_feats.append( spacepoint_feats_t )

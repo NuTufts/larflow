@@ -1,4 +1,5 @@
 import os,sys,time
+import traceback
 import shutil
 import numpy as np
 import torch
@@ -289,8 +290,9 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     while (npts>config["BATCH_TRIPLET_LIMIT"] or npts<0) and ntries<20:
         try:
             batchdata = next(data_iter)
-        except:
+        except Exception as e:
             # reset the iterator, try agin
+            print("reset the iterator rank. error: ",e)
             data_iter = iter(data_loader)
             ntries += 1
             continue
@@ -298,7 +300,7 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         npts = 0
         for data in batchdata:
             npts += data["matchtriplet_v"].shape[0]
-        #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+        print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
         ntries+=1
 
 
@@ -344,6 +346,12 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         if verbose:
             print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
 
+    query_v = []
+    for p in range(3):
+        plane_query = [ data['query_coord_%d'%(p)] for data in batchdata ]
+        query_v.append( torch.from_numpy( np.concatenate( plane_query, axis=0 ) ).to(DEVICE) )
+        print("plane [",p,"] query coords shape: ",query_v[p].shape)
+
     # # get the truth
     batch_truth = []
     batch_weight = []
@@ -388,7 +396,7 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     dt_forward = time.time()
 
     # use UNET portion to first get feature vectors
-    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, config["BATCH_SIZE"] )
+    pred_dict = model( wireplane_sparsetensors, matchtriplet_v, query_v, config["BATCH_SIZE"] )
     #if not args.no_parallel:
     #    torch.distributed.barrier()
 

@@ -9,10 +9,13 @@ MAKE_VALID_CACHE = True
 #            "validation":["/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnb_nu_corsika_validation",
 #                          "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/prep/outdir_mcc9_v13_bnbnue_corsika_validation"]}
 
-datasets = {"training":["/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnb_nu_corsika_training",
-                        "/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnbnue_corsika_training"],
-            "validation":["/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnb_nu_corsika_validation",
-                          "/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnbnue_corsika_validation"]}
+#datasets = {"training":["/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnb_nu_corsika_training",
+#                        "/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnbnue_corsika_training"],
+#            "validation":["/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnb_nu_corsika_validation",
+#                          "/n/holyscratch01/iaifi_lab/Users/twongjirad/larmatch_data_2024/outdir_mcc9_v13_bnbnue_corsika_validation"]}
+
+datasets = {"training":["./"],
+            "validation":["./"]}
 
 for dataset in datasets:
     if dataset=="training" and not MAKE_TRAIN_CACHE:

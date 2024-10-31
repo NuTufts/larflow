@@ -160,6 +160,75 @@ class MinkDecodeBase(ResNetBase):
 
         out = self.final(out)
         return out
+
+class MinkAEDecodeBase(ResNetBase):
+    BLOCK = None
+    PLANES = None
+    DILATIONS = (1, 1, 1, 1, 1, 1)
+    LAYERS    = (2, 2, 2, 2, 2, 2)
+    IN_PLANES = ( 32,  64, 128, 256, 512, 1024 ) 
+    PLANES    = (512, 256, 128,  64,  32, 32 )    
+    INIT_DIM = 32
+    OUT_TENSOR_STRIDE = 1
+
+    # To use the model, must call initialize_coords before forward pass.
+    # Once data is processed, call clear to reset the model before calling
+    # initialize_coords
+    def __init__(self, in_channels, out_channels, D=3):
+        ResNetBase.__init__(self, in_channels, out_channels, D)
+
+    def network_initialization(self, in_channels, out_channels, D):
+        # Output of the first conv concated to conv6
+        self.inplanes = self.INIT_DIM
+
+        nlayers = len( self.LAYERS )
+        
+        for ilayer in range(nlayers):
+            
+            convtr = ME.MinkowskiConvolutionTranspose(self.IN_PLANES[-1-ilayer], self.PLANES[ilayer],
+                                                      kernel_size=2, stride=2, dimension=D)
+            #bntr   = ME.MinkowskiInstanceNorm(self.PLANES[ilayer])
+            bntr   = self.NORM(self.PLANES[ilayer])
+
+            if ilayer+1<nlayers:
+                self.inplanes = self.IN_PLANES[-2-ilayer] + self.PLANES[ilayer] * self.BLOCK.expansion
+            else:
+                # last layer use stem out
+                self.inplanes = self.INIT_DIM + self.PLANES[ilayer] * self.BLOCK.expansion
+            block  = self._make_layer(self.BLOCK, self.PLANES[ilayer], self.LAYERS[ilayer])
+            setattr(self,"decode_layer%02d_convtrs2"%(ilayer),convtr)
+            setattr(self,"decode_layer%02d_bntr"%(ilayer),bntr)
+            setattr(self,"decode_layer%02d_block"%(ilayer),block)
+
+        self.final = ME.MinkowskiConvolution(
+            self.PLANES[-1] * self.BLOCK.expansion,
+            out_channels,
+            kernel_size=1,
+            bias=True,
+            dimension=D)
+            
+        self.relu = ME.MinkowskiReLU(inplace=True)        
+            
+
+    def forward(self, encoder_output):
+        # for a simple autoencoder, we do not use skip connections
+        out = encoder_output[-1]
+        for ilayer in range( len(self.LAYERS) ):
+            #print("decoder layer-%d"%(ilayer))            
+            convtr  = getattr(self, "decode_layer%02d_convtrs2"%(ilayer))
+            bn      = getattr(self, "decode_layer%02d_bntr"%(ilayer))
+            block   = getattr(self, "decode_layer%02d_block"%(ilayer))
+
+            # upsampling by convtranspose
+            out = convtr(out)
+            out = bn(out)            
+            out = self.relu(out)
+
+            # apply residual block
+            out = block(out)
+
+        out = self.final(out)
+        return out
     
 
 class MinkEncode14(MinkEncodeBase):
