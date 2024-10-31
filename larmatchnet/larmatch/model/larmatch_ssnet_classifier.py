@@ -8,7 +8,7 @@ class LArMatchSSNetClassifier(nn.Module):
     def __init__(self,features_per_layer=16,
                  ssnet_classifier_nfeatures=[32,32],                 
                  ninput_planes=3,
-                 num_classes=7,
+                 num_classes=5,
                  norm="batchnorm"):
         super(LArMatchSSNetClassifier,self).__init__()
 

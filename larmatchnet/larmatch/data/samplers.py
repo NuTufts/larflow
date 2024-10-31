@@ -6,6 +6,7 @@ Functions that resamples the larmatch data
 """
 
 def larmatch_example_balancer( data, max_nspacepoints_returned=300000,
+    exclude_ghosts=True,
     ignore_array_list=['coord_0', 'feat_0', 
     'coord_1', 'feat_1', 
     'coord_2', 'feat_2',
@@ -36,35 +37,35 @@ def larmatch_example_balancer( data, max_nspacepoints_returned=300000,
         passallneg = True
         nsampleneg = nneg
 
-    print("npos: ",npos)
-    print("nneg: ",nneg)
-    print("ntotal: ",lmtruth.shape[0])
+    #print("npos: ",npos)
+    #print("nneg: ",nneg)
+    #print("ntotal: ",lmtruth.shape[0])
 
     # make a master mask
     combinedmask = np.zeros( lmtruth.shape[0], dtype=np.int32 )
-    print("premask: ",combinedmask.sum())
+    #print("premask: ",combinedmask.sum())
 
     # sub-sample positive examples
     pos_frac = (float(nsampletrue)/float(npos))
-    print("pos_frac: ",pos_frac)
+    #print("pos_frac: ",pos_frac)
     if not passallpos:
         combinedmask[truemask[:]] = np.random.random(npos)<pos_frac
     else:
         combinedmask[truemask[:]] = 1
     # sub-sample neg examples
     neg_frac = (float(nsampleneg)/float(nneg))
-    print("neg frac: ",neg_frac)
+    #print("neg frac: ",neg_frac)
     if not passallneg:
         combinedmask[falsemask[:]] = np.random.random(nneg)<neg_frac
     else:
         combinedmask[falsemask[:]] = 1
 
-    print("combinedmask.sum()=",combinedmask.sum())
+    #print("combinedmask.sum()=",combinedmask.sum())
     
     # subsample data
     sampled_data = {}
     for name in data:
-        print(name," ",data[name].shape)
+        #print(name," ",data[name].shape)
         if name in ignore_array_list:
             sampled_data[name] = data[name]
         else:
@@ -77,13 +78,14 @@ def larmatch_example_balancer( data, max_nspacepoints_returned=300000,
                     sampled_data[name] = data[name][combinedmask[:]==1,:]
                 else:
                     sampled_data[name] = data[name][combinedmask==1]
-                print("  sample ",name," ",data[name].shape," to ",sampled_data[name].shape)
+                #print("  sample ",name," ",data[name].shape," to ",sampled_data[name].shape)
             except:
                 raise ValueError("Cannot sample array name=",name," with shape=",data[name].shape)
 
     sampled_data['larmatch_weight'] = make_lm_weights( sampled_data )
-    sampled_data['keypoint_weight'] = make_kp_weights( sampled_data, exclude_ghosts=True )
-    sampled_data['ssnet_weight']    = make_ssnet_weights( sampled_data, exclude_ghosts=True )
+    sampled_data['keypoint_weight'] = make_kp_weights( sampled_data, exclude_ghosts=exclude_ghosts )
+    sampled_data['ssnet_weight']    = make_ssnet_weights( sampled_data, exclude_ghosts=exclude_ghosts )
+    sampled_data['paf_weight']      = make_paf_weights( sampled_data, exclude_ghosts=exclude_ghosts )
 
     return sampled_data
 
@@ -112,7 +114,7 @@ def make_kp_weights( entrydata, exclude_ghosts=True ):
     nkpclasses = kptruescore.shape[0]
     nexamples  = kptruescore.shape[1]
     kpweight = np.zeros( (nkpclasses,nexamples), dtype=np.float32 )
-    print('kpweight.shape: ', kpweight.shape)
+    #print('kpweight.shape: ', kpweight.shape)
     for iclass in range(nkpclasses):
         posclass = posmask[iclass,:]
         negclass = negmask[iclass,:]
@@ -121,7 +123,7 @@ def make_kp_weights( entrydata, exclude_ghosts=True ):
             negclass[lmneg[:]] = False
         npos = float(posclass.sum())
         nneg = float(negclass.sum())
-        print("kpclass[",iclass,']: npos=',npos," nneg=",nneg," nghost=",lmneg.sum()," npoints=",nexamples," checksum=",npos+nneg+lmneg.sum())
+        #print("kpclass[",iclass,']: npos=',npos," nneg=",nneg," nghost=",lmneg.sum()," npoints=",nexamples," checksum=",npos+nneg+lmneg.sum())
         nnorm = 0.5
         if npos==0 or nneg==0:
             nnorm = 1.0
@@ -137,16 +139,16 @@ def make_ssnet_weights( entrydata, exclude_ghosts=True ):
     lmpos = lmtruth==1
     lmneg = lmtruth==0
     ssnettruth = entrydata['ssnet_truth']
-    print('ssnet_truth.shape: ',ssnettruth.shape)
-    print('ssnet class labels: ',np.unique( ssnettruth ))
+    #print('ssnet_truth.shape: ',ssnettruth.shape)
+    #print('ssnet class labels: ',np.unique( ssnettruth ))
     nclasses  = 5
-    print("ssnet nclasses: ",nclasses)
+    #print("ssnet nclasses: ",nclasses)
     nexamples = lmtruth.shape[0]
     weights = np.zeros( (nexamples), dtype=np.float32 )
     nclass = {}
     cmask_v = {}
     nnorm = 0.0
-    for iclass in range(1,nclasses+1):
+    for iclass in range(0,nclasses):
         cmask = ssnettruth==iclass
         if exclude_ghosts:
             cmask[lmneg[:]] = False
@@ -156,22 +158,38 @@ def make_ssnet_weights( entrydata, exclude_ghosts=True ):
         cmask_v[iclass] = cmask
     if nnorm>0.0:
         nnorm = 1.0/nnorm
-    for iclass in range(1,nclasses+1):
+    for iclass in range(0,nclasses):
         if nclass[iclass]>0.0:
             w = nnorm/float(nclass[iclass])
         weights[ cmask_v[iclass] ] = w
     # blank out BG and blank out ghosts
-    bgmask = ssnettruth==0
+    bgmask = ssnettruth==-1 # ghost mask
     weights[ bgmask ] = 0.0
-    weights[ lmneg ] = 0.0
+    if exclude_ghosts:
+        weights[ lmneg ] = 0.0
     return weights
     
 
 
-def make_paf_weights( entrydata, exclude_ghost=True ):
+def make_paf_weights( entrydata, exclude_ghosts=True ):
     lmtruth = entrydata['matchtriplet_v'][:,3]
     lmpos = lmtruth==1
     lmneg = lmtruth==0
+    paflabel = entrydata['paf_label'].squeeze()
+    #print('paflabel.shape=',paflabel.shape)
+    nexamples = lmtruth.shape[0]
+    weights = np.zeros( (nexamples), dtype=np.float32 )
+    labelsum = np.sum( paflabel*paflabel, axis=0 )
+    maskzero = labelsum < 0.1
+    maskvec  = labelsum > 0.1
+    nzero = maskzero.sum()
+    nnonzero = maskvec.sum()
+    #print("paf nzero=",nzero)
+    if nnonzero>0:
+        weights[maskvec] = 1.0/float(nnonzero)
+    if exclude_ghosts:
+        weights[lmneg] = 0.0
+    return weights
     
 
     

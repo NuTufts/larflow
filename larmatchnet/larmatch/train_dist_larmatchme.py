@@ -87,9 +87,6 @@ def run(gpu, args ):
                 from torch.utils.tensorboard import SummaryWriter
                 made_logger = True
                 tb_writer = SummaryWriter()                
-        if not made_logger:
-            print("Need to set valid logger. Set 'LOGGER' parameter in config file to either 'wandb' or 'tensorboard'")
-            sys.exit(0)
 
     single_model = engine.get_model( config, dump_model=False )
 
@@ -122,7 +119,7 @@ def run(gpu, args ):
         if rank==0:
             print(model)
 
-    if rank==0:
+    if rank==0 and config["LOGGER"]=="wandb":
         wandb_writer.watch(model, log="all", log_freq=100)
 
     print("RANK-%d Loaded Model"%(rank))    
@@ -161,6 +158,7 @@ def run(gpu, args ):
                                     num_workers=config["NUM_TRAIN_WORKERS"],
                                     shuffle=True,
                                     load_from_cachefile=config["TRAIN_DATASET_LOAD_FROM_CACHE"],
+                                    max_num_spacepoints=config['TRAIN_MAX_SPACEPOINTS_PER_ENTRY'],
                                     collate_for_training=True)
     TRAIN_NENTRIES = len(train_loader)
     train_iterator = iter(train_loader)
@@ -171,6 +169,7 @@ def run(gpu, args ):
         valid_loader = get_data_loader( config["VALID_DATASET_INPUT_TXTFILE"],
                                         batch_size=config["BATCH_SIZE"],
                                         num_workers=config["NUM_VALID_WORKERS"],
+                                        max_num_spacepoints=config['VALID_MAX_SPACEPOINTS_PER_ENTRY'],
                                         shuffle=True,
                                         load_from_cachefile=config["VALID_DATASET_LOAD_FROM_CACHE"],
                                         collate_for_training=True)
@@ -299,7 +298,8 @@ def run(gpu, args ):
                         all_log_variables['train/loss_weights/'+x] = v
 
                 # PASS INFO TO WANDB
-                wandb_writer.log( data=all_log_variables, step=iiter )
+                if made_logger and config['LOGGER']=='wandb':
+                    wandb_writer.log( data=all_log_variables, step=iiter )
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:

@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
+import larmatch.data.samplers as samplers
 
 # Example of defining a data loader class
 class LArMatchHDF5Dataset(Dataset):
@@ -55,7 +56,7 @@ class LArMatchHDF5Dataset(Dataset):
                  collate_for_training=True,
                  load_from_cachefile=None,
                  apply_max_filter=True,
-                 max_num_spacepoints=300000):
+                 max_num_spacepoints=100000):
         if file_paths is None and load_from_cachefile is None:
             print("to specify input files, you must provide a value to one of the keyword arguments: ")
             print("  file_paths: a list of file paths to include in the dataset")
@@ -121,6 +122,7 @@ class LArMatchHDF5Dataset(Dataset):
     def __getitem__(self, idx):
 
         if not hasattr(self,'dataset_lengths'):
+            print("call make_entry_table from __getitem__")
             self.make_entry_table()
         
         file_idx = np.searchsorted(self.cumulative_lengths, idx, side='right') - 1
@@ -137,17 +139,63 @@ class LArMatchHDF5Dataset(Dataset):
         # do we crop around the neutrino vertex or crop within some box
         # do we mask out the ghost and cosmic spacepoints?
         npts = entry_data['matchtriplet'].shape[0]
-        if self.max_num_spacepoints<npts and self.apply_max_filter:
-            filter_ratio = 0.9*self.max_num_spacepoints/float(npts)
-            xfilter = np.random.random( npts )<filter_ratio
-            #print("reduce num spacepoints: ",npts," --> ",int(xfilter.sum()))
-            # reduce the number of spacepoints we evaluate
-            name_v = ['matchtriplet','match_weight','spacepoints',
-                      'ssnet_label','ssnet_class_weight','ssnet_top_weight',
-                      'kplabel','kplabel_weight',
-                      'paf_label','paf_weight']
-            for name in name_v:
-                entry_data[name] = entry_data[name][xfilter]
+        # old random sampler
+        # if self.max_num_spacepoints<npts and self.apply_max_filter:
+        #     filter_ratio = 0.9*self.max_num_spacepoints/float(npts)
+        #     xfilter = np.random.random( npts )<filter_ratio
+        #     #print("reduce num spacepoints: ",npts," --> ",int(xfilter.sum()))
+        #     # reduce the number of spacepoints we evaluate
+        #     name_v = ['matchtriplet','match_weight','spacepoints',
+        #               'ssnet_label','ssnet_class_weight','ssnet_top_weight',
+        #               'kplabel','kplabel_weight',
+        #               'paf_label','paf_weight']
+        #     for name in name_v:
+        #         entry_data[name] = entry_data[name][xfilter]
+
+        # relabeling name
+        if self.COLLATE_FOR_TRAINING:
+            batchdata = entry_data
+            rebatchdata = {}
+            npts = batchdata['matchtriplet'].shape[0]
+            trips = batchdata['matchtriplet']
+            rebatchdata['matchtriplet_v']   = batchdata['matchtriplet']
+            rebatchdata['larmatch_truth']   = batchdata['matchtriplet'][:,3]
+            rebatchdata['larmatch_weight']  = batchdata['match_weight']
+            rebatchdata['ssnet_truth']      = batchdata['ssnet_label']-1 # shift labels so ghost label=0 to -1
+            rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight']*batchdata['ssnet_top_weight']
+            rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
+            rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )
+            #rebatchdata['positive_indices'] = batchdata['positive_indices']
+            rebatchdata['paf_label']        = np.expand_dims( np.transpose( batchdata['paf_label'],  (1,0) ), 0 )
+            rebatchdata['paf_weight']       = batchdata['paf_weight']
+            rebatchdata['spacepoints']      = batchdata['spacepoints']
+            rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
+            rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
+
+            for p in range(3):
+                rebatchdata['coord_%d'%(p)] = batchdata['wireimage_plane%d'%(p)][:,:2].astype(np.int64)
+                feat_t = np.expand_dims( batchdata['wireimage_plane%d'%(p)][:,2].astype(np.float32), 1 )
+                # normalize feature data
+                feat_t -= 0.0 # center around mip values
+                feat_t /= 200.0 # scale - puts mip at 50/200.0 ~ 0.25
+                feat_t = np.clip( feat_t, -5.0, 5.0 ) # clips adc to -1000.0, +1000.0
+                rebatchdata['feat_%d'%(p)] = feat_t
+
+                # you can find the definition of the sparse image in PrepMatchTriplets::make_sparse_image
+                # the coordinates are put into a (N,2) tensors
+                # coord[:,0]: "row" in ME.SparseTensor this is the X-coordinate
+                # coord[:,1]: "col" in ME.SparseTensor this is the Y-coordinate
+                # the index in matchtriplet refers to the first dim of the coordinate tensor, i.e. the row
+                rebatchdata['query_coord_%d'%(p)] = np.zeros( (npts,3), dtype=np.float32 )
+                rebatchdata['query_coord_%d'%(p)][:,0] = 0 # batch coordinate
+                rebatchdata['query_coord_%d'%(p)][:,1] = rebatchdata['coord_%d'%(p)][trips[:,p],0] # row/x
+                rebatchdata['query_coord_%d'%(p)][:,2] = rebatchdata['coord_%d'%(p)][trips[:,p],1] # col/y
+            entry_data = rebatchdata
+
+        # apply class-balancing sampler and reweighting 
+        entry_data = samplers.larmatch_example_balancer( entry_data, 
+            max_nspacepoints_returned=self.max_num_spacepoints*0.9,
+            exclude_ghosts=True )
         
         return entry_data
 
@@ -160,40 +208,45 @@ class LArMatchHDF5Dataset(Dataset):
     def collate_fn(batch):
         #print("[larmatchDataset::collate_fn] batch: ",type(batch)," len=",len(batch))
         #print(batch)
-        if LArMatchHDF5Dataset.COLLATE_FOR_TRAINING:
-            rebatch = []
-            for batchdata in batch:
-                rebatchdata = {}
-                rebatchdata['matchtriplet_v']   = batchdata['matchtriplet']
-                rebatchdata['larmatch_truth']   = batchdata['matchtriplet'][:,3]
-                rebatchdata['larmatch_weight']  = batchdata['match_weight']
-                rebatchdata['ssnet_truth']      = batchdata['ssnet_label']
-                rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight']*batchdata['ssnet_top_weight']
-                rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
-                rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )
-                #rebatchdata['positive_indices'] = batchdata['positive_indices']
-                rebatchdata['paf_label']        = np.expand_dims( np.transpose( batchdata['paf_label'],  (1,0) ), 0 )
-                rebatchdata['paf_weight']       = batchdata['paf_weight']
-                rebatchdata['spacepoints']      = batchdata['spacepoints']
-                rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
-                rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
-                for p in range(3):
-                    rebatchdata['coord_%d'%(p)] = batchdata['wireimage_plane%d'%(p)][:,:2].astype(np.int64)
-                    feat_t = np.expand_dims( batchdata['wireimage_plane%d'%(p)][:,2].astype(np.float32), 1 )
-                    # normalize feature data
-                    feat_t -= 50.0 # center around mip values
-                    feat_t /= 200.0 # scale
-                    feat_t = np.clip( feat_t, -5.0, 5.0 )
-                    rebatchdata['feat_%d'%(p)] = feat_t
-                rebatch.append( rebatchdata )
-            return rebatch
-        else:
-            return batch
+        # if LArMatchHDF5Dataset.COLLATE_FOR_TRAINING:
+        #     rebatch = []
+        #     for batchdata in batch:
+        #         rebatchdata = {}
+        #         rebatchdata['matchtriplet_v']   = batchdata['matchtriplet']
+        #         rebatchdata['larmatch_truth']   = batchdata['matchtriplet'][:,3]
+        #         rebatchdata['larmatch_weight']  = batchdata['match_weight']
+        #         rebatchdata['ssnet_truth']      = batchdata['ssnet_label']-1 # shift labels so ghost label=0 to -1
+        #         rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight']*batchdata['ssnet_top_weight']
+        #         rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
+        #         rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )
+        #         #rebatchdata['positive_indices'] = batchdata['positive_indices']
+        #         rebatchdata['paf_label']        = np.expand_dims( np.transpose( batchdata['paf_label'],  (1,0) ), 0 )
+        #         rebatchdata['paf_weight']       = batchdata['paf_weight']
+        #         rebatchdata['spacepoints']      = batchdata['spacepoints']
+        #         rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
+        #         rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
+        #         for p in range(3):
+        #             rebatchdata['coord_%d'%(p)] = batchdata['wireimage_plane%d'%(p)][:,:2].astype(np.int64)
+        #             feat_t = np.expand_dims( batchdata['wireimage_plane%d'%(p)][:,2].astype(np.float32), 1 )
+        #             # normalize feature data
+        #             feat_t -= 0.0 # center around mip values
+        #             feat_t /= 200.0 # scale - puts mip at 50/200.0 ~ 0.25
+        #             feat_t = np.clip( feat_t, -5.0, 5.0 ) # clips adc to -1000.0, +1000.0
+        #             rebatchdata['feat_%d'%(p)] = feat_t
+        #         rebatch.append( rebatchdata )
+        #     return rebatch
+        # else:
+        for ib, batchdata in enumerate(batch):
+            batchdata['query_coord_0'][:,0] = ib
+            batchdata['query_coord_1'][:,0] = ib
+            batchdata['query_coord_2'][:,0] = ib
+        return batch
 
 # Usage example
 def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True,
                     load_from_cachefile=False,
                     collate_for_training=False,
+                    max_num_spacepoints=100000,
                     apply_max_filter=False):
     if not load_from_cachefile:
         xpaths = []
@@ -215,9 +268,13 @@ def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True,
         elif type(file_paths) is list:
             print("Loading data files from list of file paths")
             xpaths = file_paths
-        dataset = LArMatchHDF5Dataset(file_paths=xpaths, collate_for_training=collate_for_training, apply_max_filter=apply_max_filter)
+        dataset = LArMatchHDF5Dataset(file_paths=xpaths, collate_for_training=collate_for_training,
+                                    max_num_spacepoints=max_num_spacepoints,
+                                    apply_max_filter=apply_max_filter)
     else:
-        dataset = LArMatchHDF5Dataset(load_from_cachefile=file_paths, collate_for_training=collate_for_training, apply_max_filter=apply_max_filter)
+        dataset = LArMatchHDF5Dataset(load_from_cachefile=file_paths, collate_for_training=collate_for_training, 
+                                    max_num_spacepoints=max_num_spacepoints,
+                                    apply_max_filter=apply_max_filter)
         
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=LArMatchHDF5Dataset.collate_fn)
     
