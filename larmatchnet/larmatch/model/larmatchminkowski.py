@@ -171,8 +171,8 @@ class LArMatchMinkowski(nn.Module):
         """
 
         spacepoint_feat_v = [ feat_v[p].features_at_coordinates( query_v[p] ) for p in range(3) ]
-        for p in range(3):
-            print("plane[",p,"] spacepoint_feat_v: ",spacepoint_feat_v[p].shape)
+        #for p in range(3):
+        #    print("plane[",p,"] spacepoint_feat_v: ",spacepoint_feat_v[p].shape)
 
         # the feature tensor covers the whole batch
         #plane_feat_v = [ self.sparse_to_dense[p](x) for p,x in enumerate(feat_v) ]
@@ -192,33 +192,12 @@ class LArMatchMinkowski(nn.Module):
             #plane_feat_v = [ feat_v[p].features_at(batch_index=b) for p in range(3) ]
 
             for p,x in enumerate(spacepoint_feat_v):
-                print("----------------------------------")
-                print("plane[",p,"] feat: ",x.shape)
-                #batch_indices,batch_feats = x.coordinates_and_features_at(b)
-                #batch_decomp = x.decomposition_permutations[b]
-                #print("(extract) batch indices: ",batch_indices.shape)
-                #print(batch_indices)
-                #print("(extract) batch feats: ",batch_feats.shape)
-                #print(batch_feats)
-                #print("(extract) batch_triplets: ",batch_triplets.shape)
-                #print(batch_triplets[:,p])                
-                #batch_plane_feat  = torch.index_select( batch_feats,   0, batch_decomp )
-                #batch_plane_coord = torch.index_select( batch_indices, 0, batch_decomp )
-                #print("(extract) batch_plane_coord: ",batch_plane_coord.shape)
-                #print(batch_plane_coord)                
-                #batch_plane_feat = x.features_at(b)
-                #print("(extract) batch[%d]_plane[%d]_feat: "%(b,p),batch_plane_feat.shape)                
-                #print(batch_plane_feat)                
-                #spacepoint_feat = torch.index_select( batch_plane_feat, 0, batch_triplets[:,p] )
-                #spacepoint_feat = torch.index_select( x, 0, batch_triplets[:,p] )
-                #spacepoint_feat = x[ batch_triplets[:,p]
-                #print("(extract) batch[%d]_plane[%d] spacepoint_feat: "%(b,p),spacepoint_feat.shape)
-                #query_coordinates = torch.zeros( 
-                #print( spacepoint_feat )
+                #print("----------------------------------")
+                #print("plane[",p,"] feat: ",x.shape)
                 batch_spacepoint_v.append( x[bstart:bstart+npts] )
             spacepoint_feats_t = torch.transpose( torch.cat( batch_spacepoint_v, dim=1 ), 1, 0 )
             #print("------------------------------------------------------------")
-            print("(extract) batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
+            #print("(extract) batch[%d] spacepoint_feats_t: "%(b),spacepoint_feats_t.shape)
             bstart += npts
             #print(spacepoint_feats_t)
             #print("------------------------------------------------------------")            

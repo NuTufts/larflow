@@ -162,6 +162,7 @@ class LArMatchHDF5Dataset(Dataset):
             rebatchdata['larmatch_truth']   = batchdata['matchtriplet'][:,3]
             rebatchdata['larmatch_weight']  = batchdata['match_weight']
             rebatchdata['ssnet_truth']      = batchdata['ssnet_label']-1 # shift labels so ghost label=0 to -1
+            rebatchdata['ssnet_truth'][ rebatchdata['ssnet_truth']>4 ] = 4 # clamp to stay within 5 classes
             rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight']*batchdata['ssnet_top_weight']
             rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
             rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )

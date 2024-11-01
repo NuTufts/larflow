@@ -10,7 +10,8 @@ from model.larmatchminkowski import LArMatchMinkowski
 from loss.loss_larmatch_kps import SparseLArMatchKPSLoss
 from collections import OrderedDict
 
-SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
+#SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]
+SSNET_CLASS_NAMES=["electron","gamma","muon","pion","proton"]
 KP_CLASS_NAMES=["kp_nu","kp_trackstart","kp_trackend","kp_shower","kp_michel","kp_delta"]
 LM_CLASS_NAMES=["lm_pos","lm_neg","lm_all"]
 
@@ -300,7 +301,7 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         npts = 0
         for data in batchdata:
             npts += data["matchtriplet_v"].shape[0]
-        print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
+        #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
         ntries+=1
 
 
@@ -350,7 +351,7 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     for p in range(3):
         plane_query = [ data['query_coord_%d'%(p)] for data in batchdata ]
         query_v.append( torch.from_numpy( np.concatenate( plane_query, axis=0 ) ).to(DEVICE) )
-        print("plane [",p,"] query coords shape: ",query_v[p].shape)
+        #print("plane [",p,"] query coords shape: ",query_v[p].shape)
 
     # # get the truth
     batch_truth = []

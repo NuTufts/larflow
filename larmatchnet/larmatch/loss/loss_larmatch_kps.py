@@ -311,11 +311,20 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
 
-        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none', ignore_index=-1 )
+        fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
+        ssnet_no_bg = ssnet_truth>=0
+        xssnet_pred = ssnet_pred[:,:,ssnet_no_bg[:]]        
         with torch.no_grad():
-            weight_sum = ssnet_weight.sum()
-            #print(" ssnet weight_sum: ",weight_sum)
-        ssnet_loss = (fn_ssnet( ssnet_pred, torch.unsqueeze(ssnet_truth,0) )*(ssnet_weight/weight_sum)).sum()
+            xssnet_truth  = ssnet_truth[ssnet_no_bg[:]]
+            xssnet_weight = ssnet_weight[ssnet_no_bg[:]]
+            weight_sum = xssnet_weight.sum()
+            #print("  xssnet_pred: ",xssnet_pred.shape)
+            #print("  xssnet_truth: ",xssnet_truth.shape)
+            #print("  xssnet_weight: ",xssnet_weight.shape)
+            #print("  ssnet weight_sum: ",weight_sum)
+        ssnet_loss = fn_ssnet( xssnet_pred, torch.unsqueeze(xssnet_truth,0) )
+        #print("   ssnet_loss.shape=",ssnet_loss.shape)
+        ssnet_loss = (ssnet_loss*(xssnet_weight/weight_sum)).sum()
             
         if self.ssnet_use_lovasz_loss:
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
