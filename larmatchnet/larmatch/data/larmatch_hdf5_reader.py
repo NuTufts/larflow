@@ -118,7 +118,31 @@ class LArMatchHDF5Dataset(Dataset):
         #return self.cumulative_lengths[-1]        
         return self.nlength
     
-    
+    def prepare_triplet_and_image_arrays_for_network( batchdata, triplet_key="matchtriplet" ):
+        rebatchdata = {}
+        npts = batchdata[triplet_key].shape[0]
+        trips = batchdata[triplet_key]
+        for p in range(3):
+            rebatchdata['coord_%d'%(p)] = batchdata['wireimage_plane%d'%(p)][:,:2].astype(np.int64)
+            feat_t = np.expand_dims( batchdata['wireimage_plane%d'%(p)][:,2].astype(np.float32), 1 )
+            # normalize feature data
+            feat_t -= 0.0 # center around mip values
+            feat_t /= 200.0 # scale - puts mip at 50/200.0 ~ 0.25
+            feat_t = np.clip( feat_t, -5.0, 5.0 ) # clips adc to -1000.0, +1000.0
+            rebatchdata['feat_%d'%(p)] = feat_t
+
+            # you can find the definition of the sparse image in PrepMatchTriplets::make_sparse_image
+            # the coordinates are put into a (N,2) tensors
+            # coord[:,0]: "row" in ME.SparseTensor this is the X-coordinate
+            # coord[:,1]: "col" in ME.SparseTensor this is the Y-coordinate
+            # the index in matchtriplet refers to the first dim of the coordinate tensor, i.e. the row
+            rebatchdata['query_coord_%d'%(p)] = np.zeros( (npts,3), dtype=np.float32 )
+            rebatchdata['query_coord_%d'%(p)][:,0] = 0 # batch coordinate
+            rebatchdata['query_coord_%d'%(p)][:,1] = rebatchdata['coord_%d'%(p)][trips[:,p],0] # row/x
+            rebatchdata['query_coord_%d'%(p)][:,2] = rebatchdata['coord_%d'%(p)][trips[:,p],1] # col/y
+        return rebatchdata
+
+
     def __getitem__(self, idx):
 
         if not hasattr(self,'dataset_lengths'):
@@ -173,24 +197,12 @@ class LArMatchHDF5Dataset(Dataset):
             rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
             rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
 
+            inputdata = LArMatchHDF5Dataset.prepare_triplet_and_image_arrays_for_network( batchdata )
             for p in range(3):
-                rebatchdata['coord_%d'%(p)] = batchdata['wireimage_plane%d'%(p)][:,:2].astype(np.int64)
-                feat_t = np.expand_dims( batchdata['wireimage_plane%d'%(p)][:,2].astype(np.float32), 1 )
-                # normalize feature data
-                feat_t -= 0.0 # center around mip values
-                feat_t /= 200.0 # scale - puts mip at 50/200.0 ~ 0.25
-                feat_t = np.clip( feat_t, -5.0, 5.0 ) # clips adc to -1000.0, +1000.0
-                rebatchdata['feat_%d'%(p)] = feat_t
-
-                # you can find the definition of the sparse image in PrepMatchTriplets::make_sparse_image
-                # the coordinates are put into a (N,2) tensors
-                # coord[:,0]: "row" in ME.SparseTensor this is the X-coordinate
-                # coord[:,1]: "col" in ME.SparseTensor this is the Y-coordinate
-                # the index in matchtriplet refers to the first dim of the coordinate tensor, i.e. the row
-                rebatchdata['query_coord_%d'%(p)] = np.zeros( (npts,3), dtype=np.float32 )
-                rebatchdata['query_coord_%d'%(p)][:,0] = 0 # batch coordinate
-                rebatchdata['query_coord_%d'%(p)][:,1] = rebatchdata['coord_%d'%(p)][trips[:,p],0] # row/x
-                rebatchdata['query_coord_%d'%(p)][:,2] = rebatchdata['coord_%d'%(p)][trips[:,p],1] # col/y
+                rebatchdata['coord_%d'%(p)]       = inputdata['coord_%d'%(p)]
+                rebatchdata['feat_%d'%(p)]        = inputdata['feat_%d'%(p)]
+                rebatchdata['query_coord_%d'%(p)] = inputdata['query_coord_%d'%(p)]
+            
             entry_data = rebatchdata
 
         # apply class-balancing sampler and reweighting 
@@ -242,6 +254,75 @@ class LArMatchHDF5Dataset(Dataset):
             batchdata['query_coord_1'][:,0] = ib
             batchdata['query_coord_2'][:,0] = ib
         return batch
+
+    def make_batch_sparse_tensors( batchdata, device=None, verbose=False, triplet_key="matchtriplet_v" ):
+        # convert wire plane data, in numpy form into ME.SparseTensor form
+        # data comes back as numpy arrays.
+        # we need to move it to DEVICE and then form MinkowskiEngine SparseTensors
+        # needs to be done three times: one for each wire plane of the detector
+        # params
+        # batchdata list
+        try:
+            import MinkowskiEngine as ME
+        except:
+            print("could not load MinkowskiEngine library")
+            sys.exit(0)
+
+        wireplane_sparsetensors = []
+    
+        nb = len(batchdata)
+        print("Batchsize: ",nb)
+
+        npts = 0
+        for data in batchdata:
+            npts += data[triplet_key].shape[0]
+        print("Drawn total spacepoints: ",npts)
+
+        for p in range(3):
+            if verbose:
+                print("plane ",p)
+                for b,data in enumerate(batchdata):
+                    print(" coord plane[%d] batch[%d]"%(p,b),": ",data["coord_%d"%(p)].shape)
+
+            coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(device) for data in batchdata ]
+            feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(device) for data in batchdata ]
+
+            # hack make random matrix
+            # coord_v = []
+            # feat_v = []
+            # for b in range(config["BATCH_SIZE"]):
+            #     fake_coord = np.random.randint( 0, high=1004, size=(200000,2) )
+            #     coord_v.append( torch.from_numpy(fake_coord).to(DEVICE) )
+            #     fake_feat  = np.random.rand( 200000, 1 )
+            #     feat_v.append( torch.from_numpy(fake_feat.astype(np.float32)).to(DEVICE) )
+
+            for x in coord_v:
+                x.requires_grad = False
+        
+            coords, feats = ME.utils.sparse_collate(coord_v, feat_v)
+            if verbose:
+                print(" coords: ",coords.shape)
+                print(" feats: ",feats.shape)
+            wireplane_sparsetensors.append( ME.SparseTensor(features=feats, coordinates=coords) )
+
+            # we also need the metadata associating possible 3d spacepoints
+
+        # collect the wire image locations they project to for the batch
+        matchtriplet_v = []
+        for b,data in enumerate(batchdata):
+            matchtriplet_v.append( torch.from_numpy(data["matchtriplet_v"]).to(device) )
+            if verbose:
+                print("batch ",b," matchtriplets: ",matchtriplet_v[b].shape)
+
+        # collect the image coordinates for each spacepoint for the batch
+        query_v = []
+        for p in range(3):
+            plane_query = [ data['query_coord_%d'%(p)] for data in batchdata ]
+            query_v.append( torch.from_numpy( np.concatenate( plane_query, axis=0 ) ).to(device) )
+            print("plane [",p,"] query coords shape: ",query_v[p].shape)
+
+        return wireplane_sparsetensors, matchtriplet_v, query_v
+
 
 # Usage example
 def get_data_loader(file_paths, batch_size=2, num_workers=1, shuffle=True,

@@ -71,6 +71,7 @@ class LArMatchHDF5Writer:
 
 
     def larlite_larcv_to_hdf5_entry( self, ioll, iolcv,
+                                    run_process_truthlabels=False,
                                     num_max_spacepoints=10000000 ):
 
         # ROOT-based IO for image-like data to LAr TPCs
@@ -108,6 +109,29 @@ class LArMatchHDF5Writer:
         # make triplet proposals
         self.preptriplets.process( adc_v, badch_v, 10.0, True )
 
+        if run_process_truthlabels:
+            """ run code to make truth labels and convert them into numpy arrays """
+            self.process_truthlabels( iolcv, ioll )
+
+            # At this point, the spacepoints and labels are made.
+            # we convert them into numpy arrays
+            array_dict = self.convert_spacepoints_and_labels_to_numpy( self.preptriplets,
+                                                                        self.kpana,
+                                                                        self.ssnet,
+                                                                        self.kpflow,
+                                                                        num_max_spacepoints=num_max_spacepoints )
+        else:
+            """ no truth labels to make, so we just convert the triplet, wireplane, and spacepoints to numpy """
+            array_dict = {}
+            withtruth = False
+            array_dict['matchtriplet_v'] = self.preptriplets.get_all_triplet_data( withtruth )
+            for p in range(3):
+                array_dict['wireimage_plane%d'%(p)] = self.preptriplets.make_sparse_image( p )
+
+        self.entry_data.append( array_dict )
+
+    def process_truthlabels(self, iolcv, ioll):
+
         # make good/bad triplet ground truth
         self.preptriplets.process_truth_labels( iolcv, ioll, self.adc_treename )
 
@@ -143,15 +167,8 @@ class LArMatchHDF5Writer:
     
         #if args.save_triplets:
         #    triptree.Fill()
-
-        # At this point, the spacepoints and labels are made.
-        # we convert them into numpy arrays
-        array_dict = self.convert_spacepoints_and_labels_to_numpy( self.preptriplets,
-                                                                    self.kpana,
-                                                                    self.ssnet,
-                                                                    self.kpflow,
-                                                                    num_max_spacepoints=num_max_spacepoints )
-        self.entry_data.append( array_dict )
+        
+        return True
         
 
 
@@ -235,7 +252,7 @@ class LArMatchHDF5Writer:
             ioll.go_to(ientry)
             iolcv.read_entry(ientry)
             # convert the data and store into self.entry_data
-            self.larlite_larcv_to_hdf5_entry( ioll, iolcv, num_max_spacepoints )
+            self.larlite_larcv_to_hdf5_entry( ioll, iolcv, True, num_max_spacepoints )
 
         # after we're done, we write the data
         self.writedata(output_filepath)
