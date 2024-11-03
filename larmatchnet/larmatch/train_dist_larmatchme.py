@@ -229,7 +229,7 @@ def run(gpu, args ):
 
                 # write to tensorboard/WANDB
                 # --------------------
-                all_log_variables = {'step':iiter,'epoch':float(iiter*NGPUS)/float(TRAIN_NENTRIES)}
+                all_log_variables = {'step':train_iteration,'epoch':float(train_iteration*NGPUS)/float(TRAIN_NENTRIES)}
                 
                 # losses go into same plot
                 loss_scalars = { x:y.avg for x,y in loss_meters.items() }
@@ -299,7 +299,7 @@ def run(gpu, args ):
 
                 # PASS INFO TO WANDB
                 if made_logger and config['LOGGER']=='wandb':
-                    wandb_writer.log( data=all_log_variables, step=iiter )
+                    wandb_writer.log( data=all_log_variables, step=train_iteration )
 
             if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
@@ -317,7 +317,7 @@ def run(gpu, args ):
                                                 valid_time_meters )
                     # write to tensorboard
                     # --------------------
-                    all_log_variables = {'step':iiter, 'epoch':float(iiter*NGPUS)/float(TRAIN_NENTRIES)}
+                    all_log_variables = {'step':train_iteration, 'epoch':float(train_iteration*NGPUS)/float(TRAIN_NENTRIES)}
                     
                     # losses go into same plot
                     loss_scalars = { x:y.avg for x,y in loss_meters.items() }
@@ -376,7 +376,7 @@ def run(gpu, args ):
                             all_log_variables['valid/paf/'+x] = v
 
                     if config['LOGGER']=="wandb":
-                        wandb_writer.log( all_log_variables, step=iiter )
+                        wandb_writer.log( all_log_variables, step=train_iteration )
 
                 else:
                     if verbose: print("RANK-%d process waiting for RANK-0 validation run"%(rank))
