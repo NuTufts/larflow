@@ -161,7 +161,7 @@ def make_ssnet_weights( entrydata, exclude_ghosts=True ):
     for iclass in range(0,nclasses):
         if nclass[iclass]>0.0:
             w = nnorm/float(nclass[iclass])
-        weights[ cmask_v[iclass] ] = w
+            weights[ cmask_v[iclass] ] = w
     # blank out BG and blank out ghosts
     bgmask = ssnettruth==-1 # ghost mask
     weights[ bgmask ] = 0.0
