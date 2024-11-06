@@ -57,6 +57,7 @@ namespace reco {
     int   _keypoint_type;                           ///< label of keypoint type we're making
     int   _lfhit_score_index;                       ///< index of column in larflow3d hit info vector with keypoint score
     float _threshold_cluster_max_score;             ///< the threshold max keypoint score in a keypoint cluster
+    std::vector< std::string > __keypoint_type_names;
     
   public:
     

@@ -36,6 +36,13 @@ namespace reco {
     _output_tree_name = "keypoint";
     _keypoint_type = -1;
     _threshold_cluster_max_score = 0.75;
+    __keypoint_type_names.resize(6);
+    __keypoint_type_names[0] = "nu";
+    __keypoint_type_names[1] = "trackstart";
+    __keypoint_type_names[2] = "trackend";
+    __keypoint_type_names[3] = "shower";
+    __keypoint_type_names[4] = "michel";
+    __keypoint_type_names[5] = "delta";
   }
   
   /**
@@ -127,7 +134,10 @@ namespace reco {
 
     if ( logger().level()<=larcv::msg::kINFO )
       printAllKPClusterInfo();
-    LARCV_NORMAL() << "[ KeypointReco::process (type=" << _keypoint_type << ", hitindex=" << _lfhit_score_index << ") ] "
+    std::string kptypename = "(none)";
+    if (_keypoint_type>=0 && _keypoint_type<6 )
+      kptypename = __keypoint_type_names[_keypoint_type];
+    LARCV_NORMAL() << "[ KeypointReco::process (type=" << kptypename <<  "[id=" << _keypoint_type << "], hitindex=" << _lfhit_score_index << ") ] "
 		   << "num kpclusters = " << output_pt_v.size()
 		   << std::endl;
   }
@@ -155,6 +165,9 @@ namespace reco {
     _initial_pt_pos_v.clear();
     _initial_pt_used_v.clear();
 
+    float min_score = 100.0;
+    float max_score = 0.;
+
     for (auto const& lfhit : lfhits ) {
       const float& kp_score = lfhit[_lfhit_score_index];
       const float& lm_score = lfhit[9];
@@ -164,17 +177,22 @@ namespace reco {
         //pos3d[3] = (kp_score<1.0) ? kp_score : 1.0;
         pos3d[3] = kp_score;
         pos3d[4] = lm_score;
+        if ( kp_score < min_score )
+          min_score = kp_score;
+        if ( max_score < kp_score )
+          max_score = kp_score;
         _initial_pt_pos_v.push_back( pos3d );
       }
     }
 
     _initial_pt_used_v.resize( _initial_pt_pos_v.size(), 0 );
 
-    LARCV_INFO() << "[larflow::reco::KeypointReco::_make_initial_pt_data] number of points stored for keypoint reco: "
-                 << _initial_pt_pos_v.size()
-                 << "/"
-                 << lfhits.size()
-                 << std::endl;
+    LARCV_NORMAL() << "num for reco = "
+		   << _initial_pt_pos_v.size()
+		   << "/"
+		   << lfhits.size()
+		   << " min-score=" << min_score << " max-score=" << max_score
+		   << std::endl;
     
   }
 
@@ -222,7 +240,7 @@ namespace reco {
     for ( auto& cluster : cluster_v ) {
 
       if ( cluster.points_v.size()<4 )
-	continue;
+      	continue;
       
       // make kpcluster
       KPCluster kpc     = _characterize_cluster( cluster, skimmed_pt_v, skimmed_index_v );
@@ -231,7 +249,7 @@ namespace reco {
       kpc.center_pt_rmse_v = kpc_fit.center_pt_rmse_v;
       kpc.center_pt_rsqr_v = kpc_fit.center_pt_rsqr_v;
       if ( kpc.max_score < _threshold_cluster_max_score )
-	continue;
+      	continue;
       
       // insert cluster into class continer
       _cluster_v.emplace_back( std::move(cluster) );
@@ -404,14 +422,14 @@ namespace reco {
       std::vector<double> lny_terms(3,0);
 
       for (auto const& idx : cluster.hitidx_v ) {
-	auto const& pt = skimmed_pt_v.at( idx );
-        if(dim == 0) avg_score += pt[3];
-	for (int n=1; n<=4; n++)
-	  x_sum[n-1] += TMath::Power(pt[dim],n);
-	double lny = TMath::Log(pt[3]);
-	lny_terms[0] += lny;
-	lny_terms[1] += pt[dim]*lny;
-	lny_terms[2] += pt[dim]*pt[dim]*lny;	
+        auto const& pt = skimmed_pt_v.at( idx );
+              if(dim == 0) avg_score += pt[3];
+        for (int n=1; n<=4; n++)
+          x_sum[n-1] += TMath::Power(pt[dim],n);
+        double lny = TMath::Log(pt[3]);
+        lny_terms[0] += lny;
+        lny_terms[1] += pt[dim]*lny;
+        lny_terms[2] += pt[dim]*pt[dim]*lny;	
       }
       double N = cluster.hitidx_v.size();
       if(N > 0. && dim == 0) avg_score /= N;
@@ -419,8 +437,8 @@ namespace reco {
       // construct the matrix
       Eigen::Matrix3d A;
       A << N, x_sum[0], x_sum[1],
-	   x_sum[0], x_sum[1], x_sum[2],
-	   x_sum[1], x_sum[2], x_sum[3];
+        x_sum[0], x_sum[1], x_sum[2],
+        x_sum[1], x_sum[2], x_sum[3];
       Eigen::Vector3d b;
       b << lny_terms[0], lny_terms[1], lny_terms[2];
       

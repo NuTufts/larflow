@@ -12,7 +12,7 @@ import ROOT as rt
 from larlite import larlite
 from larcv import larcv
 from larflow import larflow
-larcv.SetPyUtil()
+#larcv.SetPyUtil()
 
 import dash
 import dash_core_components as dcc
@@ -33,12 +33,16 @@ keypoint_colors = { -1:"rgb(50,50,50)",
                     0:"rgb(255,0,255)",
                     1:"rgb(255,0,0)",
                     2:"rgb(0,0,255)",
-                    3:"rgb(255,255,0)"}    
+                    3:"rgb(255,255,0)",
+                    4:"rgb(255,0,255)",
+                    5:"rgb(125,0,255)"}    
 keypoint_names = { -1:"UNK",
                    0:"NU",
-                   1:"TRK",
-                   2:"SHR",
-                   3:"VA"}    
+                   1:"TRKSTART",
+                   2:"TRKEND",   
+                   3:"SHR",
+                   4:"MICHEL",
+                   5:"DELTA"}    
 
 io = larlite.storage_manager( larlite.storage_manager.kREAD )
 io.add_in_filename( args.input_larflow )
@@ -60,7 +64,8 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     global io
     io.go_to(entry)
 
-    lfname = treename
+    #lfname = treename
+    lfname = "larflowhits"    
     #lfname = "taggerfilterhit" # output of WC filter
     #lfname = "ssnetsplit_wcfilter_trackhit" # SSNet split
     #lfname = "maxtrackhit_wcfilter"
@@ -82,7 +87,7 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
         hitindex=13
         xyz = np.zeros( (npoints,4 ) )
         ptsused = 0
-        for ipt in xrange(npoints):
+        for ipt in range(npoints):
             hit = ev_lfhits.at(ipt)
 
             if hit.track_score<minprob:
@@ -119,20 +124,24 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
     print("Number of reco'd WC-FILTERED Keypoints in event: ",nkp)
     for ikp in range(nkp):
         kptype = int(ev_keypoints.at(ikp).at(3))
+        ptsize = 5
+        if ikp==0:
+            ptsize = 10
+        
         kptrace = {
             "type":"scatter3d",
-	    "x": [ev_keypoints[ikp][0]],
+    	    "x": [ev_keypoints[ikp][0]],
             "y": [ev_keypoints[ikp][1]],
             "z": [ev_keypoints[ikp][2]],
             "mode":"markers",
-	    "name":"%s[%d]"%(keypoint_names[kptype],ikp),
-            "marker":{"color":keypoint_colors[kptype],"size":5,"opacity":0.5},
+    	    "name":"%s[%d]"%(keypoint_names[kptype],ikp),
+            "marker":{"color":keypoint_colors[kptype],"size":ptsize,"opacity":0.5},
         }
         traces_v.append(kptrace)
         
     # PCA-AXIS PLOTS
-    pca_traces_v = lardly.data.visualize_event_pcaxis( ev_kpaxis, color="rgb(50,50,50)" )
-    traces_v += pca_traces_v
+    #pca_traces_v = lardly.data.visualize_event_pcaxis( ev_kpaxis, color="rgb(50,50,50)" )
+    #traces_v += pca_traces_v
 
     # KEYPOINT PLOT: COSMIC TRACK KEYPOINT
     ev_cosmic_keypoints = io.get_data( larlite.data.kLArFlow3DHit, "keypointcosmic" )
@@ -154,8 +163,8 @@ def make_figures(entry,plotby="larmatch",treename="larmatch",keypoint_tree="keyp
         traces_v.append(kptrace)
         
     # COSMIC PCA-AXIS PLOTS
-    pca_traces_v = lardly.data.visualize_event_pcaxis( ev_cosmic_kpaxis, color="rgb(50,50,50)" )
-    traces_v += pca_traces_v
+    #pca_traces_v = lardly.data.visualize_event_pcaxis( ev_cosmic_kpaxis, color="rgb(50,50,50)" )
+    #traces_v += pca_traces_v
     
 
     # end of loop over treenames

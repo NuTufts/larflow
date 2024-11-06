@@ -46,6 +46,8 @@ if not os.path.exists( os.environ["LARFLOW_BASEDIR"]+"/larflow/Reco/data/Proton_
     sys.exit(0)
 
 
+input_spacepoint_container_name = "larflowhits"
+
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 iolcv = larcv.IOManager( larcv.IOManager.kBOTH, "larcv", larcv.IOManager.kTickBackward )
 
@@ -58,11 +60,11 @@ recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomana
 recoman.set_verbosity(larcv.msg.kINFO)
 recoman.minimze_output_size(True)
 if args.ismc:
-    recoman.saveEventMCinfo( args.ismc )
+    activate_mcanamode_nuvertexshowereco = args.run_nuvertexshowerreco_mcana_mode
+    recoman.saveEventMCinfo( args.ismc, activate_mcanamode_nuvertexshowereco )
     if args.run_perfect_mcreco:
         recoman.runPerfectMCreco( True )
-    if args.run_nuvertexshowerreco_mcana_mode:
-        recoman._nuvertex_shower_reco.activateMCanalysisMode( True )
+recoman.set_spacepoint_input_container_name( input_spacepoint_container_name )
         
 if args.event_filter:
     recoman.saveSelectedNuVerticesOnly( args.event_filter )
@@ -91,7 +93,7 @@ if args.save_all_keypoints:
 # INPUT/OUTPUT SETTINGS
 io.add_in_filename(  args.input_dlmerged )
 io.add_in_filename(  args.input_larflow )
-io.set_data_to_read( larlite.data.kLArFlow3DHit, "larmatch" )
+io.set_data_to_read( larlite.data.kLArFlow3DHit, input_spacepoint_container_name )
 io.set_data_to_read( larlite.data.kMCTrack,  "mcreco" )
 io.set_data_to_read( larlite.data.kMCShower, "mcreco" )
 io.set_data_to_read( larlite.data.kMCTruth,  "generator" )
