@@ -2,6 +2,7 @@
 #include "geofuncs.h"
 #include "NuTrackBuilder.h"
 #include "NuVertexShowerReco.h"
+#include "larflow/LArFlowConstants/LArFlowConstants.h"
 
 namespace larflow {
 namespace reco {
@@ -23,14 +24,14 @@ namespace reco {
     
     std::vector<std::string> cluster_sources =
       { "trackprojsplit_wcfilter",
-	"cosmicproton",
-	"showerkp",
-	"showergoodhit" };
+        "cosmicproton",
+        "showerkp",
+        "showergoodhit" };
     std::vector<int> shower_or_track = 
       { 0, //track
-	0, //track
-	1, //shower
-	1  //shower
+        0, //track
+        1, //shower
+        1  //shower
       };
 
     struct SecondaryCandidate_t {
@@ -44,15 +45,15 @@ namespace reco {
       std::vector<float> attach_dir;
       std::vector<float> seedpos;            
       SecondaryCandidate_t( larlite::larflowcluster* pc, int ts )
-	: pcluster(pc),
-	  dist(999.0),
-	  attached(0),
-	  trackorshower(ts)
+      : pcluster(pc),
+        dist(999.0),
+        attached(0),
+        trackorshower(ts)
       {};
       bool operator<( SecondaryCandidate_t& rhs ) const {
-	if ( dist<rhs.dist )
-	  return true;
-	return false;
+        if ( dist<rhs.dist )
+          return true;
+        return false;
       };
     };
 
@@ -61,54 +62,54 @@ namespace reco {
     for ( size_t iproducer=0; iproducer<cluster_sources.size(); iproducer++ ) {
       auto& producername = cluster_sources[iproducer];
       larlite::event_larflowcluster* ev_cluster =
-	(larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producername );
+      	(larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producername );
       larlite::event_pcaxis* ev_cluster_pca =
-	(larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis, producername );
+      	(larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis, producername );
 
       for (size_t icluster=0; icluster<ev_cluster->size(); icluster++) {
-	auto& cluster = ev_cluster->at(icluster);
-	auto& clusterpca = ev_cluster_pca->at(icluster);	
-	int status = nuclusterbook.cluster_status_v.at(cluster.matchedflash_idx);
-	if ( status>0 )
-	  continue; // already used
+        auto& cluster = ev_cluster->at(icluster);
+        auto& clusterpca = ev_cluster_pca->at(icluster);	
+        int status = nuclusterbook.cluster_status_v.at(cluster.matchedflash_idx);
+        if ( status>0 )
+          continue; // already used
 
-	// no loop through all the primary tracks
-	// should it attach
-	for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
-	  LARCV_DEBUG() << "Test cluster(" << producername << "," << icluster << "," << cluster.matchedflash_idx << ")"
-			  << " with nutrack[" << itrack << "]" << std::endl;
-	  auto& track = nuvtx.track_v.at(itrack);
-	  std::vector<float> attach_pos(3,0);
-	  std::vector<float> attach_dir(3,0);
-	  std::vector<float> seedpos(3,0);
-	  float mindist = 999999;
-	  if ( shower_or_track[ iproducer ]==0 ) {	  
-	    mindist = testTrackTrackIntersection( track, clusterpca, 2.0,
-						  attach_pos, attach_dir, seedpos );
-	  }
-	  else {
-	    // larlite::event_track* ev_lltrunk
-	    //   = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, producername);
-	    // auto& showertrunk = ev_lltrunk->at(icluster);
-	    mindist = testShowerTrackIntersection( track, clusterpca, 5.0,
-						   attach_pos, attach_dir, seedpos );
-	  }
+        // no loop through all the primary tracks
+        // should it attach
+        for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
+          LARCV_DEBUG() << "Test cluster(" << producername << "," << icluster << "," << cluster.matchedflash_idx << ")"
+              << " with nutrack[" << itrack << "]" << std::endl;
+          auto& track = nuvtx.track_v.at(itrack);
+          std::vector<float> attach_pos(3,0);
+          std::vector<float> attach_dir(3,0);
+          std::vector<float> seedpos(3,0);
+          float mindist = 999999;
+          if ( shower_or_track[ iproducer ]==0 ) {	  
+            mindist = testTrackTrackIntersection( track, clusterpca, 2.0,
+                    attach_pos, attach_dir, seedpos );
+          }
+          else {
+            // larlite::event_track* ev_lltrunk
+            //   = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, producername);
+            // auto& showertrunk = ev_lltrunk->at(icluster);
+            mindist = testShowerTrackIntersection( track, clusterpca, 5.0,
+                    attach_pos, attach_dir, seedpos );
+          }
 
-	  float mindist_threshold = (shower_or_track[iproducer]==0 ) ? 2.0 : 100.0;
-	  LARCV_DEBUG() << "  mindist=" << mindist << std::endl;
-	  if (mindist<mindist_threshold) {
-	    // register as potential new seed point
-	    SecondaryCandidate_t cand( &cluster, shower_or_track[ iproducer ] );
-	    cand.dist = mindist;
-	    cand.producername = producername;
-	    cand.clusteridx = icluster;
-	    cand.attach_pos = attach_pos;
-	    //cand.attach_pos = seedpos;
-	    cand.attach_dir = attach_dir;
-	    cand.seedpos = seedpos;
-	    candidates_v.emplace_back( std::move(cand) );	      
-	  }
-	}//end of loop over tracks in the nuvertexcandidate
+          float mindist_threshold = (shower_or_track[iproducer]==0 ) ? 2.0 : 100.0;
+          LARCV_DEBUG() << "  mindist=" << mindist << std::endl;
+          if (mindist<mindist_threshold) {
+            // register as potential new seed point
+            SecondaryCandidate_t cand( &cluster, shower_or_track[ iproducer ] );
+            cand.dist = mindist;
+            cand.producername = producername;
+            cand.clusteridx = icluster;
+            cand.attach_pos = attach_pos;
+            //cand.attach_pos = seedpos;
+            cand.attach_dir = attach_dir;
+            cand.seedpos = seedpos;
+            candidates_v.emplace_back( std::move(cand) );	      
+          }
+        }//end of loop over tracks in the nuvertexcandidate
       }//end of cluster loop
     }//end of producer name
 
@@ -141,70 +142,76 @@ namespace reco {
     for ( auto& candidate : candidates_v ) {
 
       if ( candidate.pcluster->matchedflash_idx>=0
-	   && candidate.pcluster->matchedflash_idx<nuclusterbook.cluster_status_v.size() ) {
-	if ( nuclusterbook.cluster_status_v.at( candidate.pcluster->matchedflash_idx )!=0 )
-	  continue; // claimed, so move on.
+    	   && candidate.pcluster->matchedflash_idx<nuclusterbook.cluster_status_v.size() ) {
+        if ( nuclusterbook.cluster_status_v.at( candidate.pcluster->matchedflash_idx )!=0 )
+          continue; // claimed, so move on.
       }
       
       if ( candidate.trackorshower==0 ) {
-	// track
-	// make a fake nuvtx candididate for the secondary attach point
-	NuVertexCandidate nuvtx2;
-	nuvtx2.pos = candidate.seedpos;
+        // track
+        // make a fake nuvtx candididate for the secondary attach point
+        NuVertexCandidate nuvtx2;
+        nuvtx2.pos = candidate.seedpos;
 
-	// must provide the seed cluster
-	NuVertexCandidate::VtxCluster_t vtxcluster;
-	vtxcluster.producer = candidate.producername;
-	vtxcluster.type = NuVertexCandidate::kTrack;
-	vtxcluster.index = candidate.clusteridx;
-	vtxcluster.pos = candidate.seedpos;
-	nuvtx2.cluster_v.push_back( vtxcluster );
-	
-	std::vector< NuVertexCandidate > nuvtx2_v;
-	std::vector< ClusterBookKeeper > book_v;
-	nuvtx2_v.push_back( nuvtx2 );
-	book_v.push_back( nuclusterbook );	
-	_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
-	_nu_track_builder.clear_track_proposals();
-	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
-	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
-	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
-	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
-	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
-          nuvtx.track_isSecondary_v.push_back(1);
-	}
+        // must provide the seed cluster
+        NuVertexCandidate::VtxCluster_t vtxcluster;
+        vtxcluster.producer = candidate.producername;
+        vtxcluster.type = NuVertexCandidate::kTrack;
+        vtxcluster.index = candidate.clusteridx;
+        vtxcluster.pos = candidate.seedpos;
+        nuvtx2.cluster_v.push_back( vtxcluster );
+        
+        std::vector< NuVertexCandidate > nuvtx2_v;
+        std::vector< ClusterBookKeeper > book_v;
+        nuvtx2_v.push_back( nuvtx2 );
+        book_v.push_back( nuclusterbook );	
+        _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+        _nu_track_builder.clear_track_proposals();
+        _nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
+        LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
+        if ( nuvtx2_v.at(0).track_v.size()>0 ) {
+          nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
+          nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
+                nuvtx.track_isSecondary_v.push_back(1);
+        }
       }
       else {
-	// shower
-	NuVertexShowerReco _nuvertex_shower_reco;
-	_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
-	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-	_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+        // shower
+        NuVertexShowerReco _nuvertex_shower_reco;
+        _nuvertex_shower_reco.activateMCanalysisMode(false);
+        _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
+        _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+        _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+        _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
 
-	// make a fake nuvtx candididate for the secondary attach point
-	NuVertexCandidate nuvtx2;
-	nuvtx2.pos = candidate.seedpos;
+        // make a fake nuvtx candididate for the secondary attach point
+        NuVertexCandidate nuvtx2;
+        nuvtx2.pos = candidate.seedpos;
+        nuvtx2.keypoint_type = (int)larflow::kShowerStart;
+        nuvtx2.keypoint_producer = "secondary";
+        nuvtx2.maxScore = -1;
+        nuvtx2.netNuScore = -1;
+        nuvtx2.netScore = -1; 
 
-	// must provide the seed cluster
-	NuVertexCandidate::VtxCluster_t vtxcluster;
-	vtxcluster.producer = candidate.producername;
-	vtxcluster.type = NuVertexCandidate::kShowerKP;
-	vtxcluster.index = candidate.clusteridx;
-	vtxcluster.pos = candidate.attach_pos;
-	nuvtx2.cluster_v.push_back( vtxcluster );
-	_nuvertex_shower_reco.loadClusters(ioll);
-	_nuvertex_shower_reco.build_vertex_showers( nuvtx2,
-						    nuclusterbook,
-						    iolcv, 
-						    ioll );
-	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2.shower_v.size() << std::endl;
-	for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
-	  nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
-	  nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
-	  nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
-          nuvtx.shower_isSecondary_v.push_back(1);
-	}
+        // must provide the seed cluster
+        NuVertexCandidate::VtxCluster_t vtxcluster;
+        vtxcluster.producer = candidate.producername;
+        vtxcluster.type = NuVertexCandidate::kShowerKP;
+        vtxcluster.index = candidate.clusteridx;
+        vtxcluster.pos = candidate.attach_pos;
+        nuvtx2.cluster_v.push_back( vtxcluster );
+        _nuvertex_shower_reco.loadClusters(ioll);
+        _nuvertex_shower_reco.build_vertex_showers( nuvtx2,
+                      nuclusterbook,
+                      iolcv, 
+                      ioll );
+        LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2.shower_v.size() << std::endl;
+        for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
+          nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
+          nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
+          nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
+                nuvtx.shower_isSecondary_v.push_back(1);
+        }
 	
       }
     }

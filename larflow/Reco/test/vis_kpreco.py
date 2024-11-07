@@ -143,13 +143,15 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         if nuvtx.keypoint_type==0:
             kplabel += "-NU"
         elif nuvtx.keypoint_type==1:
-            kplabel += "-T"
+            kplabel += "-TS"
         elif nuvtx.keypoint_type==2:
-            kplabel += "-S"
+            kplabel += "-TE"
         elif nuvtx.keypoint_type==3:
-            kplabel += "-V"
+            kplabel += "-SH"
         elif nuvtx.keypoint_type==4:
             kplabel += "-CMU"
+        elif nuvtx.keypoint_type==5:
+            kplabel += "-D"
             
         vtxinfo.append( {"label":"[%d] %s (%.2f) ntracks=%d nshowers=%d"%(ivtx,kplabel,vertex_v.at(ivtx).score,ntracks,nshowers), "value":ivtx} )
         if not plotall and ivtx!=vtxid:

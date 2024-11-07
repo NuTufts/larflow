@@ -8,6 +8,7 @@
 #include <map>
 #include <array>
 #include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larmatchsp.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/EventChStatus.h"
 #include "larcv/core/DataFormat/ImageMeta.h"
@@ -36,10 +37,10 @@ namespace prep {
     
     FlowMatchHitMaker()
       : larcv::larcv_base("FlowMatchHitMaker"),
-	_match_score_threshold(0.5),
-	has_ssnet_scores(false),
-	has_kplabel_scores(false),
-	has_paf(false)
+      _match_score_threshold(0.5),
+      has_ssnet_scores(false),
+      has_kplabel_scores(false),
+      has_paf(false)
     {};
     virtual ~FlowMatchHitMaker() {};
 
@@ -72,11 +73,12 @@ namespace prep {
       match_t()
       : Y(0),U(0),V(0),
         YU(0),YV(0),UV(0),UY(0),VU(0),VY(0),
-	ssnet_scores( std::vector<float>(10,0) ),
         keypoint_scores( std::vector<float>(6,0) ),	
         paf( std::vector<float>(3,0) ),
         istruth(0)
-      {};
+      {
+        ssnet_scores.clear();
+      };
 
       /** comparitor for sorting. based on plane wire ids going from plane Y,U,V. */
       bool operator<(const match_t& rhs) const {
@@ -95,7 +97,7 @@ namespace prep {
 
       /** set flag indicating if true space point. 1->true; 0->ghost. */
       void set_istruth( int label) {
-	istruth = label;
+      	istruth = label;
       };
 
       /** set larmatch score for provided flow between planes */
@@ -132,9 +134,10 @@ namespace prep {
     float _match_score_threshold;    ///< do not generate hits for space points below this threshold
     std::vector<match_t> _matches_v; ///< container for network output for each spacepoint
     std::map< std::vector<int>, int > _match_map; ///< map of (Y,U,V) triple to positin in matches_v
-    bool has_ssnet_scores; ///< ssnet scores have been provided
-    bool has_kplabel_scores; ///< keypoint scores have been provided
-    bool has_paf; ///< particle affinity field directions have been provided
+    bool has_lm_scores; ///< lm scores have been provided through add_triplet_match_data(...)
+    bool has_ssnet_scores; ///< ssnet scores have been provided through add_triplet_ssnet_scores(...)
+    bool has_kplabel_scores; ///< keypoint scores have been provided through add add_triplet_keypoint_scores(...)
+    bool has_paf; ///< particle affinity field directions have been provided through add_triplet_affinity_field(...)
 
     /**
      * \brief reset state and clear member containers
@@ -142,6 +145,7 @@ namespace prep {
     void clear() {
       _matches_v.clear();
       _match_map.clear();
+      has_lm_scores=false;
       has_ssnet_scores=false;
       has_kplabel_scores=false;
       has_paf=false; };
@@ -188,6 +192,10 @@ namespace prep {
     void make_hits( const larcv::EventChStatus& ev_chstatus,
                     const std::vector<larcv::Image2D>& img_v,
                     std::vector<larlite::larflow3dhit>& hit_v )  const;
+
+    void make_hits( const larcv::EventChStatus& ev_chstatus,
+                    const std::vector<larcv::Image2D>& img_v,
+                    std::vector<larlite::larmatchsp>& hit_v ) const;
 
     void make_hits_v0_scn_network( const larcv::EventChStatus& ev_chstatus,
 				   const std::vector<larcv::Image2D>& img_v,

@@ -5,7 +5,7 @@ sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
 parser = argparse.ArgumentParser(description='deploy larmatch model on microboone larcv/larlite input')
 parser.add_argument('-c','--config-file',type=str,default="config.yaml",help="larmatch configuration file")
 parser.add_argument('-w','--weights',required=True,type=str,help='weight file')
-parser.add_argument('-p','--min-score',type=float,default=0.7,help="Minimum Score to save point [default: 0.7]")
+parser.add_argument('-p','--min-score',type=float,default=0.5,help="Minimum Score to save point [default: 0.5]")
 parser.add_argument('-d','--device-name',default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument('-adc','--adc-name',default="wire",type=str,help="Name of ADC tree [default: wire]")
 parser.add_argument('-v','--verbose',default=False,action='store_true',help='If flag given, just run 5 events for debugging')
@@ -143,8 +143,10 @@ for ientry in range(start_entry,end_entry):
     ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wire" )
     adc_v = ev_adc.as_vector()
 
-    evout_lfhits = outll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
+    evout_lfhits = outll.get_data(larlite.data.kLArFlow3DHit,"larflowhits")
     evout_lfhits.clear()
+    evout_lmsp = outll.get_data(larlite.data.kLArMatchSP,"larmatchsp")
+    evout_lmsp.clear()
 
     hitmaker.clear()
 
@@ -269,6 +271,7 @@ for ientry in range(start_entry,end_entry):
 
             # make flow hits
             hitmaker.make_hits( ev_chstatus, adc_v, evout_lfhits )
+            hitmaker.make_hits( ev_chstatus, adc_v, evout_lmsp )
             dt_make_hits = time.time()-tstart
             print("number of hits made: ",evout_lfhits.size())
             print("time to run net: ",dt_runnet," secs")

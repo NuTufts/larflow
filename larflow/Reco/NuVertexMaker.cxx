@@ -92,16 +92,16 @@ namespace reco {
       LARCV_INFO() << "clusters from [" << it->first << "]: " << it_pca->second->size() << " pcaxes" << std::endl;
 
       if ( _cluster_type[it->first]==NuVertexCandidate::kTrack ) {
-	auto it_track = _cluster_track_producers.find( it->first );
-	it_track->second = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, it->first );
-	LARCV_INFO() << "clusters from [" << it->first << "]: " << it_track->second->size() << " tracks" << std::endl;
+        auto it_track = _cluster_track_producers.find( it->first );
+        it_track->second = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, it->first );
+        LARCV_INFO() << "clusters from [" << it->first << "]: " << it_track->second->size() << " tracks" << std::endl;
       }
 
       // we provide a cluster index label. this is to help downstream algorithms
       // an easy way to identify the same cluster
       for (auto& c : *it->second ) {
-	c.matchedflash_idx = cluster_index;
-	cluster_index++;
+        c.matchedflash_idx = cluster_index;
+        cluster_index++;
       }
     }
     _num_input_clusters = cluster_index;
@@ -222,8 +222,8 @@ namespace reco {
         for (int i=0; i<3; i++)
           vertex.pos[i] = lf_vertex[i];
         vertex.tick  = lf_vertex.tick;
-	if ( vertex.tick>meta.min_y() && vertex.tick<meta.max_y() )
-	  vertex.row = meta.row( vertex.tick, __FILE__, __LINE__ );
+        if ( vertex.tick>meta.min_y() && vertex.tick<meta.max_y() )
+          vertex.row = meta.row( vertex.tick, __FILE__, __LINE__ );
         vertex.col_v = lf_vertex.targetwire;
         vertex.score = 0.0;
         vertex.maxScore = 0.0;
@@ -455,6 +455,7 @@ namespace reco {
     std::vector< NuScore_t > nu_v;
     nu_v.reserve( _vertex_v.size() );
     for ( auto const& nucand : _vertex_v ) {
+      //std::cout << "nuvertexmaker::merged nucand.keypoint_type="  << nucand.keypoint_type << std::endl;
       nu_v.push_back( NuScore_t(&nucand, nucand.score) );
     }
     std::sort( nu_v.begin(), nu_v.end() );
@@ -526,7 +527,7 @@ namespace reco {
             auto const& lfcluster = it_clust->second->at(test_clust.index);
             auto const& lfpca     = it_pca->second->at(test_clust.index);
             auto const& clust_t   = it_ctype->second;
-	    LARCV_DEBUG() << "Call _attachClusterToCandidate for merger" << std::endl;
+      	    LARCV_DEBUG() << "Call _attachClusterToCandidate for merger" << std::endl;
             _attachClusterToCandidate( cand, lfcluster, lfpca, clust_t,
                                        test_clust.producer, test_clust.index, false );
           }
@@ -553,7 +554,9 @@ namespace reco {
       current_cand_index++;
     }
     
-    
+    // for ( auto const& nucand : _merged_v ) {
+    //   std::cout << " _merged_v nucand.keypoint_type=" << nucand.keypoint_type << std::endl;
+    // }
   }
 
   /**
@@ -618,7 +621,7 @@ namespace reco {
       startpt = pca_end;
       endpt   = pca_start;
       for (int v=0; v<3; v++)
-	dir[v] = -pca_dir[v];
+      	dir[v] = -pca_dir[v];
     }
     
     LARCV_DEBUG() << "  s(" << startpt[0] << "," << startpt[1] << "," << startpt[2] << ") "
@@ -637,45 +640,45 @@ namespace reco {
       dist[0] = 0.;
       dist[1] = 0.;
       for (int v=0; v<3; v++) {
-	float dx = track.LocationAtPoint(0)[v]-vertex.pos[v];
-	dist[0] += dx*dx;
-	dx = track.LocationAtPoint(npts-1)[v]-vertex.pos[v];
-	dist[1] += dx*dx;
+        float dx = track.LocationAtPoint(0)[v]-vertex.pos[v];
+        dist[0] += dx*dx;
+        dx = track.LocationAtPoint(npts-1)[v]-vertex.pos[v];
+        dist[1] += dx*dx;
       }
       TVector3 enddir;
       float s = 0.;      
       if ( dist[0]<dist[1] ) {
-	for (int ipt=0; ipt<npts-1; ipt++) {
-	  auto& current = track.LocationAtPoint(ipt);
-	  auto& nextpt  = track.LocationAtPoint(ipt+1);
-	  float ds = (current-nextpt).Mag();
-	  s+=ds;
-	  if ( s>10.0 ) {
-	    enddir = nextpt-track.LocationAtPoint(0);
-	    for (int v=0; v<3; v++)  {
-	      dir[v] = enddir[v]/enddir.Mag();
-	      startpt[v] = track.LocationAtPoint(0)[v];
-	      endpt[v]   = nextpt[v];
-	    }
-	  }
-	}
+        for (int ipt=0; ipt<npts-1; ipt++) {
+          auto& current = track.LocationAtPoint(ipt);
+          auto& nextpt  = track.LocationAtPoint(ipt+1);
+          float ds = (current-nextpt).Mag();
+          s+=ds;
+          if ( s>10.0 ) {
+            enddir = nextpt-track.LocationAtPoint(0);
+            for (int v=0; v<3; v++)  {
+              dir[v] = enddir[v]/enddir.Mag();
+              startpt[v] = track.LocationAtPoint(0)[v];
+              endpt[v]   = nextpt[v];
+            }
+          }
+        }
 	
       }
       else {
-	for (int ipt=npts-1; ipt>=1; ipt--) {
-	  auto& current = track.LocationAtPoint(ipt);
-	  auto& nextpt  = track.LocationAtPoint(ipt-1);
-	  float ds = (current-nextpt).Mag();
-	  s+=ds;
-	  if ( s>10.0 ) {
-	    enddir = nextpt-track.LocationAtPoint(npts-1);
-	    for (int v=0; v<3; v++)  {
-	      dir[v] = enddir[v]/enddir.Mag();
-	      startpt[v] = track.LocationAtPoint(npts-1)[v];
-	      endpt[v]   = nextpt[v];
-	    }
-	  }
-	}
+        for (int ipt=npts-1; ipt>=1; ipt--) {
+          auto& current = track.LocationAtPoint(ipt);
+          auto& nextpt  = track.LocationAtPoint(ipt-1);
+          float ds = (current-nextpt).Mag();
+          s+=ds;
+          if ( s>10.0 ) {
+            enddir = nextpt-track.LocationAtPoint(npts-1);
+            for (int v=0; v<3; v++)  {
+              dir[v] = enddir[v]/enddir.Mag();
+              startpt[v] = track.LocationAtPoint(npts-1)[v];
+              endpt[v]   = nextpt[v];
+            }
+          }
+        }
       }
 
       LARCV_DEBUG() << "  long track. "
@@ -721,14 +724,14 @@ namespace reco {
 
     if ( closestend==0 ) {
       for ( int i=0; i<3; i++) {
-	cluster.dir[i] = pca_dir[i];
-	cluster.pos[i] = pca_start[i];
+        cluster.dir[i] = pca_dir[i];
+        cluster.pos[i] = pca_start[i];
       }
     }
     else {
       for ( int i=0; i<3; i++) {
-	cluster.dir[i] = -pca_dir[i];
-	cluster.pos[i] = pca_end[i];
+        cluster.dir[i] = -pca_dir[i];
+        cluster.pos[i] = pca_end[i];
       }      
     }
     
@@ -839,7 +842,9 @@ namespace reco {
     }//end of vertex loop
 
     LARCV_INFO() << "Vertices after cosmic veto: " << _vetoed_v.size() << " (from " << _merged_v.size() << ")" << std::endl;
-    
+    // for ( auto const& nucand : _vetoed_v ) {
+    //   std::cout << " _vetoed_v nucand.keypoint_type=" << nucand.keypoint_type << std::endl;
+    // }
   }
 
   /**
@@ -885,11 +890,11 @@ namespace reco {
           fitcand.col_v[p] = larutil::Geometry::GetME()->WireCoordinate( dpos, p );
         fitcand.tick = fitcand.pos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
 
-	if ( fitcand.tick>meta.min_y() && fitcand.tick<meta.max_y() )  {
-	  fitcand.row = meta.row( fitcand.tick, __FILE__, __LINE__ );
-	  _fitted_v.emplace_back( std::move(fitcand) );
-	}
-	ivtx++;
+        if ( fitcand.tick>meta.min_y() && fitcand.tick<meta.max_y() )  {
+          fitcand.row = meta.row( fitcand.tick, __FILE__, __LINE__ );
+          _fitted_v.emplace_back( std::move(fitcand) );
+        }
+        ivtx++;
       }
       
     }
@@ -907,10 +912,10 @@ namespace reco {
       book.cluster_status_v.resize(_num_input_clusters,0);
       auto& nuvtx = get_mutable_output_candidates().at(ivtx);
       for (size_t ic=0; ic<nuvtx.cluster_v.size(); ic++) {
-	std::string producer = nuvtx.cluster_v[ic].producer;
-	int idx = nuvtx.cluster_v[ic].index;
-	int cindex = _cluster_producers[producer]->at(idx).matchedflash_idx;
-	book.cluster_status_v.at(cindex) = 1; // has been assigned
+        std::string producer = nuvtx.cluster_v[ic].producer;
+        int idx = nuvtx.cluster_v[ic].index;
+        int cindex = _cluster_producers[producer]->at(idx).matchedflash_idx;
+        book.cluster_status_v.at(cindex) = 1; // has been assigned
       }
       _cluster_book_v.emplace_back( std::move(book) );
     }

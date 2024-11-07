@@ -48,6 +48,10 @@ namespace reco {
                   std::vector<NuVertexCandidate>& nu_candidate_v,
 		  std::vector<ClusterBookKeeper>& nu_cluster_book_v );
     void loadClusters( larlite::storage_manager& ioll );
+    void use_shower_keypoints( bool use, std::string container_name ) {
+      _use_showerkp=use;
+      _keypoint_container_name=container_name;
+    };
 
   protected:
 
@@ -55,6 +59,13 @@ namespace reco {
     std::map<std::string, larlite::event_pcaxis* >           _cluster_pca_producers; ///< map from tree name to pca info for cluster
     std::map<std::string, NuVertexCandidate::ClusterType_t > _cluster_type;          ///< cluster type
     std::vector< NuVertexCandidate::VtxCluster_t >           _showercluster_candidates_v;
+
+    typedef struct {
+      int nabove_showerkp_threshold;
+      float maxscore;
+      std::vector<float> maxscore_pos;
+    } ShowerClusterKeypointVars_t;
+    std::vector< ShowerClusterKeypointVars_t > _showercluster_keypoint_vars_v;
 
   public:
     
@@ -70,13 +81,19 @@ namespace reco {
 			       larcv::IOManager& iolcv, 
 			       larlite::storage_manager& ioll );
 
+    void calcShowerKeypointVariables( const larlite::larflowcluster& cluster, 
+                                      const float& score_threshold,
+                                      std::vector<float>& maxscore_pos, 
+                                      float& maxscore,
+                                      int& nabove_threshold );
+
     // =============================================================================
     // mc analysis variables/functions
   public:
     void activateMCanalysisMode( bool doit=true) { _mc_analysis_mode=doit; }; ///< if MC analysis mode activated, will record information to study decision parameters for tuning
     
     typedef enum { kAccept=0, kSubCluster, kFailPreCuts, kFailAttachment } RecoOutCome_t;
-    typedef struct {
+    struct RecoShowerInfo_t {
       int   _trueprong_trackid;  //< geant4 trackid of photon prong best matched to this shower fragment
       float _cluster_pixsum_MeV; //< pixelsum of true trunk fragment
       float _frac_truetrunk;     //< fraction that reco fragment pixels overlap with true trunk pixels 
@@ -91,7 +108,25 @@ namespace reco {
       std::vector<float> _recoshower_trunkdir;
       int   _reco_outcome;  //< outcome of reco for shower fragment
       int   _correct_outcome;  ///< correct outcome label for this shower fragment
-    } RecoShowerInfo_t;
+
+      public:
+      RecoShowerInfo_t()
+      : _trueprong_trackid(0),
+      _cluster_pixsum_MeV(0.0),
+      _frac_truetrunk(0.0),
+      _frac_recopurity(0.0),
+      _true_trunkdir({0.,0.,0.}),
+      _trueprong_dist2vtx(-1.0),
+      _recoshower_dist2vtx(-1.0),
+      _recoshower_impactpar(-1.0),
+      _recoshower_cosine(0.0),
+      _recoshower_pixsum_MeV(0.0),
+      _recoshower_cosmic_pixsum(0.0),
+      _recoshower_trunkdir({0.,0.,0.}),
+      _reco_outcome(3),
+      _correct_outcome(3)
+      {};
+    };
     
     void createMCAnalysisTree( TFile* outfile );
     void writeAnaTree();
@@ -106,8 +141,12 @@ namespace reco {
       float dist2vtx;
       float impactpar;
       float cosine;
+      float cos_paf;
       float pixsum;
       float cosmic;
+      int ikpbest;
+      float kpdist;
+      float kpmax;
       std::vector<float> axis;
       std::vector<float> axis_start;
       std::vector<float> axis_end;
@@ -163,6 +202,7 @@ namespace reco {
                            const larlite::larflowcluster& lfcluster,
                            std::vector<float>& shower_start,
                            std::vector<float>& shower_dir,
+                           std::vector<float>& paf_dir,
                            float& shower_ll );
     std::vector<float> _get_cluster_pixsum( const std::vector<larcv::Image2D>& adc_v,
                                             const larlite::larflowcluster& lfcluster );
@@ -170,6 +210,12 @@ namespace reco {
     // XGBoost 
   protected:
     BoosterHandle* _boosterhandle;
+
+    // Use Shower Keypoints to rank and seed prongs
+  protected:
+    bool _use_showerkp;
+    std::string _keypoint_container_name;
+
     
   };
 

@@ -111,6 +111,7 @@ class LArMatchHDF5Writer:
 
         if run_process_truthlabels:
             """ run code to make truth labels and convert them into numpy arrays """
+            #print("Process truth labels")
             self.process_truthlabels( iolcv, ioll )
 
             # At this point, the spacepoints and labels are made.
