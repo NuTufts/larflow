@@ -786,7 +786,7 @@ namespace prep {
     // get dimenion of match score array
     int pair_ndims = PyArray_NDIM( (PyArrayObject*)triplet_indices );
     npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
-    LARCV_NORMAL() <<< "number of scores to store: triplet_indices.shape[0]=(" << pair_dims[0] << ")" << std::endl;
+    LARCV_NORMAL() << "number of scores to store: triplet_indices.shape[0]=(" << pair_dims[0] << ")" << std::endl;
 
     // has pre-calculated positions for each entry been given to us?
     bool precalc_pos = ( pos_vv.size()>0 ) ? true : false;
@@ -819,11 +819,12 @@ namespace prep {
 
       // check for a bad triplet
       if ( triple[0]==0 && triple[1]==0 && triple[2]==0 && triple[3]==2400 ) {	
-        std::stringstream ss << "Error: bad all zero triplet: "
+        std::stringstream ss;
+        ss << "Error: bad all zero triplet: "
             << "index=(" << index[0] << "," << index[1] << "," << index[2] << ")"
             << std::endl;
         LARCV_CRITICAL() << ss.str();
-        throw std::exception( ss.str() );
+        throw std::runtime_error( ss.str() );
       }
       
       // apply true edep score threshold

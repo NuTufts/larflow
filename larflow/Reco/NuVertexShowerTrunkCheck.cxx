@@ -65,9 +65,9 @@ namespace reco {
       for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
 
         if ( trunk_absorbed[i]==1 ) {
-	  LARCV_DEBUG() << "  already absorbing track[" << i << "]" << std::endl;
-          continue;
-	}
+          LARCV_DEBUG() << "  already absorbing track[" << i << "]" << std::endl;
+                continue;
+      	}
               
         auto& track = nuvtx.track_v[i];
         auto& track_hits = nuvtx.track_hitcluster_v[i];
@@ -108,9 +108,9 @@ namespace reco {
                       << std::endl;
 	
         if ( minvtxdist<0.3 && (ang_track>30.0 || maxvtxdist<1.5) ) {
-	  LARCV_DEBUG() << "  close to vtx or too wide an angle" << std::endl;
-          continue;
-	}
+          LARCV_DEBUG() << "  close to vtx or too wide an angle" << std::endl;
+                continue;
+        }
 
             
         float frac_path = 0.;
@@ -125,12 +125,12 @@ namespace reco {
                                                    frac_core );
 
         LARCV_DEBUG() << "  track[" << i << "] frac_core=" << frac_core << "  within_shower=" << within_shower << std::endl;
-	if ( within_shower ) {
-	  if ( frac_path<0.95 && ang_track>15.0 ) {
-	    LARCV_DEBUG() << "angle is wide too wide for partial path coverage" << std::endl;
-	    continue;
-	  }
-	}
+        if ( within_shower ) {
+          if ( frac_path<0.95 && ang_track>15.0 ) {
+            LARCV_DEBUG() << "angle is wide too wide for partial path coverage" << std::endl;
+            continue;
+          }
+        }
 	
         if ( within_shower ) {
           trunk_absorbed[i] = 1;
@@ -142,7 +142,7 @@ namespace reco {
                              shower_trunk,
                              shower,
                              shower_pca );
-	  }
+      	  }
           else {
             _addTrackAsNewTrunk( nuvtx.pos,
                                  track,
@@ -178,10 +178,10 @@ namespace reco {
         if ( trunk_absorbed[ii]==0 ) {
           keep_track_v.emplace_back( std::move(nuvtx.track_v[ii]) );
           keep_cluster_v.emplace_back( std::move(nuvtx.track_hitcluster_v[ii]) );
-	  if ( ii<(int)nuvtx.track_len_v.size() )
-	    keep_track_len_v.emplace_back( std::move(nuvtx.track_len_v[ii]) );
-	  if ( ii<(int)nuvtx.track_dir_v.size() )
-	    keep_track_dir_v.emplace_back( std::move(nuvtx.track_dir_v[ii]) );
+          if ( ii<(int)nuvtx.track_len_v.size() )
+            keep_track_len_v.emplace_back( std::move(nuvtx.track_len_v[ii]) );
+          if ( ii<(int)nuvtx.track_dir_v.size() )
+            keep_track_dir_v.emplace_back( std::move(nuvtx.track_dir_v[ii]) );
         }
       }
       std::swap( nuvtx.track_v, keep_track_v );
@@ -305,15 +305,26 @@ namespace reco {
     pathlen = sqrt(pathlen);
     for (int i=0; i<3; i++) {
       if (len>0)
-	showerdir[i] /= len;
+      	showerdir[i] /= len;
       if (pathlen>0)
-	pathdir[i] /= pathlen;
+      	pathdir[i] /= pathlen;
     }
 
     int nhits_within_startpath = 0.;
     int nhits_startpath = 0.;    
     int nhits_within_shower = 0.;
     std::vector<int> within(track_hitcluster.size(),0);
+    // We count how many hits belonging to the track prong is within
+    // a cone whose axis is define by the shower trunk axis 
+    // or a cone defined by the whole shower 1st principle component axis
+    // We also calculate if the hits are along the line between the vertex
+    // and the shower start.
+
+    // We also store the position of the hits along the vertex to shower line
+    // std::vector<float> dist_along_vtx2shr_v;
+    // dist_along_vtx2shr_v.reserve(track_hitcluster.size()+2);
+    float s_max = 0.0;
+    
     for (size_t ihit=0; ihit<track_hitcluster.size(); ihit++) {
       auto const& hit = track_hitcluster[ihit];
       //within shower
@@ -323,29 +334,41 @@ namespace reco {
       float s_start = larflow::reco::pointRayProjection3f( shrstart, showerdir, hit );
       float r_cone = 0.466*s_start;
       if ( r_cone<2.0 )
-	r_cone = 2.0;
+      	r_cone = 2.0;
+      
       if ( r<r_cone && s_start>-0.5 && s_start<pcalen ) {
         nhits_within_shower++;
-	within[ihit] = 1;
+      	within[ihit] = 1;
       }
 
       // along path
       r = larflow::reco::pointLineDistance3f( vtxpos, shrstart, hit );
       s_start = larflow::reco::pointRayProjection3f( vtxpos, pathdir, hit );
       if ( s_start>-0.5 && s_start<pathlen ) {
-	if (r<3.5) {
-	  nhits_within_startpath++;
-	  within[ihit] += 2;	  
-	}
-	nhits_startpath++;
+        if (r<3.5) {
+          nhits_within_startpath++;
+          within[ihit] += 2;	  
+        }
+        nhits_startpath++;
       }
+      if ( s_max < s_start )
+        s_max = s_start;
+      // if ( s_start < pathlen )
+      //   dist_along_vtx2shr_v.push_back( s_start );
       
     }
+
+    // add the shower start point to the list of dist along vertex to shower line
+    //dist_along_vtx2shr_v.push_back(pathlen);
+    // sort the positions (we avoid this for now, due to potentially large cost of sort)
+    //std::sort( dist_along_vtx2shr_v.begin(), dist_along_vtx2shr_v.end() );
+    // calculate the gap between track end and shower start
+    float gaplen = pathlen - s_max;
 
     int nclaimed = 0;
     for (int ihit=0; ihit<(int)within.size(); ihit++) {
       if ( within[ihit]>0 )
-	nclaimed++;
+      	nclaimed++;
     }
     float frac_within = 0;
     if ( within.size()>0 )
@@ -361,7 +384,7 @@ namespace reco {
     LARCV_DEBUG() << " fraction of track hits within cylinder of shower core: " << frac_core << std::endl;
     LARCV_DEBUG() << " fraction of track hits within core or path (frac_within): " << frac_within << std::endl;        
 
-    if ( frac_within>0.9 )
+    if ( frac_within>0.9 && gaplen < 1.0 )
       return true;
     
     return false;

@@ -182,7 +182,7 @@ namespace reco {
 
     void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
-    void saveEventMCinfo(bool savemc, bool activate_nuvertexshowerreco_mcanamode=False );
+    void saveEventMCinfo(bool savemc, bool activate_nuvertexshowerreco_mcanamode=false );
     void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
     void saveEventKeypoints(bool save_keypoints=true ) { _save_keypoints_in_anafile=save_keypoints; }; ///< if true, store keypoints
     void runPerfectMCreco( bool run_perfect=true ) { _run_perfect_mcreco=run_perfect; }; ///< if true and save MC info also set to true, run mc perfect reco
