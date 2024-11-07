@@ -64,10 +64,12 @@ def run(gpu, args ):
             timeout=datetime.timedelta(0, 1800)
         )
     #========================================================
-    torch.manual_seed(gpu)
 
     config = engine.load_config_file( args )
     verbose = config["VERBOSE_MAIN_LOOP"]
+    config_seed = int(config["SEED"]) + 1000*gpu
+    torch.manual_seed(config_seed)
+    
     torch.cuda.set_device(gpu)
     device = torch.device("cuda:%d"%(gpu) if torch.cuda.is_available() else "cpu")
 
@@ -189,10 +191,22 @@ def run(gpu, args ):
             torch.cuda.empty_cache() # clear cache and avoid fragmentation + memory overflow issues
             gc.collect()
             loss_meters,acc_meters,time_meters = engine.make_meters(config)
-            engine.do_one_iteration(config,model,train_iterator,train_loader,
-                                    criterion,optimizer,
-                                    acc_meters,loss_meters,time_meters,True,device,
-                                    verbose=config["VERBOSE_ITER_LOOP"])
+            ntries = 0
+            iterok = False
+            while ntries<3 and iterok==False:
+                iterok = engine.do_one_iteration(config,model,train_iterator,train_loader,
+                                                 criterion,optimizer,
+                                                 acc_meters,loss_meters,time_meters,True,device,
+                                                 verbose=config["VERBOSE_ITER_LOOP"])
+                ntries += 1
+                if not iterok:
+                    print("try iteration again after reseting the iterator")
+                    train_iterator = iter(train_loader)
+            if not iterok:
+                print("could not get a good iteration. end worker run() function")
+                return 0
+                
+                
 
             # periodic checkpoint
             if iiter>0 and train_iteration%config["ITER_PER_CHECKPOINT"]==0:
@@ -305,12 +319,24 @@ def run(gpu, args ):
                 if rank==0:
                     valid_loss_meters,valid_acc_meters,valid_time_meters = engine.make_meters(config)                    
                     for viter in range(int(config["NUM_VALID_ITERS"])):
-                        with torch.no_grad():
-                            engine.do_one_iteration(config,single_model,
-                                                    valid_iterator,valid_loader,
-                                                    criterion,optimizer,
-                                                    valid_acc_meters,valid_loss_meters,valid_time_meters,
-                                                    False,device,verbose=False)
+
+                        ntries = 0
+                        iterok = False
+                        while ntries<3 and iterok==False:
+                            with torch.no_grad():
+                                iterok = engine.do_one_iteration(config,single_model,
+                                                                 valid_iterator,valid_loader,
+                                                                 criterion,optimizer,
+                                                                 valid_acc_meters,valid_loss_meters,valid_time_meters,
+                                                                 False,device,verbose=False)
+                                ntries += 1
+                                if not iterok:
+                                    print("try validation iteration again after reseting the valid iterator")
+                                    valid_iterator = iter(valid_loader)
+                        if not iterok:
+                            print("could not get a good validation iteration. end worker run() function")
+                            return 0
+                            
                     engine.prep_status_message( "Valid-Iteration", train_iteration,
                                                 valid_acc_meters,
                                                 valid_loss_meters,

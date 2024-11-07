@@ -293,10 +293,11 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
             batchdata = next(data_iter)
         except Exception as e:
             # reset the iterator, try agin
-            print("reset the iterator rank. error: ",e)
-            data_iter = iter(data_loader)
-            ntries += 1
-            continue
+            print("send signal to reset the iterator. error: ",e)
+            return False
+            #data_iter = iter(data_loader)
+            #ntries += 1
+            #continue
             
         npts = 0
         for data in batchdata:
@@ -455,7 +456,7 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     time_meters["batch"].update(time.time()-dt_all)
 
     # done with iteration
-    return 0
+    return True
     
     
 def prep_status_message( descripter, iternum, acc_meters, loss_meters, timers ):

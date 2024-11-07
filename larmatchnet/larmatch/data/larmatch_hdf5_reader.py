@@ -197,7 +197,7 @@ class LArMatchHDF5Dataset(Dataset):
             rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
             rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
 
-            inputdata = LArMatchHDF5Dataset.prepare_triplet_and_image_arrays_for_network( batchdata )
+            inputdata = LArMatchHDF5Dataset.prepare_triplet_and_image_arrays_for_network( batchdata, triplet_key="matchtriplet" )
             for p in range(3):
                 rebatchdata['coord_%d'%(p)]       = inputdata['coord_%d'%(p)]
                 rebatchdata['feat_%d'%(p)]        = inputdata['feat_%d'%(p)]
