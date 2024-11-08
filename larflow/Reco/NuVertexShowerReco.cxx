@@ -641,7 +641,14 @@ namespace reco {
       //   if ( rankedprong.score>=0.0 )
       //     passes = true;
       // }
-       
+      bool pass_pixsum = rankedprong.pixsum>20.0;
+      bool pass_impact = rankedprong.impactpar<20.0;
+      bool pass_dist2vtx_upperbound = rankedprong.dist2vtx < 500.0;
+      bool pass_cosine = rankedprong.dist2vtx<5.0 || rankedprong.cosine>0.8;
+      bool pass_kpminhits = rankedprong.ikpbest>=10;
+      bool pass_kpmaxscore = rankedprong.kpmax>0.55;
+      bool pass_kpdist = rankedprong.kpdist<5.0;
+      
       if (  rankedprong.pixsum>20.0
             && rankedprong.impactpar<20.0 
             && rankedprong.dist2vtx < 500.0
@@ -652,9 +659,12 @@ namespace reco {
         passes = true;
       }
       // for shower style keypoints, seed with nearby only
+      bool reject_showerkp_far = false;
       if ( nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 
-            && (rankedprong.kpdist>1.0 || rankedprong.dist2vtx<1.0) )
+	   && (rankedprong.kpdist>1.5 || rankedprong.dist2vtx>1.5) ) {
         passes = false;
+	reject_showerkp_far = true;
+      }
 
       // LARCV_INFO() << "  prong[" << iprong << "] pars: "
       //             << " kptype=" << nuvtx.keypoint_type
@@ -694,15 +704,16 @@ namespace reco {
 
       LARCV_INFO() << "------------------------------------------------------------" << std::endl;
       LARCV_INFO() << "ShowerProng[" << prongidx << "] proposed as shower start." << std::endl;
-      LARCV_INFO() << "   dist2vtx: " << rankedprong.dist2vtx << " cm" << std::endl;
-      LARCV_INFO() << "   impactpar: " << rankedprong.impactpar << " cm" << std::endl;
-      LARCV_INFO() << "   cosine: " << rankedprong.cosine << std::endl;
-      LARCV_INFO() << "   pixsum: " << rankedprong.pixsum << " MeV-ish" << std::endl;
+      LARCV_INFO() << "   dist2vtx: " << rankedprong.dist2vtx << " cm (" << pass_dist2vtx_upperbound << ")" << std::endl;
+      LARCV_INFO() << "   impactpar: " << rankedprong.impactpar << " cm (" << pass_dist2vtx_upperbound << ")" << std::endl;
+      LARCV_INFO() << "   cosine: " << rankedprong.cosine << " (" << pass_cosine << ")" << std::endl;
+      LARCV_INFO() << "   pixsum: " << rankedprong.pixsum << " MeV-ish (" << pass_pixsum << ")" << std::endl;
       LARCV_INFO() << "   cosmic: " << rankedprong.cosmic << std::endl;
-      LARCV_INFO() << "   kp-bestindex: " << rankedprong.ikpbest << std::endl;
-      LARCV_INFO() << "   kp-dist: " << rankedprong.kpdist << " cm" << std::endl;
-      LARCV_INFO() << "   kp-maxscore: " << rankedprong.kpmax << std::endl;
+      LARCV_INFO() << "   kp-nabove: " << rankedprong.ikpbest << " (" << pass_kpminhits << ")" << std::endl;
+      LARCV_INFO() << "   kp-dist: " << rankedprong.kpdist << " cm (" << pass_kpdist << ")" << std::endl;
+      LARCV_INFO() << "   kp-maxscore: " << rankedprong.kpmax << " (" << pass_kpmaxscore << ")" << std::endl;
       LARCV_INFO() << "   score (bdt logit): " << rankedprong.score << std::endl;
+      LARCV_INFO() << "   showerkp reject far from vtx: " << reject_showerkp_far << std::endl;
 
       
       // if ( rankedprong.score>-4.0 ) {
@@ -1095,11 +1106,15 @@ namespace reco {
 
       lenm2c = sqrt(lenm2c);
       lenpca = sqrt(lenpca);
-      if ( lenm2c>0 && lenpca>0 ) {
-        for (int i=0; i<3; i++)
+      if ( lenm2c>0 ) {
+        for (int i=0; i<3; i++)	  
           min2center[i] /= lenm2c;
+      }
+      if ( lenpca>0 ) {
         for (int i=0; i<3; i++)
           pca1[i] /= lenpca;
+      }
+      for (int i=0; i<3; i++) {
         cos_pca_m2c /= (lenpca*lenm2c);
       }
 
