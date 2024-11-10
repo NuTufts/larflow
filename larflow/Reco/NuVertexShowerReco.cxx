@@ -65,6 +65,9 @@ namespace reco {
 				                            std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
+    if ( _mcpg ) {
+	    delete _mcpg;
+    }
     loadClusters(ioll);
 
     if ( _mc_analysis_mode ) {
@@ -1616,7 +1619,7 @@ namespace reco {
    */
   void NuVertexShowerReco::save_detectable_photon_info( larlite::storage_manager& ioll )
   {
-    if ( _mc_analysis_mode ) {
+    if ( _mc_analysis_mode && _mcpg ) {
       LARCV_NORMAL() << "updating mcshower profile location" << std::endl;
 
       larlite::event_mcshower* ev_mcshower
@@ -1637,6 +1640,18 @@ namespace reco {
 
         std::vector<float> updated_start_pt = 
           node.first_edep_pos; /// (x,y,z,tick)
+
+        if ( updated_start_pt.size()!=4 ) {
+          updated_start_pt.resize(4,0);
+          updated_start_pt[0] = 0;
+          updated_start_pt[1] = 0;
+          updated_start_pt[2] = 0;
+          updated_start_pt[3] = 0;
+        }
+
+        LARCV_INFO() << "  mc photon: node.vidx=" << node.vidx << " (ev_mcshower.size()=" << ev_mcshower->size() << ")" 
+                    << " start_pt=(" << updated_start_pt[0] << "," << updated_start_pt[1] << "," << updated_start_pt[2] << "," << updated_start_pt[3] << ")"
+                    << std::endl;
 
         // make copy of existing detprofile point
         larlite::mcshower mcphoton = ev_mcshower->at( node.vidx );
