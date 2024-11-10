@@ -52,6 +52,7 @@ namespace reco {
       _use_showerkp=use;
       _keypoint_container_name=container_name;
     };
+    void save_detectable_photon_info( larlite::storage_manager& ioll );
 
   protected:
 
@@ -91,7 +92,8 @@ namespace reco {
     // mc analysis variables/functions
   public:
     void activateMCanalysisMode( bool doit=true) { _mc_analysis_mode=doit; }; ///< if MC analysis mode activated, will record information to study decision parameters for tuning
-    
+    bool isMCanaModeActive() { return _mc_analysis_mode; };
+
     typedef enum { kAccept=0, kSubCluster, kFailPreCuts, kFailAttachment } RecoOutCome_t;
     struct RecoShowerInfo_t {
       int   _trueprong_trackid;  //< geant4 trackid of photon prong best matched to this shower fragment

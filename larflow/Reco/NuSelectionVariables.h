@@ -86,6 +86,7 @@ namespace reco {
 
     // SUMMARY
     float max_proton_pid;
+    float approx_vis_energy_MeV;
 
     // made by NuSelProngVars
     int   ntracks;

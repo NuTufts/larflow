@@ -138,6 +138,7 @@ if args.products in ["rerun"]:
     io.set_data_to_write( larlite.data.kMCTruth, "generator" )
     io.set_data_to_write( larlite.data.kMCShower, "mcreco" )
     io.set_data_to_write( larlite.data.kMCTrack,  "mcreco" )
+    io.set_data_to_write( larlite.data.kMCShower, "mcdetectableshower" )
 
 if args.products in ["rerun","min"]:
 
@@ -168,6 +169,9 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( larlite.data.kPCAxis, "showerkp" )      # in-time shower clusters, found using shower keypoints
     io.set_data_to_write( larlite.data.kPCAxis, "showergoodhit" ) # in-time shower clusters
     io.set_data_to_write( larlite.data.kPCAxis, "hip" )           # in-time proton tracks
+
+    # mc info
+    io.set_data_to_write( larlite.data.kMCShower, "mcdetectableshower" )
     
     # save flash
     io.set_data_to_write( larlite.data.kOpFlash, "simpleFlashBeam" )

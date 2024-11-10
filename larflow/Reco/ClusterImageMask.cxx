@@ -21,13 +21,16 @@ namespace reco {
     _npix = 0;
     
     // loop over tracks
-    for ( auto const& track : nuvtx.track_v ) {
-      maskTrack( track, adc_v, mask_v, 10.0, 2, 2, 0.5, 1.0 );
+    // for ( auto const& track : nuvtx.track_v ) {
+    //   //maskTrack( track, adc_v, mask_v, 10.0, 2, 2, 0.5, 1.0 );
+    // }
+    for ( auto const& track : nuvtx.track_hitcluster_v ) {
+      maskCluster( track, adc_v, mask_v, 10.0, 5 );
     }
 
     // loop over showers
     for ( auto const& shower : nuvtx.shower_v ) {
-      maskCluster( shower, adc_v, mask_v, 10.0, 2 );
+      maskCluster( shower, adc_v, mask_v, 10.0, 5 );
     }
 
     return mask_v;
@@ -54,7 +57,7 @@ namespace reco {
 
       int row = adc_v.front().meta().row( sp.tick );
       
-      if ( sp.targetwire.size()!=adc_v.size() ) {
+      if ( sp.targetwire.size()<adc_v.size() ) {
         nskipped_points++;
         continue;
       }
@@ -78,7 +81,7 @@ namespace reco {
         
       }//end of row loop
     }//end of spacepoint loop
-    
+    LARCV_NORMAL() << "_npix labeled=" << _npix << " nskipped=" << nskipped_points << std::endl;
   }
 
   void ClusterImageMask::maskTrack( const larlite::track& track,

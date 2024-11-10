@@ -43,6 +43,12 @@ namespace reco {
     void fillTree() { if ( _tree ) { _tree->Fill(); } };
     void setSaveMask( bool save ) { _ksave_mask=save; };
 
+    void analyze_with_spacepoints( larcv::IOManager& iolcv,
+				   larlite::storage_manager& ioll,
+				   larflow::reco::NuVertexCandidate& nuvtx,
+				   larflow::reco::NuSelectionVariables& output );
+    
+
   protected:
 
     void _count_unreco_pixels( std::vector<larcv::Image2D>& numask_v,
@@ -51,6 +57,7 @@ namespace reco {
                                const float adc_threshold,
 			       std::vector<int>& unreco_intime_counts,			       
                                std::vector<int>& unreco_counts,
+                               std::vector<int>& reco_counts,			       
                                std::vector<float>& unreco_fraction );
 
     bool _ksave_mask;
@@ -58,6 +65,7 @@ namespace reco {
     TTree* _tree;
     std::vector<int>   _intime_count_v;
     std::vector<int>   _unreco_count_v;
+    std::vector<int>   _reco_count_v;
     std::vector<float> _unreco_fraction_v;
     float _median_fraction;
     float _min_fraction;

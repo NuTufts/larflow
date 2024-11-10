@@ -170,8 +170,6 @@ namespace reco {
     for ( auto const& flash : *ev_input_opflash_beam )
       evout_opflash_beam->push_back( flash );
 
-    // make selection variables
-    //makeNuCandidateSelectionVariables( iolcv, ioll );
     if ( _save_event_mc_info ) {
       _event_mcinfo_maker.process( ioll );      
     }
@@ -184,8 +182,9 @@ namespace reco {
       //truthAna( iolcv, ioll );
     }
 
-    // run selection and filter events    
-    //runNuVtxSelection();    
+    // make selection variables
+    makeNuCandidateSelectionVariables( iolcv, ioll );
+    
 
     if ( _kMinize_outputfile_size ) {
       // save only fitted vertex candidates
@@ -711,6 +710,10 @@ namespace reco {
 				   _nuvertexmaker.get_mutable_output_candidates(),
 				   _nuvertexmaker.get_candidate_cluster_book() );
 
+    if ( _nuvertex_shower_reco.isMCanaModeActive() ) {
+      _nuvertex_shower_reco.save_detectable_photon_info( ioll );
+    }
+
     LARCV_NORMAL() << "Cluster-book summary after [NuVertexShowerReco]" << std::endl;
     for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
       auto const& nucand = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);
@@ -916,14 +919,17 @@ namespace reco {
     // NuSelUnrecoCharge   unrecocharge;
     // NuSelCosmicTagger   cosmictagger;
     // TrackForwardBackwardLL muvsproton;
-    prongvars.set_verbosity(larcv::msg::kDEBUG);
-    vertexvars.set_verbosity(larcv::msg::kDEBUG);
-    wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
-    showergapana2d.set_verbosity(larcv::msg::kDEBUG);
-    unrecocharge.setSaveMask(false);
-    unrecocharge.set_verbosity(larcv::msg::kDEBUG);
-    cosmictagger.set_verbosity(larcv::msg::kDEBUG);
-    muvsproton.set_verbosity(larcv::msg::kINFO);
+    _prongvars.set_verbosity(larcv::msg::kDEBUG);
+    _vertexvars.set_verbosity(larcv::msg::kDEBUG);
+    _wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
+    _showergapana2d.set_verbosity(larcv::msg::kDEBUG);
+    _unrecocharge.setSaveMask(false);
+    _unrecocharge.set_verbosity(larcv::msg::kINFO);
+    _cosmictagger.set_verbosity(larcv::msg::kDEBUG);
+    _muvsproton.set_verbosity(larcv::msg::kINFO);
+
+    _nu_sel_v.clear();
+    _nu_sel_v.reserve( nuvtx_v.size() );
     
     for ( size_t ivtx=0; ivtx<nuvtx_v.size(); ivtx++ ) {
 
@@ -933,68 +939,89 @@ namespace reco {
       // make selection variables
       larflow::reco::NuSelectionVariables nusel;
 
-      std::cout << "===[ VERTEX " << ivtx << " ]===" << std::endl;
-      std::cout << "  source: " << nuvtx.keypoint_producer << std::endl;
-      std::cout << "  type: " << nuvtx.keypoint_type << std::endl;      
-      std::cout << "  pos (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
-      std::cout << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
-      std::cout << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
+      LARCV_INFO() << "===[ VERTEX " << ivtx << " ]===" << std::endl;
+      LARCV_INFO() << "  source: " << nuvtx.keypoint_producer << std::endl;
+      LARCV_INFO() << "  type: " << nuvtx.keypoint_type << std::endl;      
+      LARCV_INFO() << "  pos (" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
+      LARCV_INFO() << "  number of tracks: "  << nuvtx.track_v.size() << std::endl;
+      LARCV_INFO() << "  number of showers: " << nuvtx.shower_v.size() << std::endl;
 
-
-      // check if showers are connected to vertex      
-      showergapana2d.analyze( iolcv, ioll, nuvtx, nusel );
-
-      // if so, check for need of repair
-      if ( nusel.nplanes_connected>=2 )
-        _nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( nuvtx, iolcv, ioll );
-
-      nusel.max_proton_pid = 1e3; // more proton, the more value is negative
-      for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
-
-        auto& lltrack = nuvtx.track_v.at(itrack);
-        std::cout << "  [track " << itrack << "]" << std::endl;
-        std::cout << "    npts: " << lltrack.NumberTrajectoryPoints() << std::endl;
-
-        larflow::reco::NuSelectionVariables::TrackVar_t trackvars;
-
-        trackvars.proton_ll = _sel_llpmu.calculateLL( lltrack, nuvtx.pos );
-        if ( trackvars.proton_ll<nusel.max_proton_pid )
-          nusel.max_proton_pid = trackvars.proton_ll;
-        std::cout << "    proton-ll: " << trackvars.proton_ll << std::endl;
-
-        // proton ID variables        
-
-        // muon ID variables
-
-        // muon ID variables
-        
-        // pion ID variables
-
-        nusel._track_var_v.emplace_back( std::move(trackvars) );
-        
-      }//end of track loop
-        
-
-      for (int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++) {
-
-        auto& llshower = nuvtx.shower_v.at(ishower);
-        
-        // electron ID variables
-      
-        // pi-zero ID variables
-
+      float tot_tracklen = 0.;
+      float tot_showermev = 0.;
+      for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
+	tot_tracklen += nuvtx.track_len_v[i];
       }
+      for (int i=0; i<(int)nuvtx.shower_plane_pixsum_vv.size(); i++) {
+	auto const& plane_pixsum = nuvtx.shower_plane_pixsum_vv.at(i);
+	float maxpixsum = 0.;
+	for (auto const& pixsum : plane_pixsum ) {
+	  if ( pixsum>maxpixsum )
+	    maxpixsum = pixsum;
+	}
+	tot_showermev += maxpixsum*0.0162;
+      }
+      LARCV_INFO() << "  Total track length: " << tot_tracklen << " cm (" << tot_tracklen*2.2 << " MeV)" << std::endl;
+      LARCV_INFO() << "  Shower pixel sum: " << tot_showermev << " MeV" << std::endl;
+
+      float tot_vis_energy = tot_tracklen*2.2+tot_showermev;
+      LARCV_INFO() << "  Tot. approx visible energy: " << tot_vis_energy << std::endl;
+      nusel.approx_vis_energy_MeV = tot_vis_energy;
       
-      prongvars.analyze( nuvtx, nusel );
-      showertrunkvars.analyze( nuvtx, nusel, iolcv, ioll );
-      vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
-      wcoverlapvars.analyze( nuvtx, nusel, iolcv );
-      unrecocharge.analyze( iolcv, ioll, nuvtx, nusel );
-      cosmictagger.analyze( nuvtx, nusel );
-      muvsproton.analyze( nuvtx, nusel );
+      // check if showers are connected to vertex      
+      //_showergapana2d.analyze( iolcv, ioll, nuvtx, nusel );
+
+      // // if so, check for need of repair
+      // if ( nusel.nplanes_connected>=2 )
+      //   _nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( nuvtx, iolcv, ioll );
+
+      // nusel.max_proton_pid = 1e3; // more proton, the more value is negative
+      // for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
+
+      //   auto& lltrack = nuvtx.track_v.at(itrack);
+      //   LARCV_INFO() << "  [track " << itrack << "]" << std::endl;
+      //   LARCV_INFO() << "    npts: " << lltrack.NumberTrajectoryPoints() << std::endl;
+
+      //   larflow::reco::NuSelectionVariables::TrackVar_t trackvars;
+
+      //   trackvars.proton_ll = _sel_llpmu.calculateLL( lltrack, nuvtx.pos );
+      //   if ( trackvars.proton_ll<nusel.max_proton_pid )
+      //     nusel.max_proton_pid = trackvars.proton_ll;
+      //   LARCV_INFO() << "    proton-ll: " << trackvars.proton_ll << std::endl;
+
+      //   // proton ID variables        
+
+      //   // muon ID variables
+
+      //   // muon ID variables
+        
+      //   // pion ID variables
+
+      //   nusel._track_var_v.emplace_back( std::move(trackvars) );
+        
+      // }//end of track loop
+        
+
+      // for (int ishower=0; ishower<(int)nuvtx.shower_v.size(); ishower++) {
+
+      //   auto& llshower = nuvtx.shower_v.at(ishower);
+        
+      //   // electron ID variables
       
-      // std::cout << "  minshowergap: " << nusel.min_shower_gap << std::endl;
-      // std::cout << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      
+      //   // pi-zero ID variables
+
+      // }
+
+      //_unrecocharge.analyze( iolcv, ioll, nuvtx, nusel );
+      _unrecocharge.analyze_with_spacepoints( iolcv, ioll, nuvtx, nusel );            
+      // _prongvars.analyze( nuvtx, nusel );
+      // _showertrunkvars.analyze( nuvtx, nusel, iolcv, ioll );
+      // _vertexvars.analyze( iolcv, ioll, nuvtx, nusel );
+      // _wcoverlapvars.analyze( nuvtx, nusel, iolcv );
+      // _cosmictagger.analyze( nuvtx, nusel );
+      // _muvsproton.analyze( nuvtx, nusel );
+      
+      // LARCV_INFO() << "  minshowergap: " << nusel.min_shower_gap << std::endl;
+      // LARCV_INFO() << "  maxshowergap: " << nusel.max_shower_gap << std::endl;      
       
       // nu kinematic variables
       _nu_sel_v.emplace_back( std::move(nusel) );
@@ -1020,7 +1047,6 @@ namespace reco {
     _nu_track_kine.clear();
     _nu_shower_kine.clear();
     
-    //std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_fitted_candidates();
     std::vector<larflow::reco::NuVertexCandidate>& nuvtx_v = _nuvertexmaker.get_mutable_output_candidates();
 
     for (auto& nuvtx : nuvtx_v ) {
@@ -1041,7 +1067,7 @@ namespace reco {
       _nu_shower_kine.analyze( nuvtx, nusel, iolcv );
       nuvtx.shower_plane_pixsum_vv = _nu_shower_kine._shower_plane_pixsum_v;
       nuvtx.shower_plane_mom_vv    = _nu_shower_kine._shower_mom_v;
-      
+	
     }
       
   }

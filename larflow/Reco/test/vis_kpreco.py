@@ -133,6 +133,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     #vertex_v = kpsanatree.nufitted_v
     #vertex_v = kpsanatree.numerged_v
     vertex_v = kpsanatree.nuvetoed_v
+    sel_v    = kpsanatree.nu_sel_v
     vtxinfo = []
     for ivtx in range( vertex_v.size() ):
         nuvtx = vertex_v.at(ivtx)
@@ -152,8 +153,13 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             kplabel += "-CMU"
         elif nuvtx.keypoint_type==5:
             kplabel += "-D"
+
+        sel_vars = sel_v.at(ivtx)
+        score = vertex_v.at(ivtx).netScore
+        vis_MeV = sel_vars.approx_vis_energy_MeV
+        
             
-        vtxinfo.append( {"label":"[%d] %s (%.2f) ntracks=%d nshowers=%d"%(ivtx,kplabel,vertex_v.at(ivtx).score,ntracks,nshowers), "value":ivtx} )
+        vtxinfo.append( {"label":"[%d] %s (%.2f,%.2f MeV) ntracks=%d nshowers=%d"%(ivtx,kplabel,score,vis_MeV,ntracks,nshowers), "value":ivtx} )
         if not plotall and ivtx!=vtxid:
             # skip if asked for specific vertex info
             continue
@@ -313,7 +319,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     
 
     if HAS_MC:
-
+        print("HAS_MC")
         #mcpg = ublarcvapp.mctools.MCPixelPGraph()
         #mcpg.buildgraphonly( io )
         #mcpg.printGraph(0,False)
@@ -325,11 +331,58 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         mcinfoplots = lardly.data.visualize_nu_interaction(io, do_sce_correction=True )
         traces_v += mcinfoplots
         
-        #mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
-        #traces_v += mctrack_v
+        mctrack_v = lardly.data.visualize_larlite_event_mctrack( io.get_data(larlite.data.kMCTrack, "mcreco"), origin=1)
+        traces_v += mctrack_v
 
         #mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
         #traces_v.append( mcshower_v[2] )
+
+        ev_detshower = io.get_data(larlite.data.kMCShower, "mcdetectableshower")
+        print("number of detshower: ",ev_detshower.size())
+        for i in range(ev_detshower.size()):
+            shr = ev_detshower.at(i)
+            print(  "mc detectable shower[",i,"]: ",shr.PdgCode())
+            detprof = shr.DetProfile()
+            try:
+                x = detprof.X()
+                y = detprof.Y()
+                z = detprof.Z()
+                t = detprof.T()
+                print("mc detectable shower[",i,"]: ",(x,y,z,t))
+            except:
+                print("no detprof info")
+            try:
+                px = detprof.Px()
+                py = detprof.Py()
+                pz = detprof.Pz()
+                pE = detprof.E()
+                print("mc detectable shower[",i,"]: p=",(px,py,pz,pE))
+            except:
+                print("no detprof info E")
+            pnorm = np.sqrt( px*px+py*py+pz*pz )
+            if pnorm<1.0e-3:
+                continue
+            
+            shrlen = 14.0*3
+            shrpt = np.zeros((2,3))
+            shrpt[0,0] = x
+            shrpt[0,1] = y
+            shrpt[0,2] = z
+            shrpt[1,0] = x + px*shrlen/pnorm
+            shrpt[1,1] = y + py*shrlen/pnorm
+            shrpt[1,2] = z + pz*shrlen/pnorm
+            profcolor = "rgba(0,255,255,1)"
+            shower_prof_trace = {
+                "type":"scatter3d",
+                "x":shrpt[:,0],
+                "y":shrpt[:,1],
+                "z":shrpt[:,2],
+                "mode":"lines",
+                "name":"mcdetshower[%d]"%(shr.TrackID()),
+                "line":{"color":profcolor,"width":4},
+            }
+            traces_v.append( shower_prof_trace )
+
 
     # Check for perfect reco
     num_nu_perfect = 0        

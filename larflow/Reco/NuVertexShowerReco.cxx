@@ -7,6 +7,9 @@
 #include "geofuncs.h"
 #include "cluster_functions.h"
 
+// ROOT
+#include "TLorentzVector.h"
+
 namespace larflow {
 namespace reco {
 
@@ -258,6 +261,8 @@ namespace reco {
       _mcpg->set_verbosity( larcv::msg::kNORMAL );
       _mcpg->buildgraph( iolcv, ioll );
 
+      // save photon info
+      
       // initialization: clear container for ShowerRecoInfo_t
       _map_prongindex_to_mcanainfo.clear();
       LARCV_DEBUG() << "MCPG and MC Analysis Mode Ready." << std::endl;
@@ -659,11 +664,13 @@ namespace reco {
         passes = true;
       }
       // for shower style keypoints, seed with nearby only
+      // but only for first shower
       bool reject_showerkp_far = false;
-      if ( nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 
-	   && (rankedprong.kpdist>1.5 || rankedprong.dist2vtx>1.5) ) {
+      if ( nuvtx.shower_v.size()==0 
+        && nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 
+	      && (rankedprong.kpdist>1.5 || rankedprong.dist2vtx>1.5) ) {
         passes = false;
-	reject_showerkp_far = true;
+      	reject_showerkp_far = true;
       }
 
       // LARCV_INFO() << "  prong[" << iprong << "] pars: "
@@ -701,6 +708,10 @@ namespace reco {
           continue;
         }
       }
+
+      // no keypoint spacepoints on cluster. dont print for consideration
+      if ( rankedprong.ikpbest==0 )
+        continue;
 
       LARCV_INFO() << "------------------------------------------------------------" << std::endl;
       LARCV_INFO() << "ShowerProng[" << prongidx << "] proposed as shower start." << std::endl;
@@ -883,8 +894,8 @@ namespace reco {
               float rovers = r/s;
               //if ( rovers < 9.0/14.0 ) {
               if ( (s<5.0 && r<r_trunk) || (s>=5.0 && r<r_mollier ) ) {
-          // mollier/radiation length
-          nhits_within_cone++;
+                // mollier/radiation length
+                nhits_within_cone++;
               }
             }
           }//end of loop over hits in shower cluster
@@ -934,6 +945,7 @@ namespace reco {
       nuvtx.shower_v.emplace_back( std::move(shower_hit_v) );
       nuvtx.shower_trunk_v.emplace_back( std::move(shower_trunk) );
       nuvtx.shower_pcaxis_v.emplace_back( std::move(shower_hit_pca) );
+      
 
     }//end of seed prong loop
     
@@ -1598,6 +1610,51 @@ namespace reco {
     }  
   }
 
+  /**
+   * @brief Modify the MCShower info by replacing the profile variable
+   * 
+   */
+  void NuVertexShowerReco::save_detectable_photon_info( larlite::storage_manager& ioll )
+  {
+    if ( _mc_analysis_mode ) {
+      LARCV_NORMAL() << "updating mcshower profile location" << std::endl;
+
+      larlite::event_mcshower* ev_mcshower
+        = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
+
+      larlite::event_mcshower* ev_detshower
+        = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcdetectableshower" );
+
+      for (auto const& node : _mcpg->node_v ) {
+        if ( node.type!=1) {
+          // skip object if not a shower
+          continue;
+        }
+        if ( node.pid!=22 ) {
+          // skip if not photon
+          continue;
+        }
+
+        std::vector<float> updated_start_pt = 
+          node.first_edep_pos; /// (x,y,z,tick)
+
+        // make copy of existing detprofile point
+        larlite::mcshower mcphoton = ev_mcshower->at( node.vidx );
+        larlite::mcstep newdetprof = mcphoton.DetProfile();
+
+        // replace position of detprofile
+        TLorentzVector startpt( updated_start_pt[0],
+                                updated_start_pt[1],
+                                updated_start_pt[2],
+                                newdetprof.T() );
+        newdetprof.SetPosition( startpt );
+        mcphoton.DetProfile( newdetprof );
+        ev_detshower->push_back( mcphoton );
+        
+      }      
+
+    }
+  }
 
 }
 }

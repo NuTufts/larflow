@@ -48,9 +48,10 @@ namespace reco {
     auto const& thrumu_v =  ev_thrumu->as_vector();
     std::vector<int> intime_counts(adc_v.size(),0);    
     std::vector<int> unreco_counts(adc_v.size(),0);
+    std::vector<int> reco_counts(adc_v.size(),0);
     std::vector<float> unreco_fraction(adc_v.size(),0);
     _count_unreco_pixels( nuvtx_mask_v, adc_v, thrumu_v, adc_threshold,
-                          intime_counts, unreco_counts, unreco_fraction );
+                          intime_counts, unreco_counts, reco_counts, unreco_fraction );
 
     output.intime_count_v = intime_counts;
     output.unreco_count_v = unreco_counts;
@@ -90,21 +91,24 @@ namespace reco {
                                                 const float adc_threshold,
 						std::vector<int>& unreco_intime_counts,
                                                 std::vector<int>& unreco_counts,
+						std::vector<int>& reco_counts,						
                                                 std::vector<float>& unreco_fraction )
   {
 
     unreco_intime_counts.resize(adc_v.size(),0);
     unreco_counts.resize( adc_v.size(), 0 );
+    reco_counts.resize( adc_v.size(), 0 );
     unreco_fraction.resize( adc_v.size(), 0 );
     clearVars();
     
     for (int p=0; p<(int)adc_v.size(); p++) {
       unreco_counts[p] =  0;
+      reco_counts[p] = 0;
       unreco_fraction[p] = 0.;
 
-      auto const& img = adc_v[p];
-      auto & mask = numask_v[p];
-      auto const& thrumu = thrumu_v[p];
+      auto const& img = adc_v[p]; // wire plane image
+      auto & mask = numask_v[p];  // has non-zero value where clusters land
+      auto const& thrumu = thrumu_v[p]; // has non-zero value for pixels tagged AS COSMIC (untagged are neutrino candidates)
       auto const& meta = adc_v[p].meta();
       if ( meta.rows()!=mask.meta().rows() || meta.cols()!=mask.meta().cols() ) {
         LARCV_CRITICAL() << "dimensions of adc image and nu-candidate mask image are not the same" << std::endl;
@@ -120,15 +124,19 @@ namespace reco {
           float maskval = mask.pixel(r,c,__FILE__,__LINE__);
           float tagval  = thrumu.pixel(r,c,__FILE__,__LINE__);
 
-          if ( imgval>=adc_threshold && tagval==0 ) {
+          if ( imgval>=adc_threshold && tagval<10.0 ) {
             // pixel with content and not cosmic-tagged
             unreco_intime_counts[p]++;
 
             if ( maskval==0 ) {
+	      // if mask is zero, we missed it, in principle
               unreco_counts[p]++;
               unreco_fraction[p]++;
               mask.set_pixel(r,c,2.0); /// for debug
             }
+	    else {
+	      reco_counts[p]++;
+	    }
           }
                
         }
@@ -174,12 +182,17 @@ namespace reco {
     ss_unreco << "  unreco counts: ";
     for (auto const& count : unreco_counts )
       ss_unreco << count << " ";
+    std::stringstream ss_reco;
+    ss_reco << "  reco counts: ";
+    for (auto const& count : reco_counts )
+      ss_reco << count << " ";
     std::stringstream ss_frac;
     for (auto const& frac : unreco_fraction )
       ss_frac << frac << " ";
     
     LARCV_INFO() << ss_intime.str() << std::endl;
     LARCV_INFO() << ss_unreco.str() << std::endl;
+    LARCV_INFO() << ss_reco.str() << std::endl;    
     LARCV_INFO() << ss_frac.str() << std::endl;
     
   }
@@ -188,6 +201,7 @@ namespace reco {
   {
     _intime_count_v.clear();
     _unreco_count_v.clear();
+    _reco_count_v.clear();    
     _unreco_fraction_v.clear();
     _median_fraction = 0;
     _min_fraction = 0;
@@ -209,6 +223,103 @@ namespace reco {
     _tree->Branch( "nusel_unrecoq_max", &_max_fraction, "nusel_unrecoq_max/F" );
     
   }
+
+  void NuSelUnrecoCharge::analyze_with_spacepoints( larcv::IOManager& iolcv,
+						    larlite::storage_manager& ioll,
+						    larflow::reco::NuVertexCandidate& nuvtx,
+						    larflow::reco::NuSelectionVariables& output )
+  {
+
+    // what are the measures?
+    // (1) define nearby clusters:  clusters with hits some distance
+    //     from the vertex, track end-points.
+    // (2) can count number of hits in these clusters.
+    // (3) can count total charge in these clusters on the three planes.
+
+    // we do we get the clusters?
+    // we've also lost track of where our clusters came from?
+
+    // first thing to do is make a mask of where our charge is.
+    const float adc_threshold = 10;
+    
+    std::vector< std::string > spacepoint_producers
+      = { "maxtrackhit_wcfilter", "maxshowerhit" };
+
+    larcv::EventImage2D* ev_img
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_img->as_vector();
+
+    std::map< int, int > idxhit_v;
+    int nhits = 0;
+    for (auto& producer : spacepoint_producers ) {
+      larlite::event_larflow3dhit* ev_hit =
+	(larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, producer );
+      for ( auto const& hit : *(ev_hit) ) {
+	idxhit_v[ hit.idxhit ] = 0;
+	nhits++;
+      }
+    }
+    LARCV_INFO() << "nhits=" << nhits << "  idxhit_v.size()=" << idxhit_v.size() << std::endl;
+
+    // now we ask, did we use the hit?
+    int nfound_track = 0;
+    for ( auto& trackcluster : nuvtx.track_hitcluster_v ) {
+      for ( auto& trackhit : trackcluster ) {
+	auto it = idxhit_v.find( trackhit.idxhit );
+	if ( it==idxhit_v.end() ) {
+	  LARCV_INFO() << "  trackhit not in original hit map. idxhit=" << trackhit.idxhit << std::endl;
+	}
+	else {
+	  // set value to 1, to indicate it was found.
+	  it->second = 1;
+	  nfound_track++;
+	}
+      }
+    }
+    int nfound_shower = 0;
+    for ( auto& shower : nuvtx.shower_v ) {
+      for ( auto& hit : shower ) {
+	auto it = idxhit_v.find( hit.idxhit );
+	if ( it==idxhit_v.end() ) {
+	  LARCV_INFO() << "  shower hit not in original hit map. idxhit=" << hit.idxhit << std::endl;
+	}
+	else {
+	  // set value to 1, to indicate it was found.
+	  it->second = 1;
+	  nfound_shower++;
+	}
+      }
+    }
+
+    output.intime_count_v = std::vector<int>(1,nhits);
+    output.unreco_count_v = std::vector<int>(1,nhits-(nfound_track+nfound_shower));
+    if ( nhits>0 )
+      output.unreco_fraction_v = std::vector<float>(1, float(nhits-(nfound_track+nfound_shower))/float(nhits) );
+    else
+      output.unreco_fraction_v = std::vector<float>(1, 0.);
+
+    LARCV_INFO() << "Results" << std::endl;
+    std::stringstream ss_intime;
+    ss_intime << "  intime counts: ";
+    for (auto const& count : output.intime_count_v )
+      ss_intime << count << " ";
+    std::stringstream ss_unreco;
+    ss_unreco << "  unreco counts: ";
+    for (auto const& count : output.unreco_count_v )
+      ss_unreco << count << " ";
+    std::stringstream ss_reco;
+    ss_reco << "  reco counts: ntrack=" << nfound_track << " nshower=" << nfound_shower << std::endl;
+    std::stringstream ss_frac;
+    for (auto const& frac : output.unreco_fraction_v )
+      ss_frac << frac << " ";
+    
+    LARCV_INFO() << ss_intime.str() << std::endl;
+    LARCV_INFO() << ss_unreco.str() << std::endl;
+    LARCV_INFO() << ss_reco.str() << std::endl;    
+    LARCV_INFO() << ss_frac.str() << std::endl;
+    
+  }
+  
   
 }
 }

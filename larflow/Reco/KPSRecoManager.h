@@ -152,14 +152,14 @@ namespace reco {
     LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
     ShowerdQdx           _sel_showerdqdx; ///< shower dq/dx calculation
 
-    NuSelProngVars prongvars;
-    NuSelVertexVars vertexvars;
-    NuSelShowerTrunkAna showertrunkvars;
-    NuSelWCTaggerOverlap wcoverlapvars;
-    NuSelShowerGapAna2D showergapana2d;
-    NuSelUnrecoCharge   unrecocharge;
-    NuSelCosmicTagger   cosmictagger;
-    TrackForwardBackwardLL muvsproton;
+    NuSelProngVars         _prongvars;
+    NuSelVertexVars        _vertexvars;
+    NuSelShowerTrunkAna    _showertrunkvars;
+    NuSelWCTaggerOverlap   _wcoverlapvars;
+    NuSelShowerGapAna2D    _showergapana2d;
+    NuSelUnrecoCharge      _unrecocharge;
+    NuSelCosmicTagger      _cosmictagger;
+    TrackForwardBackwardLL _muvsproton;
     
 
     // Event Selection modules (only for development)
@@ -178,7 +178,6 @@ namespace reco {
     void makeNuCandidateSelectionVariables( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void runBasicKinematics( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void runBasicPID( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    void runNuVtxSelection();
 
     void truthAna( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
