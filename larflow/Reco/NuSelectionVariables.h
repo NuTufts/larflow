@@ -19,6 +19,7 @@ namespace reco {
 
     NuSelectionVariables()
       : max_proton_pid(0.0),
+      approx_vis_energy_MeV(0.0),
       ntracks(0),
       nshowers(0),
       max_shower_length(0),

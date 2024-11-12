@@ -81,6 +81,10 @@ namespace reco {
       cluster.hitidx_v.push_back( ipt );
     }
     // we run the pca algorithm made for our larflow::reco::cluster objects
+    if ( trunk_point_v.size()<2 ) {
+      trunk_segment.clear();
+      return trunk_segment;
+    }
     larflow::reco::cluster_pca( cluster );
 
     // decide which of the first pca-axis projection points is closer to start of cluster

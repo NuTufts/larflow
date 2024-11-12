@@ -1,6 +1,7 @@
 #include "cluster_functions.h"
 
 #include <fstream>
+#include <sstream>
 
 //#include "TVector.h"
 #include "ublarcvapp/dbscan/DBScan.h"  ///< hand-written
@@ -269,8 +270,10 @@ namespace reco {
     }
 
     if ( eigen_v.size()==0 ) {
-      throw std::runtime_error("cluster_functions.cc:L271 not enough points to take PCA");
-    }
+      std::stringstream msg;
+      msg << "cluster_functions.cc:L271 not enough points to take PCA (npts=" << cluster.points_v.size() << ")" << std::endl;
+      throw std::runtime_error(msg.str());
+    } 
     
     cilantro::PrincipalComponentAnalysis3f pca( eigen_v );
     cluster.pca_center.resize(3,0);

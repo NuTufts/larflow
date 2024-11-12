@@ -67,6 +67,7 @@ namespace reco {
 
     if ( _mcpg ) {
 	    delete _mcpg;
+	    _mcpg = nullptr;
     }
     loadClusters(ioll);
 
@@ -254,8 +255,10 @@ namespace reco {
     
     if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
 
-      if ( _mcpg )
+      if ( _mcpg ) {
 	      delete _mcpg;
+	      _mcpg = nullptr;
+      }
 
       LARCV_DEBUG() << " INITIALIZE MC ANALYSIS FOR SHOWER RECO STUDY: build MCPixelPGraph" << std::endl;
       
