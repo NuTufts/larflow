@@ -315,6 +315,9 @@ namespace reco {
       // (note: who made these?)
       const larlite::larflowcluster& lfcluster =
         ( (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at( vtxcluster.index );
+      // get the pcaxis
+      const larlite::pcaxis& pcaxis = 
+        ((larlite::event_pcaxis*)ioll.get_data(larlite::data::kPCAxis,vtxcluster.producer))->at( vtxcluster.index);
 
       // if we are running the MC analysis, we try to match this prong to a true shower trunk
       if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
@@ -529,20 +532,6 @@ namespace reco {
       // loose cut on distance, impact par, cosine (maybe bdt good for this later)
       // ===========================================================================
 
-
-      // bool accept_prong = true;
-      // float score_ll = 1e9;
-      // if (  b_impact_par<20.0 
-      //       && a_dist < 500.0
-      //       && (prong_showerkp_vars.nabove_showerkp_threshold>20 
-      //           && prong_showerkp_vars.maxscore>0.75
-      //           && kpdist<1.5) ) {
-      //   accept_prong = true;
-      //   score_ll = a_dist;
-      // }
-      // if ( nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 
-      //       && a_dist>1.0 )
-      //   accept_prong = false;
       float maxscore = prong_showerkp_vars.maxscore;
       float score_ll = (1.0-maxscore)*1000.0 + a_dist;
 
@@ -575,6 +564,17 @@ namespace reco {
       rank.ikpbest    = prong_showerkp_vars.nabove_showerkp_threshold;
       rank.kpdist     = kpdist;
       rank.kpmax      = prong_showerkp_vars.maxscore;
+      const std::vector<double>& dpca1 = pcaxis.getEigenVectors().at(0);
+      rank.pca1dir    = std::vector<float>{ (float)dpca1[0], (float)dpca1[1], (float)dpca1[2] };
+      float pcanorm = 0.;
+      for (int i=0; i<3; i++) {
+        pcanorm += rank.pca1dir[i]*rank.pca1dir[i];
+      }
+      pcanorm = sqrt(pcanorm);
+      if ( pcanorm>0.0 ) {
+        for (int i=0; i<3; i++)
+          rank.pca1dir[i] /= pcanorm;
+      }
 
       seed_rank_v.push_back( rank );
     }//end of loop over prong
@@ -652,7 +652,7 @@ namespace reco {
       //   if ( rankedprong.score>=0.0 )
       //     passes = true;
       // }
-      bool pass_pixsum = rankedprong.pixsum>20.0;
+      bool pass_pixsum = rankedprong.pixsum>=15.0;
       bool pass_impact = rankedprong.impactpar<20.0;
       bool pass_dist2vtx_upperbound = rankedprong.dist2vtx < 500.0;
       bool pass_cosine = rankedprong.dist2vtx<5.0 || rankedprong.cosine>0.8;
@@ -660,23 +660,61 @@ namespace reco {
       bool pass_kpmaxscore = rankedprong.kpmax>0.55;
       bool pass_kpdist = rankedprong.kpdist<5.0;
       
-      if (  rankedprong.pixsum>20.0
+      if (  rankedprong.pixsum>=15.0
             && rankedprong.impactpar<20.0 
             && rankedprong.dist2vtx < 500.0
             && ( rankedprong.dist2vtx<5.0 || rankedprong.cosine>0.8 )
-            && (rankedprong.ikpbest>=10 
-                && rankedprong.kpmax>0.55
-                && rankedprong.kpdist<3.0) ) {
+            && rankedprong.ikpbest>=10 
+            && rankedprong.kpmax>0.55
+            && rankedprong.kpdist<5.0 ) {
         passes = true;
       }
       // for shower style keypoints, seed with nearby only
       // but only for first shower
       bool reject_showerkp_far = false;
-      if ( nuvtx.shower_v.size()==0 
-        && nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 
-	      && (rankedprong.kpdist>1.5 || rankedprong.dist2vtx>1.5) ) {
-        passes = false;
-      	reject_showerkp_far = true;
+      bool pass_by_line_line_intersection = false;
+      float line_line_r = -1.0;
+      if ( nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 ) {
+        // if no shower has been added
+        if ( nuvtx.shower_v.size()==0 ) {
+          // the first shower to a shower-keypoint. cluster should basically be attached
+	        if (rankedprong.kpdist>1.5 || rankedprong.dist2vtx>1.5) {
+            // two far, so setup to reject
+            passes = false;
+      	    reject_showerkp_far = true;
+          }
+        }
+        else if ( nuvtx.shower_v.size()>0 && rankedprong.pixsum>15.0 && rankedprong.kpdist<10.0 && rankedprong.ikpbest>=5 && rankedprong.dist2vtx<200.0 ) {
+          // already have one shower attached. so now we allow a shower to pair,
+          // if the shower cluster's pcaxis intersects with the trunk-line
+          for (int iprev=0; iprev<(int)sort_by_distance.size(); iprev++) {
+            int prev_index = sort_by_distance.at(iprev).index;
+            if ( prong_used_v[prev_index]>0 && (prong_used_v[prev_index]-1)<nuvtx.shower_v.size()  ) {
+              // so we test against prong seeds that are already used.
+              auto& prev_prong = seed_rank_v.at( prev_index );
+              std::vector<float> x2 = { prev_prong.axis_start[0]+(float)5.0*prev_prong.pca1dir[0],
+                                        prev_prong.axis_start[1]+(float)5.0*prev_prong.pca1dir[1],
+                                        prev_prong.axis_start[2]+(float)5.0*prev_prong.pca1dir[2]};
+              std::vector<float> y2 = { rankedprong.axis_start[0]+(float)5.0*rankedprong.pca1dir[0],
+                                        rankedprong.axis_start[1]+(float)5.0*rankedprong.pca1dir[1],
+                                        rankedprong.axis_start[2]+(float)5.0*rankedprong.pca1dir[2]};
+              LARCV_INFO() << "line-line test" << std::endl;
+              LARCV_INFO() << "  x1: " << rankedprong.axis_start[0] << "," << rankedprong.axis_start[1] << "," << rankedprong.axis_start[2] << std::endl;
+              LARCV_INFO() << "  dir1: " << rankedprong.pca1dir[0] << "," << rankedprong.pca1dir[1] << "," << rankedprong.pca1dir[2] << std::endl;
+              LARCV_INFO() << "  x2: " << prev_prong.axis_start[0] << "," << prev_prong.axis_start[1] << "," << prev_prong.axis_start[2] << std::endl;
+              LARCV_INFO() << "  dir2: " << prev_prong.pca1dir[0] << "," << prev_prong.pca1dir[1] << "," << prev_prong.pca1dir[2] << std::endl;
+              // float r = larflow::reco::lineLineDistance3f(  prev_prong.axis_start, x2,
+              //                                               rankedprong.axis_start, y2 );
+              float r = larflow::reco::lineLineDistance3f_claude( rankedprong.axis_start, rankedprong.pca1dir, prev_prong.axis_start, prev_prong.pca1dir );
+              line_line_r = r;
+              if ( r < 20.0 ) {
+                passes = true;
+                pass_by_line_line_intersection = true;
+              }
+            }
+          }
+          
+        }
       }
 
       // LARCV_INFO() << "  prong[" << iprong << "] pars: "
@@ -729,6 +767,7 @@ namespace reco {
       LARCV_INFO() << "   kp-nabove: " << rankedprong.ikpbest << " (" << pass_kpminhits << ")" << std::endl;
       LARCV_INFO() << "   kp-dist: " << rankedprong.kpdist << " cm (" << pass_kpdist << ")" << std::endl;
       LARCV_INFO() << "   kp-maxscore: " << rankedprong.kpmax << " (" << pass_kpmaxscore << ")" << std::endl;
+      LARCV_INFO() << "   line-line-dist: " << line_line_r << " cm (" << pass_by_line_line_intersection << ")" << std::endl;
       LARCV_INFO() << "   score (bdt logit): " << rankedprong.score << std::endl;
       LARCV_INFO() << "   showerkp reject far from vtx: " << reject_showerkp_far << std::endl;
 
@@ -775,7 +814,7 @@ namespace reco {
 
       // using cluster as seed
       cluster_used_v[vtxcluster.producer][vtxcluster.index] = 1;
-      prong_used_v[prongidx] = 1;
+      prong_used_v[prongidx] = nuvtx.shower_v.size()+1;
       
       // get the shower cluster
       const larlite::larflowcluster& lfcluster =
@@ -865,7 +904,7 @@ namespace reco {
           continue;
 
         // don't absorb points from previous used cluster
-        if ( prong_used_v[sub_prongidx]==1 )
+        if ( prong_used_v[sub_prongidx]>0 )
           continue;
         
         //for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
@@ -915,7 +954,7 @@ namespace reco {
             for ( auto const& showerhit : shower_lfcluster )
               shower_hit_v.push_back( showerhit );
             cluster_used_v[sub_producer][sub_index] =  1;
-            prong_used_v[sub_prongidx] = 1;
+            prong_used_v[sub_prongidx] = 100*(nuvtx.shower_v.size()+1);
           }//end of if inside cone
         }//end of if cluster is shower type
       }//loop over producers to build showers

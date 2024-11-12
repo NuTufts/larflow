@@ -152,6 +152,7 @@ namespace reco {
       std::vector<float> axis;
       std::vector<float> axis_start;
       std::vector<float> axis_end;
+      std::vector<float> pca1dir;
       ProngRank_t( std::string p, int pi, int ci, float s )
         : producer(p), prong_idx(pi), container_idx(ci), score(s)
       {};

@@ -5,6 +5,7 @@ sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
 parser = argparse.ArgumentParser(description='Run Prep larmatch data')
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
 parser.add_argument('-s','--single',default=False,action='store_true',help='If flag given, input_list argument is interpretted as a triplet file')
+parser.add_argument('-d','--debug',default=False,action='store_true',help='If flag given, just run 5 events for debugging')
 parser.add_argument('input_list',type=str,help="text file with paths to larmatch triplet files to distill")
 
 args = parser.parse_args()
@@ -44,12 +45,15 @@ for f in input_rootfile_v:
     f_v.push_back( f )
 
 # c++ extension that provides spacepoint labels
+print("loaded data")
 kploader = larflow.keypoints.LoaderKeypointData( f_v )
 kploader.set_verbosity( larcv.msg.kDEBUG )
 kploader.exclude_false_triplets( False )
+print("loaded LoaderKeypointData")
 
 # Get the number of entries in the tree
 nentries = kploader.GetEntries()
+print("number of entries in input file: ",nentries)
 
 # output container for data
 outfile = rt.TFile(args.output,"recreate")
@@ -181,7 +185,7 @@ for ientry in range(nentries):
     kp_weight_v.push_back( data["kplabel_weight"].astype(np.float32) )    
 
     outtree.Fill()
-    if False and ientry>=4:
+    if args.debug and ientry>=4:
         # For debug
         break
 

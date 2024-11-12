@@ -2,6 +2,8 @@
 #define __LARFLOW_GEOFUNCS_H__
 
 #include <vector>
+#include <cmath>
+#include <array>
 
 namespace larflow {
 namespace reco {
@@ -37,6 +39,46 @@ namespace reco {
 			    const std::vector<float>& line1_x2,
 			    const std::vector<float>& line2_x3,
 			    const std::vector<float>& line2_x4 );
+
+
+  class GeoFuncVector3D {
+    public:
+
+      GeoFuncVector3D( double xx, double yy, double zz )
+      : x(xx),
+      y(yy),
+      z(zz)
+      {};
+
+      double x;
+      double y;
+      double z;
+      
+      GeoFuncVector3D operator-(const GeoFuncVector3D& other) const {
+          return {x - other.x, y - other.y, z - other.z};
+      };
+      
+      double dot(const GeoFuncVector3D& other) const {
+          return x * other.x + y * other.y + z * other.z;
+      }
+      
+      GeoFuncVector3D cross(const GeoFuncVector3D& other) const {
+          return {
+              y * other.z - z * other.y,
+              z * other.x - x * other.z,
+              x * other.y - y * other.x
+          };
+      };
+      
+      double magnitude() const {
+          return std::sqrt(dot(*this));
+      };
+  };
+
+  float lineLineDistance3f_claude( const std::vector<float>& x1,
+			    const std::vector<float>& dir1,
+			    const std::vector<float>& x2,
+			    const std::vector<float>& dir2 );
   
 }
 }
