@@ -218,6 +218,11 @@ namespace reco {
         vertex.keypoint_producer = it->first;
         vertex.keypoint_index = vtxid;
         vertex.keypoint_type = (lf_vertex.size()>3) ? lf_vertex[3] : -1;
+
+	// don't use michel or delta keypoints
+	if ( vertex.keypoint_type==4 || vertex.keypoint_type==5 )
+	  continue;
+	
         vertex.pos.resize(3,0);
         for (int i=0; i<3; i++)
           vertex.pos[i] = lf_vertex[i];

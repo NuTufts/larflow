@@ -1031,7 +1031,7 @@ namespace reco {
       }
       
     }
-    LARCV_INFO() << "Number of hits veto'd by keypoint scores: " << nhits_vetoed << " out of " << used_hits_v.size() << std::endl;
+    LARCV_NORMAL() << "Number of hits veto'd by keypoint scores: " << nhits_vetoed << " out of " << used_hits_v.size() << std::endl;
     return nhits_vetoed;
   }
   
