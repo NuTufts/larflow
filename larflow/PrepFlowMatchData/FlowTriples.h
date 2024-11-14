@@ -194,6 +194,11 @@ namespace prep {
                                                                   ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                                   int trackid_rm, int trackid_rm2=-1 );
 
+    static std::vector< larcv::Image2D > 
+      make_thrumu_image_with_restored_ssnet_shower_pixels( larcv::IOManager& iolcv,
+                                                           const std::string ssnet_stem_name, 
+                                                           const std::string thrumu_name );
+
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };
 
