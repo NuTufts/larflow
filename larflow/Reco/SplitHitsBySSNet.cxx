@@ -373,9 +373,11 @@ namespace reco {
     larcv::Image2D track_adc( adc.meta() );
 
     LARCV_NORMAL() << "Number of uresnet SparseImages: " << ev_sparseimg->SparseImageArray().size() << std::endl;
-    for (int i=0; i<(int)ev_sparseimg->SparseImageArray().size(); i++) {
-      auto const& img = ev_sparseimg->SparseImageArray().at(i);
-      LARCV_NORMAL() << " image[" << i << "] len=" << img.len() << " nfeatures=" << img.nfeatures() << std::endl;
+    if ( plane>=0 && plane<(int)ev_sparseimg->SparseImageArray().size() ) {
+
+      auto const& img = ev_sparseimg->SparseImageArray().at(plane);      
+      LARCV_NORMAL() << " image[" << plane << "] len=" << img.len() << " nfeatures=" << img.nfeatures() << std::endl;      
+
       // for (int j=0; j<(int)img.len(); j++) {
       // 	std::cout << " [" << j << "]";
       // 	for (int f=0; f<(int)img.nfeatures()+2; f++) {
@@ -385,18 +387,25 @@ namespace reco {
       // }
       // features for each entry in the sparse tensor [row] [col] [proton score] [muon score] [electron score] [delta] [michel]
       // scores should be normalized 
-      for (int j=0; j<(int)img.len(); j++) {     
+      for (int j=0; j<(int)img.len(); j++) {
+	
 	int row = img.getfeature(j,0);
 	int col = img.getfeature(j,1);
 	float track_score  = img.getfeature(j,2) + img.getfeature(j,3);
 	float shower_score = img.getfeature(j,4) + img.getfeature(j,5) + img.getfeature(j,6);
 	track_adc.set_pixel( row, col, track_score );
 	shower_adc.set_pixel( row, col, shower_score );
+	
       }
-    }
+      
+      container.Emplace( std::move(shower_adc) );
+      container.Emplace( std::move(track_adc) );
 
-    container.Emplace( std::move(shower_adc) );
-    container.Emplace( std::move(track_adc) );
+    }
+    else {
+      LARCV_CRITICAL() << "Plane index not in the SparseImage container for Sparse UResNet" << std::endl;
+      throw std::runtime_error( "Plane index not in the SparseImage container for Sparse UResNet" );
+    }
     
     return;
   }

@@ -1016,7 +1016,7 @@ namespace reco {
 
     if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
       // save the results of the mc analysis records
-      _fill_mcanalysis_tree();
+      //_fill_mcanalysis_tree();
     }
     
   }

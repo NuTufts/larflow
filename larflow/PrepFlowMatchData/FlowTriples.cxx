@@ -2,6 +2,8 @@
 #include "WireOverlap.h"
 #include "LArUtil/GeometryHelper.h"
 
+#include "larcv/core/DataFormat/EventSparseImage.h"
+
 #include <ctime>
 #include <sstream>
 #include <algorithm>
@@ -1147,6 +1149,64 @@ namespace prep {
     return out_v;
   }
 
+  void FlowTriples::make_trackshower_images_from_sparse_uresnet_output( larcv::IOManager& iolcv )
+  {
+
+    std::string producer_uresenet = "sparseuresnetout";
+    std::string ssnet_stem_name   = "ubspurn_plane";
+    
+    larcv::EventSparseImage* ev_sparseimg
+      = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage, producer_uresenet );
+
+    larcv::EventImage2D* ev_adc
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+    auto const& adc_v = ev_adc->Image2DArray();
+
+    std::cout << "[FlowTriples::make_trackshower_images_from_sparse_uresnet_output] start =======================" << std::endl;
+
+    for (size_t p=0; p<adc_v.size(); p++) {
+
+      char prodname[50];
+      sprintf( prodname, "%s%d", ssnet_stem_name.c_str(), (int)p );
+      
+      larcv::EventImage2D* uresnet_v
+	= (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
+      
+      auto const& adc = adc_v.at(p);
+
+      // make new images
+      larcv::Image2D shower_adc( adc.meta() );    
+      larcv::Image2D track_adc( adc.meta() );
+
+      std::cout << "  Number of uresnet SparseImages: " << ev_sparseimg->SparseImageArray().size() << std::endl;
+      auto const& img = ev_sparseimg->SparseImageArray().at(p);
+      std::cout << " image[" << p << "] len=" << img.len() << " nfeatures=" << img.nfeatures() << std::endl;
+      // for (int j=0; j<(int)img.len(); j++) {
+      // 	std::cout << " [" << j << "]";
+      // 	for (int f=0; f<(int)img.nfeatures()+2; f++) {
+      // 	  std::cout << " " << img.getfeature(j,f);
+      // 	}
+      // 	std::cout << std::endl;
+      // }
+      // features for each entry in the sparse tensor [row] [col] [proton score] [muon score] [electron score] [delta] [michel]
+      // scores should be normalized 
+      for (int j=0; j<(int)img.len(); j++) {     
+	int row = img.getfeature(j,0);
+	int col = img.getfeature(j,1);
+	float track_score  = img.getfeature(j,2) + img.getfeature(j,3);
+	float shower_score = img.getfeature(j,4) + img.getfeature(j,5) + img.getfeature(j,6);
+	track_adc.set_pixel( row, col, track_score );
+	shower_adc.set_pixel( row, col, shower_score );
+      }
+
+      uresnet_v->Emplace( std::move(shower_adc) );
+      uresnet_v->Emplace( std::move(track_adc) );
+      
+    }//end of plane loop
+    std::cout << "===================================================" << std::endl;
+    
+    return;
+  }
 
 }
 }

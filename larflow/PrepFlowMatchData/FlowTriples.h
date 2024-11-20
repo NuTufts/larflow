@@ -199,6 +199,8 @@ namespace prep {
                                                            const std::string ssnet_stem_name, 
                                                            const std::string thrumu_name );
 
+    static void make_trackshower_images_from_sparse_uresnet_output( larcv::IOManager& iolcv );
+
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };
 
@@ -284,6 +286,8 @@ namespace prep {
                                  const std::vector< std::vector<int> >& imgBounds,
                                  ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                  const int& trackid_rm, const int& trackid_rm2=-1);
+
+
 
 
   };
