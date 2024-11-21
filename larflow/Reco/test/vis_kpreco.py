@@ -58,6 +58,8 @@ kpsanatree = anafile.Get("KPSRecoManagerTree")
 nentries = kpsanatree.GetEntries()
 CURRENT_EVENT = None
 
+mcshowertree = anafile.Get("kps_mcphoton_tree")
+
 print("NENTRIES: ",nentries)
 
 def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
@@ -69,6 +71,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     larcv.SetPyUtil()    
     print("making figures for entry={} plot-by={}".format(entry,plotby))
     global kpsanatree
+    global mcshowertree
     
     if HAS_LARLITE or HAS_MC:
         global io
@@ -77,6 +80,14 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
     nbytes = kpsanatree.GetEntry(entry)
     if nbytes==0:
         return []
+
+    hasmcshowertree = False
+    try:
+        mcshowertree.GetEntry(entry)
+        hasmcshowertree = True
+    except:
+        hasmcshowertree = False
+    print("Has MC Shower Tree")
     
     traces_v = []
 
@@ -337,10 +348,10 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         #mcshower_v = lardly.data.visualize_larlite_event_mcshower( io.get_data(larlite.data.kMCShower, "mcreco"), return_dirplot=True )
         #traces_v.append( mcshower_v[2] )
 
-        ev_detshower = io.get_data(larlite.data.kMCShower, "mcdetectableshower")
-        print("number of detshower: ",ev_detshower.size())
-        for i in range(ev_detshower.size()):
-            shr = ev_detshower.at(i)
+    if hasmcshowertree:
+        print("number of detshower: ",mcshowertree.mcshower_v.size())
+        for i in range(mcshowertree.mcshower_v.size()):
+            shr = mcshowertree.mcshower_v.at(i)
             print(  "mc detectable shower[",i,"]: ",shr.PdgCode())
             detprof = shr.DetProfile()
             try:
@@ -351,6 +362,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 print("mc detectable shower[",i,"]: ",(x,y,z,t))
             except:
                 print("no detprof info")
+                
             try:
                 px = detprof.Px()
                 py = detprof.Py()
@@ -359,18 +371,24 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 print("mc detectable shower[",i,"]: p=",(px,py,pz,pE))
             except:
                 print("no detprof info E")
+                
             pnorm = np.sqrt( px*px+py*py+pz*pz )
             if pnorm<1.0e-3:
                 continue
             
-            shrlen = 14.0*3
+            shrlen = 14.0*3.0*((pE-10.0)/200.0)
+            if shrlen > 14.0*3.0:
+                shrlen = 14.0*3.0
+            if shrlen<0:
+                shrlen = 1.0
+                
             shrpt = np.zeros((2,3))
             shrpt[0,0] = x
             shrpt[0,1] = y
             shrpt[0,2] = z
-            shrpt[1,0] = x + px*shrlen/pnorm
-            shrpt[1,1] = y + py*shrlen/pnorm
-            shrpt[1,2] = z + pz*shrlen/pnorm
+            shrpt[1,0] = x + shrlen*px/pnorm
+            shrpt[1,1] = y + shrlen*py/pnorm
+            shrpt[1,2] = z + shrlen*pz/pnorm
             profcolor = "rgba(0,255,255,1)"
             shower_prof_trace = {
                 "type":"scatter3d",
