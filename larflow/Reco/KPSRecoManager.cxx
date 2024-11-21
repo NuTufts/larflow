@@ -30,6 +30,8 @@ namespace reco {
     _t_event_elapsed(0),
     _save_selected_only(false),
     _save_keypoints_in_anafile(false),
+    _mcphoton_tree(nullptr),
+    _event_mcshower_v(nullptr),
     _kMinize_outputfile_size(false),
     _reco_version(reco_ver),
     _stop_after_prepspacepoints(false),
@@ -70,6 +72,9 @@ namespace reco {
 
     _nu_sel_v.clear(); ///< clear vertex selection variable container
     _nu_perfect_v.clear(); ///< clear perfect reco
+
+    // clear storage of mcdetectable photons (might be filled by NuVertexShowerReco
+    _event_mcshower_v->clear();
     
     // PREP: make bad channel image
     larcv::EventImage2D* ev_adc =
@@ -119,6 +124,7 @@ namespace reco {
     if ( _stop_after_prepspacepoints ) {
       // early stoppage to debug (and visualize) prepared spacepoints
       _ana_tree->Fill();
+      _mcphoton_tree->Fill();
       return;
     }
 
@@ -129,6 +135,7 @@ namespace reco {
     if ( _stop_after_keypointreco ) {
       // early stoppage to debug (and visualize) prepared keypoints
       _ana_tree->Fill();
+      _mcphoton_tree->Fill();      
       return;
     }
       
@@ -137,6 +144,7 @@ namespace reco {
     if ( _stop_after_subclustering ) {
       // early stopping to debug (and visualize) subclusters
       _ana_tree->Fill();
+      _mcphoton_tree->Fill();      
       return;
     }
     
@@ -201,7 +209,8 @@ namespace reco {
     std::clock_t end_event = std::clock_t();
     _t_event_elapsed = (end_event-start_event)/CLOCKS_PER_SEC;
 
-    _ana_tree->Fill();    
+    _ana_tree->Fill();
+    _mcphoton_tree->Fill();    
     
   }
 
@@ -712,6 +721,13 @@ namespace reco {
 
     if ( _nuvertex_shower_reco.isMCanaModeActive() ) {
       _nuvertex_shower_reco.save_detectable_photon_info( ioll );
+      // transfer the detectable photon info into _mcphoton_tree via the _event_mcphoton_v container
+      larlite::event_mcshower* ev_detshower
+        = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcdetectableshower" );
+      for (size_t ishower=0; ishower<ev_detshower->size(); ishower++) {
+	_event_mcshower_v->push_back( ev_detshower->at(ishower) );
+      }
+      LARCV_NORMAL() << "Saved " << _event_mcshower_v->size() << " MC detectable photon information" << std::endl;
     }
 
     LARCV_NORMAL() << "Cluster-book summary after [NuVertexShowerReco]" << std::endl;
@@ -834,6 +850,11 @@ namespace reco {
     _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
     
     _nuvertex_shower_reco.createMCAnalysisTree( _ana_file );
+
+    _mcphoton_tree = new TTree("kps_mcphoton_tree","store modified mcshower objects");
+    _event_mcshower_v = new std::vector< larlite::mcshower >;
+    _event_mcshower_v->clear();
+    _mcphoton_tree->Branch( "mcshower_v", &_event_mcshower_v );
 
   }
   

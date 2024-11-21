@@ -10,6 +10,7 @@
 
 // larlite
 #include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/mcshower.h"
 
 // larcv
 #include "larcv/core/Base/larcv_base.h"
@@ -207,7 +208,10 @@ namespace reco {
     std::vector< larflow::reco::KPCluster >            _event_kpc_nu_v; ///< stores reconstructed keypoints
     std::vector< larflow::reco::KPCluster >            _event_kpc_track_v; ///< stores reconstructed keypoints
     std::vector< larflow::reco::KPCluster >            _event_kpc_shower_v; ///< stores reconstructed keypoints
-    std::vector< larflow::reco::KPCluster >            _event_kpc_cosmic_v; ///< stores reconstructed keypoints    
+    std::vector< larflow::reco::KPCluster >            _event_kpc_cosmic_v; ///< stores reconstructed keypoints
+
+    TTree* _mcphoton_tree;
+    std::vector< larlite::mcshower >* _event_mcshower_v;
     
     bool _kMinize_outputfile_size;
 
