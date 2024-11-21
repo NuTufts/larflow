@@ -5,6 +5,8 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larcv/core/DataFormat/EventSparseImage.h"
+#include "larcv/core/DataFormat/EventImage2D.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/larflow3dhit.h"
 
@@ -106,7 +108,14 @@ namespace reco {
     const std::vector<larlite::larflow3dhit>& get_shower_hits() const { return _shower_hit_v; };
 
     /** @brief get const track larflow3dhit container */        
-    const std::vector<larlite::larflow3dhit>& get_track_hits()  const { return _track_hit_v; };    
+    const std::vector<larlite::larflow3dhit>& get_track_hits()  const { return _track_hit_v; };
+
+  protected:
+
+    void _make_trackshower_images_from_sparse_uresnet( const int plane,
+						       const larcv::Image2D& adc,
+						       larcv::IOManager& iolcv,
+						       larcv::EventImage2D& container );
     
     
   };

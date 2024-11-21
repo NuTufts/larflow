@@ -206,15 +206,23 @@ namespace reco {
   void SplitHitsBySSNet::process( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 
+    larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_name );
+    const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
+    
     larcv::EventImage2D* ev_ssnet_v[3] = {nullptr};
     for ( size_t p=0; p<3; p++ ) {
       char prodname[20];
       sprintf( prodname, "%s%d", _ssnet_stem_name.c_str(), (int)p );
       ev_ssnet_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
+      int nimages = ev_ssnet_v[p]->Image2DArray().size();
+      if (nimages==0) {
+	LARCV_NORMAL() << "Missing " << prodname << " images. Need to make them from raw SSNet output" << std::endl;
+	_make_trackshower_images_from_sparse_uresnet( p, adc_v.at(p), iolcv, *(ev_ssnet_v[p]) );
+      }
+      else {
+	LARCV_NORMAL() << "  number of images: " << nimages << std::endl;
+      }
     }
-
-    larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_name );
-    const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
 
     // collect track images
     std::vector<larcv::Image2D> ssnet_trackimg_v;
@@ -261,15 +269,24 @@ namespace reco {
   void SplitHitsBySSNet::process_labelonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll )
   {
 
+    larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_name );
+    const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
+    
     larcv::EventImage2D* ev_ssnet_v[3] = {nullptr};
     for ( size_t p=0; p<3; p++ ) {
       char prodname[20];
       sprintf( prodname, "%s%d", _ssnet_stem_name.c_str(), (int)p );
       ev_ssnet_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
+      int nimages = ev_ssnet_v[p]->Image2DArray().size();	
+      if (nimages==0) {
+	LARCV_NORMAL() << "Missing " << prodname << " images. Need to make them from raw SSNet output" << std::endl;
+	_make_trackshower_images_from_sparse_uresnet( p, adc_v.at(p), iolcv, *(ev_ssnet_v[p]) );
+      }
+      else {
+	LARCV_NORMAL() << "  number of images: " << nimages << std::endl;
+      }      
     }
     
-    larcv::EventImage2D* ev_adc_v = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, _adc_name );
-    const std::vector<larcv::Image2D>& adc_v = ev_adc_v->Image2DArray();
 
     // collect track images
     std::vector<larcv::Image2D> ssnet_trackimg_v;
@@ -323,7 +340,66 @@ namespace reco {
     LARCV_NORMAL() << "Split hits into " << _track_hit_v.size() << " trackhit and " << _shower_hit_v.size() << " showerhit" << std::endl;
     
   }
-  
+
+  /**
+   * @brief make shower and track image from Sparse UResnet output
+   *
+   * will fill container with first the shower image, then the track image.
+   * We look for the UResnet output in the larcv tree: sparseimg_sparseuresnetout_tree
+   *
+   */
+  void SplitHitsBySSNet::_make_trackshower_images_from_sparse_uresnet( const int plane,
+								       const larcv::Image2D& adc,
+								       larcv::IOManager& iolcv,
+								       larcv::EventImage2D& container )
+  {
+
+    /*
+        if(pdg_code == 2212 or pdg_code == -2212): category = 0
+        elif not pdg_code in [11,-11,22]: category = 1
+        elif pdg_code == 22: category = 2
+        else:
+            if process in ['primary','nCapture','conv','compt']: category = 2
+            elif process in ['muIoni','hIoni']: category = 3
+            elif process in ['muMinusCaptureAtRest','muPlusCaptureAtRest','Decay']: category = 4
+    */
+    
+    std::string producer_uresenet = "sparseuresnetout";
+    larcv::EventSparseImage* ev_sparseimg
+      = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage, producer_uresenet );
+
+    // make new images
+    larcv::Image2D shower_adc( adc.meta() );    
+    larcv::Image2D track_adc( adc.meta() );
+
+    LARCV_NORMAL() << "Number of uresnet SparseImages: " << ev_sparseimg->SparseImageArray().size() << std::endl;
+    for (int i=0; i<(int)ev_sparseimg->SparseImageArray().size(); i++) {
+      auto const& img = ev_sparseimg->SparseImageArray().at(i);
+      LARCV_NORMAL() << " image[" << i << "] len=" << img.len() << " nfeatures=" << img.nfeatures() << std::endl;
+      // for (int j=0; j<(int)img.len(); j++) {
+      // 	std::cout << " [" << j << "]";
+      // 	for (int f=0; f<(int)img.nfeatures()+2; f++) {
+      // 	  std::cout << " " << img.getfeature(j,f);
+      // 	}
+      // 	std::cout << std::endl;
+      // }
+      // features for each entry in the sparse tensor [row] [col] [proton score] [muon score] [electron score] [delta] [michel]
+      // scores should be normalized 
+      for (int j=0; j<(int)img.len(); j++) {     
+	int row = img.getfeature(j,0);
+	int col = img.getfeature(j,1);
+	float track_score  = img.getfeature(j,2) + img.getfeature(j,3);
+	float shower_score = img.getfeature(j,4) + img.getfeature(j,5) + img.getfeature(j,6);
+	track_adc.set_pixel( row, col, track_score );
+	shower_adc.set_pixel( row, col, shower_score );
+      }
+    }
+
+    container.Emplace( std::move(shower_adc) );
+    container.Emplace( std::move(track_adc) );
+    
+    return;
+  }
   
 }
 }
