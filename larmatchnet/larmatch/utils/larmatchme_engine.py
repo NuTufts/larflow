@@ -298,13 +298,17 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
             #data_iter = iter(data_loader)
             #ntries += 1
             #continue
-            
+
         npts = 0
+        bsize = len(batchdata)
         for data in batchdata:
-            npts += data["matchtriplet_v"].shape[0]
+            npts += data["matchtriplet_v"].shape[0] 
         #print("Drawn total spacepoints [tries=%d]: "%(ntries),npts)
         ntries+=1
 
+    if bsize!=config["BATCH_SIZE"]:
+        print("not a full batch. send signal to reset the iterator")
+        return False
 
     # convert wire plane data, in numpy form into ME.SparseTensor form
     # data comes back as numpy arrays.
