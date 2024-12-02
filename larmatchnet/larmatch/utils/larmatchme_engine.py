@@ -36,7 +36,8 @@ def get_model( config, dump_model=False ):
                               run_ssnet=config["RUN_SSNET"],
                               run_kp=config["RUN_KPLABEL"],
                               run_paf=config["RUN_PAF"],
-                              norm_layer='batchnorm')
+                              norm_layer='batchnorm',
+                              use_feature_dropout=config["USE_FEATURE_DROPOUT"])
 
     if dump_model:
         # DUMP MODEL (for debugging)
@@ -59,6 +60,7 @@ def make_loss_fn( config ):
                                        eval_keypoint_label=config["RUN_KPLABEL"],
                                        eval_keypoint_shift=config["RUN_KPSHIFT"],
                                        eval_affinity_field=config["RUN_PAF"],
+                                       ssnet_loss_type=config['SSNET_LOSS_TYPE'],
                                        init_lm_weight=lm_loss_weight,
                                        init_kp_weight=kp_loss_weight).to(device)
         

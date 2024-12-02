@@ -25,6 +25,7 @@ class LArMatchMinkowski(nn.Module):
                  num_ssnet_classes=5,
                  num_kp_classes=6,
                  use_kp_bn=True,
+                 use_feature_dropout=False,
                  norm_layer='batchnorm'):
         """
         parameters
@@ -81,7 +82,11 @@ class LArMatchMinkowski(nn.Module):
         self.sparse_to_dense = [ ME.MinkowskiToFeature() for p in range(input_nplanes) ]
 
         # DROPOUT ON FEATURE LAYER
-        #self.dropout = ME.MinkowskiDropout()
+        self.use_feature_dropout = use_feature_dropout
+        if self.use_feature_dropout:
+            self.dropout = ME.MinkowskiDropout()
+        else:
+            self.dropout = None
 
         # TASK HEADS
         self.run_lm      = run_lm
@@ -119,8 +124,13 @@ class LArMatchMinkowski(nn.Module):
             #print("------------------------------------------------------------")
             x_feat_v.append( x_decode )
 
+        if self.use_feature_dropout:
+            for p in range(len(x_feat_v)):
+                x_feat_v[p] = self.dropout( x_feat_v[p] )
+
         # then we have to extract a feature tensor
         batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, query_v, batch_size )
+            
         #for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
         #    print("--------------------------------------------------------")
         #    print("extracted features batch[",b,"]_spacepoint_feat")            

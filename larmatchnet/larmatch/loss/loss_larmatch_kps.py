@@ -3,9 +3,10 @@ import os,sys
 import torch
 import torch.nn as nn
 from .lovasz_losses import lovasz_softmax
-from .ce_bias import CrossEntropyWithL1
+from .ce_bias import CrossEntropyWithL1,FocalWithL1
 
 class SparseLArMatchKPSLoss(nn.Module):
+
     def __init__(self, eval_lm=True,
                  eval_ssnet=True,
                  learnable_weights=True,
@@ -19,7 +20,8 @@ class SparseLArMatchKPSLoss(nn.Module):
                  larmatch_name="lm",
                  ssnet_name="ssnet",
                  keypoint_name="kp",
-                 affinity_name="paf"):
+                 affinity_name="paf",
+                 ssnet_loss_type='focal_with_L1'):
         super(SparseLArMatchKPSLoss,self).__init__( )
         self.eval_lm = eval_lm
         self.eval_ssnet = eval_ssnet
@@ -30,6 +32,7 @@ class SparseLArMatchKPSLoss(nn.Module):
         self.larmatch_use_focal_loss = True
         self.ssnet_use_lovasz_loss = False
         self.larmatch_name = larmatch_name
+        self.ssnet_loss_type = ssnet_loss_type
         self.ssnet_name = ssnet_name
         self.keypoint_name = keypoint_name
         self.affinity_name = affinity_name
@@ -312,7 +315,7 @@ class SparseLArMatchKPSLoss(nn.Module):
             print("  ssnet_truth: ",ssnet_truth.shape)
             print("  ssnet_weight: ",ssnet_weight.shape)
 
-        if False:
+        if self.ssnet_loss_type=='ce_weighted':
             # original class-weighted ssnet
             fn_ssnet = torch.nn.CrossEntropyLoss( reduction='none' )
             ssnet_no_bg = ssnet_truth>=0
@@ -328,7 +331,7 @@ class SparseLArMatchKPSLoss(nn.Module):
                 ssnet_loss = fn_ssnet( xssnet_pred, torch.unsqueeze(xssnet_truth,0) )
                 #print("   ssnet_loss.shape=",ssnet_loss.shape)
                 ssnet_loss = (ssnet_loss*(xssnet_weight/weight_sum)).sum()
-        else:
+        elif self.ssnet_loss_type=='ce_with_L1':
             # try CE loss with L1 region-based regularizer
             fn_ssnet = CrossEntropyWithL1( mode="multiclass" )
             with torch.no_grad():
@@ -345,8 +348,26 @@ class SparseLArMatchKPSLoss(nn.Module):
             xssnet_pred = xssnet_pred.reshape( (b,c,x,1,1) )
             #print(xssnet_pred.shape," ",xssnet_truth.shape)
             ssnet_loss = fn_ssnet( xssnet_pred, xssnet_truth )
-            
-        if False and self.ssnet_use_lovasz_loss:
+        elif self.ssnet_loss_type=='focal_with_L1':
+            # weighted focal loss with L1 region-based regularizer
+            fn_ssnet = FocalWithL1( mode="multiclass" )
+            with torch.no_grad():
+                ssnet_no_bg   = ssnet_truth>=0
+                xssnet_truth  = ssnet_truth[ssnet_no_bg[:]]
+                xssnet_weight = ssnet_weight[ssnet_no_bg[:]]
+                #print("  ssnet_no_bg.shape: ",ssnet_no_bg.shape)                    
+                #print("  ssnet_no_bg.sum: ",ssnet_no_bg.sum())
+                #print("  xssnet_truth: ",xssnet_truth.shape)
+                x = xssnet_truth.shape[0]
+                xssnet_truth  = xssnet_truth.reshape( (1,1,x,1,1) )
+                xssnet_weight = xssnet_weight.reshape( (1,1,x,1,1) )
+
+            xssnet_pred = ssnet_pred[:,:,ssnet_no_bg[:]]                
+            b,c,x = xssnet_pred.shape
+            xssnet_pred = xssnet_pred.reshape( (b,c,x,1,1) )
+            #print(xssnet_pred.shape," ",xssnet_truth.shape)
+            ssnet_loss = fn_ssnet( xssnet_pred, xssnet_truth, xssnet_weight )
+        elif self.ssnet_loss_type=='lovasz':
             ssnet_pred_x  = torch.transpose( ssnet_pred,1,0).reshape( (1,nclasses,npairs,1) )
             ssnet_truth_y = ssnet_truth.reshape( (1,npairs,1) )
             ssnet_lovasz = lovasz_softmax( ssnet_pred_x, ssnet_truth_y )

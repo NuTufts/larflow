@@ -87,13 +87,13 @@ class CompoundLoss(nn.Module):
         self.background_index = background_index
         self.weight = weight
 
-    def cross_entropy(self, inputs: torch.Tensor, labels: torch.Tensor):
+    def cross_entropy(self, inputs: torch.Tensor, labels: torch.Tensor, reduction='mean'):
         if len(labels.shape) == len(inputs.shape):
             assert labels.shape[1] == 1
             labels = labels[:, 0]
         if self.mode == MULTICLASS_MODE:
             loss = F.cross_entropy(
-                inputs, labels.long(), weight=self.weight, ignore_index=self.ignore_index)
+                inputs, labels.long(), weight=self.weight, ignore_index=self.ignore_index, reduction=reduction)
         else:
             if labels.dim() == 3:
                 labels = labels.unsqueeze(dim=1)
@@ -169,16 +169,55 @@ class CrossEntropyWithL1(CompoundLoss):
 class FocalWithL1(CompoundLoss):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.focal = FocalLoss(apply_nonlin=softmax_helper)
+        self.alpha_focal = 1.0
+        self.gamma_focal = 2.0
+        
+        
+    def focal_with_class_weighting(self, pred: torch.Tensor, labels: torch.Tensor, weights=None ):
+        """
+        Args:
+            pred: Shape (N, C) or (N, C, X, Y, Z) where N is batch size and C is number of classes
+                  The values of pred should be logits (not normalized scores)
+            targets: Shape (N,) or (N, X, Y, Z) containing class indices (0 to C-1)
+        """
+        if pred.dim() not in [5]:
+            raise ValueError(f"Expected pred to have 5 dimensions (N,C,X,Y,Z), got {pred.dim()}")
+        if weights is not None and pred.dim()!=weights.dim():
+            raise ValueError(f"Shape of the predicts ({pred.shape}) not the same as the weight tensor ({weights.shape})")
+        
+        n, c, x, y, z = pred.shape
+        if weights is not None:
+            weights = weights.reshape(-1) # (N*1*X*Y*Z,)
+        pred = pred.permute(0, 2, 3, 4, 1).reshape(-1, c)      # (N*X*Y*Z,C)
+        labels = labels.reshape(-1)  # (N*X*Y*Z,)
+        
+        log_probs = F.log_softmax(pred, dim=-1) # normalized over channel dimensions (N,X,Y=1,Z=1)
+        
+        targets_one_hot = F.one_hot(labels, num_classes=c) # (N*X*Y*Z,C)
+        log_pt = torch.sum(log_probs * targets_one_hot, dim=-1) # (N*X*Y*Z,)
+        pt = torch.exp(log_pt)
 
-    def forward(self, inputs: torch.Tensor, labels: torch.Tensor):
+        focal_loss = -self.alpha_focal * (1.0-pt)**self.gamma_focal * log_pt
+        if weights is not None:
+            with torch.no_grad():
+                weight_sum = weights.sum()
+                if weight_sum>1.0:
+                    weights /= weight_sum                    
+            focal_loss *= weights
+        
+        focal_loss = focal_loss.sum()
+        return focal_loss
+
+        
+
+    def forward(self, inputs: torch.Tensor, labels: torch.Tensor, weights: None):
         # ce term
         if len(labels.shape) == len(inputs.shape):
             assert labels.shape[1] == 1
             labels = labels[:, 0]
         labels = labels.long()
 
-        loss_focal = self.focal(inputs, labels)
+        loss_focal = self.focal_with_class_weighting( inputs, labels, weights )
         # regularization
         gt_proportion, valid_mask = self.get_gt_proportion(self.mode, labels, inputs.shape)
         pred_proportion = self.get_pred_proportion(self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
