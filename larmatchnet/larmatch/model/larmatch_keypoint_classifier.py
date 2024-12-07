@@ -6,13 +6,14 @@ import torch.nn as nn
 class LArMatchKeypointClassifier(nn.Module):
 
     def __init__(self,features_per_layer=16,
-                 keypoint_nfeatures=[32,32],                 
+                 keypoint_nfeatures=[32,32],
                  ninput_planes=3,
                  nclasses=6,
                  use_bn=True):
         super(LArMatchKeypointClassifier,self).__init__()
 
         # SCORE PREDICTION
+        self.nclasses = nclasses
         self.class_layers = {}
         for iclass in range(nclasses):
             keypoint_layers = OrderedDict()
@@ -33,6 +34,20 @@ class LArMatchKeypointClassifier(nn.Module):
             keypoint_layers["keypointout_class%d"%(iclass)] = torch.nn.Conv1d(nfeats,1,1)
             self.class_layers[iclass] = torch.nn.Sequential( keypoint_layers )
             setattr( self, "keypoint_class%d_layers"%(iclass), self.class_layers[iclass] )
+
+    def _init_weights(self):
+        for iclass in range(self.nclasses):
+            for module in self.class_layers[iclass].modules():
+                if isinstance(module,torch.nn.Conv1d):
+                    nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                    nn.init.zeros_(module.bias)
+            # for the last layer, we set the bias in anticipation of a large class inbalance.
+            # we know we have many more keypoint values that should be zero
+            # ratio is probably at least 100:1 spacepoints not near keypoints to spacepoints near keypoints, if not worse
+            last_layer = self.class_layers[iclass][-1]
+            negative_to_positive_ratio = 100.0
+            bias = -torch.log(torch.tensor(negative_to_positive_ratio))
+            nn.init.constant_(last_layer.bias,bias)
         
     def forward(self,triplet_feat_t):
         """

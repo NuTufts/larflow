@@ -31,6 +31,12 @@ class LArMatchAffinityFieldRegressor(nn.Module):
         layers["paf_out"] = torch.nn.Conv1d(nfeats,output_dim,1)
         self.paf_layers = torch.nn.Sequential( layers )
         
+    def _init_weights(self):
+        for module in self.paf_layers.modules():
+            if isinstance(module,torch.nn.Conv1d):
+                #print("set to kaiming normal by default")                
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.zeros_(module.bias)
         
     def forward(self,triplet_feat_t):
         """

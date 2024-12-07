@@ -105,8 +105,40 @@ class LArMatchMinkowski(nn.Module):
         if self.run_ssnet:   self.ssnet_head    = LArMatchSSNetClassifier(features_per_layer=stem_nfeatures,num_classes=num_ssnet_classes)
         if self.run_kplabel: self.kplabel_head  = LArMatchKeypointClassifier(features_per_layer=stem_nfeatures,nclasses=num_kp_classes,use_bn=self.use_kp_bn)
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=stem_nfeatures)
+
+        # custom weight initialization
+        self._init_weights()
         
 
+    def _init_weights(self):
+        # initialize the weights from the various subcomponents of the model
+        for module in self.stem.modules():
+            if isinstance(module, ME.MinkowskiConvolution):
+                nn.init.kaiming_normal_(module.kernel, mode='fan_out', nonlinearity='relu')
+                if module.bias is not None:
+                    nn.init.constant_(module.bias,0.0)
+        for module in self.encoder.modules():
+            if isinstance(module, ME.MinkowskiConvolution):
+                nn.init.kaiming_normal_(module.kernel, mode='fan_out', nonlinearity='relu')
+                if module.bias is not None:                
+                    nn.init.constant_(module.bias,0.0)
+        for module in self.decoder.modules():
+            if isinstance(module, ME.MinkowskiConvolution):
+                nn.init.kaiming_normal_(module.kernel, mode='fan_out', nonlinearity='relu')
+                if module.bias is not None:                
+                    nn.init.constant_(module.bias,0.0)
+                
+        if self.run_lm:
+            self.lm_classifier._init_weights()
+        if self.run_ssnet:
+            self.ssnet_head._init_weights()
+        if self.run_kplabel:
+            self.kplabel_head._init_weights()
+        if self.run_paf:
+            self.affinity_head._init_weights()
+             
+            
+    
     def forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
 
         # check input
@@ -214,4 +246,22 @@ class LArMatchMinkowski(nn.Module):
             batch_feats.append( spacepoint_feats_t )
             
         return batch_feats
-    
+
+    def get_unet_params(self):
+        unet_params = []
+        unet_params += self.stem.parameters()
+        unet_params += self.encoder.parameters()
+        unet_params += self.decoder.parameters()
+        for layer in self.sparse_to_dense:
+            unet_params += layer.parameters()
+        if self.dropout is not None:
+            unet_params += self.dropout.parameters()
+        return unet_params
+
+    def get_head_params(self):
+        head_params = []
+        if self.run_lm: head_params += self.lm_classifier.parameters()
+        if self.run_ssnet: head_params += self.ssnet_head.parameters()
+        if self.run_kplabel: head_params += self.kplabel_head.parameters()
+        if self.run_paf: head_params +=  self.affinity_head.parameters()
+        return head_params

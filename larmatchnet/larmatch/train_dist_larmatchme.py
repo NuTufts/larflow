@@ -35,6 +35,7 @@ def run(gpu, args ):
     # larmatch imports
     import larmatch
     import larmatch.utils.larmatchme_engine as engine
+    from larmatch.utils.lr_scheduler import get_lr_cosine_annealing_with_warmup
     from larmatch.data.larmatch_hdf5_reader import LArMatchHDF5Dataset, get_data_loader
 
     # ROOT, larcv
@@ -121,19 +122,30 @@ def run(gpu, args ):
         if rank==0:
             print(model)
 
-    if rank==0 and config["LOGGER"]=="wandb":
-        wandb_writer.watch(model, log="all", log_freq=100)
+    if rank==0:
+        config["NUM_MODEL_PARAMS"] = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print("Number of model parameters: ",config["NUM_MODEL_PARAMS"])
+        if config["LOGGER"]=="wandb":        
+            wandb_writer.watch(model, log="all", log_freq=100)
 
     print("RANK-%d Loaded Model"%(rank))    
     if not args.no_parallel:
         torch.distributed.barrier()
 
     #print("model.parameters() type: ",type(model.parameters()))
-    param_list = list(model.parameters())
+    # group parameters
+    base_lr = float(config["LEARNING_RATE"])
+    param_list = [
+        {"params":model.module.get_unet_params(), "lr":base_lr},
+        {"params":model.module.get_head_params(), "lr":base_lr*0.5}
+    ]
+         
     if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
-        param_list += list(criterion.parameters())
+        for loss_pars in list(criterion.parameters()):
+            param_list.append( {"params":loss_pars, "lr":float(config["LEARNING_RATE"])} )
+
+    lr_factors = [ param_group["lr"]/base_lr for param_group in param_list ]
     optimizer = torch.optim.AdamW(param_list,
-                                  lr=float(config["LEARNING_RATE"]), 
                                   weight_decay=config["WEIGHT_DECAY"])
     #if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
     #    print("optimizer params")
@@ -143,6 +155,13 @@ def run(gpu, args ):
     if config["RESUME_FROM_CHECKPOINT"] and config["RESUME_OPTIM_FROM_CHECKPOINT"]:
         print("RESUME OPTIM CHECKPOINT")
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
+
+    if rank==0:
+        print("INITIAL MODEL PARAM VALUES")
+        for n,pargroup in enumerate(param_list):
+            print("====================================================================")
+            print("PARAMETER GROUP [",n,"]")
+            print(pargroup)
     
     #train_dataset = larmatchDataset( txtfile=config["TRAIN_DATASET_INPUT_TXTFILE"],
     #                                 random_access=True,
@@ -183,7 +202,14 @@ def run(gpu, args ):
     with torch.autograd.profiler.profile(enabled=config["RUN_PROFILER"]) as prof:    
         for iiter in range(config["NUM_ITERATIONS"]):
             train_iteration = config["START_ITER"] + iiter
-            if verbose: print("RANK-%d iteration=%d"%(rank,train_iteration))
+            x_epoch = float(NGPUS*train_iteration)/float(TRAIN_NENTRIES)
+
+            x_lr = get_lr_cosine_annealing_with_warmup( x_epoch, 0.5, base_lr*1.0e-4, base_lr*1.0e-3, base_lr, 10.0 )
+            # update the optimizer lr
+            for param_group, lr_factor in zip(optimizer.param_groups, lr_factors):
+                param_group['lr'] = x_lr*lr_factor
+            
+            if verbose or (True and rank==0): print("RANK-%d iteration=%d epoch=%.2f base_lr=%.2e"%(rank,train_iteration,x_epoch,x_lr))
 
             # should be config parameter
             #if iiter%int(config["ITER_PER_CACHECLEAR"])==0:
@@ -243,7 +269,7 @@ def run(gpu, args ):
 
                 # write to tensorboard/WANDB
                 # --------------------
-                all_log_variables = {'step':train_iteration,'epoch':float(train_iteration*NGPUS)/float(TRAIN_NENTRIES)}
+                all_log_variables = {'step':train_iteration,'epoch':x_epoch,"lr":x_lr}
                 
                 # losses go into same plot
                 loss_scalars = { x:y.avg for x,y in loss_meters.items() }

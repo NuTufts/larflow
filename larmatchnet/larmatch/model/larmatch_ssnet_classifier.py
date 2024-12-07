@@ -36,6 +36,15 @@ class LArMatchSSNetClassifier(nn.Module):
             ssnet_classifier_layers["ssnet%drelu"%(ilayer+1)] = torch.nn.ReLU()
         ssnet_classifier_layers["ssnetout"] = torch.nn.Conv1d(nfeats,num_classes,1)
         self.ssnet_classifier = torch.nn.Sequential( ssnet_classifier_layers )
+
+    def _init_weights(self):
+        print("custom ssnet weight init")
+        for module in self.ssnet_classifier.modules():
+            if isinstance(module,torch.nn.Conv1d):
+                print("set to kaiming normal by default")                
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.zeros_(module.bias)
+
         
     def forward(self,triplet_feat_t):
         """

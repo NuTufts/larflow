@@ -29,13 +29,21 @@ varlist = ["recofragment_cosine",
            "recofragment_dist2vtx",
            "recofragment_impactpar",
            "recofragment_pixsum"]
+metavarlist = ["recofragment_trunkdir",
+               "trueprong_trunkdir",
+               "trueprong_dist2vtx",
+               "trueprong_efficiency",
+               "recofragment_purity",
+               "trueprong_pixsum_MeV"]
+               
+
 label = "groundtruth_outcome"
 
 print("attempt to make variable trees")
 print("[enter] to start")
 input()
 #train_data = uproot.concatenate(train_files,expressions=varlist+[label])
-valid_data = uproot.concatenate(valid_files,expressions=varlist+[label])
+valid_data = uproot.concatenate(valid_files,expressions=varlist+metavarlist+[label])
 valid_v = [ np.expand_dims( valid_data[x].to_numpy(), axis=1  ) for x in varlist ]
 valid_X = np.concatenate( valid_v, axis=1 )
 valid_Y = valid_data[label].to_numpy()
@@ -71,7 +79,13 @@ prob_Y_full = bst.predict_proba(valid_X)
 out = uproot.recreate("xgb_validout_v1.4.0.root")
 
 # make a ttree
-out["modelout"] = { "score":prob_Y_full[:,1], "label":valid_Y }
+branch_dict = {"score":prob_Y_full[:,1], "label":valid_Y }
+for metavar in metavarlist:
+    branch_dict[metavar] = valid_data[metavar].to_numpy()
+for var in varlist:
+    branch_dict[var] = valid_data[var].to_numpy()
+out["modelout"] = branch_dict
+# other variables
 out.close()
 print("done?")
 

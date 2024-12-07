@@ -26,6 +26,21 @@ class LArMatchSpacepointClassifier( nn.Module ):
         lm_class_layers["lmclassifier_out"] = torch.nn.Conv1d(classifier_nfeatures[-1],2,1)
         self.lm_classifier = nn.Sequential( lm_class_layers )
 
+    def _init_weights(self):
+        for module in self.lm_classifier.modules():
+            if isinstance(module,torch.nn.Conv1d):
+                print("set to kaiming normal by default")                
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.zeros_(module.bias)
+        # for the last layer, we set the bias in anticipation of a large class inbalance.
+        # we know we have many more keypoint values that should be zero
+        # ratio is probably at least 100:1 spacepoints not near keypoints to spacepoints near keypoints, if not worse
+        last_layer = self.lm_classifier[-1]
+        negative_to_positive_ratio = 100.0
+        bias = -torch.log(torch.tensor(negative_to_positive_ratio))
+        nn.init.constant_(last_layer.bias,bias)
+            
+        
     def forward( self, triplet_feat_t ):
         """
         classify triplet of (u,v,y) wire plane pixel locations as being a true or false position.

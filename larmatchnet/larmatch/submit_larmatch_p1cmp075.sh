@@ -1,17 +1,18 @@
 #!/bin/bash
 
 #SBATCH --job-name=larmatch
-#SBATCH --output=gridlog_train_larmatch_wpaf_fullruntest_p1cmp075.log
+#SBATCH --output=gridlog_train_larmatch_using_lrschedule.%j.%N.log
 #SBATCH --mem-per-cpu=8000
 #SBATCH --cpus-per-task=10
 #SBATCH --time=3-00:00:00
 #SBATCH --gres=gpu:p100:4
 #SBATCH --partition=wongjiradlab
-#SBATCH --error=gridlog_train_larmatch.%j.%N.err
+#SBATCH --error=gridlog_train_larmatch_using_lrschedule.%j.%N.err
 
 # Change WORKDIR to be the folder where this script lives
 WORKDIR=/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/
-container=/cluster/tufts/wongjiradlabnu/larbys/larbys-container/singularity_minkowskiengine_u20.04.cu111.torch1.9.0_comput8.sif
+#container=/cluster/tufts/wongjiradlabnu/larbys/larbys-container/singularity_minkowskiengine_u20.04.cu111.torch1.9.0_comput8.sif
+container=/cluster/tufts/wongjiradlabnu/larbys/larbys-container/singularity_minkowski_u20.04.cu111.torch1.9.0_jupyter_xgboost.sif
 module load singularity/3.5.3
 NGPUS=4
 
