@@ -56,7 +56,7 @@ class ResNetBase(nn.Module):
                 in_channels, self.inplanes, kernel_size=3, stride=2, dimension=D
             ),
             #ME.MinkowskiInstanceNorm(self.inplanes),
-            self.NORM(self.inplanes),
+            self.NORM(self.inplanes,track_running_stats=False),
             ME.MinkowskiReLU(inplace=True),
             ME.MinkowskiMaxPooling(kernel_size=2, stride=2, dimension=D),
         )
@@ -80,7 +80,7 @@ class ResNetBase(nn.Module):
                 self.inplanes, self.inplanes, kernel_size=3, stride=3, dimension=D
             ),
             #ME.MinkowskiInstanceNorm(self.inplanes),
-            self.NORM(self.inplanes),
+            self.NORM(self.inplanes,track_running_stats=True),
             ME.MinkowskiGELU(),
         )
 
@@ -109,7 +109,7 @@ class ResNetBase(nn.Module):
                     dimension=self.D,
                 ),
                 #ME.MinkowskiBatchNorm(planes * block.expansion) if use_bn else ME.MinkowskiInstanceNorm(planes * block.expansion),
-                self.NORM(planes*block.expansion),
+                self.NORM(planes*block.expansion, track_running_stats=False),
             )
         layers = []
         layers.append(

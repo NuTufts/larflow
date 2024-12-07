@@ -282,7 +282,7 @@ for ientry in range(start_entry,end_entry):
             outll.next_event(True)
             sys.stdout.flush()
     print("End of entry[",ientry,"]")
-    if False:
+    if True and ientry>=4:
         break
 
 print("Finished")

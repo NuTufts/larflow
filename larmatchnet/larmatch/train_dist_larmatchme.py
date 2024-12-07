@@ -115,6 +115,7 @@ def run(gpu, args ):
     # Wrap the model
     if args.no_parallel:
         model = single_model
+        print(model)        
     else:
         model = nn.parallel.DistributedDataParallel(single_model, device_ids=[gpu],find_unused_parameters=False)
         model = ME.MinkowskiSyncBatchNorm.convert_sync_batchnorm( model )
@@ -135,10 +136,16 @@ def run(gpu, args ):
     #print("model.parameters() type: ",type(model.parameters()))
     # group parameters
     base_lr = float(config["LEARNING_RATE"])
-    param_list = [
-        {"params":model.module.get_unet_params(), "lr":base_lr},
-        {"params":model.module.get_head_params(), "lr":base_lr*0.5}
-    ]
+    if not args.no_parallel:
+        param_list = [
+            {"params":model.module.get_unet_params(), "lr":base_lr},
+            {"params":model.module.get_head_params(), "lr":base_lr*0.5}
+        ]
+    else:
+        param_list = [
+            {"params":model.get_unet_params(), "lr":base_lr},
+            {"params":model.get_head_params(), "lr":base_lr*0.5}
+        ]
          
     if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
         for loss_pars in list(criterion.parameters()):
@@ -156,7 +163,7 @@ def run(gpu, args ):
         print("RESUME OPTIM CHECKPOINT")
         optimizer.load_state_dict( checkpoint_data["optimizer"] )
 
-    if rank==0:
+    if False and rank==0:
         print("INITIAL MODEL PARAM VALUES")
         for n,pargroup in enumerate(param_list):
             print("====================================================================")
@@ -204,7 +211,8 @@ def run(gpu, args ):
             train_iteration = config["START_ITER"] + iiter
             x_epoch = float(NGPUS*train_iteration)/float(TRAIN_NENTRIES)
 
-            x_lr = get_lr_cosine_annealing_with_warmup( x_epoch, 0.5, base_lr*1.0e-4, base_lr*1.0e-3, base_lr, 10.0 )
+            #x_lr = get_lr_cosine_annealing_with_warmup( x_epoch, 0.5, base_lr*1.0e-4, base_lr*1.0e-3, base_lr, 10.0 )
+            x_lr = 1.0e-2
             # update the optimizer lr
             for param_group, lr_factor in zip(optimizer.param_groups, lr_factors):
                 param_group['lr'] = x_lr*lr_factor

@@ -19,7 +19,7 @@ class LArMatchSSNetClassifier(nn.Module):
         if norm=="instance":
             ssnet_classifier_layers["ssnet0bn"]   = torch.nn.InstanceNorm1d(ssnet_classifier_nfeatures[0])
         elif norm=="batchnorm":
-            ssnet_classifier_layers["ssnet0bn"]   = torch.nn.BatchNorm1d(ssnet_classifier_nfeatures[0])
+            ssnet_classifier_layers["ssnet0bn"]   = torch.nn.BatchNorm1d(ssnet_classifier_nfeatures[0],track_running_stats=False)
         else:
             raise ValueError("invalid option for norm: ",norm," options=['batchnorm','instance']")
             
@@ -29,7 +29,7 @@ class LArMatchSSNetClassifier(nn.Module):
             if norm=="instance":
                 ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.InstanceNorm1d(nfeats)
             elif norm=="batchnorm":
-                ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats)
+                ssnet_classifier_layers["ssnet%dbn"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats,track_running_stats=False)
             else:
                 raise ValueError("invalid option for norm: ",norm," options=['batchnorm','instance']")
             

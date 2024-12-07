@@ -20,14 +20,14 @@ class LArMatchKeypointClassifier(nn.Module):
             keypoint_layers["keypoint0conv_class%d"%(iclass)] = torch.nn.Conv1d(ninput_planes*features_per_layer,
                                                                                 keypoint_nfeatures[0],1)
             if use_bn:
-                keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.BatchNorm1d(keypoint_nfeatures[0])
+                keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.BatchNorm1d(keypoint_nfeatures[0],track_running_stats=False)
             else:
                 keypoint_layers["keypoint0_bn_class%d"%(iclass)]  = torch.nn.InstanceNorm1d(keypoint_nfeatures[0])
             keypoint_layers["keypoint0relu_class%d"%(iclass)] = torch.nn.LeakyReLU()
             for ilayer,nfeats in enumerate(keypoint_nfeatures[1:]):
                 keypoint_layers["keypoint%dconv_class%d"%(ilayer+1,iclass)] = torch.nn.Conv1d(nfeats,nfeats,1)
                 if use_bn:
-                    keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.BatchNorm1d(nfeats)
+                    keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.BatchNorm1d(nfeats,track_running_stats=False)
                 else:
                     keypoint_layers["keypoint%d_bn_class%d"%(ilayer+1,iclass)]  = torch.nn.InstanceNorm1d(nfeats)
                 keypoint_layers["keypoint%drelu_class%d"%(ilayer+1,iclass)] = torch.nn.LeakyReLU()

@@ -37,7 +37,8 @@ def get_model( config, dump_model=False ):
                               run_kp=config["RUN_KPLABEL"],
                               run_paf=config["RUN_PAF"],
                               norm_layer='batchnorm',
-                              use_feature_dropout=config["USE_FEATURE_DROPOUT"])
+                              use_feature_dropout=config["USE_FEATURE_DROPOUT"],
+                              use_separate_ssnet_decoder=config["USE_SEPARATE_SSNET_DECODER"])
 
     if dump_model:
         # DUMP MODEL (for debugging)
@@ -104,6 +105,13 @@ def rename_distributed_checkpoint_par_names(checkpoint):
     replacement = OrderedDict()
     notified = False
     for name,arr in checkpoint["state_larmatch"].items():
+        if "running_mean" in name:
+            continue
+        if "running_var" in name:
+            continue
+        if "num_batches_tracked" in name:
+            continue
+        
         if "module." in name and name[:len("module.")]=="module.":
             if not notified:
                 print("renaming parameter by removing 'module.'")
@@ -182,6 +190,7 @@ def accuracy(predictions, truthdata,
 
     batchsize = len(predictions)
 
+    
     for ibatch,(data,labels) in enumerate( zip(predictions,truthdata) ):
 
         # get the data from the dictionaries
@@ -312,6 +321,9 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         print("not a full batch. send signal to reset the iterator")
         return False
 
+    batch_idx = [ data["idx"] for data in batchdata ]
+    print("batch from indices: ",batch_idx)
+    
     # convert wire plane data, in numpy form into ME.SparseTensor form
     # data comes back as numpy arrays.
     # we need to move it to DEVICE and then form MinkowskiEngine SparseTensors
@@ -392,6 +404,17 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     
         batch_truth.append( truth_data )
         batch_weight.append( weight_data )
+
+    onebatch_truth = {}
+    onebatch_weight = {}
+    for task in ["lm","ssnet","kp","paf"]:
+        task_truth = [ b[task] for b in batch_truth ]
+        task_weights = [ b[task] for b in batch_weight  ]
+        onebatch_truth[task]  = torch.cat( task_truth, dim=-1 )
+        onebatch_weight[task] = torch.cat( task_weights, dim=-1 )
+        print("onebatch_truth[",task,"].shape= ",onebatch_truth[task].shape)
+        print("onebatch_weight[",task,"].shape= ",onebatch_weight[task].shape)        
+        
     
     dt_io = time.time()-dt_io
     if verbose:
@@ -408,6 +431,10 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     #if not args.no_parallel:
     #    torch.distributed.barrier()
 
+    for outname in pred_dict:
+        print(outname,": shape=",pred_dict[outname].shape)
+    
+
     if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
     time_meters["forward"].update(time.time()-dt_forward)
@@ -415,9 +442,14 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
     dt_loss = time.time()
         
     # Calculate the loss
-    loss_dict = criterion( pred_dict, batch_truth, batch_weight,
-                           config["BATCH_SIZE"], DEVICE,
-                           verbose=config["VERBOSE_LOSS"] )
+    loss_dict = criterion.forward_onebatch( pred_dict, onebatch_truth, onebatch_weight,
+                                            #config["BATCH_SIZE"],
+                                            DEVICE,
+                                            verbose=config["VERBOSE_LOSS"] )
+    loss_dict["tot"] /= float(config["BATCH_SIZE"])
+    with torch.no_grad():
+        for task in ["lm","ssnet","kp","paf"]:
+            loss_dict[task] = loss_dict[task] / float(config["BATCH_SIZE"])
 
     if config["RUN_PROFILER"]:
         torch.cuda.synchronize()
@@ -453,7 +485,9 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         
     # measure accuracy and update accuracy meters
     dt_acc = time.time()
-    acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=config["VERBOSE_ACCURACY"] )
+    with torch.no_grad():
+        #acc = accuracy( pred_dict, batch_truth, acc_meters, verbose=config["VERBOSE_ACCURACY"] )
+        acc = accuracy( [pred_dict], [onebatch_truth], acc_meters, verbose=config["VERBOSE_ACCURACY"] )
 
     # update time meter
     time_meters["accuracy"].update(time.time()-dt_acc)

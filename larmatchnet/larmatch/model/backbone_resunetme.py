@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import MinkowskiEngine as ME
 from .minkencodedecode import MinkEncodeBase,MinkDecodeBase
-from MinkowskiEngine.modules.resnet_block import BasicBlock
-from .resnetinstance_block import BasicBlockInstanceNorm
+#from MinkowskiEngine.modules.resnet_block import BasicBlock
+from .resnetinstance_block import BasicBlockInstanceNorm, BasicBlockBatchNorm
 
 """ 
 Implementations of different Residual UNet backbones for larmatch
@@ -25,14 +25,14 @@ class MinkDecode6LayerInstance(MinkDecodeBase):
     INIT_DIM = 16
 
 class MinkEncode6LayerBasicBlock(MinkEncodeBase):
-    BLOCK = BasicBlock
+    BLOCK = BasicBlockBatchNorm
     NORM  = ME.MinkowskiBatchNorm
     LAYERS = ( 1,  1,  1,   1,   1,   1)
     PLANES = (16, 32, 64, 128, 256, 512)
     INIT_DIM = 16
 
 class MinkDecode6LayerBasicBlock(MinkDecodeBase):
-    BLOCK = BasicBlock
+    BLOCK = BasicBlockBatchNorm
     NORM  = ME.MinkowskiBatchNorm    
     IN_PLANES = (16, 32, 64, 128, 256, 512)    
     LAYERS = (1, 1, 1, 1, 1, 1)    
@@ -40,7 +40,7 @@ class MinkDecode6LayerBasicBlock(MinkDecodeBase):
     INIT_DIM = 16
 
 class MinkAEDecode6LayerBasicBlock(MinkDecodeBase):
-    BLOCK = BasicBlock
+    BLOCK = BasicBlockBatchNorm
     NORM  = ME.MinkowskiBatchNorm    
     IN_PLANES = (16, 32, 64, 128, 256, 512)    
     LAYERS = (1, 1, 1, 1, 1, 1)    

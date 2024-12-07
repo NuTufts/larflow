@@ -209,6 +209,9 @@ class LArMatchHDF5Dataset(Dataset):
         entry_data = samplers.larmatch_example_balancer( entry_data, 
             max_nspacepoints_returned=self.max_num_spacepoints*0.9,
             exclude_ghosts=True )
+
+        # add index of entry
+        entry_data["idx"] = idx        
         
         return entry_data
 

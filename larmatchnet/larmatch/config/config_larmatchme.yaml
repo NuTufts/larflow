@@ -3,7 +3,7 @@ RESUME_FROM_CHECKPOINT: false
 RESUME_OPTIM_FROM_CHECKPOINT: false
 #CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/checkpoints/tenebrous-trouble-74/checkpoint.32000th.tar"
 CHECKPOINT_FILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/checkpoints/sparkling-sunset-78/checkpoint.44000th.tar"
-LEARNING_RATE: 1.0e-4
+LEARNING_RATE: 1.0e-3
 WEIGHT_DECAY: 1.0e-2
 NUM_ITERATIONS: 10000000
 START_ITER: 0
@@ -13,7 +13,7 @@ BATCH_SIZE: 8
 BATCH_TRIPLET_LIMIT: 33000000
 CLIP_GRAD_NORM: false
 TRAIN_ITER_PER_RECORD: 1
-TRAIN_ITER_PER_VALIDPT: 10
+TRAIN_ITER_PER_VALIDPT: 1
 NUM_VALID_ITERS: 1
 ITER_PER_CHECKPOINT: 1000
 ITER_PER_CACHECLEAR: 1
@@ -21,18 +21,18 @@ VERBOSE_MAIN_LOOP: false
 VERBOSE_ITER_LOOP: false
 VERBOSE_LOSS: false
 VERBOSE_ACCURACY: false
-LOGGER: "wandb"
+LOGGER: "none"
 SEED: 3145
 
 # DATASET PARAMETERS
-TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_training_dataset.txt"
-#TRAIN_DATASET_INPUT_TXTFILE: "cache_list_larmatch_training_dataset.txt"
+#TRAIN_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_training_dataset.txt"
+TRAIN_DATASET_INPUT_TXTFILE: "cache_list_larmatch_training_dataset.txt"
 #TRAIN_DATASET_INPUT_TXTFILE: "cache_list_larmatch_debugging_dataset.txt"
 TRAIN_DATASET_VERBOSE: false
 TRAIN_DATASET_LOAD_FROM_CACHE: true
 TRAIN_MAX_SPACEPOINTS_PER_ENTRY: 100000
-VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_validation_dataset.txt"
-#VALID_DATASET_INPUT_TXTFILE: "cache_list_larmatch_validation_dataset.txt"
+#VALID_DATASET_INPUT_TXTFILE: "/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/larmatchnet/larmatch/cache_list_larmatch_validation_dataset.txt"
+VALID_DATASET_INPUT_TXTFILE: "cache_list_larmatch_validation_dataset.txt"
 #VALID_DATASET_INPUT_TXTFILE: "cache_list_larmatch_debugging_dataset.txt"
 VALID_DATASET_LOAD_FROM_CACHE: true
 VALID_DATASET_VERBOSE: false
@@ -42,6 +42,7 @@ NUM_VALID_WORKERS: 4
 
 # MODEL PARAMETERS
 USE_FEATURE_DROPOUT: true
+USE_SEPARATE_SSNET_DECODER: false
 
 # LOSS PARAMETERS
 USE_LEARNABLE_LOSS_WEIGHTS: true

@@ -19,7 +19,7 @@ class LArMatchSpacepointClassifier( nn.Module ):
             if norm=="instance":
                 lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.InstanceNorm1d(nfeat)
             elif norm=="batchnorm":
-                lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat)
+                lm_class_layers["lmclassifier_norm%d"%(i)] = torch.nn.BatchNorm1d(nfeat,track_running_stats=False)
             else:
                 raise ValueError("invalid norm option: ",norm," options=['batchnorm','instance']")
             lm_class_layers["lmclassifier_relu%d"%(i)] = torch.nn.ReLU()

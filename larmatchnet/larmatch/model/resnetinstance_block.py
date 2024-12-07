@@ -63,3 +63,44 @@ class BasicBlockInstanceNorm(nn.Module):
         out = self.relu(out)
 
         return out
+
+
+class BasicBlockBatchNorm(nn.Module):
+    expansion = 1
+
+    def __init__(self,
+                 inplanes,
+                 planes,
+                 stride=1,
+                 dilation=1,
+                 downsample=None,
+                 dimension=-1):
+        super(BasicBlockBatchNorm, self).__init__()
+        assert dimension > 0
+
+        self.conv1 = ME.MinkowskiConvolution(
+            inplanes, planes, kernel_size=3, stride=stride, dilation=dilation, dimension=dimension)
+        self.norm1 = ME.MinkowskiBatchNorm(planes,track_running_stats=False)
+        self.conv2 = ME.MinkowskiConvolution(
+            planes, planes, kernel_size=3, stride=1, dilation=dilation, dimension=dimension)
+        self.norm2 = ME.MinkowskiBatchNorm(planes,track_running_stats=False)
+        self.relu = ME.MinkowskiReLU(inplace=True)
+        self.downsample = downsample
+
+    def forward(self, x):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.norm1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.norm2(out)
+
+        if self.downsample is not None:
+          residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out

@@ -17,12 +17,12 @@ class LArMatchAffinityFieldRegressor(nn.Module):
         layers = OrderedDict()
         layers["paf_conv0"] = torch.nn.Conv1d(ninput_planes*input_features,
                                               layer_nfeatures[0],1)
-        layers["paf_bn0"]   = torch.nn.BatchNorm1d(layer_nfeatures[0])
+        layers["paf_bn0"]   = torch.nn.BatchNorm1d(layer_nfeatures[0],track_running_stats=False)
         layers["paf_relu0"] = torch.nn.LeakyReLU()
         for ilayer,nfeats in enumerate(layer_nfeatures[1:]):
             layers["paf_conv%d"%(ilayer+1)] = torch.nn.Conv1d(nfeats,nfeats,1)
             if norm=="batchnorm":
-                layers["paf_bn%d"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats)
+                layers["paf_bn%d"%(ilayer+1)]   = torch.nn.BatchNorm1d(nfeats,track_running_stats=False)
             elif norm=="instance":
                 layers["paf_bn%d"%(ilayer+1)]   = torch.nn.InstanceNorm1d(nfeats)
             else:
@@ -37,6 +37,13 @@ class LArMatchAffinityFieldRegressor(nn.Module):
                 #print("set to kaiming normal by default")                
                 nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
                 nn.init.zeros_(module.bias)
+        # for the last layer, we set the bias in anticipation of a large class inbalance.
+        # we know we have many more keypoint values that should be zero
+        # ratio is probably at least 100:1 spacepoints not near keypoints to spacepoints near keypoints, if not worse
+        last_layer = self.paf_layers[-1]
+        if last_layer.bias is not None:
+            nn.init.constant_(last_layer.bias,0.0)
+            
         
     def forward(self,triplet_feat_t):
         """

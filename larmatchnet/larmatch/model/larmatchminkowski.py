@@ -5,7 +5,7 @@ import torch.nn as nn
 import MinkowskiEngine as ME
 from MinkowskiEngine.modules.resnet_block import BasicBlock, Bottleneck
 from .backbone_resunetme import MinkEncode6LayerInstance, MinkDecode6LayerInstance, MinkEncode6LayerBasicBlock, MinkDecode6LayerBasicBlock
-from .resnetinstance_block import BasicBlockInstanceNorm
+from .resnetinstance_block import BasicBlockInstanceNorm, BasicBlockBatchNorm
 from .larmatch_spacepoint_classifier import LArMatchSpacepointClassifier
 from .larmatch_ssnet_classifier import LArMatchSSNetClassifier
 from .larmatch_keypoint_classifier import LArMatchKeypointClassifier
@@ -25,6 +25,7 @@ class LArMatchMinkowski(nn.Module):
                  num_ssnet_classes=5,
                  num_kp_classes=6,
                  use_kp_bn=True,
+                 use_separate_ssnet_decoder=False,
                  use_feature_dropout=False,
                  norm_layer='batchnorm'):
         """
@@ -57,12 +58,12 @@ class LArMatchMinkowski(nn.Module):
                     if norm_layer=='instancenorm':
                         block   = BasicBlockInstanceNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )
                     elif norm_layer=='batchnorm':
-                        block   = BasicBlock( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )                    
+                        block   = BasicBlockBatchNorm( input_nfeatures, stem_nfeatures, dimension=ndimensions, downsample=respath )                    
                 else:
                     if norm_layer=='instancenorm':
                         block   = BasicBlockInstanceNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )
                     elif norm_layer=='batchnorm':
-                        block   = BasicBlock( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )                    
+                        block   = BasicBlockBatchNorm( stem_nfeatures, stem_nfeatures, dimension=ndimensions  )                    
                 stem_layers["stem_layer%d"%(istem)] = block
             
         self.stem = nn.Sequential(stem_layers)
@@ -76,7 +77,15 @@ class LArMatchMinkowski(nn.Module):
             self.decoder = MinkDecode6LayerBasicBlock( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
         else:
             raise ValueError("unrecognized norm_layer value: ",norm_layer)
-            
+
+        self._separate_ssnet_decoder = use_separate_ssnet_decoder        
+        if self._separate_ssnet_decoder:
+            if norm_layer=="instancenorm":
+                self.ssnet_decoder = MinkDecode6LayerInstance( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+            elif norm_layer=="batchnorm":
+                self.ssnet_decoder = MinkDecode6LayerBasicBlock( in_channels=stem_nfeatures, out_channels=stem_nfeatures, D=2 )
+            else:
+                raise ValueError("unrecognized ssmet_decoder norm_layer value: ",norm_layer)
 
         # sparse to dense operation
         self.sparse_to_dense = [ ME.MinkowskiToFeature() for p in range(input_nplanes) ]
@@ -127,6 +136,13 @@ class LArMatchMinkowski(nn.Module):
                 nn.init.kaiming_normal_(module.kernel, mode='fan_out', nonlinearity='relu')
                 if module.bias is not None:                
                     nn.init.constant_(module.bias,0.0)
+        if self._separate_ssnet_decoder:
+            for module in self.ssnet_decoder.modules():
+                if isinstance(module, ME.MinkowskiConvolution):
+                    nn.init.kaiming_normal_(module.kernel, mode='fan_out', nonlinearity='relu')
+                    if module.bias is not None:                
+                        nn.init.constant_(module.bias,0.0)
+            
                 
         if self.run_lm:
             self.lm_classifier._init_weights()
@@ -145,23 +161,35 @@ class LArMatchMinkowski(nn.Module):
         
         # we push through each sparse image through the stem and backbone (e.g. unet)
         x_feat_v = []
+        x_ssnet_feat_v = []
         for p,x_input in enumerate(input_wireplane_sparsetensors):
             #print(x_input)            
             x = self.stem(x_input)
             x_encode = self.encoder(x)
             x_decode = self.decoder(x_encode)
+            x_feat_v.append( x_decode )            
+            if self._separate_ssnet_decoder:
+                x_ssnet_decode = self.ssnet_decoder(x_encode)
+                x_ssnet_feat_v.append( x_ssnet_decode )
             #print("------------------------------------------------------------")
             #print("output features plane[",p,"] ",x_decode.shape)
             #print(x_decode)
             #print("------------------------------------------------------------")
-            x_feat_v.append( x_decode )
 
+        # use minkowski dropout
         if self.use_feature_dropout:
             for p in range(len(x_feat_v)):
-                x_feat_v[p] = self.dropout( x_feat_v[p] )
-
+                if self._separate_ssnet_decoder:
+                    x_ssnet_feat_v[p] = self.dropout( x_ssnet_feat_v[p] )
+                else:
+                    x_feat_v[p] = self.dropout( x_feat_v[p] )
+            
+            
         # then we have to extract a feature tensor
         batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, query_v, batch_size )
+        if self._separate_ssnet_decoder:
+            batch_ssnet_sp_feat = self.extract_features(x_ssnet_feat_v, matchtriplets, query_v, batch_size )
+        # shape is now (C,H*W) where C=feats_per_plane*num_planes
             
         #for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
         #    print("--------------------------------------------------------")
@@ -170,27 +198,30 @@ class LArMatchMinkowski(nn.Module):
         #print("--------------------------------------------------------")            
 
         # we pass the features through the different classifiers
-        batch_output = []
-        for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
-            output = {}            
-            x = spacepoint_feat.unsqueeze(0)
+        #batch_output = []
+        #for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
+        output = {}            
+        x = batch_spacepoint_feat.unsqueeze(0) # makes it (1,C,H*W)
+        if self._separate_ssnet_decoder:
+            xssnet = batch_ssnet_sp_feat.unsqueeze(0) # makes it (1,C,H*W)
 
-            if self.run_lm:
-                #print("batch ",b," spacepoint feats: ",x.shape)
-                output["lm"] = self.lm_classifier( x )
+        if self.run_kplabel:
+            output["kp"] = self.kplabel_head( x )
 
-            if self.run_ssnet:
+        if self.run_paf:
+            output['paf'] = self.affinity_head( x )
+
+        if self.run_lm:
+            #print("batch ",b," spacepoint feats: ",x.shape)
+            output["lm"] = self.lm_classifier( x )
+
+        if self.run_ssnet:
+            if self._separate_ssnet_decoder:
+                output["ssnet"] = self.ssnet_head( xssnet )
+            else:
                 output["ssnet"] = self.ssnet_head( x )
-
-            if self.run_kplabel:
-                output["kp"] = self.kplabel_head( x )
-
-            if self.run_paf:
-                output['paf'] = self.affinity_head( x )
             
-            batch_output.append( output )
-
-        return batch_output
+        return output
                                         
     def extract_features(self, feat_v, index_t, query_v, batch_size, verbose=False ):
         """ 
@@ -212,7 +243,9 @@ class LArMatchMinkowski(nn.Module):
         feature vector for spacepoint triplet [torch tensor shape (1,3C,npts)]
         """
 
-        spacepoint_feat_v = [ feat_v[p].features_at_coordinates( query_v[p] ) for p in range(3) ]
+        # get spacepoint features for each plane
+        # each plane shape: (N, f_d )
+        spacepoint_planefeat_v = [ feat_v[p].features_at_coordinates( query_v[p] ) for p in range(3) ]
         #for p in range(3):
         #    print("plane[",p,"] spacepoint_feat_v: ",spacepoint_feat_v[p].shape)
 
@@ -223,6 +256,13 @@ class LArMatchMinkowski(nn.Module):
         #    print("sparse to dense out plane[",p,"]: ",x.shape)
         #print("---------------------------------------------------------")
 
+        # concat, making one pixel feature tensor over the whole batch
+        spacepoint_feat_v = torch.transpose( torch.cat( spacepoint_planefeat_v, dim=1 ), 1, 0 ) # (N, 3*f) --> (3*f,N)
+        return spacepoint_feat_v
+
+    def split_spacepoint_feat_by_batchinstance( spacepoint_feat_v ):
+        
+
         batch_feats = []     
         bstart = 0      
         for b in range(batch_size):
@@ -230,8 +270,6 @@ class LArMatchMinkowski(nn.Module):
             batch_spacepoint_v = []
 
             npts = batch_triplets.shape[0]
-
-            #plane_feat_v = [ feat_v[p].features_at(batch_index=b) for p in range(3) ]
 
             for p,x in enumerate(spacepoint_feat_v):
                 #print("----------------------------------")
