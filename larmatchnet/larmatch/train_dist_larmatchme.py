@@ -211,8 +211,12 @@ def run(gpu, args ):
             train_iteration = config["START_ITER"] + iiter
             x_epoch = float(NGPUS*train_iteration)/float(TRAIN_NENTRIES)
 
-            #x_lr = get_lr_cosine_annealing_with_warmup( x_epoch, 0.5, base_lr*1.0e-4, base_lr*1.0e-3, base_lr, 10.0 )
-            x_lr = 1.0e-2
+            x_lr = get_lr_cosine_annealing_with_warmup( x_epoch, config["LR_WARMUP_EPOCHS"],
+                                                        config["LR_WARMUP_LEARNING_RATE"],
+                                                        base_lr*config["LR_MIN_FACTOR"],
+                                                        base_lr,
+                                                        config["LR_COSINE_CYCLE_EPOCHS"] )
+            #x_lr = 1.0e-2
             # update the optimizer lr
             for param_group, lr_factor in zip(optimizer.param_groups, lr_factors):
                 param_group['lr'] = x_lr*lr_factor
@@ -260,7 +264,7 @@ def run(gpu, args ):
                     print("RANK-%d: waiting for RANK-0 to save checkpoint"%(rank))                
             
             if verbose: print("RANK-%d: current tree entry=%d"%(rank,train_dataset._current_entry))
-            if iiter%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
+            if train_iteration%int(config["TRAIN_ITER_PER_RECORD"])==0 and rank==0:
                 # make averages and save to tensorboard, only if rank-0 process
                 engine.prep_status_message( "Train-Iteration", train_iteration, acc_meters, loss_meters, time_meters )
                 if config["USE_LEARNABLE_LOSS_WEIGHTS"]:
@@ -349,7 +353,7 @@ def run(gpu, args ):
                 if made_logger and config['LOGGER']=='wandb':
                     wandb_writer.log( data=all_log_variables, step=train_iteration )
 
-            if config["TRAIN_ITER_PER_VALIDPT"]>0 and iiter%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
+            if config["TRAIN_ITER_PER_VALIDPT"]>0 and train_iteration%int(config["TRAIN_ITER_PER_VALIDPT"])==0:
                 if rank==0:
                     valid_loss_meters,valid_acc_meters,valid_time_meters = engine.make_meters(config)                    
                     for viter in range(int(config["NUM_VALID_ITERS"])):

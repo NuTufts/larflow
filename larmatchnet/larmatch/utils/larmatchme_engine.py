@@ -322,7 +322,7 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         return False
 
     batch_idx = [ data["idx"] for data in batchdata ]
-    print("batch from indices: ",batch_idx)
+    #print("batch from indices: ",batch_idx)
     
     # convert wire plane data, in numpy form into ME.SparseTensor form
     # data comes back as numpy arrays.
@@ -412,8 +412,8 @@ def do_one_iteration( config, model, data_iter, data_loader, criterion, optimize
         task_weights = [ b[task] for b in batch_weight  ]
         onebatch_truth[task]  = torch.cat( task_truth, dim=-1 )
         onebatch_weight[task] = torch.cat( task_weights, dim=-1 )
-        print("onebatch_truth[",task,"].shape= ",onebatch_truth[task].shape)
-        print("onebatch_weight[",task,"].shape= ",onebatch_weight[task].shape)        
+        #print("onebatch_truth[",task,"].shape= ",onebatch_truth[task].shape)
+        #print("onebatch_weight[",task,"].shape= ",onebatch_weight[task].shape)        
         
     
     dt_io = time.time()-dt_io
