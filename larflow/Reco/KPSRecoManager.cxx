@@ -875,6 +875,9 @@ namespace reco {
     if (activate_nuvertexshowerreco_mcanamode) {
       _nuvertex_shower_reco.activateMCanalysisMode( savemc );
     }
+    else {
+      _nuvertex_shower_reco.activateMCanalysisMode( false );      
+    }
   };
 
   /**

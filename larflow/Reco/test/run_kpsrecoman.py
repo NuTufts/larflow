@@ -64,6 +64,10 @@ if args.ismc:
     recoman.saveEventMCinfo( args.ismc, activate_mcanamode_nuvertexshowereco )
     if args.run_perfect_mcreco:
         recoman.runPerfectMCreco( True )
+else:
+    recoman.saveEventMCinfo( False, False )
+    recoman._nuvertex_shower_reco.activateMCanalysisMode(False)
+    
 recoman.set_spacepoint_input_container_name( input_spacepoint_container_name )
         
 if args.event_filter:

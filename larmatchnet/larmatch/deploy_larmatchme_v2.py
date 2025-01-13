@@ -172,11 +172,12 @@ for ientry in range(start_entry,end_entry):
         larmatchout = single_model( batch_sparsetensors, batch_triplets, batch_coordqueries, batchsize )
         dt_runnet = time.time()-tstart_runnet
 
-        # output is a list
-        # each entry in list is a dict with output keys
-        print("-----------------------------------")
-        for ib,pred_dict in enumerate(larmatchout):
-            print("output batchindex[",ib,"]")
+        # output is a dict with keys being the different output heads
+        if True:
+            print("-----------------------------------")
+            #for ib,pred_dict in enumerate(larmatchout):
+            pred_dict = larmatchout
+            print("output: ")
             for k,v in pred_dict.items():
                 print(k,": ",v.shape)
             print("-----------------------------------")
@@ -220,9 +221,9 @@ for ientry in range(start_entry,end_entry):
 
 
             # PASS LARMATCH OUTPUTS to hitmaker
-            matchtriplet_np = batch[ib][triplet_key]
+            matchtriplet_np = batch[0][triplet_key]
             #sparse_np_v = [ batch[ib]['wireimage_plane%d'%(p)] for p in range(3) ] 
-            sparse_np_v = [ batch[ib]['coord_%d'%(p)] for p in range(3) ] 
+            sparse_np_v = [ batch[0]['coord_%d'%(p)] for p in range(3) ] 
             prob_np = lm_prob_t.to(torch.device("cpu")).detach().numpy()
             #prob_np[:] = 1.0 # hack to check
             print("add larmatch output to hitmaker")
@@ -282,7 +283,7 @@ for ientry in range(start_entry,end_entry):
             outll.next_event(True)
             sys.stdout.flush()
     print("End of entry[",ientry,"]")
-    if True and ientry>=4:
+    if False and ientry>=2:
         break
 
 print("Finished")

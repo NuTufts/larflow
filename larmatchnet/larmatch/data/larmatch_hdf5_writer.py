@@ -97,8 +97,6 @@ class LArMatchHDF5Writer:
         sys.stdout.flush()
         
         ev_chstatus = iolcv.get_data( larcv.kProductChStatus, self.adc_treename )
-        ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
-        larflow_v  = ev_larflow.Image2DArray()
     
         badch_v = self.badchmaker.makeGapChannelImage( adc_v, ev_chstatus,
                                                   4, 3, 2400, 1008*6, 3456, 6, 1,
@@ -112,6 +110,9 @@ class LArMatchHDF5Writer:
         if run_process_truthlabels:
             """ run code to make truth labels and convert them into numpy arrays """
             #print("Process truth labels")
+            #ev_larflow = iolcv.get_data( larcv.kProductImage2D, "larflow" )
+            #larflow_v  = ev_larflow.Image2DArray()
+            
             self.process_truthlabels( iolcv, ioll )
 
             # At this point, the spacepoints and labels are made.
