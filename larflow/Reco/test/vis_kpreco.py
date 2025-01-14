@@ -349,7 +349,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
         #traces_v.append( mcshower_v[2] )
 
     if hasmcshowertree:
-        print("number of detshower: ",mcshowertree.mcshower_v.size())
+        ndetshower = 0
         for i in range(mcshowertree.mcshower_v.size()):
             shr = mcshowertree.mcshower_v.at(i)
             print(  "mc detectable shower[",i,"]: ",shr.PdgCode())
@@ -375,6 +375,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
             pnorm = np.sqrt( px*px+py*py+pz*pz )
             if pnorm<1.0e-3:
                 continue
+            ndetshower += 1
             
             shrlen = 14.0*3.0*((pE-10.0)/200.0)
             if shrlen > 14.0*3.0:
@@ -400,7 +401,7 @@ def make_figures(entry,vtxid,plotby="larmatch",treename="larmatch",minprob=0.0):
                 "line":{"color":profcolor,"width":4},
             }
             traces_v.append( shower_prof_trace )
-
+        print("number of detshower: ",ndetshower)
 
     # Check for perfect reco
     num_nu_perfect = 0        

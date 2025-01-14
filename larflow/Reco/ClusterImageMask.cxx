@@ -84,6 +84,68 @@ namespace reco {
     LARCV_NORMAL() << "_npix labeled=" << _npix << " nskipped=" << nskipped_points << std::endl;
   }
 
+  void ClusterImageMask::maskClusterAndStore( const larlite::larflowcluster& cluster,
+					      const std::vector<larcv::Image2D>& adc_v,
+					      const float thresh,
+					      const int dpix,
+					      const bool clear_tracking_image )
+  {
+    if ( clear_tracking_image ) {
+      _npix = 0;
+      _cluster_mask_v.clear();
+    }
+
+    if ( _cluster_mask_v.size()==0 ) {
+      _npix = 0;
+      for ( auto const& img : adc_v ) {
+	larcv::Image2D newimg( img.meta() );
+	_cluster_mask_v.emplace_back( std::move(newimg) );
+      }
+    }
+
+    if ( _cluster_mask_v.size()!=adc_v.size() ) {
+      LARCV_ERROR() <<  "number of mask images and input images does not match" << std::endl;
+    }
+    
+    bool mask_matches = true;
+    for ( size_t p=0; p<_cluster_mask_v.size(); p++ ) {
+      if ( _cluster_mask_v[p].meta()!=adc_v[p].meta() ) {
+	mask_matches = false;
+	LARCV_WARNING() << "input and output mask image meta does not match for plane=" << p << std::endl;
+	LARCV_WARNING() << "  input: " << adc_v[p].meta().dump() << std::endl;
+	LARCV_WARNING() << "  output mask: " << _cluster_mask_v[p].meta().dump() << std::endl;
+      }
+    }
+    if ( !mask_matches ) {
+      LARCV_ERROR() << "Metas do not match" << std::endl;
+    }
+
+    maskCluster( cluster, adc_v, _cluster_mask_v, thresh, dpix );
+    
+  }
+
+  float ClusterImageMask::getPlaneMaskSum( int plane )
+  {
+
+    float sum = 0;
+    if ( plane>=0 && plane<_cluster_mask_v.size() ) {
+      auto const& v = _cluster_mask_v[plane].as_vector();
+      for (size_t i=0; i<v.size(); i++)
+	sum += v[i];
+    }
+    return sum;    
+  }
+
+  
+  std::vector<float> ClusterImageMask::getMaskSums()
+  {
+    std::vector<float> sum_v( _cluster_mask_v.size(), 0.0 );
+    for (size_t p=0; p<_cluster_mask_v.size(); p++)
+      sum_v[p] = getPlaneMaskSum( p );
+    return sum_v;
+  }
+  
+  
   void ClusterImageMask::maskTrack( const larlite::track& track,
                                     const std::vector<larcv::Image2D>& adc_v,
                                     std::vector<larcv::Image2D>& mask_v,

@@ -10,7 +10,9 @@ def larmatch_example_balancer( data, max_nspacepoints_returned=300000,
     ignore_array_list=['coord_0', 'feat_0', 
     'coord_1', 'feat_1', 
     'coord_2', 'feat_2',
-    'keypoint_truth_pos','keypoint_truth_kptype_pdg_trackid']  ):
+    'keypoint_truth_pos',
+    'keypoint_truth_kptype_pdg_trackid',
+    'idx']  ):
     """
     We resample the batch to balance the batch of positive and negative examples
     to 50% positive and 50% negative.
@@ -80,7 +82,7 @@ def larmatch_example_balancer( data, max_nspacepoints_returned=300000,
                     sampled_data[name] = data[name][combinedmask==1]
                 #print("  sample ",name," ",data[name].shape," to ",sampled_data[name].shape)
             except:
-                raise ValueError("Cannot sample array name=",name," with shape=",data[name].shape)
+                raise ValueError("Cannot sample array name=",name)
 
     sampled_data['larmatch_weight'] = make_lm_weights( sampled_data )
     sampled_data['keypoint_weight'] = make_kp_weights( sampled_data, exclude_ghosts=exclude_ghosts )

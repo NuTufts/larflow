@@ -659,8 +659,8 @@ namespace reco {
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     _nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
     //_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
-    _nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );
+    //_nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP ); // attempted to build showers based on KP
+    _nuvertexmaker.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower ); // naive clusters
     
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
@@ -712,7 +712,7 @@ namespace reco {
     _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO ); 
     //_nuvertex_shower_reco.activateMCanalysisMode(true);
     _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-    _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    //_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
     //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     _nuvertex_shower_reco.process( iolcv, ioll,
