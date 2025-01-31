@@ -155,7 +155,8 @@ class LArMatchMinkowski(nn.Module):
              
             
     
-    def forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
+    def forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size, 
+                return_larmatch_features=False ):
 
         # check input
         
@@ -220,6 +221,9 @@ class LArMatchMinkowski(nn.Module):
                 output["ssnet"] = self.ssnet_head( xssnet )
             else:
                 output["ssnet"] = self.ssnet_head( x )
+
+        if return_larmatch_features:
+            output["larmatch_features"] = x.detach()
             
         return output
                                         
