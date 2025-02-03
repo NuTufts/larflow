@@ -187,9 +187,9 @@ class LArMatchMinkowski(nn.Module):
             
             
         # then we have to extract a feature tensor
-        batch_spacepoint_feat = self.extract_features(x_feat_v, matchtriplets, query_v, batch_size )
+        batch_spacepoint_feat = self.extract_features(x_feat_v, query_v )
         if self._separate_ssnet_decoder:
-            batch_ssnet_sp_feat = self.extract_features(x_ssnet_feat_v, matchtriplets, query_v, batch_size )
+            batch_ssnet_sp_feat = self.extract_features(x_ssnet_feat_v, query_v )
         # shape is now (C,H*W) where C=feats_per_plane*num_planes
             
         #for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
@@ -227,24 +227,21 @@ class LArMatchMinkowski(nn.Module):
             
         return output
                                         
-    def extract_features(self, feat_v, index_t, query_v, batch_size, verbose=False ):
+    def extract_features(self, feat_v, query_v, verbose=False ):
         """ 
-        take in index list and concat the triplet feature vector.
-        the feature vectors are those produced by the forward_feature method.
-        The information of which feature vectors to combine are in index_t.
-        The information for index_t is made using the larflow::PrepMatchTriplets class.
+        Get list of pixel coordinates for each spacepoint so we can get image feature vector from each wire plane.
+        These are then concatenated to make final feature vector for spacepoints.
+        Note: we assume that the given MinkowskiEngeine SparseTensor covers multiple batches (with the batch index provided in the 0-th coordinate)
         
         inputs
         ------
-        feat_v [] a list of SparseTensor, output of model
-        index_t  [torch tensor shape (N_m,3)] N_m triplets containing indices to feat_u_t, feat_v_t, feat_y_t that should be combined
-        npts [int] number of points in index_t to evaluate
-        DEVICE [torch device] device to put output tensors
+        feat_v [] a list of Minkowski SparseTensor for each 2D image (usually for 3 wireplanes), each tensor in list has (C,Npixels) with Npixels per image
+        query_v [] a list containing (N,2+1) array with each row containing the (batch,row,col) index of non-zero pixel coordinates in image with N=number of spacepoints
         verbose [bool] print tensor shape information, default=False
 
         outputs
         --------
-        feature vector for spacepoint triplet [torch tensor shape (1,3C,npts)]
+        feature vector for spacepoint triplet [torch tensor shape (3C,N)]
         """
 
         # get spacepoint features for each plane

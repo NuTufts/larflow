@@ -153,8 +153,6 @@ for ientry in range(start_entry,start_entry+1):
     batch_sparsetensors, batch_triplets, batch_coordqueries = LArMatchHitHDF5Writer.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key )
     dt_prep = time.time()-tprep
 
-    outputdict = {}
-
     with torch.no_grad():
         # run larmatch network
         # input: forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
@@ -162,25 +160,40 @@ for ientry in range(start_entry,start_entry+1):
         larmatchout = single_model( batch_sparsetensors, batch_triplets, batch_coordqueries, batchsize, return_larmatch_features=True )
         dt_runnet = time.time()-tstart_runnet
 
+        # get charge feature
+        pixval_v = [ batch_sparsetensors[p].features_at_coordinates( batch_coordqueries[p] ) for p in range(3)  ]
+
         print("Ran larmatch: time elapsed=",dt_runnet," sec")
 
         # for each entry we collect:
-        lm_prob_t = torch.transpose(  larmatchout["lm"][0], 1, 0 )
-        lmscores = 1.0-torch.softmax( lm_prob_t, dim=1 )
-
-        lmfilter = lmscores[:,1]>args.min_score
-
-        lmscores = lmscores[ lmfilter[:], 1]
+        lmscores = torch.softmax( larmatchout["lm"][0], dim=0 )
+        lmfilter = lmscores[1,:]>args.min_score
+        lmscores = lmscores[ 1, lmfilter[:]]
+        lmscores = lmscores.reshape( (1,lmscores.shape[0]))
         ssnet = larmatchout['ssnet'][0,:,lmfilter[:]]
         paf = larmatchout['paf'][0,:,lmfilter[:]]
         kpscores = larmatchout['kp'][0,:,lmfilter[:]]
         lmfeats = larmatchout['larmatch_features'][0,:,lmfilter[:]]
+        spacepoints = torch.transpose( torch.from_numpy(entrydata['spacepoints']).to(DEVICE) , 1, 0 )[:,lmfilter[:]]
+        pixval_t = torch.transpose( torch.cat( pixval_v, dim=1 ), 1, 0 )[:,lmfilter[:]]
 
         print(lmscores.shape)
         print(lmfeats.shape)
         print(kpscores.shape)
         print(paf.shape)
         print(ssnet.shape)
+        print(spacepoints.shape)
+        print("pixval_t.shape: ",pixval_t.shape)
+
+        entrydata = {'lmfeatures':lmfeats.detach().cpu().numpy(),
+                    'lmscores':lmscores.detach().cpu().numpy(),
+                    'ssnet':ssnet.detach().cpu().numpy(),
+                    'paf':paf.detach().cpu().numpy(),
+                    'kpscores':kpscores.detach().cpu().numpy(),
+                    'pos':spacepoints.detach().cpu().numpy(),
+                    'pixvals':pixval_t.detach().cpu().numpy()}
+
+        output_entries.append( entrydata )
 
         #selectionmask = outputdict['lm']
         #outputdict['lmfeatures'] = np.transpose( outputdict['larmatch_features'][0,:,:], (1,0) )
@@ -190,10 +203,9 @@ for ientry in range(start_entry,start_entry+1):
 
              
 # write output
-sys.exit(0)
 
 with h5py.File(args.output, 'w') as hf:
-    for ientry,entrydict in enumerate(self.entry_data):
+    for ientry,entrydict in enumerate(output_entries):
         print("writing entry[",ientry,"]")
         for name in entrydict:
             n = name+"_%d"%(ientry)
@@ -318,6 +330,5 @@ with h5py.File(args.output, 'w') as hf:
 
 print("Finished")
 print("Cleaning up")
-outll.close()
 ioll.close()
 iolcv.finalize()
