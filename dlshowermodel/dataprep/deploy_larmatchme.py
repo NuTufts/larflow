@@ -176,22 +176,25 @@ for ientry in range(start_entry,start_entry+1):
         lmfeats = larmatchout['larmatch_features'][0,:,lmfilter[:]]
         spacepoints = torch.transpose( torch.from_numpy(entrydata['spacepoints']).to(DEVICE) , 1, 0 )[:,lmfilter[:]]
         pixval_t = torch.transpose( torch.cat( pixval_v, dim=1 ), 1, 0 )[:,lmfilter[:]]
+        instanceids = torch.unsqueeze(torch.from_numpy(entrydata['instanceid_label']),0).to(DEVICE)[:,lmfilter[:]]
 
-        print(lmscores.shape)
-        print(lmfeats.shape)
-        print(kpscores.shape)
-        print(paf.shape)
-        print(ssnet.shape)
-        print(spacepoints.shape)
+        print("lmscores: ",lmscores.shape)
+        print("lmfeats: ",lmfeats.shape)
+        print("kpscores: ",kpscores.shape)
+        print("paf: ",paf.shape)
+        print("ssnet: ",ssnet.shape)
+        print("spacepoints: ",spacepoints.shape)
+        print("instanceids: ",instanceids.shape)
         print("pixval_t.shape: ",pixval_t.shape)
 
         entrydata = {'lmfeatures':lmfeats.detach().cpu().numpy(),
-                    'lmscores':lmscores.detach().cpu().numpy(),
-                    'ssnet':ssnet.detach().cpu().numpy(),
-                    'paf':paf.detach().cpu().numpy(),
-                    'kpscores':kpscores.detach().cpu().numpy(),
-                    'pos':spacepoints.detach().cpu().numpy(),
-                    'pixvals':pixval_t.detach().cpu().numpy()}
+                     'lmscores':lmscores.detach().cpu().numpy(),
+                     'ssnet':ssnet.detach().cpu().numpy(),
+                     'paf':paf.detach().cpu().numpy(),
+                     'kpscores':kpscores.detach().cpu().numpy(),
+                     'pos':spacepoints.detach().cpu().numpy(),
+                     'instanceids':instanceids.detach().cpu().numpy(),
+                     'pixvals':pixval_t.detach().cpu().numpy()}
 
         output_entries.append( entrydata )
 

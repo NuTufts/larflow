@@ -17,11 +17,13 @@ class LArMatchHitHDF5Dataset(Dataset):
         "pos",        #(3,N)
         "pixvals"]    #(3,N)
 
+    TRUTH_COLUMNS = [
+        "instanceids"
+    ]
 
-    COLLATE_FOR_TRAINING = True
     
     def __init__(self, file_paths=None,
-                 collate_for_training=True,
+                 load_training_labels=True,
                  load_from_cachefile=None,
                  apply_max_filter=False,
                  max_num_spacepoints=10000):
@@ -44,8 +46,11 @@ class LArMatchHitHDF5Dataset(Dataset):
         self.load_from_cachefile = load_from_cachefile
         self.max_num_spacepoints=max_num_spacepoints
         self.apply_max_filter=apply_max_filter
+        self.load_training_labels = load_training_labels
 
         self.COLS = LArMatchHitHDF5Dataset.COLUMNS
+        if self.load_training_labels:
+            self.COLS += LArMatchHitHDF5Dataset.TRUTH_COLUMNS
 
         self.nlength = 0
         if self.load_from_cachefile is not None:
@@ -69,8 +74,8 @@ class LArMatchHitHDF5Dataset(Dataset):
                 with h5py.File(file_path, 'r') as hf:
                     # because each entry has its own column, we can infer the number of entries
                     nkeys = len(hf.keys())
-                    length = nkeys // len(LArMatchHitHDF5Dataset.COLUMNS)  # Divide by number of columns in each entry
-                    print("length=",length," for ",file_path)
+                    length = nkeys // len(self.COLS)  # Divide by number of columns in each entry
+                    print("nkeys=",nkeys," length=",length," for ",file_path)
                     self.dataset_lengths.append(length)
                     self.cumulative_lengths.append(self.cumulative_lengths[-1] + length)
             self.nlength = self.cumulative_lengths[-1]
@@ -108,7 +113,10 @@ class LArMatchHitHDF5Dataset(Dataset):
         with h5py.File(self.file_paths[file_idx], 'r') as hf:
             for col in self.COLS:
                 #print("retrieve key=",f'{col}_{local_idx}')
-                entry_data[col] = np.array(hf[f'{col}_{local_idx}'])
+                arr = np.array(hf[f'{col}_{local_idx}'])
+                if len(arr.shape)==1:
+                    arr = np.expand_dims(arr, 0)
+                entry_data[col] = arr
 
         # here we have a chance to modify the data
         # do we subsample to limit the number of spacepoints?

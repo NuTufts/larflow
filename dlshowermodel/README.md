@@ -25,6 +25,31 @@ should be assigned as a daughter cluster to a shower trunk.
 
 ## Data preparation
 
+The source of the training data are MicroBooNE simulation files.
+These are referred internally as the "dlmerged" files.
+Each file contains data for several simulated events where the
+detector captures an image in-time with a neutrino interaction
+that occurs somewhere in the cryostat or TPC.
+Each event contains the captured wire-plane images along with meta-data from the simulation
+that gives us information as to the true trajectories of the particles made
+by the neutrino interaction. Most of the files will have cosmic particle trajectories
+taken from real data (recorded when the beam was not on).
+
+We use the LArMatch network and tools for parsing the simulation meta-data to
+provide us with spacepoints and ground-truth information for training the network.
+
+To process the input "dlmerged" files, use the program:
+
+`dataprep/deploy_larmatchme.py`
+
+### Spacepoint pre-processing
+
+The goal of our model is to cluster together EM showers.
+Therefore, we must take the low-level spacepoint data and perform some pre-processing
+steps to make shower clusters that the model will be tasked with grouping together properly.
+
+
+
 We run larmatch and then run preprocessing similar to lantern reco:
 
 1. pick out shower points
