@@ -98,6 +98,7 @@ namespace keypoints {
     auto ev_segment  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"segment");
     auto ev_instance = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
     auto ev_ancestor = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
+    auto ev_larflow  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");
 
     auto ev_mctrack  = (larlite::event_mctrack*)ioll.get_data(  larlite::data::kMCTrack,  "mcreco" );
     auto ev_mcshower = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
@@ -116,6 +117,7 @@ namespace keypoints {
     std::cout << "  segment images: "  << ev_segment->Image2DArray().size() << std::endl;
     std::cout << "  instance images: " << ev_instance->Image2DArray().size() << std::endl;
     std::cout << "  ancestor images: " << ev_ancestor->Image2DArray().size() << std::endl;
+    std::cout << "  larflow images:  " << ev_larflow->Image2DArray().size() << std::endl;
     std::cout << "  mctracks: " << ev_mctrack->size() << std::endl;
     std::cout << "  mcshowers: " << ev_mcshower->size() << std::endl;
     std::cout << "  mctruths: " << ev_mctruth->size() << std::endl;
@@ -129,9 +131,11 @@ namespace keypoints {
              ev_segment->Image2DArray(),
              ev_instance->Image2DArray(),
              ev_ancestor->Image2DArray(),
+	     ev_larflow->Image2DArray(),
              *ev_mctrack,
              *ev_mcshower,
              *ev_mctruth );
+
   }
 
   /**
@@ -142,7 +146,8 @@ namespace keypoints {
                                   const std::vector<larcv::Image2D>&    badch_v,
                                   const std::vector<larcv::Image2D>&    segment_v,
                                   const std::vector<larcv::Image2D>&    instance_v,
-                                  const std::vector<larcv::Image2D>&    ancestor_v,                                  
+                                  const std::vector<larcv::Image2D>&    ancestor_v,
+				  const std::vector<larcv::Image2D>&    larflow_v,
                                   const larlite::event_mctrack&  mctrack_v,
                                   const larlite::event_mcshower& mcshower_v,
                                   const larlite::event_mctruth&  mctruth_v ) {
@@ -156,7 +161,7 @@ namespace keypoints {
     LARCV_DEBUG() << "build graph" << std::endl;    
     ublarcvapp::mctools::MCPixelPGraph mcpg;
     try {
-      mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v,
+      mcpg.buildgraph( adc_v, segment_v, instance_v, ancestor_v, larflow_v,		       
                        mcshower_v, mctrack_v, mctruth_v );
     }
     catch (std::exception& err) {
@@ -885,6 +890,31 @@ namespace keypoints {
     }
     
     return hist_v;
+  }
+
+  void PrepKeypointData::_clear_output()
+  {
+    for (int i=0; i<6; i++) {
+      _kppos_v[i].clear();
+      _kp_pdg_trackid_v[i].clear();
+    }
+  }
+
+  void PrepKeypointData::_copy_to_vectors()
+  {
+    // copy positions of keypoints into flat vector for storage
+    for ( auto const& kpd : _kpd_v ) {
+      if ( kpd.kptype>=0 && kpd.kptype<6 ) {
+        _kppos_v[ kpd.kptype ].push_back( kpd.keypt );
+	std::vector<int> pdg_trackid(2);
+        pdg_trackid[0] = kpd.pid;
+        pdg_trackid[1] = kpd.trackid;
+        _kp_pdg_trackid_v[ kpd.kptype ].push_back( pdg_trackid );
+      }
+      else {
+        throw std::runtime_error("unrecognized keypoint type");
+      }          
+    }
   }
   
 }

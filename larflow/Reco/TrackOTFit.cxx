@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
+#include <algorithm>
 
 #include "larcv/core/DataFormat/Image2D.h"
 #include "larlite/DataFormat/larflow3dhit.h"
