@@ -40,6 +40,9 @@ export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
 # add loader for c++ library to python path
 [[ ":$PYTHONPATH:" != *":${LARFLOW_BASEDIR}/python:"* ]] && PYTHONPATH="${LARFLOW_BASEDIR}/python:${PYTHONPATH}"
 
+# add larmatchnet folder to python path in order to make larmatch findable
+export LARMATCHNET_DIR=${LARFLOW_BASEDIR}/larmatchnet
+[[ ":$PYTHONPATH:" != *":${LARMATCHNET_DIR}:"* ]] && export PYTHONPATH="${LARMATCHNET_DIR}:${PYTHONPATH}"
 
 # SETUP CILANTRO
 #export CILANTRO_INC_DIR=${LARFLOW_BASEDIR}/cilantro/include
