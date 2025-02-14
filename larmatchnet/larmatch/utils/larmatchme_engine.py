@@ -5,8 +5,8 @@ import torch
 import torch.distributed as dist
 import MinkowskiEngine as ME
 import yaml
-from model.larmatchminkowski import LArMatchMinkowski
-from loss.loss_larmatch_kps import SparseLArMatchKPSLoss
+from larmatch.model.larmatchminkowski import LArMatchMinkowski
+from larmatch.loss.loss_larmatch_kps import SparseLArMatchKPSLoss
 from collections import OrderedDict
 
 SSNET_CLASS_NAMES=["bg","electron","gamma","muon","pion","proton","other"]

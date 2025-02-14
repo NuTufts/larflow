@@ -210,6 +210,9 @@ namespace reco {
     /** @brief write the reco products to file */
     void write_ana_file() { _ana_file->cd(); _ana_tree->Write(); };
 
+    /** @brief close the ana file TFile pointer */
+    void close_ana_file();
+    
     /** @brief Minimize the output file size by not saving intermediate vertex candidates */
     void minimze_output_size( bool domin=true ) { _kMinize_outputfile_size=domin; };
 

@@ -314,3 +314,4 @@ out.close()
 io.finalize()
 
 print("DONE")
+os._exit(0)

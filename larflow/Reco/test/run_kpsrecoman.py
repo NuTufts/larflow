@@ -228,5 +228,6 @@ sys.stdout.flush()
 io.close()
 iolcv.finalize()
 recoman.write_ana_file()
+recoman.close_ana_file()
 
 os._exit(0)

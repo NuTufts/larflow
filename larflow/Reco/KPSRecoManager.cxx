@@ -771,6 +771,17 @@ namespace reco {
     _ana_tree->Branch( "kpc_cosmic_v", &_event_kpc_cosmic_v );      
     
   }
+
+  /**
+   * @brief Close ana file
+   *
+   */
+  void KPSRecoManager::close_ana_file()
+  {
+    _ana_file->Close();
+    _ana_file = nullptr;
+    _ana_tree = nullptr;
+  }
   
   /** @brief is true, save MC event summary */  
   void KPSRecoManager::saveEventMCinfo( bool savemc )
