@@ -8,22 +8,39 @@ from torch.utils.data import Dataset, DataLoader
 # Example of defining a data loader class
 class LArMatchHitHDF5Dataset(Dataset):
     #The columns in the dataset
-    COLUMNS = [
+    # Reconstructed quantities
+    CLUSTER_COLUMNS = [
+        "shower_points",
+        "shower_feats",
+        "cluster_labels",
+        "cluster_sampled_pos",
+        "cluster_sampled_feat"
+    ]
+
+    CLUSTER_TRUTH_COLUMNS = ["showercluster_edge_list"]
+
+    # additional columns if upstream inputs are saved as well
+    LARMATCH_INPUT_COLUMNS = [
         "lmfeatures", #(C,N) C=48 usually
         "lmscores",   #(N,)
         "ssnet",      #(6,N)
         "paf",        #(3,N)
         "kpscores",   #(5,N)
         "pos",        #(3,N)
-        "pixvals"]    #(3,N)
+        "pixvals",    #(3,N)
+        "lmshower_selection_mask"] #(N)
 
     TRUTH_COLUMNS = [
-        "instanceids"
+        "instanceids",
+        "particleids",
+        "origin"
     ]
 
     
     def __init__(self, file_paths=None,
-                 load_training_labels=True,
+                 file_has_training_labels=True,
+                 file_has_mctruth_labels=False,
+                 file_has_larmatch_inputs=False,
                  load_from_cachefile=None,
                  apply_max_filter=False,
                  max_num_spacepoints=10000):
@@ -46,10 +63,16 @@ class LArMatchHitHDF5Dataset(Dataset):
         self.load_from_cachefile = load_from_cachefile
         self.max_num_spacepoints=max_num_spacepoints
         self.apply_max_filter=apply_max_filter
-        self.load_training_labels = load_training_labels
+        self.file_has_training_labels = file_has_training_labels
+        self.file_has_larmatch_inputs = file_has_larmatch_inputs
+        self.file_has_mctruth_labels = file_has_mctruth_labels
 
-        self.COLS = LArMatchHitHDF5Dataset.COLUMNS
-        if self.load_training_labels:
+        self.COLS = LArMatchHitHDF5Dataset.CLUSTER_COLUMNS
+        if self.file_has_training_labels:
+            self.COLS += LArMatchHitHDF5Dataset.CLUSTER_TRUTH_COLUMNS
+        if self.file_has_larmatch_inputs:
+            self.COLS += LArMatchHitHDF5Dataset.LARMATCH_INPUT_COLUMNS
+        if self.file_has_mctruth_labels:
             self.COLS += LArMatchHitHDF5Dataset.TRUTH_COLUMNS
 
         self.nlength = 0
@@ -75,7 +98,7 @@ class LArMatchHitHDF5Dataset(Dataset):
                     # because each entry has its own column, we can infer the number of entries
                     nkeys = len(hf.keys())
                     length = nkeys // len(self.COLS)  # Divide by number of columns in each entry
-                    print("nkeys=",nkeys," length=",length," for ",file_path)
+                    print("nkeys=",nkeys,"//ncols=",len(self.COLS)," length=",length," for ",file_path)
                     self.dataset_lengths.append(length)
                     self.cumulative_lengths.append(self.cumulative_lengths[-1] + length)
             self.nlength = self.cumulative_lengths[-1]
@@ -131,7 +154,7 @@ class LArMatchHitHDF5Dataset(Dataset):
         if self.apply_max_filter and npts>self.max_num_spacepoints:
             frac = float(self.max_num_spacepoints)/float(npts)
             ptfilter = np.random.random( npts ) < frac
-            for col in self.COLS:
+            for col in self.LARMATCH_INPUT_COLUMNS+self.TRUTH_COLUMNS:
                 entry_data[col] = entry_data[col][:,ptfilter[:]]
 
         

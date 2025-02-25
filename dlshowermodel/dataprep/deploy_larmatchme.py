@@ -8,6 +8,12 @@ parser.add_argument('-w','--weights',required=True,type=str,help='weight file')
 parser.add_argument('-p','--min-score',type=float,default=0.3,help="Minimum Score to save point [default: 0.3]")
 parser.add_argument('-d','--device-name',default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument('-adc','--adc-name',default="wire",type=str,help="Name of ADC tree [default: wire]")
+parser.add_argument('-savelm','--save-input-lmpoints', default=False, action='store_true', 
+                        help="If flag given, save input larmatch info used to make clusters")
+parser.add_argument('-saveptmc','--save-point-mctruth', default=False, action='store_true', 
+                        help="If flag given, save truth labels for each spacepoint saved")
+parser.add_argument('-trueedges','--save-true-edges', default=False, action='store_true', 
+                        help="If flag given, determine and save the true edges for making shower clusters")
 parser.add_argument('-v','--verbose',default=False,action='store_true',help='If flag given, just run 5 events for debugging')
 parser.add_argument('-ilcv','--input-larcv', required=True,help="input larcv file")
 parser.add_argument('-ill', '--input-larlite', required=True,help="input larlite file")
@@ -22,6 +28,7 @@ import h5py
 import torch
 import numpy as np
 import larmatch.utils.larmatchme_engine as engine
+import dlshowermodel.data.define_truth_edges as truth_edge_module
 
 DEVICE=torch.device(args.device_name)
 config = engine.load_config_file(  args )
@@ -118,8 +125,12 @@ from dlshowermodel.data.larmatchhit_hdf5_writer import LArMatchHitHDF5Writer
 lmwriter = LArMatchHitHDF5Writer()
 num_max_spacepoints = 10000000
 process_truth_labels = True
-
 triplet_key = 'matchtriplet'
+
+# load utils for processing points into shower clusters that we are saving
+from dlshowermodel.utils.cluster_shower_points import ClusterShowerPoints
+
+clustering_alg = ClusterShowerPoints()
 
 output_entries = []
 
@@ -150,8 +161,12 @@ for ientry in range(start_entry,start_entry+1):
     batch = [entrydata]
     
     batchsize = len(batch)
-    batch_sparsetensors, batch_triplets, batch_coordqueries = LArMatchHitHDF5Writer.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key )
+    batch_sparsetensors, batch_triplets, batch_coordqueries = \
+        LArMatchHitHDF5Writer.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key )
     dt_prep = time.time()-tprep
+
+    #mcpg = ublarcvapp.mctools.MCPixelPGraph()
+    #mcpg.buildgraphonly( ioll )
 
     with torch.no_grad():
         # run larmatch network
@@ -176,16 +191,21 @@ for ientry in range(start_entry,start_entry+1):
         lmfeats = larmatchout['larmatch_features'][0,:,lmfilter[:]]
         spacepoints = torch.transpose( torch.from_numpy(entrydata['spacepoints']).to(DEVICE) , 1, 0 )[:,lmfilter[:]]
         pixval_t = torch.transpose( torch.cat( pixval_v, dim=1 ), 1, 0 )[:,lmfilter[:]]
-        instanceids = torch.unsqueeze(torch.from_numpy(entrydata['instanceid_label']),0).to(DEVICE)[:,lmfilter[:]]
-
         print("lmscores: ",lmscores.shape)
         print("lmfeats: ",lmfeats.shape)
         print("kpscores: ",kpscores.shape)
         print("paf: ",paf.shape)
-        print("ssnet: ",ssnet.shape)
+        print("ssnet predictions: ",ssnet.shape)
         print("spacepoints: ",spacepoints.shape)
-        print("instanceids: ",instanceids.shape)
         print("pixval_t.shape: ",pixval_t.shape)
+
+        # Truth labels
+        origin = torch.unsqueeze( torch.from_numpy(entrydata['origin_label']), 0 ).to(DEVICE)[:,lmfilter[:]]
+        instanceids = torch.unsqueeze(torch.from_numpy(entrydata['instanceid_label']),0).to(DEVICE)[:,lmfilter[:]]
+        particleids = torch.unsqueeze(torch.from_numpy(entrydata['ssnet_label']),0).to(DEVICE)[:,lmfilter[:]]
+        print("instanceids: ",instanceids.shape)
+        print("particleids: ",particleids.shape)
+        print("origin: ",origin.shape)
 
         entrydata = {'lmfeatures':lmfeats.detach().cpu().numpy(),
                      'lmscores':lmscores.detach().cpu().numpy(),
@@ -193,13 +213,46 @@ for ientry in range(start_entry,start_entry+1):
                      'paf':paf.detach().cpu().numpy(),
                      'kpscores':kpscores.detach().cpu().numpy(),
                      'pos':spacepoints.detach().cpu().numpy(),
-                     'instanceids':instanceids.detach().cpu().numpy(),
                      'pixvals':pixval_t.detach().cpu().numpy()}
 
-        output_entries.append( entrydata )
+        truthdata = {'instanceids':instanceids.detach().cpu().numpy(),
+                     'particleids':particleids.detach().cpu().numpy(),
+                     'origin':origin.detach().cpu().numpy()}
 
-        #selectionmask = outputdict['lm']
-        #outputdict['lmfeatures'] = np.transpose( outputdict['larmatch_features'][0,:,:], (1,0) )
+        results = clustering_alg.process_event_points( torch.transpose(spacepoints,1,0), 
+                                    torch.transpose(lmfeats,1,0),
+                                    torch.transpose(lmscores,1,0),
+                                    torch.transpose(ssnet,1,0) )
+        
+        # convert output tensors to numpy arrays and then store in dictionary
+        for k,arr in results.items():
+            results[k] = arr.detach().cpu().numpy()
+        lmshower_mask = results["lmshower_selection_mask"]
+        clusterdata = {'shower_points':results['shower_points'],
+                       'shower_feats':results['shower_feats'],
+                       'cluster_labels':results['cluster_labels'],
+                       'cluster_sampled_pos':results['cluster_sampled_pos'],
+                       'cluster_sampled_feat':results['cluster_sampled_feat']}
+
+        # we also need graph truth
+        if args.save_true_edges:
+            lmshowerpts_instanceids = instanceids[0,lmshower_mask]
+            lmshowerpts_particleids = particleids[0,lmshower_mask]
+            lmshowerpts_keyptlabels = kpscores[:,lmshower_mask[:]]
+            shower_edge_list = truth_edge_module.make_true_edge_list( clusterdata['cluster_labels'],
+                                                    lmshowerpts_instanceids,
+                                                    lmshowerpts_particleids,
+                                                    lmshowerpts_keyptlabels )
+            clusterdata['showercluster_edge_list'] = shower_edge_list         
+
+        if args.save_input_lmpoints:
+            clusterdata.update( entrydata )
+            clusterdata["lmshower_selection_mask"] = results["lmshower_selection_mask"]
+
+        if args.save_point_mctruth:
+            clusterdata.update( truthdata )
+
+        output_entries.append( clusterdata )
 
     if True:
         continue
