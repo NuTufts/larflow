@@ -130,7 +130,8 @@ if __name__ == "__main__":
     hdf_testfile = "../dataprep/test.h5"
     reader = reader.LArMatchHitHDF5Dataset( file_paths=[hdf_testfile],
                                             file_has_training_labels=True,
-                                            file_has_larmatch_inputs=True )
+                                            file_has_larmatch_inputs=True,
+                                            verbose=False )
     entry = reader[0]
     print(entry.keys())
 
