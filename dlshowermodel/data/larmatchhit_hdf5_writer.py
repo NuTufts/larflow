@@ -84,6 +84,11 @@ class LArMatchHitHDF5Writer:
         print("==== [[ LArMatchHDF5Writer ]] ========================")
         
         self.preptriplets.clear()
+
+        # a hard reset of the kpanan class
+        # self.kpana = larflow.keypoints.PrepKeypointData()
+        # self.kpana.set_verbosity( larcv.msg.kDEBUG )
+        # self.kpana.setADCimageTreeName( self.adc_treename )
         #self.kpana
         #self.ssnet
         #self.kpflow

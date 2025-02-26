@@ -29,6 +29,9 @@ import torch
 import numpy as np
 import larmatch.utils.larmatchme_engine as engine
 import dlshowermodel.data.define_truth_edges as truth_edge_module
+import dlshowermodel.data.cluster_selection as cluster_sel_mod
+import dlshowermodel.data.cluster_image_charge as cluster_imgpixel_mod
+import dlshowermodel.data.cluster_features as cluster_feat_mod
 
 DEVICE=torch.device(args.device_name)
 config = engine.load_config_file(  args )
@@ -99,7 +102,8 @@ else:
     iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
 
 iolcv.add_in_file( input_larcv )
-iolcv.reverse_all_products()
+if not args.tickforwards:
+    iolcv.reverse_all_products()
 iolcv.initialize()
 
 nentries_larcv = iolcv.get_n_entries()
@@ -129,13 +133,16 @@ triplet_key = 'matchtriplet'
 
 # load utils for processing points into shower clusters that we are saving
 from dlshowermodel.utils.cluster_shower_points import ClusterShowerPoints
-
 clustering_alg = ClusterShowerPoints()
+
+# algorithm for getting image pixels from the 3D clusters
+from larflow import larflow
+clusterimagemasker = larflow.reco.ClusterImageMask()
 
 output_entries = []
 
-#for ientry in range(start_entry,end_entry):
-for ientry in range(start_entry,start_entry+1):
+for ientry in range(start_entry,end_entry):
+
     print("[[ RUN ENTRY %d ]]"%(ientry))
 
     tprep = time.time()
@@ -191,6 +198,10 @@ for ientry in range(start_entry,start_entry+1):
         lmfeats = larmatchout['larmatch_features'][0,:,lmfilter[:]]
         spacepoints = torch.transpose( torch.from_numpy(entrydata['spacepoints']).to(DEVICE) , 1, 0 )[:,lmfilter[:]]
         pixval_t = torch.transpose( torch.cat( pixval_v, dim=1 ), 1, 0 )[:,lmfilter[:]]
+        matchtriplet = torch.from_numpy( entrydata['matchtriplet'] ).to(DEVICE)[lmfilter[:],:]
+
+        img_v = [ entrydata['wireimage_plane%d'%(p)] for p in range(3) ]
+
         print("lmscores: ",lmscores.shape)
         print("lmfeats: ",lmfeats.shape)
         print("kpscores: ",kpscores.shape)
@@ -198,6 +209,7 @@ for ientry in range(start_entry,start_entry+1):
         print("ssnet predictions: ",ssnet.shape)
         print("spacepoints: ",spacepoints.shape)
         print("pixval_t.shape: ",pixval_t.shape)
+        print("matchtriplet.shape: ",matchtriplet.shape)
 
         # Truth labels
         origin = torch.unsqueeze( torch.from_numpy(entrydata['origin_label']), 0 ).to(DEVICE)[:,lmfilter[:]]
@@ -222,20 +234,43 @@ for ientry in range(start_entry,start_entry+1):
                      'keyptlabels':np.transpose(keypoint_truth.detach().cpu().numpy(),(1,0)),
                      'origin':origin.detach().cpu().numpy()}
 
+        # do clustering and then subsampling of presentative points within the cluster
         results = clustering_alg.process_event_points( torch.transpose(spacepoints,1,0), 
                                     torch.transpose(lmfeats,1,0),
                                     torch.transpose(lmscores,1,0),
                                     torch.transpose(ssnet,1,0) )
+        matchtriplet = matchtriplet[ results['lmshower_selection_mask'][:], : ]
         
         # convert output tensors to numpy arrays and then store in dictionary
         for k,arr in results.items():
             results[k] = arr.detach().cpu().numpy()
         lmshower_mask = results["lmshower_selection_mask"]
+        cluster_labels = np.squeeze(results['cluster_labels'])
+        #print('cluster_labels.shape: ',cluster_labels.shape)
+
+        # remove small clusters
+        cid_remap = cluster_sel_mod.cluster_filter_by_size(cluster_labels,min_npoints=30)
+        results['cluster_sampled_pos']  = results['cluster_sampled_pos'][cid_remap]
+        results['cluster_sampled_feat'] = results['cluster_sampled_feat'][cid_remap]
+
+        # cluster features: plane charge sum
+        larcv_image2d_list = [ adc_v.at(p) for p in range(adc_v.size()) ]
+        cluster_charge_info = cluster_imgpixel_mod.get_cluster_image_pixels( cluster_labels, matchtriplet.detach().cpu().numpy(), 
+                                                                            img_v, larcv_image2d_list, 
+                                                                            threshold=10.0, drow=2, dcol=2 )
+        cfeat_centroids = cluster_feat_mod.get_centroids( results['shower_points'], cluster_labels )
+        cfeat_pca      = cluster_feat_mod.get_pc_axes( results['shower_points'], cluster_labels )
+ 
         clusterdata = {'shower_points':results['shower_points'],
-                       'shower_feats':results['shower_feats'],
+                       #'shower_feats':results['shower_feats'], # all larmatch feature vectors from all points
                        'cluster_labels':results['cluster_labels'],
                        'cluster_sampled_pos':results['cluster_sampled_pos'],
-                       'cluster_sampled_feat':results['cluster_sampled_feat']}
+                       'cluster_sampled_feat':results['cluster_sampled_feat'],
+                       'cluster_feat_planepixelsum':cluster_charge_info['cluster_pixelsum'],
+                       'cluster_feat_centroid':cfeat_centroids,
+                       'cluster_feat_pca':cfeat_pca,
+                       'cluster_index_remap':cid_remap}
+                       
 
         # we also need graph truth
         if args.save_true_edges:
@@ -258,8 +293,6 @@ for ientry in range(start_entry,start_entry+1):
 
         output_entries.append( clusterdata )
 
-    if True:
-        continue
 
              
 # write output
@@ -272,121 +305,6 @@ with h5py.File(args.output, 'w') as hf:
             print("  write ",n," ",entrydict[name].shape)
             hf.create_dataset( n, data=entrydict[name], compression='gzip', compression_opts=9 )
 
-
-
-    #     # output is a dict with keys being the different output heads
-    #     if True:
-    #         print("-----------------------------------")
-    #         #for ib,pred_dict in enumerate(larmatchout):
-    #         pred_dict = larmatchout
-    #         print("output: ")
-    #         for k,v in pred_dict.items():
-    #             print(k,": ",v.shape)
-    #         print("-----------------------------------")
-
-    #         if "cuda" in args.device_name:
-    #             torch.cuda.synchronize()
-    #         sys.stdout.flush()    
-            
-    #         # EVALUATE LARMATCH SCORES
-    #         tstart = time.time()
-    #         with torch.no_grad():
-    #             lm_prob_t = torch.transpose(  pred_dict["lm"].squeeze(), 1, 0 )
-    #             lm_prob_t = 1.0-torch.softmax( lm_prob_t, dim=1 )
-    #             print("  lm_prob_t=",lm_prob_t.shape)
-    #             #print(lm_prob_t[:10,:])
-
-    #         # EVALUATE SSNET SCORES
-    #         if config["RUN_SSNET"]:
-    #             with torch.no_grad():
-    #                 #print("  pred_dict[ssnet] shape: ",pred_dict["ssnet"].shape)        
-    #                 ssnet_pred_t = torch.transpose( pred_dict["ssnet"].squeeze(), 1, 0 )
-    #                 ssnet_pred_t = torch.softmax( ssnet_pred_t, dim=1 )
-    #                 print("  ssnet_pred_t: ",ssnet_pred_t.shape)
-
-    #         # EVALUATE KP-LABEL SCORES
-    #         if config["RUN_KPLABEL"]:
-    #             with torch.no_grad():
-    #                 #print("  pred_dict[kplabel]: ",pred_dict["kp"].shape)
-    #                 kplabel_pred_t = torch.transpose( pred_dict["kp"].squeeze(), 1, 0 )
-    #                 print("  kplabel_pred_t: ",kplabel_pred_t.shape)
-
-    #         print("prepare score arrays: ",time.time()-tstart," sec")
-            
-    #         # EVALUATE PAF SCORES
-    #         if config["RUN_PAF"]:
-    #             with torch.no_grad():
-    #                 paf_pred_t = pred_dict['paf']
-    #                 paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
-    #                 paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )        
-    #                 print("  paf-pred: ",paf_pred_t.shape)
-
-
-    #         # PASS LARMATCH OUTPUTS to hitmaker
-    #         matchtriplet_np = batch[0][triplet_key]
-    #         #sparse_np_v = [ batch[ib]['wireimage_plane%d'%(p)] for p in range(3) ] 
-    #         sparse_np_v = [ batch[0]['coord_%d'%(p)] for p in range(3) ] 
-    #         prob_np = lm_prob_t.to(torch.device("cpu")).detach().numpy()
-    #         #prob_np[:] = 1.0 # hack to check
-    #         print("add larmatch output to hitmaker")
-    #         sys.stdout.flush()   
-    #         pos_v = std.vector("std::vector<float>")()
-    #         hitmaker.add_triplet_match_data( prob_np,
-    #                                         matchtriplet_np,
-    #                                         sparse_np_v[0],
-    #                                         sparse_np_v[1],
-    #                                         sparse_np_v[2],
-    #                                         pos_v,
-    #                                         adc_v )
-
-    #         if config["RUN_SSNET"]:
-    #             print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
-    #             sys.stdout.flush()   
-    #             ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
-    #             hitmaker.add_triplet_ssnet_scores(  matchtriplet_np, 
-    #                                                 sparse_np_v[0],
-    #                                                 sparse_np_v[1],
-    #                                                 sparse_np_v[2],
-    #                                                 adc_v.front().meta(),
-    #                                                 ssnet_np )                                      
-
-    #         if config["RUN_KPLABEL"]:
-    #             print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
-    #             sys.stdout.flush()   
-    #             kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
-    #             hitmaker.add_triplet_keypoint_scores(  matchtriplet_np,
-    #                                                 sparse_np_v[0],
-    #                                                 sparse_np_v[1],
-    #                                                 sparse_np_v[2],
-    #                                                 adc_v.front().meta(),
-    #                                                 kplabel_np )
-
-    #         if config["RUN_PAF"]:
-    #             print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
-    #             sys.stdout.flush()   
-    #             paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
-    #             hitmaker.add_triplet_affinity_field(  matchtriplet_np, 
-    #                                                 sparse_np_v[0],
-    #                                                 sparse_np_v[1],
-    #                                                 sparse_np_v[2],
-    #                                                 adc_v.front().meta(),
-    #                                                 paf_np )
-
-    #         # make flow hits
-    #         hitmaker.make_hits( ev_chstatus, adc_v, evout_lfhits )
-    #         hitmaker.make_hits( ev_chstatus, adc_v, evout_lmsp )
-    #         dt_make_hits = time.time()-tstart
-    #         print("number of hits made: ",evout_lfhits.size())
-    #         print("time to run net: ",dt_runnet," secs")
-    #         print("time to make hits: ",dt_make_hits," secs")
-
-    #         # End of flow direction loop
-    #         outll.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
-    #         outll.next_event(True)
-    #         sys.stdout.flush()
-    # print("End of entry[",ientry,"]")
-    # if False and ientry>=2:
-    #     break
 
 print("Finished")
 print("Cleaning up")

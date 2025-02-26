@@ -35,6 +35,7 @@ def cluster_lmshower_points( pos, lm_logits, ssnet_logits,
 
     if not use_scikit:
         # try the torch dbscan ...
+        # note: noise points are labeled with -1
         labels = dbscan_torch( lms_pos, dbscan_eps, dbscan_minsamples )
     else:
         import sklearn
@@ -78,6 +79,7 @@ class ClusterShowerPoints:
                                             use_scikit=False  )
         print("lms_pos.shape: ",lms_pos.shape)
         print("cluster_labels.shape: ",cluster_labels.shape)
+        print("max cluster id: ",torch.unique(cluster_labels).max())
         print("lms_filter.shape: ",lms_filter.shape)
 
 

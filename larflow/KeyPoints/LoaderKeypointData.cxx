@@ -320,6 +320,16 @@ namespace keypoints {
 					origin_array );
     PyObject* origin_key = Py_BuildValue("s","origin_label");
 
+    // INSTANCE IDS
+    LARCV_NORMAL() << "make instance ID array" << std::endl;
+    PyArrayObject* instanceid_array = nullptr;
+    int err_instanceid = make_instanceid_array( nfilled,
+                          pos_index_v,
+                          exclude_neg_examples,
+                          matches,
+                          instanceid_array );
+    PyObject* instanceid_key = Py_BuildValue("s","instanceid_label");
+
     // List of true keypoint positions
     LARCV_NORMAL() << "Gathering true keypoint positions" << std::endl;
     std::vector< std::vector<float> > kp_pos_v = get_keypoint_pos();
@@ -374,12 +384,14 @@ namespace keypoints {
     PyDict_SetItem(d, paf_label_key,          (PyObject*)paf_label );
     PyDict_SetItem(d, paf_weight_key,         (PyObject*)paf_weight );
     PyDict_SetItem(d, origin_key,             (PyObject*)origin_array );
+    PyDict_SetItem(d, instanceid_key,         (PyObject*)instanceid_array);
     PyDict_SetItem(d, kp_truth_ids_key,       (PyObject*)kptruth_ids );
     PyDict_SetItem(d, kp_truth_pos_key,       (PyObject*)kptruth_pos );
     PyDict_SetItem(d, wireimgkey_p0,          wireimg_plane0 );
     PyDict_SetItem(d, wireimgkey_p1,          wireimg_plane1 );
     PyDict_SetItem(d, wireimgkey_p2,          wireimg_plane2 );
 
+    // decrease reference counter to account for this function creating the objects
     Py_DECREF(match_key);
     Py_DECREF(match_weight_key);
     Py_DECREF(spacepoint_key);
@@ -393,6 +405,7 @@ namespace keypoints {
     Py_DECREF(paf_label_key);
     Py_DECREF(paf_weight_key);
     Py_DECREF(origin_key);
+    Py_DECREF(instanceid_key);
     Py_DECREF(kp_truth_ids_key);
     Py_DECREF(kp_truth_pos_key);
     Py_DECREF(wireimgkey_p0);
@@ -412,6 +425,7 @@ namespace keypoints {
     Py_DECREF(paf_label);
     Py_DECREF(paf_weight);
     Py_DECREF(origin_array);
+    Py_DECREF(instanceid_array);
     Py_DECREF(kptruth_pos);
     Py_DECREF(kptruth_ids);
     Py_DECREF(wireimg_plane0);
@@ -910,6 +924,100 @@ namespace keypoints {
       else {
 	*((long*)PyArray_GETPTR1(origin_array,i)) = 0;	
       }
+    }
+    
+    return 0;
+  }
+  
+  /**
+   * @brief Return particle instance IDs for each spacepoint
+   * 
+   * Go into the larflow::prep::PrepMatchTriplet class (code in the larflow/PrepFlowMatchData/ folder) 
+   * and transfer the information in the std::vector<int> _instance_id_v container 
+   * into a numpy array.
+   * 
+   * These labels are for use in particle-level clustering (object detection).
+   *
+   * @param[in] nfilled The number of expected labels. This is used to check for
+   *                    consistency between spacepoint array and the label array.
+   * @param[in] pos_match_index 
+   * @param[in] exclude_neg_examples Ignore 'ghost' spacepoint proposals by only return labels for true spacepoints.
+   * @param[in] match_array (N,3) Numpy array containing the index to the pixels of each of the three (sparse) wire-plane image arrays.
+   * @param[inout] instanceid_array Pointer where the address of the new numpy array will be made. (NPY_LONG)
+   */
+  int LoaderKeypointData::make_instanceid_array( const int nfilled,
+					     const std::vector<int>& pos_match_index,
+					     const bool exclude_neg_examples,
+					     PyArrayObject* match_array,					     
+					     PyArrayObject*& instanceid_array )
+  {
+    
+    // get the triplet data class
+    // should encapsulate this and hide the detail of how we loaded
+    // the class from this function
+    larflow::prep::PrepMatchTriplets* ptriplet = nullptr;
+    if ( _use_data_from_ttree ) {
+      // we get the data from a ttree loaded from file
+      ptriplet = &(triplet_v->at(0));
+    }
+    else {
+      // we get the data from an instance we made
+      ptriplet = ptriplet_v.at(0);
+    }
+    
+    // check that we have the info
+    if ( !ptriplet || ptriplet->_instance_id_v.size()==0 ) {
+      LARCV_ERROR() << "The tripletdata is bad or the _instance_v container is empty." << std::endl;
+    }
+
+    int nd = 1;
+    npy_intp dims[] = { (npy_intp)ptriplet->_instance_id_v.size() };
+    
+    if ( exclude_neg_examples ) {
+      // we need to count the number of true points
+      size_t n_true = 0;
+      for ( size_t i=0; i<ptriplet->_instance_id_v.size(); i++ ) {
+        long tripletidx = *((long*)PyArray_GETPTR2(match_array,i,4)); 
+        // don't remember why we need to pass through another layer of re-indexing
+        int istruept = ptriplet->_truth_v.at(tripletidx);
+        if (istruept==1)
+          n_true += 1;
+      }
+      // update the number of points
+      dims[0] = n_true;
+    }
+
+    // Do a check of the expected number of points in the container.
+    // This is to help maintain proper consistency between the different arrays describing the spacepoints.
+    if ( ptriplet->_instance_id_v.size()!=nfilled ) {
+      LARCV_ERROR() << "Size of origin_v container (with " << ptriplet->_origin_v.size() << " entries) does not match"
+		    << " the expected number of entries (" << nfilled << ")"
+		    << std::endl;
+    }
+
+    // Make the array and pass the address to the output pointer
+    instanceid_array  = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_LONG );
+    
+    // Loop through again to copy instance ID
+    size_t fill_idx = 0;
+    for (size_t i=0; i<ptriplet->_instance_id_v.size(); i++ ) {
+      long tripletidx = *((long*)PyArray_GETPTR2(match_array,i,4));
+
+      if ( exclude_neg_examples ) {
+        int istruept = ptriplet->_truth_v.at(tripletidx);
+        if (istruept==0)
+          continue;
+      }
+
+      if ( tripletidx>=0 && tripletidx < (long)ptriplet->_instance_id_v.size() ) {
+	      long instanceid = (long)ptriplet->_instance_id_v[tripletidx];
+	      *((long*)PyArray_GETPTR1(instanceid_array,fill_idx)) = instanceid;
+      }
+      else {
+	      *((long*)PyArray_GETPTR1(instanceid_array,fill_idx)) = -1;	///< default value when spacepoint not part of labled true cluster
+      }
+
+      fill_idx++;
     }
     
     return 0;

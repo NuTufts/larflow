@@ -527,6 +527,9 @@ namespace keypoints {
     // loop over nodes, look for electron/gamma pixels
     for ( auto& pnode : mcpg.node_v ) {
 
+      if (pnode.type!=0)
+        continue; // we are querying only nodes generated from the mctrack container
+
       if ( abs(pnode.pid)==11 || abs(pnode.pid)==22 || pnode.pid==2112 ) {
         // no showers and no neutrons
         continue;

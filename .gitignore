@@ -10,3 +10,4 @@ last_filelist_larlite.txt
 *.cfg
 build/*
 *.ipynb_checkpoints*
+*.h5

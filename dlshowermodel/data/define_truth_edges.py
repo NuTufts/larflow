@@ -2,7 +2,7 @@ import os,sys
 import numpy as np
 
 def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
-                         keypoint_labels, verbose=False ):
+                         keypoint_labels, verbose=False, skip_cluster_ids=[-1,0] ):
 
     kptypes = [2,3,4] # shower, michel, delta
 
@@ -23,7 +23,9 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
 
     for cid in clusterids:
 
-
+        if cid in skip_cluster_ids:
+            continue
+        
         # filter cluster points
         cluster_filter = (cluster_labels==cid)
         nclusterpts = cluster_filter.sum()
@@ -33,8 +35,9 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
 
         cluster_trackids = instance_labels[cluster_filter]
         trackids, tid_counts = np.unique(cluster_trackids, return_counts=True)
-        print("  trackids: ",trackids)
-        print("  trackid counts: ",tid_counts)
+        if verbose:
+            print("  trackids: ",trackids)
+            print("  trackid counts: ",tid_counts)
         tid_counts = tid_counts[trackids!=0]
         trackids = trackids[ trackids!=0 ]
         max_trackid = -1

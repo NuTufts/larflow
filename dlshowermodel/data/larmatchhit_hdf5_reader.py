@@ -10,11 +10,15 @@ class LArMatchHitHDF5Dataset(Dataset):
     #The columns in the dataset
     # Reconstructed quantities
     CLUSTER_COLUMNS = [
-        "shower_points",
-        "shower_feats",
-        "cluster_labels",
-        "cluster_sampled_pos",
-        "cluster_sampled_feat"
+        "shower_points",  # (N,3)
+        #"shower_feats",   # (N,48) 48 is the 16x3 larmatch image features (removed because is expensive)
+        "cluster_labels", # (N) labels indicating which points are clustered together
+        "cluster_sampled_pos",   # (NC,16,3) each cluster saved 16 representative positions
+        "cluster_sampled_feat",  # (NC,16,48)  each of the saved points saved their larmatch image feature vector
+        "cluster_feat_planepixelsum", # (NCs,3) NCs is the number of selected clusters. 3 pixel sums from each plane 
+        "cluster_feat_centroid", # (NCs,3) mean position of the selected clusters
+        "cluster_feat_pca",       # (NCs,21) pca-based features: ( [0-8] dir of first 3 pca components, [9-11] explained variance, [12-17] bounds along pca axes, [18-20] lens across pca axes )
+        "cluster_index_remap" # (NCs) map of index-position of feat vects to original cluster indices in cluster_labels before filtering
     ]
 
     CLUSTER_TRUTH_COLUMNS = ["showercluster_edge_list"]

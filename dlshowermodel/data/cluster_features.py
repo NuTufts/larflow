@@ -1,22 +1,7 @@
 import os,sys
 import numpy as np
 
-def cluster_filter_by_size( cluster_labels, min_npoints=30 ):
-
-    cid_list = np.unique(cluster_labels)
-    cid_remap = {}
-    xcid = 1
-    for cid in cid_list:
-        cluster_filter = cluster_labels==cid
-        if cluster_filter.sum()<min_npoints:
-            cluster_labels[cluster_filter] = -1
-        else:
-            cid_remap[cid] = xcid
-            xcid += 1
-
-    return cid_remap
-
-def get_centroids(shower_points, cluster_labels, skip_cluster_ids=[-1,0], cid_list=None ):
+def get_centroids(shower_points, cluster_labels, skip_cluster_ids=[-1], cid_list=None ):
     #print("shower_points: ",shower_points.shape)
     if cid_list is None:
         cid_list = np.unique(cluster_labels)
@@ -33,7 +18,7 @@ def get_centroids(shower_points, cluster_labels, skip_cluster_ids=[-1,0], cid_li
     out = np.concatenate( cluster_centroids, axis=0 )
     return out
 
-def get_pc_axes( shower_points, cluster_labels, skip_cluster_ids=[-1,0], cid_list=None, verbose=False):
+def get_pc_axes( shower_points, cluster_labels, skip_cluster_ids=[-1], cid_list=None, verbose=False):
     from sklearn.decomposition import PCA
 
     if verbose:
@@ -57,6 +42,13 @@ def get_pc_axes( shower_points, cluster_labels, skip_cluster_ids=[-1,0], cid_lis
         pos = shower_points[cid_filter,:]
         pca = PCA(n_components=3)
         pca.fit(pos)
+        pos_pca = pca.transform(pos)
+        pca_bounds = np.zeros(9) # (xmin, xmax, ...., xlen, ylen, zlen)
+        for v in range(3):
+            pca_bounds[2*v+0] = np.min(pos_pca[:,v])
+            pca_bounds[2*v+1] = np.max(pos_pca[:,v])
+            pca_bounds[6+v]   = np.abs( pca_bounds[2*v+1]-pca_bounds[2*v+0] )
+
         
         if verbose:
             print("pca components: ")
@@ -65,7 +57,7 @@ def get_pc_axes( shower_points, cluster_labels, skip_cluster_ids=[-1,0], cid_lis
             print(pca.explained_variance_)
 
         cluster_feat = [  pca.components_[0,:], pca.components_[1,:], pca.components_[2,:], 
-                            pca.explained_variance_ ]
+                            pca.explained_variance_, pca_bounds ]
         cluster_feat = np.concatenate( cluster_feat )
         cluster_feat_v.append( np.expand_dims( cluster_feat, 0 ) )
         if verbose:
@@ -78,11 +70,11 @@ def get_pc_axes( shower_points, cluster_labels, skip_cluster_ids=[-1,0], cid_lis
     return out
 
 
-
 if __name__== "__main__":
 
     # example of running some of the cluster feature code
     import dlshowermodel.data.larmatchhit_hdf5_reader as reader
+    from .cluster_selection import cluster_filter_by_size
 
     hdf_testfile = "../test.h5"
     reader = reader.LArMatchHitHDF5Dataset( file_paths=[hdf_testfile],
