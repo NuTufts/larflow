@@ -2,34 +2,47 @@ import os,sys
 import numpy as np
 
 def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
-                         keypoint_labels ):
+                         keypoint_labels, verbose=False ):
 
     kptypes = [2,3,4] # shower, michel, delta
 
+    if verbose:
+        print("cluster labels: ",cluster_labels.shape)
+        print("instance_labels: ",instance_labels.shape)
+        print("particle_labels: ",particle_labels.shape)
+        print("keypoint_labels: ",keypoint_labels.shape)
+
     clusterids = np.unique( cluster_labels )
+    if verbose:
+        print("num clusterids: ",len(clusterids))
 
     nkps_per_cluster = {}
     trackid_to_clusterid = {}
     clusterid_to_trackid = {}
     trackid_trunkcandidates = {}
 
-    #print("cluster_labels.shape=",cluster_labels.shape)
-
     for cid in clusterids:
 
-        # filter cluster points
-        cluster_filter = (cluster_labels==cid)[0]
-        nclusterpts = cluster_filter.sum()
 
-        #print("number of shower keypoints on cluster[",cid,"]: ",nkps_per_cluster[cid])
+        # filter cluster points
+        cluster_filter = (cluster_labels==cid)
+        nclusterpts = cluster_filter.sum()
+        if verbose:
+            print("cluster id=",cid," npts=",nclusterpts)
+
+
         cluster_trackids = instance_labels[cluster_filter]
         trackids, tid_counts = np.unique(cluster_trackids, return_counts=True)
+        print("  trackids: ",trackids)
+        print("  trackid counts: ",tid_counts)
         tid_counts = tid_counts[trackids!=0]
         trackids = trackids[ trackids!=0 ]
         max_trackid = -1
+        max_tid_counts = -1
         if len(trackids)>0:
             idx_tid = np.argmax( tid_counts )
             max_trackid = trackids[idx_tid]
+            max_tid_counts = tid_counts[idx_tid]
             # assign the truth trackid to this cluster based on most votes
             clusterid_to_trackid[cid] = max_trackid
         else:
@@ -44,16 +57,16 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
         else:
             trackid_to_clusterid[max_trackid].append(cid)
 
-        #print("cluster id=",cid," npts=",nclusterpts)
-
         # sum up the total number of pixels close to the keypoint
-        showerkeypts = keypoint_labels[kptypes[0],:]>0.9
+        showerkeypts = keypoint_labels[kptypes[0],cluster_filter]>0.5
         for kptype in kptypes[1:]:
-            showerkeypts |= keypoint_labels[kptype,:]>0.9
+            showerkeypts |= keypoint_labels[kptype,cluster_filter]>0.5
         nkps_per_cluster[cid] = showerkeypts.sum()
         showerkeypt_frac = float(showerkeypts.sum())/float(nclusterpts)
-        #print("  npoints on keypoint: ",nkps_per_cluster[cid])
-        #print("  max trackid: ",max_trackid," counts=",trackid_counts)
+
+        if verbose:
+            print("  npoints on keypoint: ",nkps_per_cluster[cid])
+            print("  max trackid: ",max_trackid," counts=",max_tid_counts)
 
         # what is the partile type of this reco cluster
         # labels are
@@ -68,9 +81,10 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
         shower_counts = (cluster_pid==1).sum() + (cluster_pid==2).sum()
         shower_frac = float(shower_counts.sum())/float(nclusterpts)
 
-        # print("  pids found: ",pids)
-        # print("  pid counts: ",pid_counts)
-        # print("  shower_counts: ",shower_counts)
+        if verbose:
+            print("  pids found: ",pids)
+            print("  pid counts: ",pid_counts)
+            print("  shower_counts: ",shower_counts," frac=",shower_frac)
 
         if shower_frac>0.5 and nkps_per_cluster[cid]>10.0:
             # label this a trunk cluster if it is majority true shower and has enough keypoints on it
@@ -84,8 +98,9 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
                     trackid_trunkcandidates[max_trackid] = cid
     # end of loop over clusters
 
-    #print(trackid_to_clusterid)
-    #print(trackid_trunkcandidates)    
+    if verbose:
+        print(trackid_to_clusterid)
+        print(trackid_trunkcandidates)    
 
     # now we can define edges
     edge_list = []
@@ -100,7 +115,8 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
             edge_list.append( [cid,trunk_cid])
     
     edge_array = np.array(edge_list, dtype=np.int64)
-    #print(edge_array)
+    print("edge array")
+    print(edge_array)
     return edge_array
         
 

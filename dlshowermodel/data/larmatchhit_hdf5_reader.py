@@ -33,6 +33,7 @@ class LArMatchHitHDF5Dataset(Dataset):
     TRUTH_COLUMNS = [
         "instanceids",
         "particleids",
+        "keyptlabels",
         "origin"
     ]
 
@@ -67,7 +68,8 @@ class LArMatchHitHDF5Dataset(Dataset):
         self.file_has_larmatch_inputs = file_has_larmatch_inputs
         self.file_has_mctruth_labels = file_has_mctruth_labels
 
-        self.COLS = LArMatchHitHDF5Dataset.CLUSTER_COLUMNS
+        self.COLS = []
+        self.COLS += LArMatchHitHDF5Dataset.CLUSTER_COLUMNS
         if self.file_has_training_labels:
             self.COLS += LArMatchHitHDF5Dataset.CLUSTER_TRUTH_COLUMNS
         if self.file_has_larmatch_inputs:

@@ -203,8 +203,10 @@ for ientry in range(start_entry,start_entry+1):
         origin = torch.unsqueeze( torch.from_numpy(entrydata['origin_label']), 0 ).to(DEVICE)[:,lmfilter[:]]
         instanceids = torch.unsqueeze(torch.from_numpy(entrydata['instanceid_label']),0).to(DEVICE)[:,lmfilter[:]]
         particleids = torch.unsqueeze(torch.from_numpy(entrydata['ssnet_label']),0).to(DEVICE)[:,lmfilter[:]]
+        keypoint_truth = torch.from_numpy(entrydata['kplabel']).to(DEVICE)[lmfilter[:],:]
         print("instanceids: ",instanceids.shape)
         print("particleids: ",particleids.shape)
+        print("keypoint_truth: ",keypoint_truth.shape)
         print("origin: ",origin.shape)
 
         entrydata = {'lmfeatures':lmfeats.detach().cpu().numpy(),
@@ -217,6 +219,7 @@ for ientry in range(start_entry,start_entry+1):
 
         truthdata = {'instanceids':instanceids.detach().cpu().numpy(),
                      'particleids':particleids.detach().cpu().numpy(),
+                     'keyptlabels':np.transpose(keypoint_truth.detach().cpu().numpy(),(1,0)),
                      'origin':origin.detach().cpu().numpy()}
 
         results = clustering_alg.process_event_points( torch.transpose(spacepoints,1,0), 
@@ -236,13 +239,14 @@ for ientry in range(start_entry,start_entry+1):
 
         # we also need graph truth
         if args.save_true_edges:
-            lmshowerpts_instanceids = instanceids[0,lmshower_mask]
-            lmshowerpts_particleids = particleids[0,lmshower_mask]
-            lmshowerpts_keyptlabels = kpscores[:,lmshower_mask[:]]
+            lmshowerpts_instanceids = truthdata["instanceids"][0,lmshower_mask]
+            lmshowerpts_particleids = truthdata["particleids"][0,lmshower_mask]
+            lmshowerpts_keyptlabels = truthdata["keyptlabels"][:,lmshower_mask]
             shower_edge_list = truth_edge_module.make_true_edge_list( clusterdata['cluster_labels'],
                                                     lmshowerpts_instanceids,
                                                     lmshowerpts_particleids,
-                                                    lmshowerpts_keyptlabels )
+                                                    lmshowerpts_keyptlabels,
+                                                    verbose=False )
             clusterdata['showercluster_edge_list'] = shower_edge_list         
 
         if args.save_input_lmpoints:
