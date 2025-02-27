@@ -90,24 +90,28 @@ class ClusterShowerPoints:
         cluster_sampled_pos_v = []
         cluster_sampled_feat_v = []
         clusterids = torch.unique( cluster_labels )
+        max_cid = clusterids.max()
 
-        for cid in clusterids:
+        for cid in range(max_cid):
             if cid<0:
                 continue
             cpos   = lms_pos[ cluster_labels==cid, : ]
             cfeats = lms_features[ cluster_labels==cid, : ]
 
-            dass_results = self.dass_alg( cpos, cfeats )
-            nsamples = dass_results["sampled_points"].shape[0]
+            csampled_feats = torch.zeros( (self.max_samples_per_cluster,Nf)).to(pos.device)
+            csampled_pos   = torch.zeros( (self.max_samples_per_cluster,cpos.shape[-1])).to(pos.device)
 
-            if nsamples<self.max_samples_per_cluster:
-                csampled_feats = torch.zeros( (self.max_samples_per_cluster,Nf)).to(pos.device)
-                csampled_pos   = torch.zeros( (self.max_samples_per_cluster,cpos.shape[-1])).to(pos.device)
-                csampled_feats[:nsamples] = dass_results["sampled_features"]
-                csampled_pos[:nsamples]   = dass_results["sampled_points"]
-            else:
-                csampled_feats = dass_results["sampled_features"]
-                csampled_pos = dass_results["sampled_points"]
+            if cpos.shape[0]>0:
+
+                dass_results = self.dass_alg( cpos, cfeats )
+                nsamples = dass_results["sampled_points"].shape[0]
+
+                if nsamples<self.max_samples_per_cluster:
+                    csampled_feats[:nsamples] = dass_results["sampled_features"]
+                    csampled_pos[:nsamples]   = dass_results["sampled_points"]
+                else:
+                    csampled_feats = dass_results["sampled_features"]
+                    csampled_pos = dass_results["sampled_points"]
 
             cluster_sampled_pos_v.append( csampled_pos.unsqueeze(0) )
             cluster_sampled_feat_v.append( csampled_feats.unsqueeze(0) )

@@ -11,6 +11,8 @@ def get_centroids(shower_points, cluster_labels, skip_cluster_ids=[-1], cid_list
         if cid in skip_cluster_ids:
             continue
         cid_filter = cluster_labels==cid
+        if cid_filter.sum()==0:
+            continue
         pos = shower_points[cid_filter,:]
         mean_pos = np.mean( pos, axis=0 )
         #print("mean_pos: ",mean_pos.shape)
@@ -35,6 +37,8 @@ def get_pc_axes( shower_points, cluster_labels, skip_cluster_ids=[-1], cid_list=
         if cid in skip_cluster_ids:
             continue
         cid_filter = cluster_labels==cid
+        if cid_filter.sum()==0:
+            continue
         if verbose:
             print("cluster id[",cid,"] --------------") 
             print(" npoints=",cid_filter.sum())

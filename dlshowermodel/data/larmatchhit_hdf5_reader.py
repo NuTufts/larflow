@@ -82,7 +82,8 @@ class LArMatchHitHDF5Dataset(Dataset):
             self.COLS += LArMatchHitHDF5Dataset.TRUTH_COLUMNS
 
         self.nlength = 0
-        if self.load_from_cachefile is not None:
+        if self.load_from_cachefile is not None and self.load_from_cachefile!=False:
+            assert(type(self.load_from_cachefile) is str)
             with open(self.load_from_cachefile,'r') as fcache:
                 ll = fcache.readlines()
                 self.nlength = int(ll[-1].strip().split()[-1])
@@ -151,7 +152,7 @@ class LArMatchHitHDF5Dataset(Dataset):
         # do we subsample to limit the number of spacepoints?
         # do we crop around the neutrino vertex or crop within some box
         # do we mask out the ghost and cosmic spacepoints?
-        npts = entry_data['pos'].shape[-1]
+        npts = entry_data['shower_points'].shape[-1]
 
         # add index of entry
         entry_data["idx"] = idx
@@ -162,6 +163,9 @@ class LArMatchHitHDF5Dataset(Dataset):
             ptfilter = np.random.random( npts ) < frac
             for col in self.LARMATCH_INPUT_COLUMNS+self.TRUTH_COLUMNS:
                 entry_data[col] = entry_data[col][:,ptfilter[:]]
+
+        
+        # prepare node features
 
         
         return entry_data

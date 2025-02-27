@@ -2,7 +2,7 @@ import numpy as np
 from larflow import larflow
 
 def get_cluster_image_pixels( cluster_labels, matchtriplets, wireimage_list, larcv_image2d_list,
-                            threshold=10.0, drow=2, dcol=2, skip_cluster_indices=[-1] ):
+                            threshold=10.0, drow=2, dcol=2, skip_cluster_indices=[-1], clusterids=None ):
     """
     cluster_labels: (N,) np.long array containing cluster indices
     matchtriplets: (N,3) np.long array with each row giving the index of the pixel in the wireimage 2D array
@@ -15,7 +15,8 @@ def get_cluster_image_pixels( cluster_labels, matchtriplets, wireimage_list, lar
     dcol: int Include neighboring 'dcol' cols left and right next to the cluster pixels
     """
     clusterimagemasker = larflow.reco.ClusterImageMask()
-    clusterids = np.unique( cluster_labels )
+    if clusterids is None:
+        clusterids = np.unique( cluster_labels )
     max_cid = int(np.max(clusterids))
     nplanes = len(wireimage_list)
     cluster_pixelsum_v = []
@@ -26,6 +27,9 @@ def get_cluster_image_pixels( cluster_labels, matchtriplets, wireimage_list, lar
         if cid in skip_cluster_indices:
             continue
         cluster_filter = cluster_labels==cid
+        if cluster_filter.sum()==0:
+            continue
+
         cluster_triplets = matchtriplets[cluster_filter[:],:]
         # get row,col array
         cluster_planemasks = []

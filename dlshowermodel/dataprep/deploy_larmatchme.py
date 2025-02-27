@@ -246,20 +246,37 @@ for ientry in range(start_entry,end_entry):
             results[k] = arr.detach().cpu().numpy()
         lmshower_mask = results["lmshower_selection_mask"]
         cluster_labels = np.squeeze(results['cluster_labels'])
-        #print('cluster_labels.shape: ',cluster_labels.shape)
+        clusterids = np.unique(cluster_labels)
 
         # remove small clusters
-        cid_remap = cluster_sel_mod.cluster_filter_by_size(cluster_labels,min_npoints=30)
+        cid_remap = cluster_sel_mod.cluster_filter_by_size(cluster_labels,min_npoints=60, cid_list=clusterids)
+        # extract the sampled pos and feats for the selected clusters
         results['cluster_sampled_pos']  = results['cluster_sampled_pos'][cid_remap]
         results['cluster_sampled_feat'] = results['cluster_sampled_feat'][cid_remap]
+
+        # now relabel the clusters in the cluster label tensor
+        for newcid in range(cid_remap.shape[0]):
+            oldcid = cid_remap[newcid]
+            cluster_labels[ cluster_labels==oldcid ] = newcid
+        clusterids = np.unique(cluster_labels)
 
         # cluster features: plane charge sum
         larcv_image2d_list = [ adc_v.at(p) for p in range(adc_v.size()) ]
         cluster_charge_info = cluster_imgpixel_mod.get_cluster_image_pixels( cluster_labels, matchtriplet.detach().cpu().numpy(), 
                                                                             img_v, larcv_image2d_list, 
+                                                                            clusterids=clusterids,
                                                                             threshold=10.0, drow=2, dcol=2 )
-        cfeat_centroids = cluster_feat_mod.get_centroids( results['shower_points'], cluster_labels )
-        cfeat_pca      = cluster_feat_mod.get_pc_axes( results['shower_points'], cluster_labels )
+
+        # cluster features: centroid position
+        cfeat_centroids = cluster_feat_mod.get_centroids( results['shower_points'], 
+                                                            cluster_labels,
+                                                            cid_list=clusterids )
+
+        # cluster features: shape features using Principle Components
+        cfeat_pca      = cluster_feat_mod.get_pc_axes( results['shower_points'], 
+                                                        cluster_labels,
+                                                        cid_list=clusterids,
+                                                        verbose=False )
  
         clusterdata = {'shower_points':results['shower_points'],
                        #'shower_feats':results['shower_feats'], # all larmatch feature vectors from all points
@@ -292,6 +309,8 @@ for ientry in range(start_entry,end_entry):
             clusterdata.update( truthdata )
 
         output_entries.append( clusterdata )
+    if False: # for debug
+        break
 
 
              
