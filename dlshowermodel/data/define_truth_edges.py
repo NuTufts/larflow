@@ -4,8 +4,6 @@ import numpy as np
 def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
                          keypoint_labels, verbose=False, skip_cluster_ids=[-1,0] ):
 
-    kptypes = [2,3,4] # shower, michel, delta
-
     if verbose:
         print("cluster labels: ",cluster_labels.shape)
         print("instance_labels: ",instance_labels.shape)
@@ -61,11 +59,10 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
             trackid_to_clusterid[max_trackid].append(cid)
 
         # sum up the total number of pixels close to the keypoint
-        showerkeypts = keypoint_labels[kptypes[0],cluster_filter]>0.5
-        for kptype in kptypes[1:]:
-            showerkeypts |= keypoint_labels[kptype,cluster_filter]>0.5
-        nkps_per_cluster[cid] = showerkeypts.sum()
-        showerkeypt_frac = float(showerkeypts.sum())/float(nclusterpts)
+        showerkeypts = np.sum(keypoint_labels[3:,cluster_filter],axis=0)
+        print("showerkeypts: ",showerkeypts.shape," min=",np.min(showerkeypts)," max=",np.max(showerkeypts))
+        nkps_per_cluster[cid] = (showerkeypts>0.1).sum()
+        showerkeypt_frac = float(nkps_per_cluster[cid])/float(nclusterpts)
 
         if verbose:
             print("  npoints on keypoint: ",nkps_per_cluster[cid])
@@ -89,7 +86,7 @@ def make_true_edge_list( cluster_labels, instance_labels, particle_labels,
             print("  pid counts: ",pid_counts)
             print("  shower_counts: ",shower_counts," frac=",shower_frac)
 
-        if shower_frac>0.5 and nkps_per_cluster[cid]>10.0:
+        if shower_frac>0.1 and nkps_per_cluster[cid]>1:
             # label this a trunk cluster if it is majority true shower and has enough keypoints on it
             if max_trackid not in trackid_trunkcandidates:
                 trackid_trunkcandidates[max_trackid] = cid
@@ -130,15 +127,15 @@ if __name__ == "__main__":
     from larlite import larlite
     from ublarcvapp import ublarcvapp
 
-    hdf_testfile = "../dataprep/test.h5"
+    hdf_testfile = "../dataprep/test_bnbnue_corsika.h5"
     reader = reader.LArMatchHitHDF5Dataset( file_paths=[hdf_testfile],
                                             file_has_training_labels=True,
                                             file_has_larmatch_inputs=True,
-                                            verbose=False )
+                                            file_has_mctruth_labels=True )
     entry = reader[0]
     print(entry.keys())
 
-    cluster_labels = entry['cluster_labels']
+    cluster_labels = entry['cluster_labels'][0]
     point_pos = entry['shower_points']
     lms_filter = entry['lmshower_selection_mask'][0,:]
 
@@ -152,15 +149,16 @@ if __name__ == "__main__":
     keypoint_labels = entry['kpscores'][:,lms_filter[:]]
     print('keypoint_labels, post-filter: ',keypoint_labels.shape)
 
-    llfile = "/home/twongjirad/working/data/mcc9_v40a_dl_run3b_NC_pi0_overlay_CV/merged_dlreco_mcc9_v40a_dl_run3b_NC_pi0_overlay_CV_aa444faa-530a-4fd7-b43f-b501bc221880.root"
+    #llfile = "/home/twongjirad/working/data/mcc9_v40a_dl_run3b_NC_pi0_overlay_CV/merged_dlreco_mcc9_v40a_dl_run3b_NC_pi0_overlay_CV_aa444faa-530a-4fd7-b43f-b501bc221880.root"
+    llfile = "/home/twongjirad/working/data/mcc9_v13_bnbnue_corsika/merged_dlreco_mcc9_v13_bnbnue_corsika_run00001_subrun00001.root"
     io = larlite.storage_manager(larlite.storage_manager.kREAD)
     io.add_in_filename( llfile )
     io.open()
-    io.go_to(0)
+    io.go_to(15)
 
     mcpg = ublarcvapp.mctools.MCPixelPGraph()
     mcpg.buildgraphonly( io )
     mcpg.printGraph(0,0)
 
-    make_true_edge_list( cluster_labels, instance_labels, particle_labels, keypoint_labels )
+    make_true_edge_list( cluster_labels, instance_labels, particle_labels, keypoint_labels, verbose=True )
     

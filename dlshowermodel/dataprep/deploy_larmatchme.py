@@ -20,8 +20,13 @@ parser.add_argument('-ill', '--input-larlite', required=True,help="input larlite
 parser.add_argument('-ao', '--allow-output-overwrite', default=False, help="If flag given, allow output file to overwrite")
 parser.add_argument('-tf','--tickforwards',action='store_true',default=False,help="Indicate that input larcv file is tick-forward [default: F]")
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument('-e','--entry',default=0,type=int,help="Starting entry. Default: 0")
+parser.add_argument('-n','--num-entries',default=-1,type=int,help="Number of entries to process. Default: -1 (process until end of file)")
 
 args = parser.parse_args()
+
+NMAX_SPACEPOINTS_PER_FORWARD = 50000
+NBATCH_PER_FORWARD = 4
 
 # prepare network
 import h5py
@@ -107,18 +112,18 @@ if not args.tickforwards:
 iolcv.initialize()
 
 nentries_larcv = iolcv.get_n_entries()
-start_entry = 0
-num_entries = nentries_larcv
+start_entry = args.entry
+num_entries = args.num_entries
+if num_entries<0:
+    num_entries = nentries_larcv
+end_entry = start_entry + num_entries
+if end_entry>=nentries_larcv:
+    end_entry = nentries_larcv
 print("Number of entries in file: ",nentries_larcv)
 if start_entry>=nentries_larcv:
     print("Asking to start after last entry (%d) in file"%(nentries_larcv-1))
     sys.exit(1)
 
-end_entry = start_entry + nentries_larcv
-if num_entries>0:
-    end_entry = start_entry + num_entries
-if end_entry >= nentries_larcv:
-    end_entry = nentries_larcv
 
 print("running entries [",start_entry,",",end_entry,"]")
 
@@ -164,13 +169,23 @@ for ientry in range(start_entry,end_entry):
     # transfer keys from inputdata to entrydata
     for k,i in inputdata.items():
         entrydata[k] = i
-        
-    batch = [entrydata]
+
+
+    print("matchtriplet.shape=",entrydata['matchtriplet'].shape)
+    nspacepoints = entrydata['matchtriplet'].shape[0]
+
+    nforward_passes = nspacepoints/(NMAX_SPACEPOINTS_PER_FORWARD*NBATCH_PER_FORWARD)
+    if nspacepoints % NMAX_SPACEPOINTS_PER_FORWARD==0:
+        nforward_passes += 1
+
+    batch = [entrydata] # we want to split all the points into passes into several batches
     
     batchsize = len(batch)
     batch_sparsetensors, batch_triplets, batch_coordqueries = \
-        LArMatchHitHDF5Writer.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key )
+        LArMatchHitHDF5Writer.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key, verbose=True )
     dt_prep = time.time()-tprep
+
+    #for ipass in range(nforward_passes):
 
     #mcpg = ublarcvapp.mctools.MCPixelPGraph()
     #mcpg.buildgraphonly( ioll )
@@ -234,11 +249,16 @@ for ientry in range(start_entry,end_entry):
                      'keyptlabels':np.transpose(keypoint_truth.detach().cpu().numpy(),(1,0)),
                      'origin':origin.detach().cpu().numpy()}
 
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            print("CUDA cache cleared")
+
         # do clustering and then subsampling of presentative points within the cluster
         results = clustering_alg.process_event_points( torch.transpose(spacepoints,1,0), 
                                     torch.transpose(lmfeats,1,0),
                                     torch.transpose(lmscores,1,0),
-                                    torch.transpose(ssnet,1,0) )
+                                    torch.transpose(ssnet,1,0),
+                                    use_scikit=True )
         matchtriplet = matchtriplet[ results['lmshower_selection_mask'][:], : ]
         
         # convert output tensors to numpy arrays and then store in dictionary
@@ -298,7 +318,7 @@ for ientry in range(start_entry,end_entry):
                                                     lmshowerpts_instanceids,
                                                     lmshowerpts_particleids,
                                                     lmshowerpts_keyptlabels,
-                                                    verbose=False )
+                                                    verbose=True )
             clusterdata['showercluster_edge_list'] = shower_edge_list         
 
         if args.save_input_lmpoints:

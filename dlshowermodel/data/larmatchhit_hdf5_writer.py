@@ -323,6 +323,7 @@ class LArMatchHitHDF5Writer:
             npts += data[triplet_key].shape[0]
         print("Drawn total spacepoints: ",npts)
 
+        # 2D sparse wire plane images
         for p in range(3):
             if verbose:
                 print("plane ",p)
@@ -331,15 +332,6 @@ class LArMatchHitHDF5Writer:
 
             coord_v = [ torch.from_numpy(data["coord_%d"%(p)]).to(device) for data in batchdata ]
             feat_v  = [ torch.from_numpy(data["feat_%d"%(p)]).to(device) for data in batchdata ]
-
-            # hack make random matrix
-            # coord_v = []
-            # feat_v = []
-            # for b in range(config["BATCH_SIZE"]):
-            #     fake_coord = np.random.randint( 0, high=1004, size=(200000,2) )
-            #     coord_v.append( torch.from_numpy(fake_coord).to(DEVICE) )
-            #     fake_feat  = np.random.rand( 200000, 1 )
-            #     feat_v.append( torch.from_numpy(fake_feat.astype(np.float32)).to(DEVICE) )
 
             for x in coord_v:
                 x.requires_grad = False
