@@ -21,7 +21,7 @@ namespace reco {
     ClusterImageMask()
       : _npix(0)
       {
-	_cluster_mask_v.clear();	
+	      _cluster_mask_v.clear();	
       };
     virtual ~ClusterImageMask() {};
 

@@ -1,6 +1,9 @@
 #ifndef __SPLIT_HITS_BY_SSNET_H__
 #define __SPLIT_HITS_BY_SSNET_H__
 
+#include <Python.h>
+#include "bytesobject.h"
+
 #include <string>
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/Image2D.h"
@@ -59,7 +62,16 @@ namespace reco {
     void process( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     
     void process_labelonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
-    void process_splitonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll );        
+    void process_splitonly( larcv::IOManager& iolcv, larlite::storage_manager& ioll );      
+
+    PyObject* make_trackshowerlabels_from2dssnet( 
+              const std::vector<larcv::Image2D>& adc_v,
+              const std::vector<larcv::Image2D>& ssnet_score_v,
+              const float adc_threshold,
+              PyObject* spacepoint_triplets, 
+              PyObject* sparse_wireplane0,
+              PyObject* sparse_wireplane1,
+              PyObject* sparse_wireplane2 );
     
   protected:
     
@@ -117,6 +129,10 @@ namespace reco {
 						       larcv::IOManager& iolcv,
 						       larcv::EventImage2D& container );
     
+
+  private:
+
+    static bool __setup_numpy;
     
   };
   

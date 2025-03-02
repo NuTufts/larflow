@@ -1,11 +1,16 @@
 #include "SplitHitsBySSNet.h"
 
-#include "larcv/core/DataFormat/EventImage2D.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
 
 #include <ctime>
 
+#include "larcv/core/DataFormat/EventImage2D.h"
+
 namespace larflow {
 namespace reco {
+
+  bool SplitHitsBySSNet::__setup_numpy = false;
 
   /**
    * @brief split-up container of larflow3dhit using ssnet output images
@@ -216,11 +221,11 @@ namespace reco {
       ev_ssnet_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
       int nimages = ev_ssnet_v[p]->Image2DArray().size();
       if (nimages==0) {
-	LARCV_NORMAL() << "Missing " << prodname << " images. Need to make them from raw SSNet output" << std::endl;
-	_make_trackshower_images_from_sparse_uresnet( p, adc_v.at(p), iolcv, *(ev_ssnet_v[p]) );
+        LARCV_NORMAL() << "Missing " << prodname << " images. Need to make them from raw SSNet output" << std::endl;
+        _make_trackshower_images_from_sparse_uresnet( p, adc_v.at(p), iolcv, *(ev_ssnet_v[p]) );
       }
       else {
-	LARCV_NORMAL() << "  number of images: " << nimages << std::endl;
+      	LARCV_NORMAL() << "  number of images: " << nimages << std::endl;
       }
     }
 
@@ -279,11 +284,11 @@ namespace reco {
       ev_ssnet_v[p] = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, prodname );
       int nimages = ev_ssnet_v[p]->Image2DArray().size();	
       if (nimages==0) {
-	LARCV_NORMAL() << "Missing " << prodname << " images. Need to make them from raw SSNet output" << std::endl;
-	_make_trackshower_images_from_sparse_uresnet( p, adc_v.at(p), iolcv, *(ev_ssnet_v[p]) );
+        LARCV_NORMAL() << "Missing " << prodname << " images. Need to make them from raw SSNet output" << std::endl;
+        _make_trackshower_images_from_sparse_uresnet( p, adc_v.at(p), iolcv, *(ev_ssnet_v[p]) );
       }
       else {
-	LARCV_NORMAL() << "  number of images: " << nimages << std::endl;
+        LARCV_NORMAL() << "  number of images: " << nimages << std::endl;
       }      
     }
     
@@ -388,14 +393,12 @@ namespace reco {
       // features for each entry in the sparse tensor [row] [col] [proton score] [muon score] [electron score] [delta] [michel]
       // scores should be normalized 
       for (int j=0; j<(int)img.len(); j++) {
-	
-	int row = img.getfeature(j,0);
-	int col = img.getfeature(j,1);
-	float track_score  = img.getfeature(j,2) + img.getfeature(j,3);
-	float shower_score = img.getfeature(j,4) + img.getfeature(j,5) + img.getfeature(j,6);
-	track_adc.set_pixel( row, col, track_score );
-	shower_adc.set_pixel( row, col, shower_score );
-	
+        int row = img.getfeature(j,0);
+        int col = img.getfeature(j,1);
+        float track_score  = img.getfeature(j,2) + img.getfeature(j,3);
+        float shower_score = img.getfeature(j,4) + img.getfeature(j,5) + img.getfeature(j,6);
+        track_adc.set_pixel( row, col, track_score );
+        shower_adc.set_pixel( row, col, shower_score );
       }
       
       container.Emplace( std::move(shower_adc) );
@@ -408,6 +411,86 @@ namespace reco {
     }
     
     return;
+  }
+
+
+  PyObject* SplitHitsBySSNet::make_trackshowerlabels_from2dssnet( 
+              const std::vector<larcv::Image2D>& adc_v,
+              const std::vector<larcv::Image2D>& ssnet_score_v,
+              const float adc_threshold,
+              PyObject* spacepoint_triplets, 
+              PyObject* sparse_wireplane0,
+              PyObject* sparse_wireplane1,
+              PyObject* sparse_wireplane2 )
+  {
+    if ( !__setup_numpy ) {
+      import_array1(0);
+      SplitHitsBySSNet::__setup_numpy = true;
+    }
+
+    npy_intp dims[2];
+    long **carray_triplets;
+    PyArray_Descr *descr = PyArray_DescrFromType(NPY_LONG);
+    if (PyArray_AsCArray(&spacepoint_triplets, (void *)&carray_triplets, dims, 2, descr) < 0) {
+      LARCV_CRITICAL() << "Cannot convert to 2D np.long spacepoint matchtriplet array into C-array" << std::endl;
+    }
+
+    std::vector< PyObject* > p_wireplanes = { sparse_wireplane0, sparse_wireplane1, sparse_wireplane2 };
+    std::vector<int> nrows_wireplanes(3,0);
+    std::vector<long**> carray_wireplanes(3,nullptr);
+    npy_intp dims_p0[2];
+    npy_intp dims_p1[2];
+    npy_intp dims_p2[2];
+    PyArray_Descr *descr_wireplanes = PyArray_DescrFromType(NPY_INT64);
+    for (size_t p=0; p<3; p++) {
+      npy_intp dims_wireplane[2];
+      if ( PyArray_AsCArray( &(p_wireplanes[p]), (void*)&(carray_wireplanes[p]), dims_wireplane, 2, descr_wireplanes )<0 ) {
+        LARCV_CRITICAL() << "Could not converted 2D np.float32 wireplane array into C-array" << std::endl;
+      }
+      nrows_wireplanes[p] = dims_wireplane[0];
+    }
+    
+    // setup output: ndarray with shower score
+    npy_intp score_dims[] = { (npy_intp)dims[0], 2 };
+    PyArrayObject* nd_showerscore = (PyArrayObject*)PyArray_SimpleNew( 2, score_dims, NPY_FLOAT );
+
+    // loop over spacepoint triplet of pixel indices for the three wire planes
+    for (size_t idx=0; idx<(size_t)dims[0]; idx++) {
+
+      // for each spacepoint, get shower score for the pixel on three planes
+      float max_showerscore = 0.;
+      float ave_showerscore = 0.;
+      int nplanes_with_scores = 0;
+      
+      for (size_t p=0; p<3; p++) {
+        // get the index in the sparse image tensor
+        long imgidx = carray_triplets[idx][p];
+       
+        long row = carray_wireplanes[p][imgidx][0];
+        long col = carray_wireplanes[p][imgidx][1];
+
+        float pixval = adc_v[p].pixel(row,col);
+        float showerscore = ssnet_score_v[p].pixel(row,col);
+
+        if ( pixval>=adc_threshold ) {
+          ave_showerscore += showerscore;
+          nplanes_with_scores += 1;
+          if ( showerscore>max_showerscore )
+            max_showerscore = showerscore;
+        }
+      }
+
+      if ( nplanes_with_scores>0 )
+          ave_showerscore /= float(nplanes_with_scores);
+
+      *((float*)PyArray_GETPTR2(nd_showerscore,idx,0)) = ave_showerscore;
+      *((float*)PyArray_GETPTR2(nd_showerscore,idx,1)) = max_showerscore;
+
+
+    }
+
+
+    return (PyObject*)nd_showerscore;
   }
   
 }
