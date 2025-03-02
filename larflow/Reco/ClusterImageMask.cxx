@@ -70,11 +70,14 @@ namespace reco {
           for (int dc=-(int)abs(dpix); dc<=(int)abs(dpix); dc++) {
             int c = sp.targetwire[p] + dc;
             if ( c<0 || c>=(int)adc_v[p].meta().cols() ) continue;
-
-            if ( adc_v[p].pixel(r,c,__FILE__,__LINE__)>thresh
+	    float pixvalue = adc_v[p].pixel(r,c,__FILE__,__LINE__);
+            if ( pixvalue>thresh
                  && mask_v[p].pixel(r,c)==0 ) {
-              mask_v[p].set_pixel(r,c,1.0);
-              _npix++;
+              _npix++;	      
+	      if (!_store_pixel_value)
+		mask_v[p].set_pixel(r,c,1.0);
+	      else
+		mask_v[p].set_pixel(r,c,pixvalue);
             }
           }//end of col loop
         }//end of plane loop
@@ -145,6 +148,47 @@ namespace reco {
     return sum_v;
   }
   
+
+  void ClusterImageMask::maskWithImage( const std::vector<larcv::Image2D>& adc_v,
+					std::vector<larcv::Image2D>& mask_v,
+					const float thresh,
+					const bool invert )    
+  {
+    bool meta_match = true;
+    if ( adc_v.size()!=mask_v.size() ) {
+      meta_match = false;
+    }
+    if ( !meta_match )
+      return;
+    
+    for (size_t p=0; p<adc_v.size(); p++) {
+      if ( adc_v[p].meta()!=mask_v[p].meta() )
+	meta_match = false;
+    }
+    if ( !meta_match )
+      return;
+
+    for (size_t p=0; p<adc_v.size(); p++) {
+      auto const& vimg = adc_v[p].as_vector();
+      auto& vmask = mask_v[p].as_mod_vector();
+
+      for (size_t i=0; i<vmask.size(); i++) {
+	if ( vmask[i]>=thresh ) {
+	  if ( !invert && vimg[i]<thresh )
+	    vmask[i] = 0.0;
+	  else if ( invert && vimg[i]>=thresh )
+	    vmask[i] = 0.0;
+	}
+      }
+    }
+  }
+
+  void ClusterImageMask::maskStoredImage( const std::vector<larcv::Image2D>& adc_v,
+					  const float thresh,
+					  const bool invert )
+  {
+    maskWithImage( adc_v, _cluster_mask_v, thresh, invert );
+  }
   
   void ClusterImageMask::maskTrack( const larlite::track& track,
                                     const std::vector<larcv::Image2D>& adc_v,
@@ -216,8 +260,11 @@ namespace reco {
 
               float pixval = adc_v[p].pixel(r,c,__FILE__,__LINE__);
               if ( pixval>thresh && mask_v[p].pixel(r,c)==0) {
-                mask_v[p].set_pixel( r, c, 1.0 );
                 _npix++;
+		if ( !_store_pixel_value)
+		  mask_v[p].set_pixel( r, c, 1.0 );
+		else
+		  mask_v[p].set_pixel( r, c, pixval );
               }
             }//end of dc loop
             
