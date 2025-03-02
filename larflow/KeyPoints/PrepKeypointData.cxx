@@ -815,7 +815,7 @@ namespace keypoints {
     }
     
     int nd = 2;
-    npy_intp dims[] = { npts, 10 };
+    npy_intp dims[] = { npts, 11 };
     PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
     size_t ipt = 0;
@@ -836,6 +836,8 @@ namespace keypoints {
         *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.origin;
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
+        // TrackID
+        *((float*)PyArray_GETPTR2(array,ipt,10)) = (float)kpd.trackid;
         ipt++;
       }
     }// end of loop over keypointdata structs
