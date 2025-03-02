@@ -527,6 +527,9 @@ namespace keypoints {
     // loop over nodes, look for electron/gamma pixels
     for ( auto& pnode : mcpg.node_v ) {
 
+      if (pnode.type!=0)
+        continue; // we are querying only nodes generated from the mctrack container
+
       if ( abs(pnode.pid)==11 || abs(pnode.pid)==22 || pnode.pid==2112 ) {
         // no showers and no neutrons
         continue;
@@ -812,7 +815,7 @@ namespace keypoints {
     }
     
     int nd = 2;
-    npy_intp dims[] = { npts, 10 };
+    npy_intp dims[] = { npts, 11 };
     PyArrayObject* array = (PyArrayObject*)PyArray_SimpleNew( nd, dims, NPY_FLOAT );
 
     size_t ipt = 0;
@@ -833,6 +836,8 @@ namespace keypoints {
         *((float*)PyArray_GETPTR2(array,ipt,8)) = (float)kpd.origin;
         // PID
         *((float*)PyArray_GETPTR2(array,ipt,9)) = (float)kpd.pid;
+        // TrackID
+        *((float*)PyArray_GETPTR2(array,ipt,10)) = (float)kpd.trackid;
         ipt++;
       }
     }// end of loop over keypointdata structs

@@ -1,0 +1,385 @@
+from __future__ import print_function
+import os,sys,argparse,time
+sys.path.append(os.environ["LARFLOW_BASEDIR"]+"/larmatchnet")
+
+parser = argparse.ArgumentParser(description='deploy larmatch model on microboone larcv/larlite input')
+parser.add_argument('-c','--config-file',type=str,default="config.yaml",help="larmatch configuration file")
+parser.add_argument('-w','--weights',required=True,type=str,help='weight file')
+parser.add_argument('-p','--min-score',type=float,default=0.3,help="Minimum Score to save point [default: 0.3]")
+parser.add_argument('-d','--device-name',default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
+parser.add_argument('-adc','--adc-name',default="wire",type=str,help="Name of ADC tree [default: wire]")
+parser.add_argument('-savelm','--save-input-lmpoints', default=False, action='store_true', 
+                        help="If flag given, save input larmatch info used to make clusters")
+parser.add_argument('-saveptmc','--save-point-mctruth', default=False, action='store_true', 
+                        help="If flag given, save truth labels for each spacepoint saved")
+parser.add_argument('-trueedges','--save-true-edges', default=False, action='store_true', 
+                        help="If flag given, determine and save the true edges for making shower clusters")
+parser.add_argument('-v','--verbose',default=False,action='store_true',help='If flag given, just run 5 events for debugging')
+parser.add_argument('-ilcv','--input-larcv', required=True,help="input larcv file")
+parser.add_argument('-ill', '--input-larlite', required=True,help="input larlite file")
+parser.add_argument('-ao', '--allow-output-overwrite', default=False, help="If flag given, allow output file to overwrite")
+parser.add_argument('-tf','--tickforwards',action='store_true',default=False,help="Indicate that input larcv file is tick-forward [default: F]")
+parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument('-e','--entry',default=0,type=int,help="Starting entry. Default: 0")
+parser.add_argument('-n','--num-entries',default=-1,type=int,help="Number of entries to process. Default: -1 (process until end of file)")
+
+args = parser.parse_args()
+
+NMAX_SPACEPOINTS_PER_FORWARD = 50000
+NBATCH_PER_FORWARD = 4
+
+# prepare network
+import h5py
+import torch
+import numpy as np
+import larmatch.utils.larmatchme_engine as engine
+import dlshowermodel.data.define_truth_edges as truth_edge_module
+import dlshowermodel.data.cluster_selection as cluster_sel_mod
+import dlshowermodel.data.cluster_image_charge as cluster_imgpixel_mod
+import dlshowermodel.data.cluster_features as cluster_feat_mod
+
+DEVICE=torch.device(args.device_name)
+config = engine.load_config_file(  args )
+single_model    = engine.get_model( config )
+# set to eval-mode for inference
+single_model.eval()
+
+# Loading weights
+checkpointfile  = engine.get_weightfile( args.weights, config )
+checkpoint_data = engine.load_model_weights( single_model, checkpointfile )
+
+single_model.eval()
+single_model.to(DEVICE)
+print("loaded MODEL on ",DEVICE)
+if args.verbose and False:
+    print("MODEL")
+    print("-----------------------------")
+    print(single_model)
+    print()
+    print("=============================")
+    print("Parameters")
+    print("------------")
+    print("------------")
+    for name, par in single_model.named_parameters():
+        print("---------------------------------")
+        print(name," ",par.shape)
+        print(par)
+
+
+
+# Setup input and output files
+
+input_larcv   = args.input_larcv
+input_larlite = args.input_larlite
+outdir = os.path.dirname( args.output )
+if outdir=="":
+    outdir="./"
+
+# check file paths, input and outpiut
+if not os.path.exists( input_larcv ):
+    print("LARCV input file does not exist. path given: ",input_larcv)
+    sys.exit(1)
+if not os.path.exists( input_larlite ):
+    print("larlite input file does not exist. path given: ", input_larlite)
+    sys.exit(1)
+if not args.allow_output_overwrite and os.path.exists( args.output ):
+    print("output file exists. not allowing overwrites. path given: ",args.output)
+    print("provide True to keyword argument 'allow_output_overwrite'")
+    sys.exit(1)
+if not os.path.exists( outdir  ):
+    print("directory for output file does not exist. Given: ",outdir)
+    sys.exit(1)
+
+# setup larcv and larlite interfaces to data
+# ROOT-based IO for data objects used in LArSoft (common framework used in LArTPC experiments )
+import ROOT
+from ROOT import std
+from larcv import larcv
+from larlite import larlite
+
+ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
+ioll.add_in_filename( input_larlite )
+ioll.open()
+
+if args.tickforwards:
+    iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickForward )
+else:
+    iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
+
+iolcv.add_in_file( input_larcv )
+if not args.tickforwards:
+    iolcv.reverse_all_products()
+iolcv.initialize()
+
+nentries_larcv = iolcv.get_n_entries()
+start_entry = args.entry
+num_entries = args.num_entries
+if num_entries<0:
+    num_entries = nentries_larcv
+end_entry = start_entry + num_entries
+if end_entry>=nentries_larcv:
+    end_entry = nentries_larcv
+print("Number of entries in file: ",nentries_larcv)
+if start_entry>=nentries_larcv:
+    print("Asking to start after last entry (%d) in file"%(nentries_larcv-1))
+    sys.exit(1)
+
+
+print("running entries [",start_entry,",",end_entry,"]")
+
+# event loop
+
+# we use the LArMatchHDFWriter class to help us convert larcv/larlite data into numpy arrays
+from dlshowermodel.data.larmatchhit_hdf5_writer import LArMatchHitHDF5Writer
+lmwriter = LArMatchHitHDF5Writer()
+num_max_spacepoints = 10000000
+process_truth_labels = True
+triplet_key = 'matchtriplet'
+
+# load utils for processing points into shower clusters that we are saving
+from dlshowermodel.utils.cluster_shower_points import ClusterShowerPoints
+clustering_alg = ClusterShowerPoints()
+
+# algorithm for getting image pixels from the 3D clusters
+from larflow import larflow
+clusterimagemasker = larflow.reco.ClusterImageMask()
+ssnet2d_showerlabeler = larflow.reco.SplitHitsBySSNet()
+
+output_entries = []
+
+for ientry in range(start_entry,end_entry):
+
+    print("[[ RUN ENTRY %d ]]"%(ientry))
+
+    tprep = time.time()
+
+    ioll.go_to(ientry)
+    iolcv.read_entry(ientry)
+
+    ev_adc = iolcv.get_data( larcv.kProductImage2D, args.adc_name )
+    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wire" )
+    adc_v = ev_adc.as_vector()
+
+    # convert the data and store into self.entry_data
+    lmwriter.larlite_larcv_to_hdf5_entry( ioll, iolcv, process_truth_labels, num_max_spacepoints )
+
+    entrydata = lmwriter.entry_data.pop()
+    print("processed larcv/larlite info dict keys: ",entrydata.keys())
+    
+    inputdata = LArMatchHitHDF5Writer.prepare_triplet_and_image_arrays_for_network( entrydata, triplet_key=triplet_key )
+    # transfer keys from inputdata to entrydata
+    for k,i in inputdata.items():
+        entrydata[k] = i
+
+    keypoint_data = []
+    for ikptype in [3,4,5]: # shower, michel, delta
+        kptype_data = lmwriter.kpana.get_keypoint_array(ikptype)
+        keypoint_data.append( kptype_data )
+    keypoint_data = np.concatenate( keypoint_data, axis=0 )
+    print("keypoint_data.shape=",keypoint_data.shape)
+
+    print("matchtriplet.shape=",entrydata['matchtriplet'].shape)
+    nspacepoints = entrydata['matchtriplet'].shape[0]
+
+    nforward_passes = nspacepoints/(NMAX_SPACEPOINTS_PER_FORWARD*NBATCH_PER_FORWARD)
+    if nspacepoints % NMAX_SPACEPOINTS_PER_FORWARD==0:
+        nforward_passes += 1
+
+    batch = [entrydata] # we want to split all the points into passes into several batches
+    
+    batchsize = len(batch)
+    batch_sparsetensors, batch_triplets, batch_coordqueries = \
+        LArMatchHitHDF5Writer.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key, verbose=True )
+    dt_prep = time.time()-tprep
+
+    #for ipass in range(nforward_passes):
+
+    #mcpg = ublarcvapp.mctools.MCPixelPGraph()
+    #mcpg.buildgraphonly( ioll )
+
+    # shower scores from 2d sparse ssnet
+    # ssnet_score_v = std.vector("larcv::Image2D")()
+    # for p in range(3):
+    #     showerimg = iolcv.get_data( "image2d", f"uburn_plane{p}" ).at(1)
+    #     print(f"shower score image plane[{p}]: ",showerimg.meta().dump())
+    #     ssnet_score_v.push_back( showerimg )
+    # print('wireimage_plane0: ',entrydata['wireimage_plane0'].shape)
+    # ssnet2d_scores = ssnet2d_showerlabeler.make_trackshowerlabels_from2dssnet( \
+    #     adc_v, 
+    #     ssnet_score_v,
+    #     10.0,
+    #     entrydata['matchtriplet'], 
+    #     entrydata['wireimage_plane0'][:,:2].astype(np.int64),
+    #     entrydata['wireimage_plane1'][:,:2].astype(np.int64),
+    #     entrydata['wireimage_plane2'][:,:2].astype(np.int64) )
+    # print("ssnet2d_scores.shape=",ssnet2d_scores.shape)
+
+    with torch.no_grad():
+        # run larmatch network
+        # input: forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
+        tstart_runnet = time.time()
+        larmatchout = single_model( batch_sparsetensors, batch_triplets, batch_coordqueries, batchsize, return_larmatch_features=True )
+        dt_runnet = time.time()-tstart_runnet
+
+        # get charge feature
+        pixval_v = [ batch_sparsetensors[p].features_at_coordinates( batch_coordqueries[p] ) for p in range(3)  ]
+
+        print("Ran larmatch: time elapsed=",dt_runnet," sec")
+
+        # for each entry we collect:
+        lmscores = torch.softmax( larmatchout["lm"][0], dim=0 )
+        lmfilter = lmscores[1,:]>args.min_score
+        lmscores = lmscores[ 1, lmfilter[:]]
+        lmscores = lmscores.reshape( (1,lmscores.shape[0]))
+        ssnet = larmatchout['ssnet'][0,:,lmfilter[:]].to(DEVICE)
+        paf = larmatchout['paf'][0,:,lmfilter[:]]
+        kpscores = larmatchout['kp'][0,:,lmfilter[:]]
+        lmfeats = larmatchout['larmatch_features'][0,:,lmfilter[:]]
+        spacepoints = torch.transpose( torch.from_numpy(entrydata['spacepoints']).to(DEVICE) , 1, 0 )[:,lmfilter[:]]
+        pixval_t = torch.transpose( torch.cat( pixval_v, dim=1 ), 1, 0 )[:,lmfilter[:]]
+        matchtriplet = torch.from_numpy( entrydata['matchtriplet'] ).to(DEVICE)[lmfilter[:],:]
+        #ssnet2d = torch.from_numpy(ssnet2d_scores)[lmfilter[:],:].to(DEVICE)
+
+        # shower scores from larmatch
+        ssnet_probs = torch.softmax( torch.transpose(ssnet,1,0), 1) # normalize along dim-1 (length C), out shape (N,)
+        shower_prob = torch.sum( ssnet_probs[:,:2], dim=1 ) # electron + photon scores
+
+        img_v = [ entrydata['wireimage_plane%d'%(p)] for p in range(3) ]
+
+        print("lmscores: ",lmscores.shape)
+        print("lmfeats: ",lmfeats.shape)
+        print("kpscores: ",kpscores.shape)
+        print("paf: ",paf.shape)
+        print("ssnet predictions: ",ssnet.shape)
+        print("spacepoints: ",spacepoints.shape)
+        print("pixval_t.shape: ",pixval_t.shape)
+        print("matchtriplet.shape: ",matchtriplet.shape)
+
+        # Truth labels
+        origin = torch.unsqueeze( torch.from_numpy(entrydata['origin_label']), 0 ).to(DEVICE)[:,lmfilter[:]]
+        instanceids = torch.unsqueeze(torch.from_numpy(entrydata['instanceid_label']),0).to(DEVICE)[:,lmfilter[:]]
+        particleids = torch.unsqueeze(torch.from_numpy(entrydata['ssnet_label']),0).to(DEVICE)[:,lmfilter[:]]
+        keypoint_truth = torch.from_numpy(entrydata['kplabel']).to(DEVICE)[lmfilter[:],:]
+        print("instanceids: ",instanceids.shape)
+        print("particleids: ",particleids.shape)
+        print("keypoint_truth: ",keypoint_truth.shape)
+        print("origin: ",origin.shape)
+
+        entrydata = {'lmfeatures':lmfeats.detach().cpu().numpy(),
+                     'lmscores':lmscores.detach().cpu().numpy(),
+                     'ssnet':ssnet.detach().cpu().numpy(),
+                     #'ssnet2d':ssnet2d.detach().cpu().numpy(),
+                     'paf':paf.detach().cpu().numpy(),
+                     'kpscores':kpscores.detach().cpu().numpy(),
+                     'pos':spacepoints.detach().cpu().numpy(),
+                     'pixvals':pixval_t.detach().cpu().numpy()}
+
+        truthdata = {'instanceids':instanceids.detach().cpu().numpy(),
+                     'particleids':particleids.detach().cpu().numpy(),
+                     'keyptlabels':np.transpose(keypoint_truth.detach().cpu().numpy(),(1,0)),
+                     'keypoint_data':keypoint_data,
+                     'origin':origin.detach().cpu().numpy()}
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            print("CUDA cache cleared")
+
+        # do clustering and then subsampling of presentative points within the cluster
+        results = clustering_alg.process_event_points( torch.transpose(spacepoints,1,0), 
+                                    torch.transpose(lmfeats,1,0),
+                                    torch.transpose(lmscores,1,0),
+                                    shower_prob,
+                                    #ssnet2d[:,1],
+                                    use_scikit=True )
+        matchtriplet = matchtriplet[ results['lmshower_selection_mask'][:], : ]
+        
+        # convert output tensors to numpy arrays and then store in dictionary
+        for k,arr in results.items():
+            results[k] = arr.detach().cpu().numpy()
+        lmshower_mask = results["lmshower_selection_mask"]
+        cluster_labels = np.squeeze(results['cluster_labels'])
+        clusterids = np.unique(cluster_labels)
+
+        # remove small clusters
+        cid_remap = cluster_sel_mod.cluster_filter_by_size(cluster_labels,min_npoints=60, cid_list=clusterids)
+        # extract the sampled pos and feats for the selected clusters
+        results['cluster_sampled_pos']  = results['cluster_sampled_pos'][cid_remap]
+        results['cluster_sampled_feat'] = results['cluster_sampled_feat'][cid_remap]
+
+        # now relabel the clusters in the cluster label tensor
+        for newcid in range(cid_remap.shape[0]):
+            oldcid = cid_remap[newcid]
+            cluster_labels[ cluster_labels==oldcid ] = newcid
+        clusterids = np.unique(cluster_labels)
+
+        # cluster features: plane charge sum
+        larcv_image2d_list = [ adc_v.at(p) for p in range(adc_v.size()) ]
+        cluster_charge_info = cluster_imgpixel_mod.get_cluster_image_pixels( cluster_labels, matchtriplet.detach().cpu().numpy(), 
+                                                                            img_v, larcv_image2d_list, 
+                                                                            clusterids=clusterids,
+                                                                            threshold=10.0, drow=2, dcol=2 )
+
+        # cluster features: centroid position
+        cfeat_centroids = cluster_feat_mod.get_centroids( results['shower_points'], 
+                                                            cluster_labels,
+                                                            cid_list=clusterids )
+
+        # cluster features: shape features using Principle Components
+        cfeat_pca      = cluster_feat_mod.get_pc_axes( results['shower_points'], 
+                                                        cluster_labels,
+                                                        cid_list=clusterids,
+                                                        verbose=False )
+ 
+        clusterdata = {'shower_points':results['shower_points'],
+                       #'shower_feats':results['shower_feats'], # all larmatch feature vectors from all points
+                       'cluster_labels':results['cluster_labels'],
+                       'cluster_sampled_pos':results['cluster_sampled_pos'],
+                       'cluster_sampled_feat':results['cluster_sampled_feat'],
+                       'cluster_feat_planepixelsum':cluster_charge_info['cluster_pixelsum'],
+                       'cluster_feat_centroid':cfeat_centroids,
+                       'cluster_feat_pca':cfeat_pca,
+                       'cluster_index_remap':cid_remap}
+                       
+
+        # we also need graph truth
+        if args.save_true_edges:
+            lmshowerpts_instanceids = truthdata["instanceids"][0,lmshower_mask]
+            lmshowerpts_particleids = truthdata["particleids"][0,lmshower_mask]
+            lmshowerpts_keyptlabels = truthdata["keyptlabels"][:,lmshower_mask]
+            shower_edge_list = truth_edge_module.make_true_edge_list( clusterdata['cluster_labels'],
+                                                    clusterdata['shower_points'],
+                                                    lmshowerpts_instanceids,
+                                                    lmshowerpts_particleids,
+                                                    lmshowerpts_keyptlabels,
+                                                    keypoint_data,
+                                                    verbose=True, debug=False )
+            clusterdata['showercluster_edge_list'] = shower_edge_list         
+
+        if args.save_input_lmpoints:
+            clusterdata.update( entrydata )
+            clusterdata["lmshower_selection_mask"] = results["lmshower_selection_mask"]
+
+        if args.save_point_mctruth:
+            clusterdata.update( truthdata )
+
+        output_entries.append( clusterdata )
+    if False: # for debug
+        break
+
+
+             
+# write output
+
+with h5py.File(args.output, 'w') as hf:
+    for ientry,entrydict in enumerate(output_entries):
+        print("writing entry[",ientry,"]")
+        for name in entrydict:
+            n = name+"_%d"%(ientry)
+            print("  write ",n," ",entrydict[name].shape)
+            hf.create_dataset( n, data=entrydict[name], compression='gzip', compression_opts=9 )
+
+
+print("Finished")
+print("Cleaning up")
+ioll.close()
+iolcv.finalize()

@@ -1,6 +1,9 @@
 #ifndef __LARFLOW_RECO_CLUSTER_IMAGE_MASK_H__
 #define __LARFLOW_RECO_CLUSTER_IMAGE_MASK_H__
 
+#include <Python.h>
+#include "bytesobject.h"
+
 #include "larlite/DataFormat/larflowcluster.h"
 #include "larlite/DataFormat/track.h"
 #include "larcv/core/Base/larcv_base.h"
@@ -19,7 +22,7 @@ namespace reco {
       : _npix(0),
 	_store_pixel_value(false)
       {
-	_cluster_mask_v.clear();	
+	      _cluster_mask_v.clear();	
       };
     virtual ~ClusterImageMask() {};
 
@@ -63,11 +66,20 @@ namespace reco {
                     const float minstepsize=0.1,
                     const float maxstepsize=1.0 );
 
+
     void storePixelValue( bool doit=true ) { _store_pixel_value=doit; };
+
+    PyObject* getClusterImageChargeSum( PyObject* ndarray_pos, 
+                    const larcv::Image2D& adc_v, 
+                    const float threshold, const int dcol=2, const int drow=2 );
 
     int _npix;
     bool _store_pixel_value;
     std::vector<larcv::Image2D> _cluster_mask_v; ///< carries a copy of the image whose pixels correspond to the projection of the 3D clusters
+
+    protected:
+
+    static bool __setup_numpy; 
     
   };
 

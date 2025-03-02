@@ -161,6 +161,12 @@ namespace keypoints {
 			   const bool exclude_neg_examples,
 			   PyArrayObject* match_array,
 			   PyArrayObject*& origin_array );
+
+    int make_instanceid_array( const int nfilled,
+          const std::vector<int>& pos_match_index,
+          const bool exclude_neg_examples,
+          PyArrayObject* match_array,
+          PyArrayObject*& instanceid_array );
     
 
     static bool _setup_numpy; ///< if true setup numpy by calling import_numpy(0)
