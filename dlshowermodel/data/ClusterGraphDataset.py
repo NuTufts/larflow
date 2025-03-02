@@ -31,8 +31,8 @@ class ClusterGraphDataset(Dataset):
             x_range=[-500.0,500.0],
             y_range=[-500.0,500.0],
             z_range=[-500.0,500.0],
-            min_freq=1.0,
-            max_freq=1000.0,
+            min_freq=0.0001,
+            max_freq=1.0,
             scale_factor=1.0
         )
     

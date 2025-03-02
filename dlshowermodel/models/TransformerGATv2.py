@@ -2,41 +2,45 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric
-from torch_geometric.nn import GATv2Conv
 from dlshowermodel.utils.sinusoidal_embeddings import SinusoidalPositionEmbedding
 from dlshowermodel.models.SetTransformer import SetTransformer
+from dlshowermodel.models.ResGATv2 import ResGATv2Block
 
 # Define the complete model combining Transformer, Position Embedding, and GATv2
 class TransformerGATv2Model(nn.Module):
-    def __init__(self, cluster_feature_dim=48, 
+    def __init__(self, spacepoint_feature_dim=48, 
+                num_cluster_out_tokens=4,
+                cluster_token_dim=64,
+                num_cluster_hidden_heads=4, 
                 pca_feature_dim=21, 
-                pos_embedding_dim=48, 
-                cluster_hidden_dim=64, 
+                node_pos_embedding_dim=48, 
+                num_gnn_layers=2,
                 gnn_hidden_dim=48, 
-                num_out_tokens=4,
-                num_heads=4,  
-                num_gcnn_layers=2, 
                 num_gat_heads=4,
-                dropout=0.1,
+                dropout=0.5,
+                norm_type='graph',
+                edgelayer_hidden_dim=48,
                 cat_pos_embed=False,
                 x_range=(-520, 520), y_range=(-520, 520), z_range=(-520, 520),
                 pos_origin=(0.0,0.0,1036.0/2.0),
-                pos_min_freq=1.0, pos_max_freq=1000.0, pos_scale=1.0):
+                pos_min_freq=0.0001, pos_max_freq=1.0, pos_scale=1.0):
         super(TransformerGATv2Model, self).__init__()
         
-        # Transformer for processing cluster features
+        # larmatch vector projection into cluster transformer input space
+        self.larmatch_projection = nn.Linear(spacepoint_feature_dim,spacepoint_feature_dim)
+
+        # Transformer for processing spacepoint features within each cluster
+        # to make a cluster feature vector to pass to graph
         self.transformer = SetTransformer(
-            cluster_feature_dim, # dim_input
-            num_out_tokens, # num_outputs
-            cluster_hidden_dim,
-            num_heads=num_heads,
+            spacepoint_feature_dim, # dim_input
+            num_cluster_out_tokens, # num_outputs
+            cluster_token_dim,
+            num_hidden_heads=num_cluster_hidden_heads,
             ln=True)
-        
-        # Positional embeddings for the spatial features
 
         # Positional embedding for spatial coordinates for graph clusters
         self.position_embedding = SinusoidalPositionEmbedding(
-            embedding_dim=pos_embedding_dim,
+            embedding_dim=node_pos_embedding_dim,
             x_range=x_range,
             y_range=y_range,
             z_range=z_range,
@@ -47,42 +51,39 @@ class TransformerGATv2Model(nn.Module):
 
         self.pos_origin = torch.tensor(pos_origin,dtype=torch.float,requires_grad=False)
         
-        # larmatch vector projection into cluster transformer input space
-        self.larmatch_projection = nn.Linear(cluster_feature_dim,cluster_feature_dim)
-        
         # Combine transformer output + PCA + charge feats
         dim_charge_feats = 3
-        combined_dim = cluster_hidden_dim*num_out_tokens + pca_feature_dim + dim_charge_feats
+        combined_dim = cluster_token_dim*num_cluster_out_tokens + pca_feature_dim + dim_charge_feats
         self.cat_pos_embed = cat_pos_embed
         if self.cat_pos_embed:
-            combined_dim += pos_embedding_dim
-        self.combined_projection = nn.Linear(combined_dim, pos_embedding_dim)
+            combined_dim += node_pos_embedding_dim
+        self.combined_projection = nn.Linear(combined_dim, node_pos_embedding_dim)
         
         # GATv2Conv layers for edge prediction
-        self.num_gcnn_layers = num_gcnn_layers
-        for ilayer in range(num_gcnn_layers):
-            layername = f'gatv2conv_layer{ilayer}'
-            ninput_dims = gnn_hidden_dim
-            noutput_dims = gnn_hidden_dim
+        self.num_gnn_layers = num_gnn_layers
+        for ilayer in range(num_gnn_layers):
+            layername = f'resgatv2conv_layer{ilayer}'
+            # default input and output channels and number of heads
+            ninput_dims  = gnn_hidden_dim*num_gat_heads
+            noutput_dims = gnn_hidden_dim*num_gat_heads
             nheads = num_gat_heads
             # mods for first layer
-            if ilayer>0:
-                ninput_dims *= num_gat_heads
             if ilayer==0:
-                ninput_dims = pos_embedding_dim
+                ninput_dims = node_pos_embedding_dim
             # mods for last layer
-            if ilayer==num_gcnn_layers-1:
-                noutput_dims *= 2
+            if ilayer==(self.num_gnn_layers-1):
+                noutput_dims = gnn_hidden_dim*2
                 nheads = 1
-            conv = GATv2Conv(ninput_dims, noutput_dims, heads=nheads, dropout=dropout)
+            conv = ResGATv2Block(ninput_dims, noutput_dims, 
+                        heads=nheads, dropout=dropout, norm_type=norm_type)
             setattr(self,layername,conv)
         
         # Edge prediction layers
         self.edge_pred = nn.Sequential(
-            nn.Linear(gnn_hidden_dim * 4, gnn_hidden_dim),
+            nn.Linear(gnn_hidden_dim * 4, edgelayer_hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(gnn_hidden_dim, 1)
+            nn.Linear(edgelayer_hidden_dim, 1)
         )
     
     def get_node_embeddings(self, data):
@@ -130,13 +131,10 @@ class TransformerGATv2Model(nn.Module):
         data.x = x
         
         # Apply GATv2Conv layers
-        for ilayer in range(self.num_gcnn_layers):
-            conv = getattr(self,f'gatv2conv_layer{ilayer}')
+        for ilayer in range(self.num_gnn_layers):
+            conv = getattr(self,f'resgatv2conv_layer{ilayer}')
             x = conv(x, data.edge_index)
-            if ilayer<self.num_gcnn_layers-1:
-                x = F.elu(x)
-                x = F.dropout(x, p=0.1, training=self.training)
-        
+
         # Get node pairs for edge prediction
         src, dst = data.edge_index
         
@@ -151,3 +149,51 @@ class TransformerGATv2Model(nn.Module):
         edge_pred = self.edge_pred(edge_feat).squeeze(-1)  # Shape: [num_edges]
         
         return edge_pred
+
+    def dump_example_config(outfilepath=None):
+        example="""\
+        TransformerGATv2:
+            SetTransformer:
+                spacepoint_feature_dim: 48 
+                num_cluster_out_tokens: 4
+                cluster_token_dim: 64
+                num_cluster_hidden_heads: 4
+            ResGATv2:
+                pca_feature_dim: 21
+                node_pos_embedding_dim: 48
+                gnn_hidden_dim: 48
+                num_gat_heads: 4
+                dropout: 0.5
+                edgelayer_hidden_dim:  128
+                norm_type: 'graph'
+        """
+        import yaml
+        cfg = yaml.safe_load(example)
+        if outfilepath is not None: 
+            assert type(outfilepath) is str, "Please provide string to dump example yaml config."
+            with open(outfilepath,'w') as outfile:
+                yaml.dump(cfg,outfile,default_flow_style=False)
+        return cfg
+
+    def load_from_config( config ):
+
+        if "TransformerGATv2" in config:
+            cfg = config["TransformerGATv2"]
+        else:
+            cfg = config
+        
+        st_cfg = cfg["SetTransformer"]
+        gnn_cfg = cfg["ResGATv2"]
+
+        kwdict = {}
+        kwdict.update(st_cfg)
+        kwdict.update(gnn_cfg)
+        return TransformerGATv2Model(**kwdict)
+
+if __name__ == "__main__":
+
+    example_config = TransformerGATv2Model.dump_example_config("transformer_gatv2_model.cfg")
+    model = TransformerGATv2Model.load_from_config( example_config )
+    print(model)
+
+        

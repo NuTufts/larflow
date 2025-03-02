@@ -8,18 +8,7 @@ from dlshowermodel.train import train_model
 import wandb
 
 # Main function to run the experiment
-def run_experiment(file_paths, batch_size=16, 
-                  k_neighbors=5, 
-                  cluster_hidden_dim=64, 
-                  gnn_hidden_dim=64, 
-                  num_heads=4,  
-                  num_gcnn_layers=2,
-                  num_out_tokens=8,
-                  dropout=0.1,
-                  lr=0.001, weight_decay=5e-4, epochs=100, patience=10,
-                  train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
-                  load_from_cachefile=None, apply_max_filter=False, max_num_spacepoints=10000,
-                  unknown_edge_weight=0.1):  # Weight for edges with unknown labels
+def run_experiment( file_paths, dataset_params, train_params, model_config ):
     
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -32,18 +21,24 @@ def run_experiment(file_paths, batch_size=16,
     lar_dataset = LArMatchHitHDF5Dataset(
         file_paths=file_paths,
         file_has_training_labels=True,
-        load_from_cachefile=load_from_cachefile,
-        apply_max_filter=apply_max_filter,
-        max_num_spacepoints=max_num_spacepoints
+        load_from_cachefile=dataset_params['load_from_cachefile'],
+        apply_max_filter=dataset_params['apply_max_filter'],
+        max_num_spacepoints=dataset_params['max_num_spacepoints']
     )
     
     print(f"Dataset size: {len(lar_dataset)}")
     
     # Create graph dataset
     print("Creating Graph Dataset...")
-    train_dataset = ClusterGraphDataset(lar_dataset, k_neighbors=k_neighbors, device=device)
-    val_dataset = ClusterGraphDataset(lar_dataset, k_neighbors=k_neighbors, device=device)
-    test_dataset = ClusterGraphDataset(lar_dataset, k_neighbors=k_neighbors, device=device)
+    train_dataset = ClusterGraphDataset(lar_dataset, 
+        k_neighbors=dataset_params['k_neighbors'], 
+        device=device)
+    val_dataset = ClusterGraphDataset(lar_dataset, 
+        k_neighbors=dataset_params['k_neighbors'], 
+        device=device)
+    test_dataset = ClusterGraphDataset(lar_dataset, 
+        k_neighbors=dataset_params['k_neighbors'], 
+        device=device)
 
     
     print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
@@ -52,40 +47,26 @@ def run_experiment(file_paths, batch_size=16,
     print("Creating data loaders...")
     train_loader = DataLoader(
         train_dataset, 
-        batch_size=batch_size, 
+        batch_size=train_params['batch_size'], 
         shuffle=True, 
         collate_fn=ClusterGraphDataset.collate_fn
     )
     val_loader = DataLoader(
         val_dataset, 
-        batch_size=batch_size, 
+        batch_size=train_params['batch_size'], 
         shuffle=False, 
         collate_fn=ClusterGraphDataset.collate_fn
     )
     test_loader = DataLoader(
         test_dataset, 
-        batch_size=batch_size, 
+        batch_size=train_params['batch_size'],
         shuffle=False, 
         collate_fn=ClusterGraphDataset.collate_fn
     )
     
     # Initialize model
     print("Initializing model...")
-    model = TransformerGATv2Model(
-        cluster_feature_dim=48,        # Fixed dimension from your dataset
-        pca_feature_dim=21,            # Fixed dimension from your dataset
-        pos_embedding_dim=48,          # Dimension of position embedding
-        cluster_hidden_dim=cluster_hidden_dim,
-        gnn_hidden_dim=gnn_hidden_dim,
-        num_out_tokens=num_out_tokens,
-        num_heads=num_heads,
-        num_gat_heads=num_heads,
-        num_gcnn_layers=num_gcnn_layers,
-        dropout=dropout,
-        pos_min_freq=0.0001,          # Minimum frequency for position embedding
-        pos_max_freq=1.0,              # Maximum frequency for position embedding
-        pos_scale=100.0                 # Scale factor to make embedding sensitive to cm-scale changes
-    ).to(device)
+    model = TransformerGATv2Model.load_from_config(model_config).to(device)
 
     print(model)
     ntrainable = 0
@@ -95,7 +76,9 @@ def run_experiment(file_paths, batch_size=16,
     #sys.exit(0)
     
     # Initialize optimizer and loss function
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = torch.optim.AdamW(model.parameters(), 
+        lr=train_params['burn_in_lr'], 
+        weight_decay=train_params['weight_decay'])
     
     # Use weighted BCEWithLogitsLoss to handle unknown labels (0.5)
     # We'll use a custom loss function that gives less weight to edges with unknown labels
@@ -123,8 +106,12 @@ def run_experiment(file_paths, batch_size=16,
         return weighted_loss
     
     print("Starting wandb logger")
+    log_config = {"train_params":train_params,
+                "dataset_params":dataset_params,
+                "model_config":model_config}
     wandb_writer = wandb.init(
-            project='dlshowerreco-gatv2-settransformer')
+            project='dlshowerreco-gatv2-settransformer',
+            config=log_config)
 
     # Train model
     print("Training model...")
@@ -136,8 +123,11 @@ def run_experiment(file_paths, batch_size=16,
         weighted_bce_loss,  # Use our custom loss
         optimizer, 
         device, 
-        num_epochs=epochs, 
-        patience=patience,
+        lr = train_params['lr'],
+        burn_in_epochs=train_params['burn_in_epochs'],
+        burn_in_lr=train_params['burn_in_lr'],
+        num_epochs=train_params['epochs'], 
+        patience=train_params['patience'],
         logger=wandb_writer
     )
     
@@ -151,16 +141,47 @@ if __name__ == "__main__":
     file_paths = ["dataprep/test_bnbnue_corsika_full_notruth.h5"]
     #file_paths = ["dataprep/test_bnbnue_corsika_e1_notruth.h5"]
     
-    model, train_metrics, val_metrics, test_metrics = run_experiment(
-        file_paths=file_paths,
-        batch_size=4,
+    dataset_params = dict(
         k_neighbors=16,
-        dropout=0.0,
-        lr=1.0e-4,
-        weight_decay=5e-4,
-        num_heads=8,
-        num_out_tokens=8,
-        num_gcnn_layers=2,
-        epochs=1000,
-        patience=100000
+        load_from_cachefile=None, 
+        apply_max_filter=False, 
+        max_num_spacepoints=10000,
+    )
+
+    train_params = dict(
+        batch_size=10,
+        lr=1.0e-4, 
+        weight_decay=5e-4, 
+        epochs=5000, 
+        patience=1000000,
+        burn_in_epochs=500,
+        burn_in_lr=0.5e-4
+    )
+
+    model_config = TransformerGATv2Model.dump_example_config()
+
+    """
+    TransformerGATv2:
+        ResGATv2:
+            dropout: 0.5
+            edgelayer_hidden_dim: 128
+            gnn_hidden_dim: 48
+            node_pos_embedding_dim: 48
+            norm_type: graph
+            num_gat_heads: 4
+            pca_feature_dim: 21
+        SetTransformer:
+            cluster_token_dim: 64
+            num_cluster_hidden_heads: 4
+            num_cluster_out_tokens: 4
+            spacepoint_feature_dim: 48
+    """
+    resgatv2_cfg = model_config['TransformerGATv2']['ResGATv2']
+
+
+    model, train_metrics, val_metrics, test_metrics = run_experiment(
+        file_paths,
+        dataset_params,
+        train_params,
+        model_config
     )

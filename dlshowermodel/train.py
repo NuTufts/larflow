@@ -22,6 +22,7 @@ def train_epoch(model, loader, optimizer, criterion, device):
         
         # Backward pass and optimization
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Add this line
         optimizer.step()
         
         total_loss += loss.item() * batch.num_graphs
@@ -157,7 +158,10 @@ def plot_training_curves(train_metrics, val_metrics):
 # Main training function
 def train_model(model, train_loader, val_loader, test_loader, 
                 criterion, optimizer, device, 
-                num_epochs=100, patience=10, 
+                num_epochs=1000, patience=10,
+                lr=1.0e-3, 
+                burn_in_epochs=100,
+                burn_in_lr=1.0e-6,
                 logger=None,
                 model_save_path='best_model.pt'):
     
@@ -171,7 +175,13 @@ def train_model(model, train_loader, val_loader, test_loader,
     if logger is not None:
         logger.watch(model, log="all", log_freq=100)
     
-    for epoch in range(num_epochs):
+    for epoch in range(burn_in_epochs+num_epochs):
+
+        if epoch==burn_in_epochs:
+            print(f"END OF BURN-IN. Switch lr from {burn_in_lr} to {lr}")
+            for g in optimizer.param_groups:
+                g['lr'] = lr
+
         # Train
         train_metric = train_epoch(model, train_loader, optimizer, criterion, device)
         train_metrics.append(train_metric)

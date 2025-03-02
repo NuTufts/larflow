@@ -49,7 +49,7 @@ class LArMatchHitHDF5Dataset(Dataset):
                  file_has_larmatch_inputs=False,
                  load_from_cachefile=None,
                  apply_max_filter=False,
-                 max_num_spacepoints=10000):
+                 max_num_spacepoints=50000):
         """
         Class constructor
 
