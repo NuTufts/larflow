@@ -4,8 +4,8 @@ import math
 
 class SinusoidalPositionEmbedding(nn.Module):
     def __init__(self, embedding_dim, 
-                x_range=(-50, 300), y_range=(-120, 120), z_range=(0, 1040), 
-                min_freq=0.0001, max_freq=1.0, 
+                x_range=(-500, 500), y_range=(-500, 500), z_range=(-500, 500), 
+                min_freq=1.0, max_freq=1000.0, 
                 scale_factor=1.0):
         """
         Sinusoidal position embedding for 3D spatial coordinates.
@@ -35,7 +35,7 @@ class SinusoidalPositionEmbedding(nn.Module):
         self.num_bands = embedding_dim // 6
         
         # Create frequency bands with logarithmic scaling
-        self.frequencies = torch.exp(
+        self.frequencies = math.pi*torch.exp(
             torch.linspace(
                 math.log(min_freq), 
                 math.log(max_freq), 
@@ -96,25 +96,34 @@ if __name__ == "__main__":
     # Create a position embedding for 3D coordinates
     pos_embedding = SinusoidalPositionEmbedding(
         embedding_dim=48,  # Must be divisible by 6
-        x_range=(-50, 300),
-        y_range=(-120, 120),
-        z_range=(0, 1040),
-        min_freq=0.0001,
-        max_freq=1.0,
-        scale_factor=10.0
+        x_range=(-500, 500),
+        y_range=(-500, 500),
+        z_range=(-500, 500),
+        min_freq=1.0,
+        max_freq=1000.0,
+        scale_factor=1.0
     )
+    print("Frequencies:")
+    print(pos_embedding.frequencies)
     
     # Example positions [batch_size, 3]
     positions = torch.tensor([
-        [0.0, 0.0, 500.0],    # Center position
-        [1.0, 0.0, 500.0],    # 1cm shift in x
-        [0.0, 1.0, 500.0],    # 1cm shift in y
-        [0.0, 0.0, 501.0]     # 1cm shift in z
+        [0.0, 0.0, 0.0],    # Center position
+        [0.0, 0.0, 0.01],    # 1cm shift in x
+        [0.0, 0.0, 0.1],    # 1cm shift in x
+        [0.0, 0.0, 1.0],    # 1cm shift in x
+        [0.0, 0.0, 10.0],    # 1cm shift in y
+        [0.0, 0.0, 100.0],    # 1cm shift in y
+        [0.0, 0.0, 500.0]    # 1cm shift in y
     ])
     
     # Get embeddings
     embeddings = pos_embedding(positions)
     print(f"Embedding shape: {embeddings.shape}")
+    print("sin(z): ")
+    print(embeddings[:,-16:-8])
+    print("cos(z): ")
+    print(embeddings[:,-8:])
     
     # Compute pairwise distances in the embedding space
     distances = torch.cdist(embeddings, embeddings)

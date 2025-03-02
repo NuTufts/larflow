@@ -27,7 +27,7 @@ class LArMatchHitHDF5Dataset(Dataset):
     LARMATCH_INPUT_COLUMNS = [
         "lmfeatures", #(C,N) C=48 usually
         "lmscores",   #(N,)
-        "ssnet",      #(6,N)
+        "ssnet",      #(N,5)
         "paf",        #(3,N)
         "kpscores",   #(5,N)
         "pos",        #(3,N)
@@ -38,6 +38,7 @@ class LArMatchHitHDF5Dataset(Dataset):
         "instanceids",
         "particleids",
         "keyptlabels",
+        "keypoint_data", #(Np,10) where cols are [tick,wire-U,wire-V,wire-Y,x,y,z,isshower,origin,pid]
         "origin"
     ]
 

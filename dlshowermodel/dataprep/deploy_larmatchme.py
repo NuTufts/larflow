@@ -143,6 +143,7 @@ clustering_alg = ClusterShowerPoints()
 # algorithm for getting image pixels from the 3D clusters
 from larflow import larflow
 clusterimagemasker = larflow.reco.ClusterImageMask()
+ssnet2d_showerlabeler = larflow.reco.SplitHitsBySSNet()
 
 output_entries = []
 
@@ -170,6 +171,12 @@ for ientry in range(start_entry,end_entry):
     for k,i in inputdata.items():
         entrydata[k] = i
 
+    keypoint_data = []
+    for ikptype in [3,4,5]: # shower, michel, delta
+        kptype_data = lmwriter.kpana.get_keypoint_array(ikptype)
+        keypoint_data.append( kptype_data )
+    keypoint_data = np.concatenate( keypoint_data, axis=0 )
+    print("keypoint_data.shape=",keypoint_data.shape)
 
     print("matchtriplet.shape=",entrydata['matchtriplet'].shape)
     nspacepoints = entrydata['matchtriplet'].shape[0]
@@ -190,6 +197,23 @@ for ientry in range(start_entry,end_entry):
     #mcpg = ublarcvapp.mctools.MCPixelPGraph()
     #mcpg.buildgraphonly( ioll )
 
+    # shower scores from 2d sparse ssnet
+    # ssnet_score_v = std.vector("larcv::Image2D")()
+    # for p in range(3):
+    #     showerimg = iolcv.get_data( "image2d", f"uburn_plane{p}" ).at(1)
+    #     print(f"shower score image plane[{p}]: ",showerimg.meta().dump())
+    #     ssnet_score_v.push_back( showerimg )
+    # print('wireimage_plane0: ',entrydata['wireimage_plane0'].shape)
+    # ssnet2d_scores = ssnet2d_showerlabeler.make_trackshowerlabels_from2dssnet( \
+    #     adc_v, 
+    #     ssnet_score_v,
+    #     10.0,
+    #     entrydata['matchtriplet'], 
+    #     entrydata['wireimage_plane0'][:,:2].astype(np.int64),
+    #     entrydata['wireimage_plane1'][:,:2].astype(np.int64),
+    #     entrydata['wireimage_plane2'][:,:2].astype(np.int64) )
+    # print("ssnet2d_scores.shape=",ssnet2d_scores.shape)
+
     with torch.no_grad():
         # run larmatch network
         # input: forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
@@ -207,13 +231,18 @@ for ientry in range(start_entry,end_entry):
         lmfilter = lmscores[1,:]>args.min_score
         lmscores = lmscores[ 1, lmfilter[:]]
         lmscores = lmscores.reshape( (1,lmscores.shape[0]))
-        ssnet = larmatchout['ssnet'][0,:,lmfilter[:]]
+        ssnet = larmatchout['ssnet'][0,:,lmfilter[:]].to(DEVICE)
         paf = larmatchout['paf'][0,:,lmfilter[:]]
         kpscores = larmatchout['kp'][0,:,lmfilter[:]]
         lmfeats = larmatchout['larmatch_features'][0,:,lmfilter[:]]
         spacepoints = torch.transpose( torch.from_numpy(entrydata['spacepoints']).to(DEVICE) , 1, 0 )[:,lmfilter[:]]
         pixval_t = torch.transpose( torch.cat( pixval_v, dim=1 ), 1, 0 )[:,lmfilter[:]]
         matchtriplet = torch.from_numpy( entrydata['matchtriplet'] ).to(DEVICE)[lmfilter[:],:]
+        #ssnet2d = torch.from_numpy(ssnet2d_scores)[lmfilter[:],:].to(DEVICE)
+
+        # shower scores from larmatch
+        ssnet_probs = torch.softmax( torch.transpose(ssnet,1,0), 1) # normalize along dim-1 (length C), out shape (N,)
+        shower_prob = torch.sum( ssnet_probs[:,:2], dim=1 ) # electron + photon scores
 
         img_v = [ entrydata['wireimage_plane%d'%(p)] for p in range(3) ]
 
@@ -239,6 +268,7 @@ for ientry in range(start_entry,end_entry):
         entrydata = {'lmfeatures':lmfeats.detach().cpu().numpy(),
                      'lmscores':lmscores.detach().cpu().numpy(),
                      'ssnet':ssnet.detach().cpu().numpy(),
+                     #'ssnet2d':ssnet2d.detach().cpu().numpy(),
                      'paf':paf.detach().cpu().numpy(),
                      'kpscores':kpscores.detach().cpu().numpy(),
                      'pos':spacepoints.detach().cpu().numpy(),
@@ -247,6 +277,7 @@ for ientry in range(start_entry,end_entry):
         truthdata = {'instanceids':instanceids.detach().cpu().numpy(),
                      'particleids':particleids.detach().cpu().numpy(),
                      'keyptlabels':np.transpose(keypoint_truth.detach().cpu().numpy(),(1,0)),
+                     'keypoint_data':keypoint_data,
                      'origin':origin.detach().cpu().numpy()}
 
         if torch.cuda.is_available():
@@ -257,7 +288,8 @@ for ientry in range(start_entry,end_entry):
         results = clustering_alg.process_event_points( torch.transpose(spacepoints,1,0), 
                                     torch.transpose(lmfeats,1,0),
                                     torch.transpose(lmscores,1,0),
-                                    torch.transpose(ssnet,1,0),
+                                    shower_prob,
+                                    #ssnet2d[:,1],
                                     use_scikit=True )
         matchtriplet = matchtriplet[ results['lmshower_selection_mask'][:], : ]
         
@@ -315,10 +347,12 @@ for ientry in range(start_entry,end_entry):
             lmshowerpts_particleids = truthdata["particleids"][0,lmshower_mask]
             lmshowerpts_keyptlabels = truthdata["keyptlabels"][:,lmshower_mask]
             shower_edge_list = truth_edge_module.make_true_edge_list( clusterdata['cluster_labels'],
+                                                    clusterdata['shower_points'],
                                                     lmshowerpts_instanceids,
                                                     lmshowerpts_particleids,
                                                     lmshowerpts_keyptlabels,
-                                                    verbose=True )
+                                                    keypoint_data,
+                                                    verbose=True, debug=False )
             clusterdata['showercluster_edge_list'] = shower_edge_list         
 
         if args.save_input_lmpoints:

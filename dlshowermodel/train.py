@@ -158,6 +158,7 @@ def plot_training_curves(train_metrics, val_metrics):
 def train_model(model, train_loader, val_loader, test_loader, 
                 criterion, optimizer, device, 
                 num_epochs=100, patience=10, 
+                logger=None,
                 model_save_path='best_model.pt'):
     
     best_val_f1 = 0
@@ -166,6 +167,9 @@ def train_model(model, train_loader, val_loader, test_loader,
     # Lists to store metrics
     train_metrics = []
     val_metrics = []
+
+    if logger is not None:
+        logger.watch(model, log="all", log_freq=100)
     
     for epoch in range(num_epochs):
         # Train
@@ -180,6 +184,19 @@ def train_model(model, train_loader, val_loader, test_loader,
         print(f"Epoch: {epoch+1}/{num_epochs}")
         print(f"  Train - Loss: {train_metric['loss']:.4f}, Acc: {train_metric['accuracy']:.4f}, F1: {train_metric['f1']:.4f}")
         print(f"  Val   - Loss: {val_metric['loss']:.4f}, Acc: {val_metric['accuracy']:.4f}, F1: {val_metric['f1']:.4f}")
+
+        log_info = ['loss',
+            'accuracy',
+            'precision',
+            'recall',
+            'f1']
+        
+        logger_data = {"epoch":epoch}
+        for info in log_info:
+            logger_data[f'train/{info}'] = train_metric[info]
+            logger_data[f'val/{info}'] = val_metric[info]
+        logger.log(logger_data,step=epoch)
+        
         
         # Early stopping based on validation F1 score
         if val_metric['f1'] > best_val_f1 or epoch==0:

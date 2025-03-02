@@ -1,14 +1,21 @@
+import sys
 import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from dlshowermodel.data.ClusterGraphDataset import ClusterGraphDataset
 from dlshowermodel.models.TransformerGATv2 import TransformerGATv2Model
 from dlshowermodel.train import train_model
+import wandb
 
 # Main function to run the experiment
-def run_experiment(file_paths, batch_size=16, k_neighbors=5, 
-                  hidden_dim=64, gnn_hidden_dim=64, 
-                  num_heads=4, num_layers=2, dropout=0.1,
+def run_experiment(file_paths, batch_size=16, 
+                  k_neighbors=5, 
+                  cluster_hidden_dim=64, 
+                  gnn_hidden_dim=64, 
+                  num_heads=4,  
+                  num_gcnn_layers=2,
+                  num_out_tokens=8,
+                  dropout=0.1,
                   lr=0.001, weight_decay=5e-4, epochs=100, patience=10,
                   train_ratio=0.7, val_ratio=0.15, test_ratio=0.15,
                   load_from_cachefile=None, apply_max_filter=False, max_num_spacepoints=10000,
@@ -68,38 +75,57 @@ def run_experiment(file_paths, batch_size=16, k_neighbors=5,
         cluster_feature_dim=48,        # Fixed dimension from your dataset
         pca_feature_dim=21,            # Fixed dimension from your dataset
         pos_embedding_dim=48,          # Dimension of position embedding
-        hidden_dim=hidden_dim,
+        cluster_hidden_dim=cluster_hidden_dim,
         gnn_hidden_dim=gnn_hidden_dim,
+        num_out_tokens=num_out_tokens,
         num_heads=num_heads,
-        num_layers=num_layers,
+        num_gat_heads=num_heads,
+        num_gcnn_layers=num_gcnn_layers,
         dropout=dropout,
-        x_range=(-50, 300),            # Range of x coordinates in cm
-        y_range=(-120, 120),           # Range of y coordinates in cm
-        z_range=(0, 1040),             # Range of z coordinates in cm
-        pos_min_freq=0.0001,           # Minimum frequency for position embedding
+        pos_min_freq=0.0001,          # Minimum frequency for position embedding
         pos_max_freq=1.0,              # Maximum frequency for position embedding
-        pos_scale=10.0                 # Scale factor to make embedding sensitive to cm-scale changes
+        pos_scale=100.0                 # Scale factor to make embedding sensitive to cm-scale changes
     ).to(device)
+
+    print(model)
+    ntrainable = 0
+    for par in model.parameters():
+        ntrainable += par.numel()
+    print("Number of parameters: ",ntrainable)
+    #sys.exit(0)
     
     # Initialize optimizer and loss function
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     
     # Use weighted BCEWithLogitsLoss to handle unknown labels (0.5)
     # We'll use a custom loss function that gives less weight to edges with unknown labels
     def weighted_bce_loss(pred, target):
         # Calculate standard BCE loss
         bce_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none')
+        #print('pred=',pred.shape,"   target=",target.shape)
         
         # Apply lower weight to examples with target = 0.5 (unknown)
-        weights = torch.ones_like(target)
-        unknown_mask = (target == 0.5)
-        weights[unknown_mask] = unknown_edge_weight
+        weights = torch.ones_like(target,requires_grad=False)
+        with torch.no_grad():
+            pos_mask = (target == 1.0)
+            neg_mask = (target == 0.0)
+            npos = pos_mask.sum().to(torch.float)
+            nneg = neg_mask.sum().to(torch.float)
+            if npos>0:
+                weights[pos_mask] = 1.0/npos
+            if nneg>0:
+                weights[neg_mask] = 1.0/nneg
+
         
         # Apply weights and take mean
-        weighted_loss = (bce_loss * weights).mean()
+        weighted_loss = (bce_loss * weights).sum()
         
         return weighted_loss
     
+    print("Starting wandb logger")
+    wandb_writer = wandb.init(
+            project='dlshowerreco-gatv2-settransformer')
+
     # Train model
     print("Training model...")
     model, train_metrics, val_metrics, test_metrics = train_model(
@@ -111,27 +137,30 @@ def run_experiment(file_paths, batch_size=16, k_neighbors=5,
         optimizer, 
         device, 
         num_epochs=epochs, 
-        patience=patience
+        patience=patience,
+        logger=wandb_writer
     )
     
+    wandb_writer.finish()
+
     return model, train_metrics, val_metrics, test_metrics
 
 # Example usage
 if __name__ == "__main__":
     # Replace with your actual file paths
-    file_paths = ["test_traindata_fullfile.h5"]
+    file_paths = ["dataprep/test_bnbnue_corsika_full_notruth.h5"]
+    #file_paths = ["dataprep/test_bnbnue_corsika_e1_notruth.h5"]
     
     model, train_metrics, val_metrics, test_metrics = run_experiment(
         file_paths=file_paths,
-        batch_size=1,
-        k_neighbors=5,
-        hidden_dim=64,
-        gnn_hidden_dim=64,
-        num_heads=4,
-        num_layers=2,
-        dropout=0.1,
-        lr=0.001,
+        batch_size=4,
+        k_neighbors=16,
+        dropout=0.0,
+        lr=1.0e-4,
         weight_decay=5e-4,
-        epochs=100,
-        patience=100
+        num_heads=8,
+        num_out_tokens=8,
+        num_gcnn_layers=2,
+        epochs=1000,
+        patience=100000
     )

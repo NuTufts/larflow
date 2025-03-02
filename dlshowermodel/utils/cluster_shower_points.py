@@ -2,34 +2,28 @@ import torch
 from .dbscan_torch import dbscan_torch
 from .densityawaresampling import DensityAwareSemanticSampling
 
-def cluster_lmshower_points( pos, lm_logits, ssnet_logits, 
-                            dbscan_eps=0.5, dbscan_minsamples=100,
-                            lmscore_threshold=0.5, lmtruept_index=-1,
+def cluster_lmshower_points( pos, lm_logits, shower_prob, 
+                            dbscan_eps=0.5, dbscan_minsamples=5,
+                            lmscore_threshold=0.20, ssnet_threshold=0.5,
+                            lmtruept_index=-1,
                             use_scikit=False ):
     """
     """
-    if len(ssnet_logits.shape)!=2:
-        raise ValueError("expected dim for ssnet_logits tensor is not 2. Expect (C,N) tensor.")
 
-    N,C = ssnet_logits.shape
+    N = shower_prob.shape[0]
 
     if lm_logits.shape[0]!=N:
         raise ValueError("number of points in lm and ssnet tensor does not match")
     if pos.shape[0]!=N:
         raise ValueError("number of points in pos tensor does not match")
 
-    ssnet_probs = torch.softmax( ssnet_logits, 1) # normalize along dim-1 (length C), out shape (N,)
-    shower_prob = torch.sum( ssnet_probs[:,:2], dim=1 ) # electron + photon scores
-
     if len(lm_logits.shape)>1:
         lm = lm_logits[:,lmtruept_index].squeeze() # shape (N)
     else:
         lm = lm_logits
-    
-    lmscore = shower_prob*lm
 
     # filter out points with high ssnet and lm confidence
-    lmsfilter = lmscore > lmscore_threshold
+    lmsfilter = (lm > lmscore_threshold)*(shower_prob > ssnet_threshold)
 
     lms_pos = pos[lmsfilter[:],:]
 
