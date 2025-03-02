@@ -131,7 +131,7 @@ print("running entries [",start_entry,",",end_entry,"]")
 
 # we use the LArMatchHDFWriter class to help us convert larcv/larlite data into numpy arrays
 from dlshowermodel.data.larmatchhit_hdf5_writer import LArMatchHitHDF5Writer
-lmwriter = LArMatchHitHDF5Writer()
+lmwriter = LArMatchHitHDF5Writer( treename_for_adc_image=args.adc_name )
 num_max_spacepoints = 10000000
 process_truth_labels = True
 triplet_key = 'matchtriplet'
@@ -157,7 +157,7 @@ for ientry in range(start_entry,end_entry):
     iolcv.read_entry(ientry)
 
     ev_adc = iolcv.get_data( larcv.kProductImage2D, args.adc_name )
-    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wire" )
+    ev_chstatus = iolcv.get_data( larcv.kProductChStatus, args.adc_name )
     adc_v = ev_adc.as_vector()
 
     # convert the data and store into self.entry_data
