@@ -54,9 +54,10 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
     val_loader = DataLoader(
         val_dataset, 
         batch_size=train_params['batch_size'], 
-        shuffle=False, 
+        shuffle=True, 
         collate_fn=ClusterGraphDataset.collate_fn
     )
+    valid_iter = iter(val_loader)
     test_loader = DataLoader(
         test_dataset, 
         batch_size=train_params['batch_size'],
@@ -101,7 +102,7 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
 
         
         # Apply weights and take mean
-        weighted_loss = (bce_loss * weights).sum()
+        weighted_loss = 0.5*(bce_loss * weights).sum()
         
         return weighted_loss
     
@@ -115,10 +116,12 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
 
     # Train model
     print("Training model...")
-    model, train_metrics, val_metrics, test_metrics = train_model(
+    model = train_model(
+        train_params,
         model, 
         train_loader, 
         val_loader, 
+        valid_iter,
         test_loader,
         weighted_bce_loss,  # Use our custom loss
         optimizer, 
@@ -133,7 +136,7 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
     
     wandb_writer.finish()
 
-    return model, train_metrics, val_metrics, test_metrics
+    return model
 
 # Example usage
 if __name__ == "__main__":
@@ -149,13 +152,19 @@ if __name__ == "__main__":
     )
 
     train_params = dict(
-        batch_size=10,
-        lr=1.0e-4, 
+        batch_size=16,
+        lr=1.0e-3, 
         weight_decay=5e-4, 
         epochs=5000, 
         patience=1000000,
-        burn_in_epochs=500,
-        burn_in_lr=0.5e-4
+        burn_in_epochs=10,
+        burn_in_lr=0.5e-4,
+        niters_per_eval=10,
+        log_to_wandb=True,
+        starting_iter_num=0,
+        epochs_per_checkpoint=1,
+        eval_nvalid_batches=1,
+        use_early_stopping=False
     )
 
     model_config = TransformerGATv2Model.dump_example_config()
@@ -179,7 +188,7 @@ if __name__ == "__main__":
     resgatv2_cfg = model_config['TransformerGATv2']['ResGATv2']
 
 
-    model, train_metrics, val_metrics, test_metrics = run_experiment(
+    model = run_experiment(
         file_paths,
         dataset_params,
         train_params,

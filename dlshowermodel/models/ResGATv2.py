@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as torch_init
 from torch_geometric.nn import GATv2Conv
 
 class ResGATv2Block(nn.Module):
@@ -15,7 +16,8 @@ class ResGATv2Block(nn.Module):
             out_channels=out_channels // heads,  # Divide by heads to maintain dimension
             heads=heads,
             dropout=dropout,
-            concat=True
+            concat=True,
+            bias=False
         )
         
         # Projection layer (if dimensions don't match)
@@ -32,6 +34,7 @@ class ResGATv2Block(nn.Module):
         elif norm_type == 'graph':
             from torch_geometric.nn import GraphNorm
             self.norm = GraphNorm(out_channels)
+
         
     def forward(self, x, edge_index, batch=None):
         # Store original input for residual connection

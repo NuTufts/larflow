@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as torch_init
+import numpy as np
 import torch_geometric
 from dlshowermodel.utils.sinusoidal_embeddings import SinusoidalPositionEmbedding
 from dlshowermodel.models.SetTransformer import SetTransformer
@@ -85,6 +87,19 @@ class TransformerGATv2Model(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(edgelayer_hidden_dim, 1)
         )
+
+        self.init_weights()
+
+    def init_weights(self):
+        #torch_init.xavier_uniform_(self.larmatch_projection.weight)
+        #self.larmatch_projection.bias.data.zero_()
+
+        # set transformer already init upon constructor
+
+        # set the bias of the edge predictor to reflect the average pos edge fraction (0.02)
+        bias_init = -np.log( 0.02 )
+        self.edge_pred[-1].bias.data.fill_( bias_init )
+
     
     def get_node_embeddings(self, data):
         # Process cluster features with transformer
