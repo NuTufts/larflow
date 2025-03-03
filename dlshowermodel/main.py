@@ -135,7 +135,6 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
         weighted_bce_loss,  # Use our custom loss
         optimizer, 
         device,
-        train_params['batch_size'],
         lr = train_params['lr'],
         burn_in_epochs=train_params['burn_in_epochs'],
         burn_in_lr=train_params['burn_in_lr'],
