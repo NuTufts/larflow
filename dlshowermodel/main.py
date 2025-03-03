@@ -18,25 +18,34 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
     from dlshowermodel.data.larmatchhit_hdf5_reader import LArMatchHitHDF5Dataset
     
     print("Loading LArMatchHitHDF5Dataset...")
-    lar_dataset = LArMatchHitHDF5Dataset(
-        file_paths=file_paths,
+    lar_dataset_train = LArMatchHitHDF5Dataset(
+        file_paths=None,
         file_has_training_labels=True,
-        load_from_cachefile=dataset_params['load_from_cachefile'],
+        load_from_cachefile=dataset_params['load_training_data_from_cachefile'],
         apply_max_filter=dataset_params['apply_max_filter'],
         max_num_spacepoints=dataset_params['max_num_spacepoints']
     )
+    lar_dataset_valid = LArMatchHitHDF5Dataset(
+        file_paths=None,
+        file_has_training_labels=True,
+        load_from_cachefile=dataset_params['load_validation_data_from_cachefile'],
+        apply_max_filter=dataset_params['apply_max_filter'],
+        max_num_spacepoints=dataset_params['max_num_spacepoints']
+    )
+
     
-    print(f"Dataset size: {len(lar_dataset)}")
+    print(f"Training Dataset size: {len(lar_dataset_train)}")
+    print(f"Training Dataset size: {len(lar_dataset_valid)}")    
     
     # Create graph dataset
     print("Creating Graph Dataset...")
-    train_dataset = ClusterGraphDataset(lar_dataset, 
+    train_dataset = ClusterGraphDataset(lar_dataset_train, 
         k_neighbors=dataset_params['k_neighbors'], 
         device=device)
-    val_dataset = ClusterGraphDataset(lar_dataset, 
+    val_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
         device=device)
-    test_dataset = ClusterGraphDataset(lar_dataset, 
+    test_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
         device=device)
 
@@ -125,7 +134,8 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
         test_loader,
         weighted_bce_loss,  # Use our custom loss
         optimizer, 
-        device, 
+        device,
+        train_params['batch_size'],
         lr = train_params['lr'],
         burn_in_epochs=train_params['burn_in_epochs'],
         burn_in_lr=train_params['burn_in_lr'],
@@ -149,15 +159,17 @@ if __name__ == "__main__":
         load_from_cachefile=None, 
         apply_max_filter=False, 
         max_num_spacepoints=10000,
+        load_training_data_from_cachefile="dataprep/dlshowermodel_training_cache_file.txt",
+        load_validation_data_from_cachefile="dataprep/dlshowermodel_validation_cache_file.txt"
     )
 
     train_params = dict(
         batch_size=16,
         lr=1.0e-3, 
         weight_decay=5e-4, 
-        epochs=5000, 
+        epochs=100, 
         patience=1000000,
-        burn_in_epochs=10,
+        burn_in_epochs=1,
         burn_in_lr=0.5e-4,
         niters_per_eval=10,
         log_to_wandb=True,
