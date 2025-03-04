@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
@@ -6,6 +7,7 @@ from dlshowermodel.data.ClusterGraphDataset import ClusterGraphDataset
 from dlshowermodel.models.TransformerGATv2 import TransformerGATv2Model
 from dlshowermodel.train import train_model
 from dlshowermodel.loss.loss_functions import get_loss_function
+from dlshowermodel.utils import get_lr_scheduler
 import wandb
 
 # Main function to run the experiment
@@ -57,29 +59,40 @@ def run_experiment( dataset_params, train_params, model_config ):
     if 'train_num_workers' in train_params:
         train_num_workers = train_params['train_num_workers']
     else:
-        train_num_workers = 1
+        train_num_workers = 0 # does not use spawned process
+    if 'valid_num_workers' in train_params:
+        valid_num_workers = train_params['valid_num_workers']
+    else:
+        valid_num_workers = 0 # does not use spawned process
     
     # Create graph dataset
     print("Creating Graph Dataset...")
-    train_graphdata_device = device
+    graphdata_device = device
     if train_num_workers>0:
         # cannot use cuda for clsutergraphdataset
-        train_graphdata_device = torch.device('cpu')
-    print('train_graphdata_device: ',train_graphdata_device)
+        graphdata_device = torch.device('cpu')
+    print('graphdata_device: ',graphdata_device)
 
     train_dataset = ClusterGraphDataset(lar_dataset_train, 
         k_neighbors=dataset_params['k_neighbors'], 
-        device=train_graphdata_device)
+        device=graphdata_device)
     val_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
-        device=train_graphdata_device)
+        device=graphdata_device)
     test_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
-        device=train_graphdata_device)
+        device=graphdata_device)
 
+    # use info about dataset to set niters per training dataset epoch
+    nevents_train = len(train_dataset)
+    niters_per_epoch = max( int(nevents_train/train_params['batch_size']), 1 )
+
+    train_params['nevents_train_dataset']  = nevents_train
+    train_params['niters_per_train_epoch'] = niters_per_epoch
     
-    print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
-
+    print(f"Train size: {len(train_dataset)}")
+    print(f"Validation size: {len(val_dataset)}")
+    print(f"Test size: {len(test_dataset)}")
 
     
     # Create data loaders
@@ -95,15 +108,10 @@ def run_experiment( dataset_params, train_params, model_config ):
         val_dataset, 
         batch_size=train_params['batch_size'], 
         shuffle=True, 
-        collate_fn=ClusterGraphDataset.collate_fn
+        collate_fn=ClusterGraphDataset.collate_fn,
+        num_workers=valid_num_workers
     )
     valid_iter = iter(val_loader)
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=train_params['batch_size'],
-        shuffle=False, 
-        collate_fn=ClusterGraphDataset.collate_fn
-    )
     
     # Initialize model
     print("Initializing model...")
@@ -120,43 +128,30 @@ def run_experiment( dataset_params, train_params, model_config ):
     optimizer = torch.optim.AdamW(model.parameters(), 
         lr=train_params['burn_in_lr'], 
         weight_decay=train_params['weight_decay'])
+
+    # Get LR scheduler if defined
+    if 'lr_scheduler' in train_params:
+        lr_scheduler_name = train_params['lr_scheduler']['name']
+        lr_scheduler_cfg  = train_params['lr_scheduler']['params']
+        lr_scheduler_cfg['iters_per_epoch'] = niters_per_epoch # this means I should use floating point epoch
+        lr_scheduler = get_lr_scheduler(lr_scheduler_name,lr_scheduler_cfg)
+    else:
+        lr_scheduler = None
     
     # Get Loss
     loss_name = train_params['Loss']
     loss_fn = get_loss_function( loss_name )
-    # if loss_name == "WeightedBCELoss":
-    #     loss_fn = WeightedBCELoss()
-    # def weighted_bce_loss(pred, target):
-    #     # Calculate standard BCE loss
-    #     bce_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none')
-    #     #print('pred=',pred.shape,"   target=",target.shape)
-        
-    #     # Apply lower weight to examples with target = 0.5 (unknown)
-    #     weights = torch.ones_like(target,requires_grad=False)
-    #     with torch.no_grad():
-    #         pos_mask = (target == 1.0)
-    #         neg_mask = (target == 0.0)
-    #         npos = pos_mask.sum().to(torch.float)
-    #         nneg = neg_mask.sum().to(torch.float)
-    #         if npos>0:
-    #             weights[pos_mask] = 1.0/npos
-    #         if nneg>0:
-    #             weights[neg_mask] = 1.0/nneg
-
-        
-    #     # Apply weights and take mean
-    #     weighted_loss = 0.5*(bce_loss * weights).sum()
-        
-    #     return weighted_loss
-
     
     print("Starting wandb logger")
     log_config = {"train_params":train_params,
                 "dataset_params":dataset_params,
                 "model_config":model_config}
-    wandb_writer = wandb.init(
-            project='dlshowerreco-gatv2-settransformer',
-            config=log_config)
+    if train_params['log_to_wandb']:
+        wandb_writer = wandb.init(
+                project='dlshowerreco-gatv2-settransformer',
+                config=log_config)
+    else:
+        wandb_writer = None
 
     # Train model
     print("Training model...")
@@ -166,7 +161,6 @@ def run_experiment( dataset_params, train_params, model_config ):
         train_loader, 
         val_loader, 
         valid_iter,
-        test_loader,
         loss_fn,  # Use our custom loss
         optimizer, 
         device,
@@ -176,7 +170,8 @@ def run_experiment( dataset_params, train_params, model_config ):
         burn_in_lr=train_params['burn_in_lr'],
         num_epochs=train_params['epochs'], 
         patience=train_params['patience'],
-        logger=wandb_writer
+        logger=wandb_writer,
+        lr_scheduler=lr_scheduler
     )
     
     wandb_writer.finish()
@@ -195,19 +190,20 @@ if __name__ == "__main__":
         max_num_spacepoints=10000,
         train_file_paths=file_paths,
         valid_file_paths=file_paths,
-        train_num_workers=4
+        train_num_workers=4,
+        valid_num_workers=4
         #load_training_data_from_cachefile="dataprep/dlshowermodel_training_cache_file.txt",
         #load_validation_data_from_cachefile="dataprep/dlshowermodel_validation_cache_file.txt"
     )
 
     train_params = dict(
         batch_size=16,
-        lr=1.0e-3, 
+        lr=1.0e-4, 
         weight_decay=5e-4, 
         epochs=5000, 
         patience=1000000,
         burn_in_epochs=1,
-        burn_in_lr=0.5e-4,
+        burn_in_lr=0.2e-4,
         niters_per_eval=10,
         log_to_wandb=True,
         starting_iter_num=0,
@@ -218,6 +214,19 @@ if __name__ == "__main__":
               "params":{
                   "gamma":2.0
               }
+        },
+        lr_scheduler={"name":"CosineAnnealingWithWarmup",
+                "params":{
+                    "epoch_period":100,
+                    "warmup_epochs":1.0,
+                    "lr_warmup":1.0e-6,
+                    "lr_min":1.0e-5,
+                    "lr_max":1.0e-4,
+                    "epoch_offset":0.0,
+                    "iter_offset":0.0,
+                    "iters_per_epoch":84000.0,
+                    "linear_ramp_epochs":0.1
+                }
         }
     )
 
@@ -238,8 +247,22 @@ if __name__ == "__main__":
             num_cluster_hidden_heads: 4
             num_cluster_out_tokens: 4
             spacepoint_feature_dim: 48
+        load_from_checkpoint: False
+        checkpoint_file: "your_checkpoint_file.pt"
     """
     resgatv2_cfg = model_config['TransformerGATv2']['ResGATv2']
+
+    # modifying config for debugging runs
+    model_config['TransformerGATv2']['load_from_checkpoint'] = False
+    model_config['TransformerGATv2']['checkpoint_file'] = 'ubshower_gnn_bestmodel_f1_classic_salad.pt'
+    train_params['epochs_per_checkpoint'] = 1000
+    train_params['starting_iter_num'] = 0
+    train_params['burn_in_epochs'] = 100
+    train_params['log_to_wandb'] = True
+    train_params['lr_scheduler']['params']['warmup_epochs'] = 10
+    train_params['lr_scheduler']['params']['linear_ramp_epochs'] = 5
+    train_params['lr_scheduler']['params']['iters_per_epoch'] = 1
+
 
 
     model = run_experiment(

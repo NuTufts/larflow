@@ -87,21 +87,28 @@ def evaluate_valid( model, valid_iter, valid_loader, criterion, device,
 # Training function
 def train_epoch(training_config, model, lr, train_loader, valid_loader, valid_iter,
                 optimizer, criterion, device, wandb_logger,
-                current_iter_num ):
+                current_iter_num, lr_scheduler=None ):
     model.train()
 
     niter_per_eval = training_config['niters_per_eval']
     train_meters = AverageMeter.make_meter_dict(training_metrics)
-    ntrain_examples = len(train_loader)
     last_valid_meters = None
+    niter_per_epoch = training_config['niters_per_train_epoch']
 
-    for g in optimizer.param_groups:
-        g['lr'] = lr
+    if lr_scheduler is None:
+        for g in optimizer.param_groups:
+            g['lr'] = lr
 
     iiter = 0
     for batch in tqdm(train_loader, desc="Training"):
         batch = batch.to(device)
         optimizer.zero_grad()
+
+        if lr_scheduler is not None:
+            lr = lr_scheduler.get_lr(current_iter_num+iiter)
+            # add layer modifiers here
+            for g in optimizer.param_groups:
+                g['lr'] = lr
         
         # Forward pass
         edge_pred = model(batch)
@@ -126,14 +133,15 @@ def train_epoch(training_config, model, lr, train_loader, valid_loader, valid_it
                     
             # evaluate metrics on validation set
             # at regular interval or when we've reached the end of the epoch
-            if iiter>0 and (iiter%niter_per_eval==0 or (iiter+1)*training_config['batch_size']>=ntrain_examples):
+            if iiter>0 and (iiter%niter_per_eval==0 or (iiter+1)>=niter_per_epoch):
                 # validation evaluation
+                model.eval()
                 valid_meters = evaluate_valid( model, valid_iter, valid_loader, criterion, device,
                                              nvalid_batches=training_config['eval_nvalid_batches'] )
 
                 # log training and valid metrics to wandb logger
                 if training_config['log_to_wandb']:                
-                    logdata = {'epoch':float(current_iter_num+iiter)/float(ntrain_examples),
+                    logdata = {'epoch':float(current_iter_num+iiter)/float(niter_per_epoch),
                                 'lr':lr}
                     for sample,meters in [('train',train_meters),('valid',valid_meters)]:
                         for metric,meter in meters.items():
@@ -277,13 +285,14 @@ def plot_training_curves(train_metrics, val_metrics):
     plt.close()
 
 # Main training function
-def train_model(train_config, model, train_loader, valid_loader, valid_iter, test_loader, 
+def train_model(train_config, model, train_loader, valid_loader, valid_iter,
                 criterion, optimizer, device, batch_size,
                 num_epochs=1000, patience=10,
                 lr=1.0e-3, 
                 burn_in_epochs=100,
                 burn_in_lr=1.0e-6,
                 logger=None,
+                lr_scheduler=None,
                 model_save_path='best_model.pt'):
     
     best_val_f1 = 0
@@ -299,17 +308,15 @@ def train_model(train_config, model, train_loader, valid_loader, valid_iter, tes
     current_niters = 0
     if 'starting_iter_num' in train_config:
         current_niters = train_config['starting_iter_num']
-        
-    for epoch in range(burn_in_epochs+num_epochs):
 
-        learning_rate = lr
-        if epoch<burn_in_epochs:
-            learning_rate = burn_in_lr
+        
+    for epoch in range(num_epochs):
 
         # Train
-        current_niters, last_valid_meters = train_epoch(train_config, model, learning_rate,
+        current_niters, last_valid_meters = train_epoch(train_config, model, lr,
                                                         train_loader, valid_loader, valid_iter,
-                                                        optimizer, criterion, device, logger, current_niters )
+                                                        optimizer, criterion, device, logger, current_niters,
+                                                        lr_scheduler=lr_scheduler )
         
         # Print progress
         print(f"Epoch: {epoch+1}/{num_epochs}. Currrent Niters: {current_niters}.")

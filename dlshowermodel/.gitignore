@@ -1,1 +1,6 @@
 *.pt
+wandb/*
+dataprep/workdir/*
+*.txt
+*.err
+*~

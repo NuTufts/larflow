@@ -1,3 +1,4 @@
+import os,sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -181,6 +182,8 @@ class TransformerGATv2Model(nn.Module):
                 dropout: 0.5
                 edgelayer_hidden_dim:  128
                 norm_type: 'graph'
+            load_from_checkpoint: False
+            checkpoint_file: "your_checkpoint_file.pt"
         """
         import yaml
         cfg = yaml.safe_load(example)
@@ -190,6 +193,12 @@ class TransformerGATv2Model(nn.Module):
                 yaml.dump(cfg,outfile,default_flow_style=False)
         return cfg
 
+    def get_checkpoint_weights( checkpoint_filepath ):
+        loc_dict = {"cuda:%d"%(gpu):"cpu" for gpu in range(10) }
+        state_dict = torch.load(checkpoint_filepath, map_location=loc_dict)
+        print("Checkpoint file keys: ",state_dict.keys())
+        return state_dict
+
     def load_from_config( config ):
 
         if "TransformerGATv2" in config:
@@ -197,13 +206,24 @@ class TransformerGATv2Model(nn.Module):
         else:
             cfg = config
         
+        print(cfg)
         st_cfg = cfg["SetTransformer"]
         gnn_cfg = cfg["ResGATv2"]
 
         kwdict = {}
         kwdict.update(st_cfg)
         kwdict.update(gnn_cfg)
-        return TransformerGATv2Model(**kwdict)
+
+        model = TransformerGATv2Model(**kwdict)
+        if 'load_from_checkpoint' in cfg and cfg['load_from_checkpoint']:
+            print("Loading Model weights from Checkpoint")
+            checkpoint_file = cfg['checkpoint_file']
+            if not os.path.exists(checkpoint_file):
+                raise ValueError(f'Could not find checkpoint at {checkpoint_file}')
+            state_dict = TransformerGATv2Model.get_checkpoint_weights( checkpoint_file  )
+            model.load_state_dict( state_dict )
+
+        return model
 
 if __name__ == "__main__":
 

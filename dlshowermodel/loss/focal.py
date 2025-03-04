@@ -19,7 +19,7 @@ class WeightedFocalLoss(nn.Module):
 
         # calculate weights: (1) to balance classes and (2) to shift focus away from correct examples
         w_freq  = torch.ones_like(target,requires_grad=False)
-        w_focal = torch.zeros_like(target,requires_grad=False)
+        w_focal = torch.ones_like(target,requires_grad=False)
         with torch.no_grad():
             # freq weights
             pos_mask = (target == 1.0)
