@@ -143,10 +143,10 @@ class ClusterGraphDataset(Dataset):
             if len(missing_truth_edges)>0:
                 data.missing_truth_edges = torch.tensor( missing_truth_edges, dtype=torch.long )
             else:
-                data.missing_truth_edges = torch.zeros( (1,2), dtype=torch.float )
+                data.missing_truth_edges = torch.zeros( (1,2), dtype=torch.long )
         else:
-            data.missing_truth_edges = torch.zeros( (1,2), dtype=torch.float )
-            
+            data.missing_truth_edges = torch.zeros( (1,2), dtype=torch.long )
+        
         data.cluster_labels = torch.from_numpy(np.squeeze(entry_data['cluster_labels'].astype(np.int64))).to(self.device)
         data.cluster_points = torch.from_numpy(np.squeeze(entry_data['shower_points'])).to(self.device)
 

@@ -5,10 +5,11 @@ import torch.nn.functional as F
 from dlshowermodel.data.ClusterGraphDataset import ClusterGraphDataset
 from dlshowermodel.models.TransformerGATv2 import TransformerGATv2Model
 from dlshowermodel.train import train_model
+from dlshowermodel.loss.loss_functions import get_loss_function
 import wandb
 
 # Main function to run the experiment
-def run_experiment( file_paths, dataset_params, train_params, model_config ):
+def run_experiment( dataset_params, train_params, model_config ):
     
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -18,39 +19,68 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
     from dlshowermodel.data.larmatchhit_hdf5_reader import LArMatchHitHDF5Dataset
     
     print("Loading LArMatchHitHDF5Dataset...")
+    
+    train_cachefile = None
+    valid_cachefile = None    
+    if 'load_training_data_from_cachefile' in dataset_params:
+        train_cachefule = dataset_params['load_training_data_from_cachefile']
+    if 'load_validation_data_from_cachefile' in dataset_params:
+        valid_cachefile = dataset_params['load_validation_data_from_cachefile']
+
+    train_file_paths = None
+    valid_file_paths = None
+    if 'train_file_paths' in dataset_params and train_cachefile is None:
+        train_file_paths = dataset_params['train_file_paths']
+    if 'valid_file_paths' in dataset_params and valid_cachefile is None:
+        valid_file_paths = dataset_params['valid_file_paths']
+        
+    
     lar_dataset_train = LArMatchHitHDF5Dataset(
-        file_paths=None,
+        file_paths=train_file_paths,
         file_has_training_labels=True,
-        load_from_cachefile=dataset_params['load_training_data_from_cachefile'],
+        load_from_cachefile=train_cachefile,
         apply_max_filter=dataset_params['apply_max_filter'],
         max_num_spacepoints=dataset_params['max_num_spacepoints']
     )
     lar_dataset_valid = LArMatchHitHDF5Dataset(
-        file_paths=None,
+        file_paths=valid_file_paths,
         file_has_training_labels=True,
-        load_from_cachefile=dataset_params['load_validation_data_from_cachefile'],
+        load_from_cachefile=valid_cachefile,
         apply_max_filter=dataset_params['apply_max_filter'],
         max_num_spacepoints=dataset_params['max_num_spacepoints']
     )
 
     
     print(f"Training Dataset size: {len(lar_dataset_train)}")
-    print(f"Training Dataset size: {len(lar_dataset_valid)}")    
+    print(f"Validation Dataset size: {len(lar_dataset_valid)}")    
+
+    if 'train_num_workers' in train_params:
+        train_num_workers = train_params['train_num_workers']
+    else:
+        train_num_workers = 1
     
     # Create graph dataset
     print("Creating Graph Dataset...")
+    train_graphdata_device = device
+    if train_num_workers>0:
+        # cannot use cuda for clsutergraphdataset
+        train_graphdata_device = torch.device('cpu')
+    print('train_graphdata_device: ',train_graphdata_device)
+
     train_dataset = ClusterGraphDataset(lar_dataset_train, 
         k_neighbors=dataset_params['k_neighbors'], 
-        device=device)
+        device=train_graphdata_device)
     val_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
-        device=device)
+        device=train_graphdata_device)
     test_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
-        device=device)
+        device=train_graphdata_device)
 
     
     print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
+
+
     
     # Create data loaders
     print("Creating data loaders...")
@@ -58,7 +88,8 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
         train_dataset, 
         batch_size=train_params['batch_size'], 
         shuffle=True, 
-        collate_fn=ClusterGraphDataset.collate_fn
+        collate_fn=ClusterGraphDataset.collate_fn,
+        num_workers=train_num_workers
     )
     val_loader = DataLoader(
         val_dataset, 
@@ -90,30 +121,34 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
         lr=train_params['burn_in_lr'], 
         weight_decay=train_params['weight_decay'])
     
-    # Use weighted BCEWithLogitsLoss to handle unknown labels (0.5)
-    # We'll use a custom loss function that gives less weight to edges with unknown labels
-    def weighted_bce_loss(pred, target):
-        # Calculate standard BCE loss
-        bce_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none')
-        #print('pred=',pred.shape,"   target=",target.shape)
+    # Get Loss
+    loss_name = train_params['Loss']
+    loss_fn = get_loss_function( loss_name )
+    # if loss_name == "WeightedBCELoss":
+    #     loss_fn = WeightedBCELoss()
+    # def weighted_bce_loss(pred, target):
+    #     # Calculate standard BCE loss
+    #     bce_loss = F.binary_cross_entropy_with_logits(pred, target, reduction='none')
+    #     #print('pred=',pred.shape,"   target=",target.shape)
         
-        # Apply lower weight to examples with target = 0.5 (unknown)
-        weights = torch.ones_like(target,requires_grad=False)
-        with torch.no_grad():
-            pos_mask = (target == 1.0)
-            neg_mask = (target == 0.0)
-            npos = pos_mask.sum().to(torch.float)
-            nneg = neg_mask.sum().to(torch.float)
-            if npos>0:
-                weights[pos_mask] = 1.0/npos
-            if nneg>0:
-                weights[neg_mask] = 1.0/nneg
+    #     # Apply lower weight to examples with target = 0.5 (unknown)
+    #     weights = torch.ones_like(target,requires_grad=False)
+    #     with torch.no_grad():
+    #         pos_mask = (target == 1.0)
+    #         neg_mask = (target == 0.0)
+    #         npos = pos_mask.sum().to(torch.float)
+    #         nneg = neg_mask.sum().to(torch.float)
+    #         if npos>0:
+    #             weights[pos_mask] = 1.0/npos
+    #         if nneg>0:
+    #             weights[neg_mask] = 1.0/nneg
 
         
-        # Apply weights and take mean
-        weighted_loss = 0.5*(bce_loss * weights).sum()
+    #     # Apply weights and take mean
+    #     weighted_loss = 0.5*(bce_loss * weights).sum()
         
-        return weighted_loss
+    #     return weighted_loss
+
     
     print("Starting wandb logger")
     log_config = {"train_params":train_params,
@@ -132,7 +167,7 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
         val_loader, 
         valid_iter,
         test_loader,
-        weighted_bce_loss,  # Use our custom loss
+        loss_fn,  # Use our custom loss
         optimizer, 
         device,
         train_params['batch_size'],
@@ -156,18 +191,20 @@ if __name__ == "__main__":
     
     dataset_params = dict(
         k_neighbors=16,
-        load_from_cachefile=None, 
         apply_max_filter=False, 
         max_num_spacepoints=10000,
-        load_training_data_from_cachefile="dataprep/dlshowermodel_training_cache_file.txt",
-        load_validation_data_from_cachefile="dataprep/dlshowermodel_validation_cache_file.txt"
+        train_file_paths=file_paths,
+        valid_file_paths=file_paths,
+        train_num_workers=4
+        #load_training_data_from_cachefile="dataprep/dlshowermodel_training_cache_file.txt",
+        #load_validation_data_from_cachefile="dataprep/dlshowermodel_validation_cache_file.txt"
     )
 
     train_params = dict(
         batch_size=16,
         lr=1.0e-3, 
         weight_decay=5e-4, 
-        epochs=100, 
+        epochs=5000, 
         patience=1000000,
         burn_in_epochs=1,
         burn_in_lr=0.5e-4,
@@ -176,7 +213,12 @@ if __name__ == "__main__":
         starting_iter_num=0,
         epochs_per_checkpoint=1,
         eval_nvalid_batches=1,
-        use_early_stopping=False
+        use_early_stopping=False,
+        Loss={"name":"WeightedFocalLoss",
+              "params":{
+                  "gamma":2.0
+              }
+        }
     )
 
     model_config = TransformerGATv2Model.dump_example_config()
@@ -201,7 +243,6 @@ if __name__ == "__main__":
 
 
     model = run_experiment(
-        file_paths,
         dataset_params,
         train_params,
         model_config

@@ -32,10 +32,10 @@ def evaluate_batch( edge_logit, edge_label ):
     pred_neg = edge_pred[nneg_mask]
 
     if npos_sum>0:
-        metrics['true_acc'] = float(pred_pos.sum().cpu().item())/float(npos_sum)
+        metrics['true_acc'] = float(pred_pos.sum().cpu().item())/float(npos_sum) # true-positives
 
     if nneg_sum>0:
-        metrics['false_acc'] = float(pred_neg.sum().cpu().item())/float(nneg_sum)
+        metrics['false_acc'] = float((pred_neg==False).sum().cpu().item())/float(nneg_sum) # true-negatives
 
     npos_pred = (edge_pred==True).sum().cpu().item()
     if npos_pred>0:
@@ -278,7 +278,7 @@ def plot_training_curves(train_metrics, val_metrics):
 
 # Main training function
 def train_model(train_config, model, train_loader, valid_loader, valid_iter, test_loader, 
-                criterion, optimizer, device, 
+                criterion, optimizer, device, batch_size,
                 num_epochs=1000, patience=10,
                 lr=1.0e-3, 
                 burn_in_epochs=100,
