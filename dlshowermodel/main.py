@@ -48,7 +48,11 @@ def run_experiment( file_paths, dataset_params, train_params, model_config ):
     test_dataset = ClusterGraphDataset(lar_dataset_valid, 
         k_neighbors=dataset_params['k_neighbors'], 
         device=device)
-
+	
+    nevents_train = len(train_dataset)
+    niters_per_epoch = int(nevents_train/train_params['batch_size'])
+    train_params['nevents_train_dataset']  = nevents_train
+    train_params['niters_per_train_epoch'] = niters_per_epoch
     
     print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
     

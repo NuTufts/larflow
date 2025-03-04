@@ -92,8 +92,8 @@ def train_epoch(training_config, model, lr, train_loader, valid_loader, valid_it
 
     niter_per_eval = training_config['niters_per_eval']
     train_meters = AverageMeter.make_meter_dict(training_metrics)
-    ntrain_examples = len(train_loader)
     last_valid_meters = None
+    niter_per_epoch = training_config['niters_per_train_epoch']
 
     for g in optimizer.param_groups:
         g['lr'] = lr
@@ -126,14 +126,15 @@ def train_epoch(training_config, model, lr, train_loader, valid_loader, valid_it
                     
             # evaluate metrics on validation set
             # at regular interval or when we've reached the end of the epoch
-            if iiter>0 and (iiter%niter_per_eval==0 or (iiter+1)*training_config['batch_size']>=ntrain_examples):
+            if iiter>0 and (iiter%niter_per_eval==0 or (iiter+1)>=niter_per_epoch):
                 # validation evaluation
+                model.eval()
                 valid_meters = evaluate_valid( model, valid_iter, valid_loader, criterion, device,
                                              nvalid_batches=training_config['eval_nvalid_batches'] )
 
                 # log training and valid metrics to wandb logger
                 if training_config['log_to_wandb']:                
-                    logdata = {'epoch':float(current_iter_num+iiter)/float(ntrain_examples),
+                    logdata = {'epoch':float(current_iter_num+iiter)/float(niter_per_epoch),
                                 'lr':lr}
                     for sample,meters in [('train',train_meters),('valid',valid_meters)]:
                         for metric,meter in meters.items():
