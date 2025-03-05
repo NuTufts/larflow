@@ -195,8 +195,9 @@ class TransformerGATv2Model(nn.Module):
 
     def get_checkpoint_weights( checkpoint_filepath ):
         loc_dict = {"cuda:%d"%(gpu):"cpu" for gpu in range(10) }
-        state_dict = torch.load(checkpoint_filepath, map_location=loc_dict)
-        print("Checkpoint file keys: ",state_dict.keys())
+        saved_dict = torch.load(checkpoint_filepath, map_location=loc_dict)
+        print("Checkpoint file keys: ",saved_dict.keys())
+        state_dict = saved_dict['model']
         return state_dict
 
     def load_from_config( config ):

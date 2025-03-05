@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from ..lr_scheduler import scheduler_registry
 
 @scheduler_registry.register()
@@ -29,7 +30,7 @@ class CosineAnnealingWithWarmup:
 
         # Adjust for offsets
         x = iiter - self.iter_offset
-        epoch_equiv = max( x / self.iters_per_epoch - self.epoch_offset, 0.0 )
+        epoch_equiv = max( float(x) / float(self.iters_per_epoch) - float(self.epoch_offset), 0.0 )
         
         
         # Are we in the warm-up phase?
@@ -51,8 +52,9 @@ class CosineAnnealingWithWarmup:
         epoch_equiv = max(0,epoch_equiv)
 
         # Get current phase within the cosine cycle
-        cycle_epoch = epoch_equiv % self.epoch_period
-        phi = np.pi * cycle_epoch / self.epoch_period
+        icycle_epoch = math.floor( epoch_equiv / float(self.epoch_period) )
+        fcycle_epoch = epoch_equiv - icycle_epoch*float(self.epoch_period)
+        phi = np.pi * fcycle_epoch / float(self.epoch_period)
         lr = self.lr_min + 0.5 * (self.lr_max - self.lr_min) * (1 + np.cos(phi))
 
         return lr
