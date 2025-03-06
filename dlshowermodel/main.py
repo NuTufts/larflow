@@ -25,7 +25,7 @@ def run_experiment( dataset_params, train_params, model_config ):
     train_cachefile = None
     valid_cachefile = None    
     if 'load_training_data_from_cachefile' in dataset_params:
-        train_cachefule = dataset_params['load_training_data_from_cachefile']
+        train_cachefile = dataset_params['load_training_data_from_cachefile']
     if 'load_validation_data_from_cachefile' in dataset_params:
         valid_cachefile = dataset_params['load_validation_data_from_cachefile']
 
@@ -56,12 +56,12 @@ def run_experiment( dataset_params, train_params, model_config ):
     print(f"Training Dataset size: {len(lar_dataset_train)}")
     print(f"Validation Dataset size: {len(lar_dataset_valid)}")    
 
-    if 'train_num_workers' in train_params:
-        train_num_workers = train_params['train_num_workers']
+    if 'train_num_workers' in dataset_params:
+        train_num_workers = dataset_params['train_num_workers']
     else:
         train_num_workers = 0 # does not use spawned process
-    if 'valid_num_workers' in train_params:
-        valid_num_workers = train_params['valid_num_workers']
+    if 'valid_num_workers' in dataset_params:
+        valid_num_workers = dataset_params['valid_num_workers']
     else:
         valid_num_workers = 0 # does not use spawned process
     
@@ -129,6 +129,12 @@ def run_experiment( dataset_params, train_params, model_config ):
         lr=train_params['burn_in_lr'], 
         weight_decay=train_params['weight_decay'])
 
+    if train_params['reload_optimizer_state']:
+        print("Re-loading Optimizer State Checkpoint")
+        saved_dict = torch.load( model_config['TransformerGATv2']['checkpoint_file'] )
+        optim_state_dict = saved_dict['optimizer']
+        optimizer.load_state_dict( optim_state_dict )
+
     # Get LR scheduler if defined
     if 'lr_scheduler' in train_params:
         lr_scheduler_name = train_params['lr_scheduler']['name']
@@ -183,24 +189,26 @@ if __name__ == "__main__":
     # Replace with your actual file paths
     file_paths = ["dataprep/test_bnbnue_corsika_full_notruth.h5"]
     #file_paths = ["dataprep/test_bnbnue_corsika_e1_notruth.h5"]
+
+    dlshower_dir='/cluster/tufts/wongjiradlabnu/twongj01/gen2/photon_analysis/ubdl/larflow/dlshowermodel'    
     
     dataset_params = dict(
         k_neighbors=16,
         apply_max_filter=False, 
         max_num_spacepoints=10000,
-        train_file_paths=file_paths,
-        valid_file_paths=file_paths,
-        train_num_workers=4,
-        valid_num_workers=4
-        #load_training_data_from_cachefile="dataprep/dlshowermodel_training_cache_file.txt",
-        #load_validation_data_from_cachefile="dataprep/dlshowermodel_validation_cache_file.txt"
+        train_file_paths=None,
+        valid_file_paths=None,
+        train_num_workers=24,
+        valid_num_workers=6,
+        load_training_data_from_cachefile=dlshower_dir+"/dataprep/dlshowermodel_training_cache_file.txt",
+        load_validation_data_from_cachefile=dlshower_dir+"/dataprep/dlshowermodel_validation_cache_file.txt"
     )
 
     train_params = dict(
-        batch_size=16,
-        lr=1.0e-4, 
+        batch_size=32,
+        lr=1.0e-3, 
         weight_decay=5e-4, 
-        epochs=5000, 
+        epochs=100, 
         patience=1000000,
         burn_in_epochs=1,
         burn_in_lr=0.2e-4,
@@ -210,6 +218,7 @@ if __name__ == "__main__":
         epochs_per_checkpoint=1,
         eval_nvalid_batches=1,
         use_early_stopping=False,
+        reload_optimizer_state=True,
         Loss={"name":"WeightedFocalLoss",
               "params":{
                   "gamma":2.0
@@ -217,15 +226,15 @@ if __name__ == "__main__":
         },
         lr_scheduler={"name":"CosineAnnealingWithWarmup",
                 "params":{
-                    "epoch_period":100,
-                    "warmup_epochs":1.0,
-                    "lr_warmup":1.0e-6,
-                    "lr_min":1.0e-5,
-                    "lr_max":1.0e-4,
+                    "epoch_period":20,
+                    "warmup_epochs":0.1,
+                    "lr_warmup":0.5e-4,
+                    "lr_min":1.0e-4,
+                    "lr_max":3.0e-3,
                     "epoch_offset":0.0,
                     "iter_offset":0.0,
-                    "iters_per_epoch":84000.0,
-                    "linear_ramp_epochs":0.1
+                    "iters_per_epoch":5205,
+                    "linear_ramp_epochs":0.4
                 }
         }
     )
@@ -253,15 +262,24 @@ if __name__ == "__main__":
     resgatv2_cfg = model_config['TransformerGATv2']['ResGATv2']
 
     # modifying config for debugging runs
-    model_config['TransformerGATv2']['load_from_checkpoint'] = False
-    model_config['TransformerGATv2']['checkpoint_file'] = 'ubshower_gnn_bestmodel_f1_classic_salad.pt'
-    train_params['epochs_per_checkpoint'] = 1000
-    train_params['starting_iter_num'] = 0
-    train_params['burn_in_epochs'] = 100
+    checkpoint_dir=dlshower_dir+'/checkpoints'
+    model_config['TransformerGATv2']['load_from_checkpoint'] = True
+    #model_config['TransformerGATv2']['checkpoint_file'] = 'ubshower_gnn_bestmodel_f1_classic_salad.pt'
+    #model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+'/classic_salad_61/ubshower_gnn_checkpoint_epoch20_iter114510.pt'
+    #model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+'/olive-fog-85/ubshower_gnn_checkpoint_epoch16_iter202996.pt'    
+    model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+"/flowing-blaze-86/ubshower_gnn_checkpoint_epoch33_iter291499.pt"
+    train_params['epochs_per_checkpoint'] = 1
+    train_params['starting_iter_num'] = 291499
     train_params['log_to_wandb'] = True
-    train_params['lr_scheduler']['params']['warmup_epochs'] = 10
+    train_params['lr_scheduler']['params']['warmup_epochs'] = 5
+    train_params['lr_scheduler']['params']['lr_warmup'] = 5.0e-4
+    train_params['lr_scheduler']['params']['epoch_period'] = 100
+    train_params['lr_scheduler']['params']['lr_max'] = 1.0e-3
+    train_params['lr_scheduler']['params']['lr_min'] = 0.5e-3
     train_params['lr_scheduler']['params']['linear_ramp_epochs'] = 5
-    train_params['lr_scheduler']['params']['iters_per_epoch'] = 1
+    train_params['lr_scheduler']['params']['iters_per_epoch'] = 5205
+    train_params['lr_scheduler']['params']['iter_offset']  = 291499
+    train_params['lr_scheduler']['params']['epoch_offset'] = 0    
 
 
 

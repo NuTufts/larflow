@@ -322,10 +322,11 @@ def train_model(train_config, model, train_loader, valid_loader, valid_iter,
         print(f"Epoch: {epoch+1}/{num_epochs}. Currrent Niters: {current_niters}.")
 
         # periodic checkpoint
-        ntraining_epochs = epoch-burn_in_epochs
+        ntraining_epochs = epoch
         if ntraining_epochs>0 and ntraining_epochs%train_config['epochs_per_checkpoint']==0:
             model_save_path = f'ubshower_gnn_checkpoint_epoch{ntraining_epochs}_iter{current_niters}.pt'
-            torch.save(model.state_dict(), model_save_path)
+            save_dict = {'model':model.state_dict(),'optimizer':optimizer.state_dict()}
+            torch.save(save_dict, model_save_path)
         
         # Early stopping based on validation F1 score
         if last_valid_meters is not None:
