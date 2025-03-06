@@ -29,7 +29,7 @@ class CosineAnnealingWithWarmup:
 
         # Adjust for offsets
         x = iiter - self.iter_offset
-        epoch_equiv = max( x / self.iters_per_epoch - self.epoch_offset, 0.0 )
+        epoch_equiv = max( float(x) / self.iters_per_epoch - self.epoch_offset, 0.0 )
         
         
         # Are we in the warm-up phase?
