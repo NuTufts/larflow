@@ -198,14 +198,14 @@ if __name__ == "__main__":
         max_num_spacepoints=10000,
         train_file_paths=None,
         valid_file_paths=None,
-        train_num_workers=10,
-        valid_num_workers=4,
+        train_num_workers=24,
+        valid_num_workers=6,
         load_training_data_from_cachefile=dlshower_dir+"/dataprep/dlshowermodel_training_cache_file.txt",
         load_validation_data_from_cachefile=dlshower_dir+"/dataprep/dlshowermodel_validation_cache_file.txt"
     )
 
     train_params = dict(
-        batch_size=16,
+        batch_size=32,
         lr=1.0e-3, 
         weight_decay=5e-4, 
         epochs=100, 
@@ -266,19 +266,20 @@ if __name__ == "__main__":
     model_config['TransformerGATv2']['load_from_checkpoint'] = True
     #model_config['TransformerGATv2']['checkpoint_file'] = 'ubshower_gnn_bestmodel_f1_classic_salad.pt'
     #model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+'/classic_salad_61/ubshower_gnn_checkpoint_epoch20_iter114510.pt'
-    model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+'/olive-fog-85/ubshower_gnn_checkpoint_epoch16_iter202996.pt'    
+    #model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+'/olive-fog-85/ubshower_gnn_checkpoint_epoch16_iter202996.pt'    
+    model_config['TransformerGATv2']['checkpoint_file'] = checkpoint_dir+"/flowing-blaze-86/ubshower_gnn_checkpoint_epoch33_iter291499.pt"
     train_params['epochs_per_checkpoint'] = 1
-    train_params['starting_iter_num'] = 202997
+    train_params['starting_iter_num'] = 291499
     train_params['log_to_wandb'] = True
-    train_params['lr_scheduler']['params']['warmup_epochs'] = 10
+    train_params['lr_scheduler']['params']['warmup_epochs'] = 5
     train_params['lr_scheduler']['params']['lr_warmup'] = 5.0e-4
     train_params['lr_scheduler']['params']['epoch_period'] = 100
-    train_params['lr_scheduler']['params']['lr_max'] = 5.0e-4
-    train_params['lr_scheduler']['params']['lr_min'] = 5.0e-5    
-    train_params['lr_scheduler']['params']['linear_ramp_epochs'] = 0.0
+    train_params['lr_scheduler']['params']['lr_max'] = 1.0e-3
+    train_params['lr_scheduler']['params']['lr_min'] = 0.5e-3
+    train_params['lr_scheduler']['params']['linear_ramp_epochs'] = 5
     train_params['lr_scheduler']['params']['iters_per_epoch'] = 5205
-    train_params['lr_scheduler']['params']['iter_offset']  = 202997
-    train_params['lr_scheduler']['params']['epoch_offset'] = 202997    
+    train_params['lr_scheduler']['params']['iter_offset']  = 291499
+    train_params['lr_scheduler']['params']['epoch_offset'] = 0    
 
 
 

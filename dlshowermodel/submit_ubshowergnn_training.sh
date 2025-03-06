@@ -2,9 +2,9 @@
 
 #SBATCH --job-name=ubshowergnn
 #SBATCH --output=gridlog_train_ubshower_gnn_%N.%j.txt
-#SBATCH --mem-per-cpu=2000
+#SBATCH --mem-per-cpu=1000
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --time=3-00:00:00
 #SBATCH --gres=gpu:p100:1
 #SBATCH --partition=wongjiradlab
