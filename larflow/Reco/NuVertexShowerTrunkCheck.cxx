@@ -5,8 +5,8 @@
 
 #include "larcv/core/DataFormat/EventImage2D.h"
 
-#include "geofuncs.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -317,10 +317,10 @@ namespace reco {
     for (size_t ihit=0; ihit<track_hitcluster.size(); ihit++) {
       auto const& hit = track_hitcluster[ihit];
       //within shower
-      float r1 = larflow::reco::pointLineDistance3f( shrstart, shrend, hit );
-      float r2 = larflow::reco::pointLineDistance3f( pcastart, pcaend, hit );
+      float r1 = larflow::recoutils::pointLineDistance3f( shrstart, shrend, hit );
+      float r2 = larflow::recoutils::pointLineDistance3f( pcastart, pcaend, hit );
       float r = (r1<r2 ) ? r1 : r2;
-      float s_start = larflow::reco::pointRayProjection3f( shrstart, showerdir, hit );
+      float s_start = larflow::recoutils::pointRayProjection3f( shrstart, showerdir, hit );
       float r_cone = 0.466*s_start;
       if ( r_cone<2.0 )
 	r_cone = 2.0;
@@ -330,8 +330,8 @@ namespace reco {
       }
 
       // along path
-      r = larflow::reco::pointLineDistance3f( vtxpos, shrstart, hit );
-      s_start = larflow::reco::pointRayProjection3f( vtxpos, pathdir, hit );
+      r = larflow::recoutils::pointLineDistance3f( vtxpos, shrstart, hit );
+      s_start = larflow::recoutils::pointRayProjection3f( vtxpos, pathdir, hit );
       if ( s_start>-0.5 && s_start<pathlen ) {
 	if (r<3.5) {
 	  nhits_within_startpath++;
@@ -552,7 +552,7 @@ namespace reco {
     // we will need to make a cluster in order to update the pca
     // then replace the shower trunk with start and end of track
 
-    larflow::reco::cluster_t cluster;
+    larflow::recoutils::cluster_t cluster;
     cluster.points_v.reserve( track_hitcluster.size()+shower_hitcluster.size() );
     cluster.hitidx_v.reserve( track_hitcluster.size()+shower_hitcluster.size() );
 
@@ -572,7 +572,7 @@ namespace reco {
     }
 
     LARCV_DEBUG() << "stored " << cluster.points_v.size() << " combined hits. run pca." << std::endl;
-    larflow::reco::cluster_pca( cluster );
+    larflow::recoutils::cluster_pca( cluster );
 
     float dist[2] = { 0, 0 };
     for (int iend=0; iend<2; iend++) {
@@ -614,10 +614,10 @@ namespace reco {
     }//end of loop over pca order
 
     LARCV_DEBUG() << "make new pca" << std::endl;
-    larlite::pcaxis new_pca = larflow::reco::cluster_make_pcaxis( cluster );
+    larlite::pcaxis new_pca = larflow::recoutils::cluster_make_pcaxis( cluster );
     
     LARCV_DEBUG() << "make new trunk with " << cluster.points_v.size() << " hits" << std::endl;    
-    larlite::track new_trunk = larflow::reco::cluster_make_trunk( cluster, vtxpos );
+    larlite::track new_trunk = larflow::recoutils::cluster_make_trunk( cluster, vtxpos );
     LARCV_DEBUG() << "new trunk start: ("
 		  << track.LocationAtPoint(0)[0] << ","
 		  << track.LocationAtPoint(0)[1] << ","
@@ -646,7 +646,7 @@ namespace reco {
 
     LARCV_DEBUG() << "start" << std::endl;
 
-    larflow::reco::cluster_t cluster;
+    larflow::recoutils::cluster_t cluster;
     cluster.points_v.reserve( track_hitcluster.size()+shower_hitcluster.size() );
     cluster.hitidx_v.reserve( track_hitcluster.size()+shower_hitcluster.size() );
 
@@ -665,7 +665,7 @@ namespace reco {
       iidx++;
     }
 
-    larflow::reco::cluster_pca( cluster );
+    larflow::recoutils::cluster_pca( cluster );
 
     float dist[2] = { 0, 0 };
     for (int iend=0; iend<2; iend++) {
@@ -712,9 +712,9 @@ namespace reco {
     }//end of loop over pca order
 
     // make new pca axis
-    larlite::pcaxis new_pca = larflow::reco::cluster_make_pcaxis( cluster );
+    larlite::pcaxis new_pca = larflow::recoutils::cluster_make_pcaxis( cluster );
     
-    larlite::track shower_newtrunk = larflow::reco::cluster_make_trunk( cluster, vtxpos );
+    larlite::track shower_newtrunk = larflow::recoutils::cluster_make_trunk( cluster, vtxpos );
     
     std::swap( shower_hitcluster, lfcluster );
     std::swap( shower_pcaxis, new_pca );
@@ -772,8 +772,8 @@ namespace reco {
     // use hits from original cluster and from generated points
     for ( auto& hit : newhits ) {
       std::vector<float> fhit = { hit[0], hit[1], hit[2] };
-      float r = larflow::reco::pointLineDistance3f( vtxpos, fend, fhit );
-      float s = larflow::reco::pointRayProjection3f( vtxpos, fdir, fhit );
+      float r = larflow::recoutils::pointLineDistance3f( vtxpos, fend, fhit );
+      float s = larflow::recoutils::pointRayProjection3f( vtxpos, fdir, fhit );
 
       if ( r<1.5 && s>0.0 && s<10.0 ) {
         new_trunk.push_back( hit );
@@ -783,8 +783,8 @@ namespace reco {
 
     for ( auto& hit : shower_hitcluster ) {
       std::vector<float> fhit = { hit[0], hit[1], hit[2] };
-      float r = larflow::reco::pointLineDistance3f( vtxpos, fend, fhit );
-      float s = larflow::reco::pointRayProjection3f( vtxpos, fdir, fhit );
+      float r = larflow::recoutils::pointLineDistance3f( vtxpos, fend, fhit );
+      float s = larflow::recoutils::pointRayProjection3f( vtxpos, fdir, fhit );
       if ( r<1.5 && s>0.0 && s<10.0 ) {
         new_trunk.push_back( hit );
       }
@@ -792,11 +792,11 @@ namespace reco {
     }
     
     // cluster: will calc pca for us
-    larflow::reco::cluster_t cluster_all   = larflow::reco::cluster_from_larflowcluster( combined );
-    larflow::reco::cluster_t cluster_trunk;
+    larflow::recoutils::cluster_t cluster_all   = larflow::recoutils::cluster_from_larflowcluster( combined );
+    larflow::recoutils::cluster_t cluster_trunk;
     bool trunk_has_pca = false;
     try {
-      cluster_trunk = larflow::reco::cluster_from_larflowcluster( new_trunk );
+      cluster_trunk = larflow::recoutils::cluster_from_larflowcluster( new_trunk );
       trunk_has_pca = true;
     }
     catch (...) {
@@ -842,7 +842,7 @@ namespace reco {
     larlite::larflowcluster combined_sorted;
 
     // determine order based on pca ends
-    int closest_end = larflow::reco::cluster_closest_pcaend( cluster_all, vtxpos );
+    int closest_end = larflow::recoutils::cluster_closest_pcaend( cluster_all, vtxpos );
     int index_start = 0;
     int index_end = (int)cluster_all.points_v.size()-1;
     int index_dir = 1;    
@@ -865,7 +865,7 @@ namespace reco {
 
     if ( trunk_has_pca ) {
       // use pca as new trunk    
-      int closest_trunkend = larflow::reco::cluster_closest_pcaend( cluster_trunk, vtxpos );
+      int closest_trunkend = larflow::recoutils::cluster_closest_pcaend( cluster_trunk, vtxpos );
       int other_end = (closest_trunkend==0) ? 1 : 0;
       TVector3 newtrunk_start;
       TVector3 newtrunk_end;
@@ -884,7 +884,7 @@ namespace reco {
       llnewtrunk.add_direction( newtrunk_dir );
       llnewtrunk.add_direction( newtrunk_dir );
 
-      newtrunk_pca = larflow::reco::cluster_make_pcaxis_wrt_point( cluster_trunk, vtxpos );
+      newtrunk_pca = larflow::recoutils::cluster_make_pcaxis_wrt_point( cluster_trunk, vtxpos );
     }
     else {
       // make simple trunk

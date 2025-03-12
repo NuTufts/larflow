@@ -2,7 +2,7 @@
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
-#include "larflow/Reco/geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 #include "KeypointFilterByWCTagger.h"
 
@@ -82,8 +82,8 @@ namespace reco {
       va.lfhit[3] = (int)larflow::kVertexActivity;
         
       // store pca
-      const larflow::reco::cluster_t* cluster = va.pattached;
-      larlite::pcaxis va_pca = larflow::reco::cluster_make_pcaxis( *cluster, iv );
+      const larflow::recoutils::cluster_t* cluster = va.pattached;
+      larlite::pcaxis va_pca = larflow::recoutils::cluster_make_pcaxis( *cluster, iv );
       
       evout_vacand->push_back( va.lfhit );
       evout_pca->push_back( va_pca );
@@ -118,14 +118,14 @@ namespace reco {
    * @brief make clusters to search for nu vertex activity
    *
    * Collects larflow3dhits from trees use names are stored in _input_hittree_list.
-   * Hits are clustered using larflow::reco::cluster_sdbscan_larflow3dhits.
+   * Hits are clustered using larflow::recoutils::cluster_sdbscan_larflow3dhits.
    *
    * @param[in] ioll larlite::storage_manager containing event data.
    * @param[out] cluster_v Output container to be filled by function.
    * @param[in] larmatch_threshold Minimum larmatch score to include hit.
    */
   void NuVertexActivityReco::makeClusters( larlite::storage_manager& ioll,
-                                           std::vector<larflow::reco::cluster_t>& cluster_v,
+                                           std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                            const float larmatch_threshold )
   {
 
@@ -156,8 +156,8 @@ namespace reco {
     LARCV_INFO() << "Number of collected larmatch hits: " << _input_hit_v.size() << std::endl;
 
     cluster_v.clear();
-    larflow::reco::cluster_sdbscan_larflow3dhits( _input_hit_v, cluster_v, 1.0, 10, 50 );
-    larflow::reco::cluster_runpca( cluster_v );
+    larflow::recoutils::cluster_sdbscan_larflow3dhits( _input_hit_v, cluster_v, 1.0, 10, 50 );
+    larflow::recoutils::cluster_runpca( cluster_v );
     // reindex back to original hit vector
     for ( size_t c=0; c<cluster_v.size(); c++ ) {
       auto& cluster = cluster_v[c];
@@ -175,7 +175,7 @@ namespace reco {
         = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, cluster_tree_name );
       // re-constitute cluster objects, add hits to input collection
       for ( auto const& lfcluster : *ev_in_cluster ) {
-        larflow::reco::cluster_t clust = larflow::reco::cluster_from_larflowcluster( lfcluster );
+        larflow::recoutils::cluster_t clust = larflow::recoutils::cluster_from_larflowcluster( lfcluster );
         for ( size_t ihit=0; ihit<clust.hitidx_v.size(); ihit++ ) {
           larlite::larflow3dhit chit = lfcluster.at(ihit);
           chit.trackid = cluster_v.size();
@@ -213,7 +213,7 @@ namespace reco {
   std::vector<larflow::reco::NuVertexActivityReco::VACandidate_t>
   NuVertexActivityReco::findVertexActivityCandidates( larlite::storage_manager& ioll,
                                                       larcv::IOManager& iolcv,
-                                                      std::vector<larflow::reco::cluster_t>& cluster_v,
+                                                      std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                                       const float va_threshold )
   {
 
@@ -511,7 +511,7 @@ namespace reco {
    * @param[in] min_dist2cluster Minimum distance to nearby clusters to include in calculations.
    */
   void NuVertexActivityReco::analyzeVertexActivityCandidates( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
-                                                              std::vector<larflow::reco::cluster_t>& cluster_v,
+                                                              std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                                               larlite::storage_manager& ioll,
                                                               larcv::IOManager& iolcv,
                                                               const float min_dist2cluster )
@@ -568,8 +568,8 @@ namespace reco {
           hitpos[i] = lmhit[i];
           vaend[i] = vapos[i] + 10.0*vacand.va_dir[i];
         }        
-        float rad = larflow::reco::pointLineDistance3f( vapos, vaend, hitpos );
-        float s   = larflow::reco::pointRayProjection3f( vapos, vacand.va_dir, hitpos );
+        float rad = larflow::recoutils::pointLineDistance3f( vapos, vaend, hitpos );
+        float s   = larflow::recoutils::pointRayProjection3f( vapos, vacand.va_dir, hitpos );
 
         // accept within 45 degree cone
         if ( s==0 || rad/std::fabs(s)>0.707 )
@@ -818,7 +818,7 @@ namespace reco {
    * @param[in] iolcv larcv::IOManager with event data.
    */
   void NuVertexActivityReco::analyzeAttachedCluster( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
-                                                     std::vector<larflow::reco::cluster_t>& cluster_v,
+                                                     std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                                      larlite::storage_manager& ioll,
                                                      larcv::IOManager& iolcv )
   {
@@ -884,7 +884,7 @@ namespace reco {
    * @param[in] iolcv larcv::IOManager with event data.
    */
   // void NuVertexActivityReco::analyzeFilterPattern( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
-  //                                                  std::vector<larflow::reco::cluster_t>& cluster_v,
+  //                                                  std::vector<larflow::recoutils::cluster_t>& cluster_v,
   //                                                  larlite::storage_manager& ioll,
   //                                                  larcv::IOManager& iolcv )
   // {
@@ -995,7 +995,7 @@ namespace reco {
    * we use the projection of the points onto the first pc axis to define the 'ends' of the cluster.
    * this assumes that the cluster is mostly linear.
    */
-  std::vector<larlite::track> NuVertexActivityReco::getClusterTrunks( const larflow::reco::cluster_t& cluster,
+  std::vector<larlite::track> NuVertexActivityReco::getClusterTrunks( const larflow::recoutils::cluster_t& cluster,
                                                                       std::vector<float>& trunk_2nd_pca )
   {
     // define the "end points". The point with the furthest extent
@@ -1014,7 +1014,7 @@ namespace reco {
     }
 
     // now we collect hits on the ends to define the trunk
-    std::vector<larflow::reco::cluster_t> endcluster_v(2);
+    std::vector<larflow::recoutils::cluster_t> endcluster_v(2);
     for (int iend=0; iend<2; iend++) {
 
       if ( endpt_v[iend].size()==0 )
@@ -1044,7 +1044,7 @@ namespace reco {
 
       // run pca
       try {
-        larflow::reco::cluster_pca( endcluster );
+        larflow::recoutils::cluster_pca( endcluster );
       }
       catch (...) {
         endcluster.points_v.clear();

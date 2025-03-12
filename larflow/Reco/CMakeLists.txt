@@ -17,23 +17,23 @@ set( HEADERS
   TrackClusterBuilder.h
   CosmicTrackBuilder.h
   ShowerRecoKeypoint.h
-  # ShowerBilineardEdx.h
-  # ShowerdQdx.h  
-  # NuVertexCandidate.h
-  # TrackOTFit.h
-  # ProjPixFitter.h
-  # ClusterBookKeeper.h
-  # NuVertexMaker.h
-  # NuVertexFitter.h
-  # CosmicVertexBuilder.h  
-  # NuTrackBuilder.h
-  # NuShowerBuilder.h
-  # NuVertexShowerReco.h
-  # NuVertexShowerTrunkCheck.h
-  # NuVertexActivityReco.h
-  # NuVertexAddSecondaries.h
-  # VetoHitClustering.h
-  # PerfectTruthNuReco.h
+  ShowerBilineardEdx.h
+  ShowerdQdx.h  
+  NuVertexCandidate.h
+  TrackOTFit.h
+  ProjPixFitter.h
+  ClusterBookKeeper.h
+  NuVertexMaker.h
+  NuVertexFitter.h
+  CosmicVertexBuilder.h  
+  NuTrackBuilder.h
+  NuShowerBuilder.h
+  NuVertexShowerReco.h
+  NuVertexShowerTrunkCheck.h
+  NuVertexActivityReco.h
+  NuVertexAddSecondaries.h
+  VetoHitClustering.h
+  PerfectTruthNuReco.h
   # TrackdQdx.h
   # NuTrackdQdx.h
   # ClusterImageMask.h
@@ -71,26 +71,26 @@ add_library( ${LIBNAME} SHARED
   KeypointFilterByClusterSize.cxx
   KeypointFilterByWCTagger.cxx
   ShowerRecoKeypoint.cxx
-  # ShowerBilineardEdx.cxx
-  # ShowerdQdx.cxx  
-  # TrackClusterBuilder.cxx
-  # CosmicTrackBuilder.cxx
-  # NuVertexCandidate.cxx
-  # ProjPixFitter.cxx      
-  # TrackOTFit.cxx
-  # ClusterBookKeeper.cxx
-  # NuVertexMaker.cxx
-  # NuVertexFitter.cxx
-  # CosmicVertexBuilder.cxx
-  # NuTrackBuilder.cxx
-  # NuShowerBuilder.cxx
-  # NuVertexShowerReco.cxx
-  # NuVertexShowerTrunkCheck.cxx  
-  # NuVertexActivityReco.cxx
-  # NuVertexAddSecondaries.cxx  
-  # VetoHitClustering.cxx  
-  # PostNuCheckShowerTrunkOverlap.cxx  
-  # PerfectTruthNuReco.cxx  
+  ShowerBilineardEdx.cxx
+  ShowerdQdx.cxx  
+  TrackClusterBuilder.cxx
+  CosmicTrackBuilder.cxx
+  NuVertexCandidate.cxx
+  ProjPixFitter.cxx      
+  TrackOTFit.cxx
+  ClusterBookKeeper.cxx
+  NuVertexMaker.cxx
+  NuVertexFitter.cxx
+  CosmicVertexBuilder.cxx
+  NuTrackBuilder.cxx
+  NuShowerBuilder.cxx
+  NuVertexShowerReco.cxx
+  NuVertexShowerTrunkCheck.cxx  
+  NuVertexActivityReco.cxx
+  NuVertexAddSecondaries.cxx  
+  VetoHitClustering.cxx  
+  PostNuCheckShowerTrunkOverlap.cxx  
+  PerfectTruthNuReco.cxx  
   # TrackdQdx.cxx
   # NuTrackdQdx.cxx  
   # ClusterImageMask.cxx  

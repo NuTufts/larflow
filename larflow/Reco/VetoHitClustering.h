@@ -4,8 +4,8 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 #include "NuVertexCandidate.h"
-#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -37,7 +37,7 @@ namespace reco {
     void _findVetoClusters( const larlite::event_larflow3dhit& inputhits,
 			    const std::vector<int>& close_hits_v,
 			    larflow::reco::NuVertexCandidate& nuvtx,
-			    std::vector<larflow::reco::cluster_t>& output_cluster_v );
+			    std::vector<larflow::recoutils::cluster_t>& output_cluster_v );
     
   };  
 

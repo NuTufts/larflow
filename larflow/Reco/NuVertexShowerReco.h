@@ -6,8 +6,8 @@
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/DataFormat/storage_manager.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 #include "NuVertexCandidate.h"
-#include "cluster_functions.h"
 #include "ClusterBookKeeper.h"
 
 namespace larflow {

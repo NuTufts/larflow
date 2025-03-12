@@ -1,11 +1,11 @@
 #include "NuVertexMaker.h"
 
-#include "geofuncs.h"
 #include "larlite/DataFormat/track.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 #include "NuVertexFitter.h"
 
@@ -685,10 +685,10 @@ namespace reco {
 
     }//if cluster is track and longer than 20 cm
     
-    float r = pointLineDistance( startpt, endpt, vertex.pos );
+    float r = larflow::recoutils::pointLineDistance( startpt, endpt, vertex.pos );
 
-    float projs = pointRayProjection3f( startpt, dir, vertex.pos );
-    float ends  = pointRayProjection3f( startpt, dir, endpt );
+    float projs = larflow::recoutils::pointRayProjection3f( startpt, dir, vertex.pos );
+    float ends  = larflow::recoutils::pointRayProjection3f( startpt, dir, endpt );
 
     if ( apply_cut ) {
       
@@ -793,8 +793,8 @@ namespace reco {
           }
             
 
-          float r = larflow::reco::pointLineDistance3f( fpos, fnext, vtx.pos );
-          float s = larflow::reco::pointRayProjection3f( fpos, fdir, vtx.pos );
+          float r = larflow::recoutils::pointLineDistance3f( fpos, fnext, vtx.pos );
+          float s = larflow::recoutils::pointRayProjection3f( fpos, fdir, vtx.pos );
 
           if ( s>=0 && s<=flen && mindist_segment>r) {
             mindist_segment = r;

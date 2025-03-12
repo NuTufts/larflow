@@ -1,7 +1,7 @@
 #include "NuVertexShowerReco.h"
 
-#include "geofuncs.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -259,8 +259,8 @@ namespace reco {
             int nclose_to_axis = 0;
             for (auto const& trackhit : track_lfcluster ) {
               std::vector<float> trackpt = { (float)trackhit[0], (float)trackhit[1], (float)trackhit[2] };
-              float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, trackpt );
-              float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, trackpt );
+              float r = larflow::recoutils::pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, trackpt );
+              float s = larflow::recoutils::pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, trackpt );
               float vtxdist = 0.;
               for (int i=0; i<3; i++)
                 vtxdist += ( trackpt[i]-nuvtx.pos[i] )*( trackpt[i]-nuvtx.pos[i] );
@@ -268,7 +268,7 @@ namespace reco {
               if ( s>-rankedprong.dist2vtx && s<0 && ((vtxdist<1.0 && r<0.5) || (vtxdist>0.0 && r<2.0)) )  {
                 trunk_hit_v.push_back( trackhit );
 
-                float trunk_s = pointRayProjection3f( nuvtx.pos, rankedprong.axis, trackpt );
+                float trunk_s = larflow::recoutils::pointRayProjection3f( nuvtx.pos, rankedprong.axis, trackpt );
                 track_s_v.push_back( trunk_s );
                 
                 ntrunk_hits_added++;
@@ -323,8 +323,8 @@ namespace reco {
             int nhits_within_cone = 0;
             for ( auto const& showerhit : shower_lfcluster ) {
               std::vector<float> showerpt = { showerhit[0], showerhit[1], showerhit[2] };
-              float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
-              float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, showerpt );
+              float r = larflow::recoutils::pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
+              float s = larflow::recoutils::pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, showerpt );
 
               // set max distance from prong start to the point in question
               float d2 = 0.;
@@ -354,11 +354,11 @@ namespace reco {
 
 
       // get pca of shower
-      larflow::reco::cluster_t shower_cluster_t = larflow::reco::cluster_from_larflowcluster(shower_hit_v);
-      larflow::reco::cluster_pca( shower_cluster_t );
-      larlite::pcaxis shower_hit_pca = larflow::reco::cluster_make_pcaxis( shower_cluster_t );
+      larflow::recoutils::cluster_t shower_cluster_t = larflow::recoutils::cluster_from_larflowcluster(shower_hit_v);
+      larflow::recoutils::cluster_pca( shower_cluster_t );
+      larlite::pcaxis shower_hit_pca = larflow::recoutils::cluster_make_pcaxis( shower_cluster_t );
       
-      larlite::track shower_trunk = larflow::reco::cluster_make_trunk( shower_cluster_t, nuvtx.pos );
+      larlite::track shower_trunk = larflow::recoutils::cluster_make_trunk( shower_cluster_t, nuvtx.pos );
     
       // larlite::track shower_trunk_dir;
       // shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_start[0],
@@ -445,8 +445,8 @@ namespace reco {
       }
     }
 
-    std::vector<cluster_t> trunk_cand_v;
-    larflow::reco::cluster_spacepoint_v( close_hit_v, trunk_cand_v );
+    std::vector<larflow::recoutils::cluster_t> trunk_cand_v;
+    larflow::recoutils::cluster_spacepoint_v( close_hit_v, trunk_cand_v );
     
 
     struct CandRank_t {
@@ -475,7 +475,7 @@ namespace reco {
         continue;
       }
 
-      larflow::reco::cluster_pca( trunk );
+      larflow::recoutils::cluster_pca( trunk );
 
       // determine direction
       // we want to use the pca axis, but we can switch to vertex->centroid if the trunk is bad
@@ -536,8 +536,8 @@ namespace reco {
         std::vector<float> pt = { lfcluster[ihit][0], lfcluster[ihit][1], lfcluster[ihit][2] };
 
         // pca score
-        float r_pca = larflow::reco::pointLineDistance3f( trunk.pca_ends_v[pca_start], trunk.pca_ends_v[pca_end], pt );
-        float s_pca = larflow::reco::pointRayProjection3f( trunk.pca_ends_v[pca_start], pcadir, pt );
+        float r_pca = larflow::recoutils::pointLineDistance3f( trunk.pca_ends_v[pca_start], trunk.pca_ends_v[pca_end], pt );
+        float s_pca = larflow::recoutils::pointRayProjection3f( trunk.pca_ends_v[pca_start], pcadir, pt );
         if ( s_pca>3.0 )
           score_pca += r_pca/( (s_pca/14.0)*9.0 );
         else if (s_pca>0.0 && s_pca<3.0 )
@@ -546,8 +546,8 @@ namespace reco {
           score_pca += -s_pca/1.0;
 
         // v2c score
-        float r_v2c = larflow::reco::pointLineDistance3f( pos, trunk.pca_center, pt );
-        float s_v2c = larflow::reco::pointRayProjection3f( pos, vtx2centroid, pt )-min_dist;
+        float r_v2c = larflow::recoutils::pointLineDistance3f( pos, trunk.pca_center, pt );
+        float s_v2c = larflow::recoutils::pointRayProjection3f( pos, vtx2centroid, pt )-min_dist;
 
         if ( s_v2c<max_s_v2c ) {
           max_s_v2c = s_v2c;

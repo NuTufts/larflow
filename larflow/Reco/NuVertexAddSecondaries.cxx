@@ -1,5 +1,5 @@
 #include "NuVertexAddSecondaries.h"
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "NuTrackBuilder.h"
 #include "NuVertexShowerReco.h"
 
@@ -270,14 +270,14 @@ namespace reco {
         continue;
       }
 
-      float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
+      float d = larflow::recoutils::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
       //std::cout << "ipt=" << ipt << " d=" << d << std::endl;
       
       if ( d>_max_line_dist )
 	continue;
 
-      float s1 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_start );
-      float s2 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_end );
+      float s1 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_start );
+      float s2 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_end );
 
       float ptdist1 = 0.;
       float ptdist2 = 0.;      
@@ -392,14 +392,14 @@ namespace reco {
         continue;
       }
 
-      float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
+      float d = larflow::recoutils::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
       //std::cout << "ipt=" << ipt << " d=" << d << std::endl;
       
       if ( d>_max_line_dist )
 	continue;
 
-      float s1 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_start );
-      float s2 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_end );
+      float s1 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_start );
+      float s2 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_end );
 
       float ptdist1 = 0.;
       float ptdist2 = 0.;      

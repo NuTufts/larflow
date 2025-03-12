@@ -11,8 +11,8 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
 
+#include "larflow/RecoUtils/cluster_functions.h"
 #include "NuVertexCandidate.h"
-#include "cluster_functions.h"
 
 namespace larflow {
 namespace reco {

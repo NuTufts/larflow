@@ -8,7 +8,7 @@
 #include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/MCTools/TruthShowerTrunkSCE.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "ClusterImageMask.h"
 
 

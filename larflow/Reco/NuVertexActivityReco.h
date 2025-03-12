@@ -8,7 +8,7 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/LArbysMC.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 #include "TGraph.h"
 #include "ShowerdQdx.h"
 
@@ -45,7 +45,7 @@ namespace reco {
       larlite::larflow3dhit lfhit; ///< the hit we propose
       std::vector<float> va_dir;   ///< direction of va candidate, from 1st pca-axis of attached cluster
       int hit_index; ///< index of hit in the source hit container
-      const larflow::reco::cluster_t* pattached; //< pointer to attached cluster
+      const larflow::recoutils::cluster_t* pattached; //< pointer to attached cluster
       int attached_cluster_index; ///< index of cluster in cluster container
 
       larlite::track trunk;
@@ -59,7 +59,7 @@ namespace reco {
       int nhits_inside_cone;  ///< num shower hits inside cone around va_dir
       int nhits_outside_cone; ///< num shower hits outside cone around va_dir
 
-      std::vector< const larflow::reco::cluster_t* > subcluster_v; ///< added shower subclusters
+      std::vector< const larflow::recoutils::cluster_t* > subcluster_v; ///< added shower subclusters
       int nhits_all; ///< number of hits inside attached + subclusters
       int nhits_all_shower; ///< number of shower hits inside attached + subclusters
       int nhits_all_track;  ///< number of track hits inside attached + subclusters
@@ -107,16 +107,16 @@ namespace reco {
   protected:
 
     void makeClusters( larlite::storage_manager& ioll,
-                       std::vector<larflow::reco::cluster_t>& cluster_v,
+                       std::vector<larflow::recoutils::cluster_t>& cluster_v,
                        const float larmatch_threshold );
 
-    std::vector<larlite::track> getClusterTrunks( const larflow::reco::cluster_t& cluster,
+    std::vector<larlite::track> getClusterTrunks( const larflow::recoutils::cluster_t& cluster,
                                                   std::vector<float>& pca_ratio );
     
     std::vector<larflow::reco::NuVertexActivityReco::VACandidate_t>      
       findVertexActivityCandidates( larlite::storage_manager& ioll,
                                     larcv::IOManager& iolcv,
-                                    std::vector<larflow::reco::cluster_t>& cluster_v,
+                                    std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                     const float va_threshold );      
     
     std::vector<float> calcPlanePixSum( const larlite::larflow3dhit& hit,
@@ -124,7 +124,7 @@ namespace reco {
 
 
     void analyzeVertexActivityCandidates( larflow::reco::NuVertexActivityReco::VACandidate_t& va_cand,
-                                          std::vector<larflow::reco::cluster_t>& cluster_v,
+                                          std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                           larlite::storage_manager& ioll,
                                           larcv::IOManager& iolcv,
                                           const float min_dist2cluster );
@@ -132,7 +132,7 @@ namespace reco {
     void checkWireCellCosmicMask( NuVertexActivityReco::VACandidate_t& va, larcv::IOManager& iolcv );
                                   
     void analyzeAttachedCluster( larflow::reco::NuVertexActivityReco::VACandidate_t& vacand,
-                                 std::vector<larflow::reco::cluster_t>& cluster_v,
+                                 std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                  larlite::storage_manager& ioll,
                                  larcv::IOManager& iolcv );
 
@@ -144,7 +144,7 @@ namespace reco {
     std::vector<std::string> _input_clustertree_list; ///< list of trees to get input clusters
     std::vector<larlite::larflow3dhit>    _input_hit_v; ///< collection of hits from input hit trees
     std::map< int, int > _input_hit_origin_v; ///< save map back to source of input hits
-    std::vector<larflow::reco::cluster_t> _event_cluster_v; ///< list of clusters for making VA selection variables
+    std::vector<larflow::recoutils::cluster_t> _event_cluster_v; ///< list of clusters for making VA selection variables
     std::string _output_treename; ///< name of tree to store larlite product
     
     

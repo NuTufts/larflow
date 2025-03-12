@@ -1,9 +1,9 @@
 #include "NuShowerBuilder.h"
 
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "larflow/Reco/cluster_functions.h"
-#include "larflow/Reco/geofuncs.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -43,7 +43,7 @@ namespace reco {
 
       // loop over shower clusters, gathering info
       std::vector<larlite::track> segfit_v;
-      std::vector<larflow::reco::cluster_t> pcacluster_v;
+      std::vector<larflow::recoutils::cluster_t> pcacluster_v;
       struct ShowerProngInfo_t {
         int vtxcluster_idx; // index in nuvtx.cluster_v container
         int segfit_idx; // index of fitted track in the segfit_v container
@@ -108,7 +108,7 @@ namespace reco {
         }
 
         // now collect hits
-        larflow::reco::cluster_t prong;
+        larflow::recoutils::cluster_t prong;
         larlite::event_larflow3dhit lfhit_v;
         for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
           if ( dist2vtx[ihit]-mindist < 10.0 ) {
@@ -128,7 +128,7 @@ namespace reco {
         if ( prong.points_v.size()<10 )
           continue;
         
-        larflow::reco::cluster_pca( prong );
+        larflow::recoutils::cluster_pca( prong );
 
         // fit line segment
         larlite::track segfit = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( prong, lfhit_v, adc_v, 2.0 );
@@ -168,10 +168,10 @@ namespace reco {
         for (int i=0; i<3; i++) {
           info.trunk_pt2[i] = info.trunk_pt[i] + 3.0*info.trunk_dir[i];
         }
-        info.impactdist = larflow::reco::pointLineDistance( info.trunk_pt, info.trunk_pt2, nuvtx.pos );
+        info.impactdist = larflow::recoutils::pointLineDistance( info.trunk_pt, info.trunk_pt2, nuvtx.pos );
 
         // pca direction
-        float pca_s = larflow::reco::pointRayProjection3f( info.trunk_pt, prong.pca_axis_v[0], nuvtx.pos );
+        float pca_s = larflow::recoutils::pointRayProjection3f( info.trunk_pt, prong.pca_axis_v[0], nuvtx.pos );
         info.trunk_pca.resize(3,0);        
         if ( pca_s<0 ) {
           for (int i=0; i<3; i++)
@@ -228,8 +228,8 @@ namespace reco {
             for (int i=0; i<3; i++)
               pt2[i] = prong.trunk_pt[i] + 3*prong.trunk_pca[i];
             
-            float r = larflow::reco::pointLineDistance3f( prong.trunk_pt, pt2, pronginfo_v[jprong].trunk_pt );
-            float s = larflow::reco::pointRayProjection3f( prong.trunk_pt, prong.trunk_pca, pronginfo_v[jprong].trunk_pt );
+            float r = larflow::recoutils::pointLineDistance3f( prong.trunk_pt, pt2, pronginfo_v[jprong].trunk_pt );
+            float s = larflow::recoutils::pointRayProjection3f( prong.trunk_pt, prong.trunk_pca, pronginfo_v[jprong].trunk_pt );
             float pt_ang = 0.;
             if ( s!=0.0 )
               pt_ang = atan(r/fabs(s))*180.0/3.14159;
