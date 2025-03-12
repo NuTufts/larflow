@@ -14,7 +14,7 @@
 #include "larlite/LArUtil/Geometry.h"
 #include "larcv/core/PyUtil/PyUtils.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
-#include "ublarcvapp/UBWireTool/UBWireTool.h"
+//#include "ublarcvapp/UBWireTool/UBWireTool.h"
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
 
 #include "TRandom3.h"
@@ -172,7 +172,7 @@ namespace prep {
 
       auto& triplet = triplet_v[flowindex];
       int otherplane = triplet.get_other_plane_index();
-      std::vector<FlowTriples::PixData_t>& pix_v = triplet.getDeadChToAdd()[ otherplane ];
+      std::vector<PixData_t>& pix_v = triplet.getDeadChToAdd()[ otherplane ];
       
       for ( auto& pix : pix_v ) {
         auto it = deadpixels_to_add[ otherplane ].find( std::pair<int,int>( pix.row, pix.col ) );
@@ -239,10 +239,10 @@ namespace prep {
       for ( size_t itrip=0; itrip<the_triples.size(); itrip++) {
 	auto const& trip = the_triples.at(itrip);
 
-        std::vector<FlowTriples::PixData_t> pix_v(3);
-        pix_v[ srcplane ] = FlowTriples::PixData_t( trip[3], trip[0], 0.0 );
-        pix_v[ tarplane ] = FlowTriples::PixData_t( trip[3], trip[1], 0.0 );
-        pix_v[ othplane ] = FlowTriples::PixData_t( trip[3], trip[2], 0.0 );
+        std::vector<PixData_t> pix_v(3);
+        pix_v[ srcplane ] = PixData_t( trip[3], trip[0], 0.0 );
+        pix_v[ tarplane ] = PixData_t( trip[3], trip[1], 0.0 );
+        pix_v[ othplane ] = PixData_t( trip[3], trip[2], 0.0 );
 
         auto it_src = std::lower_bound( _sparseimg_vv[srcplane].begin(), _sparseimg_vv[srcplane].end(), pix_v[ srcplane ] );
         auto it_tar = std::lower_bound( _sparseimg_vv[tarplane].begin(), _sparseimg_vv[tarplane].end(), pix_v[ tarplane ] );
@@ -411,7 +411,7 @@ namespace prep {
       larflow::LArFlowConstants::getFlowPlanes( flow_dir_origin, srcplane, tarplane );
       int othplane = larflow::LArFlowConstants::getOtherPlane( srcplane, tarplane );
       
-      std::vector< const FlowTriples::PixData_t* > pix_v( _sparseimg_vv.size() );
+      std::vector< const PixData_t* > pix_v( _sparseimg_vv.size() );
       pix_v[srcplane] = &_sparseimg_vv[srcplane][ triplet[srcplane] ];
       pix_v[tarplane] = &_sparseimg_vv[tarplane][ triplet[tarplane] ];
       pix_v[othplane] = &_sparseimg_vv[othplane][ triplet[othplane] ]; 
@@ -752,7 +752,7 @@ namespace prep {
     for (int i=0; i<(int)_triplet_v.size(); i++ ) {
       auto& trip  = _triplet_v[i];
       auto& truth = _truth_v[i];
-      std::vector< const FlowTriples::PixData_t* > pix_v( trip.size(), 0 );
+      std::vector< const PixData_t* > pix_v( trip.size(), 0 );
       for (int p=0; p<(int)_imgmeta_v.size(); p++ ) {
         pix_v[p] = &_sparseimg_vv[p][ trip[p] ];
         int col = pix_v[p]->col+1;

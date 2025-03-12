@@ -1056,8 +1056,8 @@ namespace reco {
     
     for ( size_t iseg=0; iseg<_segment_v.size(); iseg++ ) {
       auto const& seg = _segment_v[iseg];
-      float dist = pointLineDistance<float>(  seg.start, seg.end, testpt );
-      float proj = pointRayProjection<float>( seg.start, seg.dir, testpt );
+      float dist = pointLineDistance3f(  seg.start, seg.end, testpt );
+      float proj = pointRayProjection3f( seg.start, seg.dir, testpt );
 
       if ( proj>-max_dist && proj<=seg.len+max_dist && dist<max_dist ) {
         if ( mindist>dist || min_segidx<0 ) {
@@ -1236,7 +1236,7 @@ namespace reco {
             for (int ic=0; ic<2; ic++) {
               for (auto const& lfhit : *(lfclusters[ic]) ) {
                 std::vector<float> hit = { lfhit[0], lfhit[1], lfhit[2] };
-                float s = larflow::reco::pointRayProjection<float>( gap_start, gap_dir, hit );
+                float s = larflow::reco::pointRayProjection3f( gap_start, gap_dir, hit );
                 //float r = larflow::reco::pointLineDistance<float>( gap_start, gap_end, hit );
                 if ( s>=0 && s<=gaplen) {
                   gapcluster.points_v.push_back( hit );

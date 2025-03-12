@@ -11,6 +11,9 @@
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "TH2D.h"
 
+#include "larflow/PrepFlowMatchData/PixData_t.h"
+#include "larflow/PrepFlowMatchData/CropPixData_t.h"
+
 namespace larflow {
 namespace prep {
 
@@ -30,88 +33,6 @@ namespace prep {
   class FlowTriples {
 
   public:
-
-    /** 
-     * @struct PixData_t
-     *
-     * @brief internal struct to represent to a pixel and provide sorting method
-     *
-     */
-    struct PixData_t {
-      int row; ///< row of pixel in image
-      int col; ///< col of pixel in image
-      float val; ///< value of pixel
-      int idx;   ///< index in container
-      
-      PixData_t()
-      : row(0),col(0),val(0.0),idx(0)
-      {};
-
-      /** @brief constructor with row, col, value 
-       *  @param[in] r row of pixel
-       *  @param[in] c col of pixel
-       *  @param[in] v value of pixel
-       */      
-      PixData_t( int r, int c, float v)
-      : row(r),col(c),val(v),idx(0) {};
-
-      /** @brief comparator based on row then col then value */
-      bool operator<( const PixData_t& rhs ) const {
-        if (row<rhs.row) return true;
-        if ( row==rhs.row ) {
-          if ( col<rhs.col ) return true;
-          if ( col==rhs.col ) {
-            if ( val<rhs.val ) return true;
-          }
-        }
-        return false;
-      };
-    };
-    
-    /** 
-     * @struct CropPixData_t
-     *
-     * @brief internal struct to represent to a pixel in cropped image and provide sorting method
-     *
-     */
-    struct CropPixData_t {
-      int row; ///< row of pixel in cropped image
-      int col; ///< col of pixel in cropped image
-      int rawRow; ///< row of pixel in original image
-      int rawCol; ///< col of pixel in original image
-      float val; ///< value of pixel
-      int idx;   ///< index in container
-      
-      CropPixData_t()
-      : row(0),col(0),rawRow(0),rawCol(0),val(0.0),idx(0)
-      {};
-
-      /** @brief constructor with row, col, value 
-       *  @param[in] r row of pixel
-       *  @param[in] c col of pixel
-       *  @param[in] v value of pixel
-       */      
-      CropPixData_t( int r, int c, int rr, int rc, float v)
-      : row(r),col(c),rawRow(rr),rawCol(rc),val(v),idx(0) {};
-
-      /** @brief equality operator based on row, col, and value */
-      bool operator==( const CropPixData_t& rhs ) const {
-        if(rawRow == rhs.rawRow && rawCol == rhs.rawCol && val == rhs.val) return true;
-        return false;
-      };
-
-      /** @brief comparator based on row then col then value */
-      bool operator<( const CropPixData_t& rhs ) const {
-        if (row<rhs.row) return true;
-        if ( row==rhs.row ) {
-          if ( col<rhs.col ) return true;
-          if ( col==rhs.col ) {
-            if ( val<rhs.val ) return true;
-          }
-        }
-        return false;
-      };
-    };
     
     FlowTriples()
       : _source_plane(-1),
@@ -147,10 +68,12 @@ namespace prep {
     //const std::vector<int>& getTargetIndicesFromSourcePixel( int col, int row ) const;
     //const std::vector<int>& getTruthVectorFromSourcePixel( int col, int row ) const;
 
-    static std::vector< std::vector<FlowTriples::PixData_t> >
+#ifndef __CINT__
+#ifndef __CLING__
+    static std::vector< std::vector<larflow::prep::PixData_t> >
       make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v, float threshold );
 
-    static std::vector< std::vector<FlowTriples::PixData_t> >
+    static std::vector< std::vector<larflow::prep::PixData_t> >
       make_cropped_initial_sparse_prong_image_truth( const std::vector<larcv::Image2D>& adc_v, 
                                                      ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                      larlite::storage_manager& ioll, 
@@ -158,14 +81,14 @@ namespace prep {
                                                      int rowSpan, int colSpan,
                                                      bool shower=true );
 
-    static std::vector< std::vector<FlowTriples::CropPixData_t> >
+    static std::vector< std::vector<larflow::prep::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v, 
                                                     const std::vector<larcv::Image2D>& thrumu_v,
                                                     const larlite::larflowcluster& prong,
                                                     const TVector3& cropCenter, 
                                                     float threshold, int rowSpan, int colSpan );
 
-    static std::vector< std::vector<FlowTriples::CropPixData_t> >
+    static std::vector< std::vector<larflow::prep::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco_rmContextPart( const std::vector<larcv::Image2D>& adc_v, 
                                                                   const std::vector<larcv::Image2D>& thrumu_v,
                                                                   const larlite::larflowcluster& prong,
@@ -174,7 +97,7 @@ namespace prep {
                                                                   ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                                   int trackid_rm, int trackid_rm2=-1 );
 
-    static std::vector< std::vector<FlowTriples::CropPixData_t> >
+    static std::vector< std::vector<larflow::prep::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco_subContextPart( const std::vector<larcv::Image2D>& adc_v_reco,
                                                                    const std::vector<larcv::Image2D>& adc_v_sim, 
                                                                    const std::vector<larcv::Image2D>& thrumu_v,
@@ -184,7 +107,7 @@ namespace prep {
                                                                    ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                                    int trackid_rm, int trackid_rm2=-1 );
 
-    static std::vector< std::vector<FlowTriples::CropPixData_t> >
+    static std::vector< std::vector<larflow::prep::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco_truthProngSub( const std::vector<larcv::Image2D>& adc_v_reco,
                                                                   const std::vector<larcv::Image2D>& adc_v_sim, 
                                                                   const std::vector<larcv::Image2D>& thrumu_v,
@@ -193,6 +116,8 @@ namespace prep {
                                                                   float threshold, int rowSpan, int colSpan,
                                                                   ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                                   int trackid_rm, int trackid_rm2=-1 );
+#endif
+#endif
 
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };
@@ -220,7 +145,11 @@ namespace prep {
                                         std::string hist_stem_name );
 
     /** @brief get pixels in each plane that are dead */
+#ifndef __CINT__
+#ifndef __CLING__
     std::vector< std::vector<PixData_t> >& getDeadChToAdd() { return _deadch_to_add; };
+#endif
+#endif
 
     /** @brief get the combination of three wires with coincident charge seen */
     std::vector< std::vector<int> >&       getTriples() { return _triple_v; };
@@ -249,30 +178,30 @@ namespace prep {
                              const larlite::larflowcluster& prong,
                              const TVector3& cropCenter, int rowSpan, int colSpan );
 
-    static void fillProngImagesFromReco(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+    static void fillProngImagesFromReco(std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
                                  const float& threshold,
                                  const std::vector<larcv::Image2D>& adc_v,
                                  const std::vector<larcv::Image2D>& thrumu_v,
                                  const larlite::larflowcluster& prong,
                                  const std::vector< std::vector<int> >& imgBounds);
 
-    static void fillProngImagesFromTruth(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+    static void fillProngImagesFromTruth(std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
                                   const float& threshold,
                                   const std::vector<larcv::Image2D>& adc_v,
                                   const std::vector< std::vector<int> >& imgBounds);
 
-    static void fillContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+    static void fillContextImages(std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
                            const float& threshold,
                            const std::vector<larcv::Image2D>& adc_v,
                            const std::vector<larcv::Image2D>& thrumu_v,
                            const std::vector< std::vector<int> >& imgBounds);
 
-    static void fillContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+    static void fillContextImages(std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
                            const float& threshold,
                            const std::vector<larcv::Image2D>& adc_v,
                            const std::vector< std::vector<int> >& imgBounds);
 
-    static void fillPartRmContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+    static void fillPartRmContextImages(std::vector< std::vector<CropPixData_t> >& sparseimg_vv,
                                  const float& threshold,
                                  const std::vector<larcv::Image2D>& adc_v,
                                  const std::vector<larcv::Image2D>& thrumu_v,

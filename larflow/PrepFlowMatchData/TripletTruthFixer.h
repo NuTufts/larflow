@@ -1,15 +1,16 @@
 #ifndef __LARFLOW_PREP_TRIPLETTRUTHFIXER_H__
 #define __LARFLOW_PREP_TRIPLETTRUTHFIXER_H__
 
+#include <vector>
+
 #include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctrack.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
-
-#include "larflow/Reco/cluster_functions.h"
-#include "PrepMatchTriplets.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
 namespace larflow {
 namespace prep {
@@ -68,7 +69,7 @@ namespace prep {
   protected:
 
     void _cluster_same_showerpid_spacepoints( const std::vector<ShowerInfo_t>& shower_info_v,
-                                              std::vector<larflow::reco::cluster_t>& cluster_v,
+                                              std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                               std::vector<int>& pid_v,
                                               std::vector<int>& shower_instance_v,
                                               larflow::prep::PrepMatchTriplets& tripmaker,
@@ -78,10 +79,10 @@ namespace prep {
                                       const std::vector< larcv::Image2D >& instanceimg_v,
                                       const float threshold );
 
-    void _merge_shower_fragments( std::vector<larflow::reco::cluster_t>& shower_fragments_v,
+    void _merge_shower_fragments( std::vector<larflow::recoutils::cluster_t>& shower_fragments_v,
                                   std::vector<int>& pid_v,
                                   std::vector<int>& shower_instance_v,
-                                  std::vector<larflow::reco::cluster_t>& merged_showers_v );
+                                  std::vector<larflow::recoutils::cluster_t>& merged_showers_v );
     
     std::vector<ShowerInfo_t> _shower_info_v; ///< vector of info on true shower objects in event
     bool _kExcludeCosmicShowers; ///< if true, ignore shower clusters
@@ -90,18 +91,18 @@ namespace prep {
                             bool exclude_cosmic_showers );
     
 
-    int _find_closest_cluster( std::vector< larflow::reco::cluster_t >& shower_fragment_v,
+    int _find_closest_cluster( std::vector< larflow::recoutils::cluster_t >& shower_fragment_v,
                                std::vector<int>& claimed_cluster_v,
                                std::vector<float>& shower_vtx,
                                std::vector<float>& shower_dir );
 
     void _trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
-                                       std::vector<larflow::reco::cluster_t>& shower_fragment_v,
+                                       std::vector<larflow::recoutils::cluster_t>& shower_fragment_v,
                                        std::vector<int>& fragment_pid_v,                                       
                                        std::vector<int>& cluster_used_v,
-                                       std::vector<larflow::reco::cluster_t>& merged_cluster_v );
+                                       std::vector<larflow::recoutils::cluster_t>& merged_cluster_v );
     
-    void _reassign_merged_shower_instance_labels( std::vector<larflow::reco::cluster_t>& merged_showers_v,
+    void _reassign_merged_shower_instance_labels( std::vector<larflow::recoutils::cluster_t>& merged_showers_v,
                                                   std::vector<ShowerInfo_t>& shower_info_v,
                                                   larflow::prep::PrepMatchTriplets& tripmaker );
     

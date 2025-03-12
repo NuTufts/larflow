@@ -687,8 +687,8 @@ namespace reco {
     
     float r = pointLineDistance( startpt, endpt, vertex.pos );
 
-    float projs = pointRayProjection<float>( startpt, dir, vertex.pos );
-    float ends  = pointRayProjection<float>( startpt, dir, endpt );
+    float projs = pointRayProjection3f( startpt, dir, vertex.pos );
+    float ends  = pointRayProjection3f( startpt, dir, endpt );
 
     if ( apply_cut ) {
       

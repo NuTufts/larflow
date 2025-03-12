@@ -433,12 +433,12 @@ namespace prep {
    * @param[in] threshold Keep only pixels with value above this threshold
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::PixData_t> >
+  std::vector< std::vector<larflow::prep::PixData_t> >
   FlowTriples::make_initial_sparse_image( const std::vector<larcv::Image2D>& adc_v,
                                           float threshold ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv(adc_v.size());
+    std::vector< std::vector<larflow::prep::PixData_t> > sparseimg_vv(adc_v.size());
     
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
@@ -480,7 +480,7 @@ namespace prep {
    * @param[in] shower  ensure beginning (end) of shower (track) is in image if true (false)
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::PixData_t> >
+  std::vector< std::vector<larflow::prep::PixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_truth( const std::vector<larcv::Image2D>& adc_v,
                                                               ublarcvapp::mctools::MCPixelPGraph& mcpg,
                                                               larlite::storage_manager& ioll, 
@@ -489,7 +489,7 @@ namespace prep {
                                                               bool shower ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::PixData_t> > sparseimg_vv(adc_v.size()*2);
+    std::vector< std::vector<larflow::prep::PixData_t> > sparseimg_vv(adc_v.size()*2);
     
     // pixels must belong to particle with input trackid - get corresponding rows, columns
     const auto partPix_vv = mcpg.getPixelsFromParticleAndDaughters(trackid);
@@ -637,7 +637,7 @@ namespace prep {
    * @param[in] colSpan  number of columns in cropped image
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  std::vector< std::vector<larflow::prep::CropPixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v,
                                                              const std::vector<larcv::Image2D>& thrumu_v,
                                                              const larlite::larflowcluster& prong,
@@ -645,7 +645,7 @@ namespace prep {
                                                              float threshold, int rowSpan, int colSpan ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v.size()*2);
+    std::vector< std::vector<larflow::prep::CropPixData_t> > sparseimg_vv(adc_v.size()*2);
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
       sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
@@ -678,7 +678,7 @@ namespace prep {
    * @param[in] trackid_rm2  optional: track id of 2nd particle to remove from context images
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  std::vector< std::vector<larflow::prep::CropPixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_reco_rmContextPart(
                                                              const std::vector<larcv::Image2D>& adc_v,
                                                              const std::vector<larcv::Image2D>& thrumu_v,
@@ -689,7 +689,7 @@ namespace prep {
                                                              int trackid_rm, int trackid_rm2 ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v.size()*2);
+    std::vector< std::vector<larflow::prep::CropPixData_t> > sparseimg_vv(adc_v.size()*2);
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       sparseimg_vv[p].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
       sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v[p].as_vector().size() ) );
@@ -723,7 +723,7 @@ namespace prep {
    * @param[in] trackid_rm2  optional: track id of 2nd particle to remove from context images
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  std::vector< std::vector<larflow::prep::CropPixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_reco_subContextPart(
                                                              const std::vector<larcv::Image2D>& adc_v_reco,
                                                              const std::vector<larcv::Image2D>& adc_v_sim, 
@@ -735,7 +735,7 @@ namespace prep {
                                                              int trackid_rm, int trackid_rm2 ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v_reco.size()*2);
+    std::vector< std::vector<larflow::prep::CropPixData_t> > sparseimg_vv(adc_v_reco.size()*2);
     for ( size_t p=0; p<adc_v_reco.size(); p++ ) {
       sparseimg_vv[p].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
       sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
@@ -770,7 +770,7 @@ namespace prep {
    * @param[in] trackid_rm2  optional: track id of 2nd particle to remove from context images
    * @return    Vector of images in sparse representation (i.e. a list of pixels above threshold)
    */        
-  std::vector< std::vector<FlowTriples::CropPixData_t> >
+  std::vector< std::vector<larflow::prep::CropPixData_t> >
   FlowTriples::make_cropped_initial_sparse_prong_image_reco_truthProngSub(
                                                              const std::vector<larcv::Image2D>& adc_v_reco,
                                                              const std::vector<larcv::Image2D>& adc_v_sim, 
@@ -782,7 +782,7 @@ namespace prep {
                                                              int trackid_rm, int trackid_rm2 ) {
 
     // sparsify planes: pixels must be above threshold
-    std::vector< std::vector<FlowTriples::CropPixData_t> > sparseimg_vv(adc_v_reco.size()*2);
+    std::vector< std::vector<larflow::prep::CropPixData_t> > sparseimg_vv(adc_v_reco.size()*2);
     for ( size_t p=0; p<adc_v_reco.size(); p++ ) {
       sparseimg_vv[p].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
       sparseimg_vv[p+3].reserve( (int)( 0.1 * adc_v_reco[p].as_vector().size() ) );
@@ -863,7 +863,7 @@ namespace prep {
 
 
 
-  void FlowTriples::fillProngImagesFromReco(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+  void FlowTriples::fillProngImagesFromReco(std::vector< std::vector<larflow::prep::CropPixData_t> >& sparseimg_vv,
                                             const float& threshold,
                                             const std::vector<larcv::Image2D>& adc_v,
                                             const std::vector<larcv::Image2D>& thrumu_v,
@@ -900,7 +900,7 @@ namespace prep {
   }
 
 
-  void FlowTriples::fillProngImagesFromTruth(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+  void FlowTriples::fillProngImagesFromTruth(std::vector< std::vector<larflow::prep::CropPixData_t> >& sparseimg_vv,
                                              const float& threshold,
                                              const std::vector<larcv::Image2D>& adc_v,
                                              const std::vector< std::vector<int> >& imgBounds){
@@ -932,7 +932,7 @@ namespace prep {
   }
 
 
-  void FlowTriples::fillContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+  void FlowTriples::fillContextImages(std::vector< std::vector<larflow::prep::CropPixData_t> >& sparseimg_vv,
                                       const float& threshold,
                                       const std::vector<larcv::Image2D>& adc_v,
                                       const std::vector<larcv::Image2D>& thrumu_v,
@@ -964,7 +964,7 @@ namespace prep {
   }
 
 
-  void FlowTriples::fillContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+  void FlowTriples::fillContextImages(std::vector< std::vector<larflow::prep::CropPixData_t> >& sparseimg_vv,
                                       const float& threshold,
                                       const std::vector<larcv::Image2D>& adc_v,
                                       const std::vector< std::vector<int> >& imgBounds){
@@ -994,7 +994,7 @@ namespace prep {
   }
 
 
-  void FlowTriples::fillPartRmContextImages(std::vector< std::vector<FlowTriples::CropPixData_t> >& sparseimg_vv,
+  void FlowTriples::fillPartRmContextImages(std::vector< std::vector<larflow::prep::CropPixData_t> >& sparseimg_vv,
                                             const float& threshold,
                                             const std::vector<larcv::Image2D>& adc_v,
                                             const std::vector<larcv::Image2D>& thrumu_v,

@@ -96,7 +96,7 @@ namespace reco {
       }
       
     }
-    
+    return split_v;
   }
 
   int TrackFindBadConnection::processNuVertexTracks( larflow::reco::NuVertexCandidate& nuvtx,
@@ -119,6 +119,7 @@ namespace reco {
     }
     
     LARCV_INFO() << "Number of tracks split: " << nsplit << std::endl;
+    return 0;
   }
 }
 }

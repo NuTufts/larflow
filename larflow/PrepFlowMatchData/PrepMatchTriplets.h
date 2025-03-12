@@ -6,6 +6,8 @@
 #include "bytesobject.h"
 
 #include <vector>
+#include "TH2D.h"
+
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctrack.h"
@@ -15,8 +17,9 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/Processor/ProcessBase.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
-#include "FlowTriples.h"
-#include "TH2D.h"
+#include "larflow/PrepFlowMatchData/PixData_t.h"
+#include "larflow/PrepFlowMatchData/CropPixData_t.h"
+#include "larflow/PrepFlowMatchData/FlowTriples.h"
 
 namespace larflow {
 namespace prep {
@@ -77,8 +80,8 @@ namespace prep {
                                           
     std::vector<TH2D> plot_truth_images( std::string hist_stem_name );
 
-    std::vector< larcv::ImageMeta >                       _imgmeta_v;      ///< image metas for the most recently processed event
-    std::vector< std::vector< FlowTriples::PixData_t > >  _sparseimg_vv;   ///< sparse representation of image
+    std::vector< larcv::ImageMeta >                         _imgmeta_v;      ///< image metas for the most recently processed event
+    std::vector< std::vector< larflow::prep::PixData_t > >  _sparseimg_vv;   ///< sparse representation of image
     std::vector< std::vector<int> >                       _triplet_v;      ///< set of sparseimage indices indicating candidate 3-plane match (U-index,V-index,Y-index,tick)
     std::vector< int >                                    _truth_v;        ///< indicates if index set in _triple_v is true match (1) or not (0)
     std::vector< std::vector<int> >                       _truth_2plane_v; ///< truth vectors for 2 plane flows. inner vector is 1/0 for all 2-plane flow dirs

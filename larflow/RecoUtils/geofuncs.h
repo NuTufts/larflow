@@ -4,9 +4,10 @@
 #include <vector>
 
 namespace larflow {
-namespace reco {
+namespace recoutils {
 
-
+#ifndef __CINT__
+#ifndef __CLING__
   template <class T>
     T pointLineDistance( const std::vector<T>& linept1,
                             const std::vector<T>& linept2,
@@ -16,6 +17,8 @@ namespace reco {
     T pointRayProjection( const std::vector<T>& start,
                           const std::vector<T>& dir,
                           const std::vector<T>& testpt );
+#endif
+#endif
 
   float pointLineDistance3f( const std::vector<float>& linept1,
                              const std::vector<float>& linept2,

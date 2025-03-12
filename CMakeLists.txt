@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(larflow VERSION 0.1)
 
 set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 
 #---Install location by default is in the build directory
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -89,6 +90,7 @@ endif()
 
 #---Eigen
 find_package(Eigen3 REQUIRED)
+get_property(EIGEN3_INCLUDE_DIRS TARGET Eigen3::Eigen PROPERTY INTERFACE_INCLUDE_DIRECTORIES )
 
 #---Cilantro
 set( CILANTRO_INC_DIR "$ENV{CILANTRO_INC_DIR}" )

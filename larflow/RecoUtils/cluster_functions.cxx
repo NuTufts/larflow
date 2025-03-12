@@ -9,7 +9,7 @@
 #include <cilantro/principal_component_analysis.hpp>
 
 namespace larflow {
-namespace reco {
+namespace recoutils {
 
   ClusterFunctions::ClusterFunctions() {}
   
@@ -72,7 +72,7 @@ namespace reco {
    * @brief make clusters from vector of floats using DB scan
    * 
    * @param[in]  points_v  vector of 3D space points represented as a vector<float>
-   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[out] cluster_v Container of larflow::recoutils::cluster_t objects made
    * @param[in]  maxdist   maximum distance two points can be connected
    * @param[in]  minsize   minimum size of cluster
    * @param[in]  maxkd     maximum number of connections a node can have
@@ -116,7 +116,7 @@ namespace reco {
    * This is preferred to above.
    *
    * @param[in]  hit_v     Vector of larflow3dhit
-   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[out] cluster_v Container of larflow::recoutils::cluster_t objects made
    * @param[in]  maxdist   maximum distance two points can be connected
    * @param[in]  minsize   minimum size of cluster
    * @param[in]  maxkd     maximum number of connections a node can have
@@ -175,7 +175,7 @@ namespace reco {
    * This is preferred to above.
    *
    * @param[in]  hit_v     Vector of larflow3dhit
-   * @param[out] cluster_v Container of larflow::reco::cluster_t objects made
+   * @param[out] cluster_v Container of larflow::recoutils::cluster_t objects made
    * @param[in]  maxdist   maximum distance two points can be connected
    * @param[in]  minsize   minimum size of cluster
    * @param[in]  maxkd     maximum number of connections a node can have
@@ -786,7 +786,7 @@ namespace reco {
         e_v.push_back( da_v );
     }
     // start and end points
-    int closest_end = larflow::reco::cluster_closest_pcaend( c, refpt );
+    int closest_end = larflow::recoutils::cluster_closest_pcaend( c, refpt );
     int other_end = (closest_end==0) ? 1 : 0;
     std::vector<double> start_v(3,0);
     std::vector<double> end_v(3,0);
@@ -942,7 +942,7 @@ namespace reco {
     for (int i=0; i<3; i++)
       pca_dir[i] /= len;
 
-    float s = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[0], pca_dir, pt );
+    float s = larflow::recoutils::pointRayProjection3f( cluster.pca_ends_v[0], pca_dir, pt );
     if ( s>=0 && s<=len )
       return true;
     return false;
@@ -1044,7 +1044,7 @@ namespace reco {
   int cluster_closest_pcaend( const cluster_t& cluster, const std::vector<float>& testpt )
   {
     if ( cluster.pca_ends_v.size()!=2 ) {
-      throw std::runtime_error( "[larflow::reco::cluster_closest_pcaend] pca_end_v in cluster is not size 2");
+      throw std::runtime_error( "[larflow::recoutils::cluster_closest_pcaend] pca_end_v in cluster is not size 2");
     }
     
     float enddist[2] = {0};
@@ -1113,7 +1113,7 @@ namespace reco {
       }
     }
 
-    larflow::reco::cluster_t newtrunk_cluster;
+    larflow::recoutils::cluster_t newtrunk_cluster;
     newtrunk_cluster.points_v.reserve(200);
     std::vector< std::vector<float> > newtrunk_hits_v;
     newtrunk_hits_v.reserve( 200 );
@@ -1136,7 +1136,7 @@ namespace reco {
     }
     else {
       try {
-	larflow::reco::cluster_pca( newtrunk_cluster );
+	larflow::recoutils::cluster_pca( newtrunk_cluster );
       }
       catch ( std::exception& e ) {
 	//LARCV_DEBUG() << "Error calculating PCA: " << e.what() << std::endl;
