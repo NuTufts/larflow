@@ -13,7 +13,7 @@
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -78,7 +78,7 @@ namespace reco {
     float maxdist = 5.0;
     int minsize = 20;
     int maxkd = 20;
-    std::vector<cluster_t> cluster_v;
+    std::vector<recoutils::cluster_t> cluster_v;
     cluster_larflow3dhits( shower_goodhit_v, cluster_v, maxdist, minsize, maxkd );
     LARCV_INFO() << "num shower clusters:  " << cluster_v.size() << std::endl;
     
@@ -86,7 +86,7 @@ namespace reco {
     // now for each shower cluster, we find some trunk candidates.
     // can have any number of such candidates per shower cluster
     // we only analyze clusters with a first pc-axis length > 1.0 cm
-    std::vector< const cluster_t* > showerhit_cluster_v;
+    std::vector< const recoutils::cluster_t* > showerhit_cluster_v;
     std::vector<int>                cluster_used_v( cluster_v.size(), 0 );
 
     int idx = -1;
@@ -246,7 +246,7 @@ namespace reco {
    * @param[in] showercluster_v Clusters made from shower-labeled spacepoints
    * @param[in] keypoint_v  Keypoints from the keypoint network
    */
-  void ShowerRecoKeypoint::_reconstructClusterTrunks( const std::vector<const cluster_t*>& showercluster_v,
+  void ShowerRecoKeypoint::_reconstructClusterTrunks( const std::vector<const recoutils::cluster_t*>& showercluster_v,
                                                       const std::vector<const larlite::larflow3dhit*>& keypoint_v )
   {
 
@@ -255,7 +255,7 @@ namespace reco {
     for ( size_t ishower=0; ishower<showercluster_v.size(); ishower++ ) {
 
       // get shower
-      const cluster_t* pshower = showercluster_v[ishower];
+      const recoutils::cluster_t* pshower = showercluster_v[ishower];
 
       ShowerCandidate_t shower_cand;
       shower_cand.cluster_idx = ishower;
@@ -280,7 +280,7 @@ namespace reco {
         if ( !inbbox )
           continue;
 
-        std::vector< cluster_t > trunk_v(3);
+        std::vector< recoutils::cluster_t > trunk_v(3);
         float mindist = 1e9;
         
         for ( size_t ihit=0; ihit<pshower->points_v.size(); ihit++ ) {
@@ -324,7 +324,7 @@ namespace reco {
         
         for (size_t irad=0; irad<3; irad++) {
 
-          cluster_t& cluster = trunk_v[irad];
+          recoutils::cluster_t& cluster = trunk_v[irad];
           if ( cluster.points_v.size()<10 ) continue;
           
           cluster_pca( cluster );
@@ -387,7 +387,7 @@ namespace reco {
           std::vector<float> kp = { keypoint[0], keypoint[1], keypoint[2] };
           std::vector<float> pt2(3,0);
           for (int v=0; v<3; v++) pt2[v] = center_v[v] + e_v[v];
-          float impact = pointLineDistance( center_v, e_v, kp );
+          float impact = recoutils::pointLineDistance( center_v, e_v, kp );
           impact_par_v[irad] = impact;
 
           // // closest cluster end
@@ -483,7 +483,7 @@ namespace reco {
    * @param[in] showerhit_cluster_v The clusters made from shower-labeled spacepoints.
    *
    */
-  void ShowerRecoKeypoint::_buildShowers( const std::vector< const cluster_t*>& showerhit_cluster_v )
+  void ShowerRecoKeypoint::_buildShowers( const std::vector< const recoutils::cluster_t*>& showerhit_cluster_v )
   {
 
     int nbad_cands = 0;
@@ -564,7 +564,7 @@ namespace reco {
    */
   ShowerRecoKeypoint::Shower_t
   ShowerRecoKeypoint::_buildShowerCandidate( const ShowerCandidate_t& shower_cand,
-                                             const std::vector< const cluster_t*>& showerhit_cluster_v )
+                                             const std::vector< const recoutils::cluster_t*>& showerhit_cluster_v )
   {
 
     std::vector< std::set<int> > trunk_cluster_idxset_v;
@@ -635,7 +635,7 @@ namespace reco {
    *
    */
   std::set<int> ShowerRecoKeypoint::_buildoutShowerTrunkCandidate( const ShowerTrunk_t& trunk_cand,
-                                                                   const std::vector< const cluster_t*>& showerhit_cluster_v )
+                                                                   const std::vector< const recoutils::cluster_t*>& showerhit_cluster_v )
   {
 
     const float ar_moliere_rad_cm = 9.04;
@@ -674,7 +674,7 @@ namespace reco {
           bbox_pt[v] = cluster.bbox_v[v][state[v]];
 
         // test
-        float dist = pointLineDistance( trunk_cand.center_v, alongpca, bbox_pt );
+        float dist = recoutils::pointLineDistance( trunk_cand.center_v, alongpca, bbox_pt );
         float proj = 0.;
         for (int v=0; v<3; v++ ) {
           proj += (bbox_pt[v]-trunk_cand.keypoint->at(v))*trunk_cand.pcaxis_v[v];
@@ -717,7 +717,7 @@ namespace reco {
       bool accept = false;
       
       for ( auto const& hit : cluster.points_v ) {
-        float dist = pointLineDistance( trunk_cand.center_v, alongpca, hit );
+        float dist = recoutils::pointLineDistance( trunk_cand.center_v, alongpca, hit );
         float proj = 0.;
         for (int v=0; v<3;v++)
           proj += ( hit[v]-trunk_cand.keypoint->at(v) )*trunk_cand.pcaxis_v[v];
@@ -768,7 +768,7 @@ namespace reco {
   ShowerRecoKeypoint::_fillShowerObject( const ShowerCandidate_t& shower_cand,
                                          const std::set<int>& cluster_idx_set,
                                          const int trunk_idx,
-                                         const std::vector< const cluster_t* >& showerhit_cluster_v )
+                                         const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v )
   {
 
     Shower_t recoshower;
@@ -793,7 +793,7 @@ namespace reco {
    * @param[in] showerhit_cluster_v Original shower clusters
    */
   void ShowerRecoKeypoint::_fillShowerObject( Shower_t& shower,
-                                              const std::vector< const cluster_t* >& showerhit_cluster_v )
+                                              const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v )
   {
 
     for ( auto const& idx : shower.cluster_idx ) {
@@ -817,7 +817,7 @@ namespace reco {
    */
   int ShowerRecoKeypoint::_chooseBestTrunk( const ShowerCandidate_t& shower_cand,
                                             const std::set<int>& cluster_idx_v,
-                                            const std::vector< const cluster_t* >& showerhit_cluster_v )
+                                            const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v )
   {
 
     float max_ll = -1e9;
@@ -842,7 +842,7 @@ namespace reco {
       float w_tot = 0.;
       for ( auto const& idx : cluster_idx_v ) {
         for (auto const& hit : showerhit_cluster_v[idx]->points_v ) {
-          float dist = pointLineDistance( trunk_cand.center_v, alongpca, hit );
+          float dist = recoutils::pointLineDistance( trunk_cand.center_v, alongpca, hit );
           float proj = 0.;
           for (int v=0; v<3; v++) {
             proj += (hit[v]-trunk_cand.start_v[v])*trunk_cand.pcaxis_v[v];
@@ -887,9 +887,9 @@ namespace reco {
    * @param[in] showerhit_cluster_v All the shower clusters
    * @return index of the best shower candidate to assign cluster
    */
-  int ShowerRecoKeypoint::_chooseBestShowerForCluster( const cluster_t& cluster,
+  int ShowerRecoKeypoint::_chooseBestShowerForCluster( const recoutils::cluster_t& cluster,
                                                        const std::set<int>& shower_idx_v,
-                                                       const std::vector< const cluster_t* >& showerhit_cluster_v )
+                                                       const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v )
   {
 
     float min_least_sq = -1;
@@ -908,7 +908,7 @@ namespace reco {
 
       int npoints = 0;
       for ( auto const& hit : cluster.points_v ) {
-        float dist = pointLineDistance( shower.trunk.center_v, alongpca, hit );
+        float dist = recoutils::pointLineDistance( shower.trunk.center_v, alongpca, hit );
         ls += dist*dist;
         npoints++;
       }

@@ -6,7 +6,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -29,7 +29,7 @@ namespace reco {
   protected:
 
     void checkForOverlap( larlite::storage_manager& io,
-                          std::vector< larflow::reco::cluster_t >& proton_cluster_v,                          
+                          std::vector< larflow::recoutils::cluster_t >& proton_cluster_v,                          
                           std::vector< std::string >& cluster_overlap_list );
 
     std::string _input_hit_treename; ///< input name of hits to use
