@@ -3,8 +3,8 @@
 #include <sstream>
 
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "TrackdQdx.h"
-#include "geofuncs.h"
 
 namespace larflow {
 namespace reco {

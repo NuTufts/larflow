@@ -4,7 +4,7 @@
 #include "larlite/DataFormat/larflowcluster.h"
 #include "TrackdQdx.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -156,8 +156,8 @@ namespace reco {
     for (int itrack=0; itrack<(int)reclassified_cluster.size(); itrack++) {
 
       auto& cluster = reclassified_cluster.at(itrack);
-      larflow::reco::cluster_t c = larflow::reco::cluster_from_larflowcluster( cluster );
-      larlite::pcaxis pca = larflow::reco::cluster_make_pcaxis( c, itrack );
+      larflow::recoutils::cluster_t c = larflow::recoutils::cluster_from_larflowcluster( cluster );
+      larlite::pcaxis pca = larflow::recoutils::cluster_make_pcaxis( c, itrack );
       
       evout_cluster->emplace_back( std::move(reclassified_cluster.at(itrack)) );
       evout_track->emplace_back( std::move(reclassified_track.at(itrack)) );

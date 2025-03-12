@@ -4,7 +4,7 @@
 #include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/UBImageMod/TrackImageMask.h"
 
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -93,8 +93,8 @@ namespace reco {
         auto const& pt = point_v[ii];
         auto const& imgcoord = imgcoord_v[ii];
         int hitidx = search_index_v[ii];
-        float r = larflow::reco::pointLineDistance3f( start, end, pt );
-        float s = larflow::reco::pointRayProjection3f( start, dir, pt );
+        float r = larflow::recoutils::pointLineDistance3f( start, end, pt );
+        float s = larflow::recoutils::pointRayProjection3f( start, dir, pt );
         //std::cout << "  point: r=" << r << " s=" << s << std::endl;
           
         if ( r>5.0 || s<0 || s>len ) {
