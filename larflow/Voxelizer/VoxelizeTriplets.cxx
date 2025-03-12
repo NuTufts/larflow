@@ -267,7 +267,7 @@ namespace voxelizer {
       for ( auto const& tripidx : tripidx_v ) {
 	auto const& tripindices = triplet_data._triplet_v[tripidx];
 	for (int p=0; p<3; p++) {
-	  const larflow::prep::FlowTriples::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
+	  const larflow::prep::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
 	  pixsum_v[p] += pixdata.val;
 	  npix_v[p]++;
 	}

@@ -2,7 +2,7 @@
 
 #include "larlite/LArUtil/Geometry.h"
 #include "larlite/LArUtil/LArProperties.h"
-#include "larflow/Reco/geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace keypoints {
@@ -268,9 +268,9 @@ namespace keypoints {
       }
 
       if ( steplen>0 ) {
-        double projs = larflow::reco::pointRayProjection3d( start, stepdir, pt );
+        double projs = larflow::recoutils::pointRayProjection3d( start, stepdir, pt );
         if ( projs>0 && projs<steplen ) {
-          double r = larflow::reco::pointLineDistance3d( start, end, pt );
+          double r = larflow::recoutils::pointLineDistance3d( start, end, pt );
           if ( best_step==-1 || best_step_r>r ) {
             best_step = istep;
             best_step_r = r;

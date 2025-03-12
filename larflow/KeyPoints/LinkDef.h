@@ -14,7 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::keypoints;
 #pragma link C++ class larflow::keypoints::KPdata+;
 #pragma link C++ class larflow::keypoints::PrepKeypointData+;
