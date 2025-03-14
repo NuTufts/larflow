@@ -95,7 +95,8 @@ if args.has_mc:
     io.specify_data_read( larcv.kProductImage2D, "larflow" )    
 if args.has_wirecell:
     io.specify_data_read( larcv.kProductChStatus, "thrumu" )
-io.reverse_all_products()
+if args.tickbackwards:
+    io.reverse_all_products()
 io.initialize()
 
 
