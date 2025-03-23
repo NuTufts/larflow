@@ -9,7 +9,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/larflowcluster.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -53,16 +53,16 @@ namespace reco {
   protected:    
     
 
-    larlite::larflowcluster makeLArFlowCluster( cluster_t& cluster,
+    larlite::larflowcluster makeLArFlowCluster( recoutils::cluster_t& cluster,
                                                 const std::vector<larlite::larflow3dhit>& source_lfhit_v );
 
-    cluster_t absorb_nearby_hits( const cluster_t& cluster,
+    recoutils::cluster_t absorb_nearby_hits( const recoutils::cluster_t& cluster,
                                   const std::vector<larlite::larflow3dhit>& hit_v,
                                   std::vector<int>& used_hits_v,
                                   float max_dist2line );
     
     void makeCluster( const std::vector<larlite::larflow3dhit>& inputhits,
-                      std::vector<cluster_t>& output_cluster_v,
+                      std::vector<recoutils::cluster_t>& output_cluster_v,
                       std::vector<int>& used_hits_v );
 
   protected:

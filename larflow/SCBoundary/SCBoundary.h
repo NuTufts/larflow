@@ -34,16 +34,22 @@ namespace scb {
     SCBoundary() {};
     virtual ~SCBoundary() {};
 
+#ifndef __CINT__
+#ifndef __CLING__
     template <class T>
       T dist2boundary( const std::vector<T>& pos, Boundary_t& btype ) const;
+
+    template <class T>
+      T XatBoundary( const std::vector<T>& pos ) const; 
+#endif
+#endif
+
 
     float  dist2boundary( float  x, float y, float z ) const;
     double dist2boundary( double x, double y, double z ) const;
     float  dist2boundary(  float x,  float y,  float z, int& ibtype ) const;
     double dist2boundary( double x, double y, double z, int& ibtype ) const;        
 
-    template <class T>
-      T XatBoundary( const std::vector<T>& pos ) const; 
     float  XatBoundary( float x,  float y,  float z ) const;
     double XatBoundary( double x, double y, double z ) const;
 
@@ -74,10 +80,14 @@ namespace scb {
     static double ZX_Dw_z2_array[10];                  ///< z-position defining end of downstream space charge boundary in 10 y-subsections
     static constexpr double ZX_Dw_x2_array     = 256;  ///< x-position defining end of downstream space charge boundary
 
+#ifndef __CINT__
+#ifndef __CLING__
     template <class T>
       T pointLineDistance( const std::vector<T>& linept1,
                            const std::vector<T>& linept2,
                            const std::vector<T>& testpt ) const;
+#endif
+#endif
     
   };
   

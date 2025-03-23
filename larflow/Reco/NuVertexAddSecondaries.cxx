@@ -1,5 +1,5 @@
 #include "NuVertexAddSecondaries.h"
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "NuTrackBuilder.h"
 #include "NuVertexShowerReco.h"
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
@@ -123,9 +123,11 @@ namespace reco {
     
     LARCV_DEBUG() << "Now extend tracks using NuTrackBuilder" << std::endl;
     NuTrackBuilder _nu_track_builder;
-    _nu_track_builder.set_verbosity( larcv::msg::kNORMAL );    
+    //_nu_track_builder.set_verbosity( larcv::msg::kNORMAL );
+    _nu_track_builder.set_verbosity( logger().level() );    
     _nu_track_builder.loadClustersAndConnections( iolcv, ioll );
-    _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    //_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+    _nu_track_builder.set_verbosity( logger().level() );
 
     // Set secondary flags for previously added tracks & showers if this hasn't been done
     if ( nuvtx.track_isSecondary_v.size() == 0 ) {
@@ -148,70 +150,66 @@ namespace reco {
       }
       
       if ( candidate.trackorshower==0 ) {
-        // track
-        // make a fake nuvtx candididate for the secondary attach point
-        NuVertexCandidate nuvtx2;
-        nuvtx2.pos = candidate.seedpos;
+	// track
+	// make a fake nuvtx candididate for the secondary attach point
+	NuVertexCandidate nuvtx2;
+	nuvtx2.pos = candidate.seedpos;
 
-        // must provide the seed cluster
-        NuVertexCandidate::VtxCluster_t vtxcluster;
-        vtxcluster.producer = candidate.producername;
-        vtxcluster.type = NuVertexCandidate::kTrack;
-        vtxcluster.index = candidate.clusteridx;
-        vtxcluster.pos = candidate.seedpos;
-        nuvtx2.cluster_v.push_back( vtxcluster );
-        
-        std::vector< NuVertexCandidate > nuvtx2_v;
-        std::vector< ClusterBookKeeper > book_v;
-        nuvtx2_v.push_back( nuvtx2 );
-        book_v.push_back( nuclusterbook );	
-        _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
-        _nu_track_builder.clear_track_proposals();
-        _nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
-        LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
-        if ( nuvtx2_v.at(0).track_v.size()>0 ) {
-          nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
-          nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
-                nuvtx.track_isSecondary_v.push_back(1);
-        }
+	// must provide the seed cluster
+	NuVertexCandidate::VtxCluster_t vtxcluster;
+	vtxcluster.producer = candidate.producername;
+	vtxcluster.type = NuVertexCandidate::kTrack;
+	vtxcluster.index = candidate.clusteridx;
+	vtxcluster.pos = candidate.seedpos;
+	nuvtx2.cluster_v.push_back( vtxcluster );
+	
+	std::vector< NuVertexCandidate > nuvtx2_v;
+	std::vector< ClusterBookKeeper > book_v;
+	nuvtx2_v.push_back( nuvtx2 );
+	book_v.push_back( nuclusterbook );	
+	//_nu_track_builder.set_verbosity( larcv::msg::kDEBUG );
+	_nu_track_builder.set_verbosity( logger().level() );
+	_nu_track_builder.clear_track_proposals();
+	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, false );
+	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
+	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
+	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
+	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
+          nuvtx.track_isSecondary_v.push_back(1);
+	}
       }
       else {
-        // shower
-        NuVertexShowerReco _nuvertex_shower_reco;
-        _nuvertex_shower_reco.activateMCanalysisMode(false);
-        _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );    
-        _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-        _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
-        _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
+	// shower
+	NuVertexShowerReco _nuvertex_shower_reco;
+	//_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );
+	_nuvertex_shower_reco.set_verbosity( logger().level() );    
+	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+	_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
 
-        // make a fake nuvtx candididate for the secondary attach point
-        NuVertexCandidate nuvtx2;
-        nuvtx2.pos = candidate.seedpos;
-        nuvtx2.keypoint_type = (int)larflow::kShowerStart;
-        nuvtx2.keypoint_producer = "secondary";
-        nuvtx2.maxScore = -1;
-        nuvtx2.netNuScore = -1;
-        nuvtx2.netScore = -1; 
+	// make a fake nuvtx candididate for the secondary attach point
+	NuVertexCandidate nuvtx2;
+	nuvtx2.pos = candidate.seedpos;
 
-        // must provide the seed cluster
-        NuVertexCandidate::VtxCluster_t vtxcluster;
-        vtxcluster.producer = candidate.producername;
-        vtxcluster.type = NuVertexCandidate::kShowerKP;
-        vtxcluster.index = candidate.clusteridx;
-        vtxcluster.pos = candidate.attach_pos;
-        nuvtx2.cluster_v.push_back( vtxcluster );
-        _nuvertex_shower_reco.loadClusters(ioll);
-        _nuvertex_shower_reco.build_vertex_showers( nuvtx2,
-                      nuclusterbook,
-                      iolcv, 
-                      ioll );
-        LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2.shower_v.size() << std::endl;
-        for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
-          nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
-          nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
-          nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
-                nuvtx.shower_isSecondary_v.push_back(1);
-        }
+	// must provide the seed cluster
+	NuVertexCandidate::VtxCluster_t vtxcluster;
+	vtxcluster.producer = candidate.producername;
+	vtxcluster.type = NuVertexCandidate::kShowerKP;
+	vtxcluster.index = candidate.clusteridx;
+	vtxcluster.pos = candidate.attach_pos;
+	nuvtx2.cluster_v.push_back( vtxcluster );
+	_nuvertex_shower_reco.loadClusters(ioll);
+	_nuvertex_shower_reco.build_vertex_showers( nuvtx2,
+						    nuclusterbook,
+						    iolcv, 
+						    ioll );
+	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2.shower_v.size() << std::endl;
+	for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
+	  nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
+	  nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
+	  nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
+          nuvtx.shower_isSecondary_v.push_back(1);
+	}
 	
       }
     }
@@ -273,14 +271,14 @@ namespace reco {
         continue;
       }
 
-      float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
+      float d = larflow::recoutils::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
       //std::cout << "ipt=" << ipt << " d=" << d << std::endl;
       
       if ( d>_max_line_dist )
 	continue;
 
-      float s1 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_start );
-      float s2 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_end );
+      float s1 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_start );
+      float s2 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_end );
 
       float ptdist1 = 0.;
       float ptdist2 = 0.;      
@@ -395,14 +393,14 @@ namespace reco {
         continue;
       }
 
-      float d = larflow::reco::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
+      float d = larflow::recoutils::lineLineDistance3f( cluster_start, cluster_end, pt1, pt2 );
       //std::cout << "ipt=" << ipt << " d=" << d << std::endl;
       
       if ( d>_max_line_dist )
 	continue;
 
-      float s1 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_start );
-      float s2 = larflow::reco::pointRayProjection3f( pt1, segdir, cluster_end );
+      float s1 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_start );
+      float s2 = larflow::recoutils::pointRayProjection3f( pt1, segdir, cluster_end );
 
       float ptdist1 = 0.;
       float ptdist2 = 0.;      

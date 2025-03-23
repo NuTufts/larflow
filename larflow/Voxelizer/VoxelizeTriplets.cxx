@@ -6,6 +6,7 @@
 
 #include "larlite/LArUtil/LArProperties.h"
 #include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
+#include "larflow/PrepFlowMatchData/PixData_t.h"
 
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
@@ -290,7 +291,7 @@ namespace voxelizer {
       for ( auto const& tripidx : tripidx_v ) {
 	auto const& tripindices = triplet_data._triplet_v[tripidx];
 	for (int p=0; p<3; p++) {
-	  const larflow::prep::FlowTriples::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
+	  const larflow::prep::PixData_t& pixdata = triplet_data._sparseimg_vv.at(p).at(tripindices[p]);
 	  pixsum_v[p] += pixdata.val;
 	  npix_v[p]++;
 	}
@@ -1332,7 +1333,7 @@ namespace voxelizer {
 	auto it_visited = visited.find(pixindex);
 	if ( it_visited==visited.end() ) {
 	  visited.insert(pixindex);
-	  const larflow::prep::FlowTriples::PixData_t& pixdata = _triplet_maker._sparseimg_vv.at(p).at(pixindex);
+	  const larflow::prep::PixData_t& pixdata = _triplet_maker._sparseimg_vv.at(p).at(pixindex);
 	  charge_v[p] += pixdata.val;
 	  nfilled_v[p]++;
 	}

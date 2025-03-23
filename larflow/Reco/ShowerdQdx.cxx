@@ -8,7 +8,7 @@
 #include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/MCTools/TruthShowerTrunkSCE.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "ClusterImageMask.h"
 
 
@@ -1654,7 +1654,7 @@ namespace reco {
       }      
 
       // finally!
-      float dvertex = larflow::reco::pointRayProjection3f( start_pos, dir, fmcstart );
+      float dvertex = larflow::recoutils::pointRayProjection3f( start_pos, dir, fmcstart );
       float fcos = 0.;
       for (int i=0; i<3; i++) {
         fcos += fsce_dir[i]*dir[i];

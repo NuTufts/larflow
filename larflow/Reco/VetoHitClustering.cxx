@@ -2,8 +2,8 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/larflowcluster.h"
 #include "larlite/DataFormat/track.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "NuVertexFitter.h"
-#include "geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -55,7 +55,7 @@ namespace reco {
       nuvtx.pos[v] = vtxfitter.get_fitted_pos()[0][v];
     _merge_hits_into_prongs( *evout_veto, close_hit_indices_v, nuvtx );    
 
-    std::vector<larflow::reco::cluster_t> output_cluster_v;
+    std::vector<larflow::recoutils::cluster_t> output_cluster_v;
     _findVetoClusters( *evout_veto, close_hit_indices_v, nuvtx, output_cluster_v );
     
   }
@@ -154,15 +154,15 @@ namespace reco {
       
       for (int itrack=0; itrack<nprongs; itrack++) {
 	// calculate distance from line segment to hit
-	float r = larflow::reco::pointLineDistance3f( nuvtx.pos, prong_start_v[itrack], pt );
-	float r_orig = larflow::reco::pointLineDistance3f( nuvtx.pos, prong_start_v[itrack], pt_orig );	
+	float r = larflow::recoutils::pointLineDistance3f( nuvtx.pos, prong_start_v[itrack], pt );
+	float r_orig = larflow::recoutils::pointLineDistance3f( nuvtx.pos, prong_start_v[itrack], pt_orig );	
 	// calculate projection of hit onto line-segment
 	float s = 0.0;
 	float s_orig = 0.0;
 
 	try {
-	  s = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt );
-	  s_orig = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt_orig );
+	  s = larflow::recoutils::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt );
+	  s_orig = larflow::recoutils::pointRayProjection3f( nuvtx.pos, prong_dir_v[itrack], pt_orig );
 	}
 	catch (...) {
 	  s = -1.0;
@@ -217,7 +217,7 @@ namespace reco {
 	std::vector<float> pt = { hit[0], hit[1], hit[2] };
 	float s = -1;
 	try {
-	  s = larflow::reco::pointRayProjection3f( nuvtx.pos, prong_dir_v[modprong], pt );
+	  s = larflow::recoutils::pointRayProjection3f( nuvtx.pos, prong_dir_v[modprong], pt );
 	}
 	catch (...) {
 	  s = -1;
@@ -307,7 +307,7 @@ namespace reco {
   void VetoHitClustering::_findVetoClusters( const larlite::event_larflow3dhit& inputhits,
 					     const std::vector<int>& close_hits_v,
 					     larflow::reco::NuVertexCandidate& nuvtx,
-					     std::vector<larflow::reco::cluster_t>& output_cluster_v )
+					     std::vector<larflow::recoutils::cluster_t>& output_cluster_v )
   {
 
     std::vector< std::vector<float> > veto_pts_v;
@@ -359,11 +359,11 @@ namespace reco {
     int _maxkd = 100;
     int minsize = 5;
     float maxdist = 1.0;
-    std::vector< larflow::reco::cluster_t > veto_clusters_v;
-    larflow::reco::cluster_sdbscan_spacepoints( veto_pts_v, veto_clusters_v,
+    std::vector< larflow::recoutils::cluster_t > veto_clusters_v;
+    larflow::recoutils::cluster_sdbscan_spacepoints( veto_pts_v, veto_clusters_v,
 						maxdist, minsize, _maxkd ); // external implementation, seems best
 
-    //larflow::reco::cluster_runpca( veto_clusters_v );
+    //larflow::recoutils::cluster_runpca( veto_clusters_v );
 
     LARCV_DEBUG() << "number of clusters returned: " << veto_clusters_v.size() << std::endl;
     
@@ -379,7 +379,7 @@ namespace reco {
 	  cluster.points_v[ ichit ][i] = hit[i];
       }
 
-      larflow::reco::cluster_pca( cluster );
+      larflow::recoutils::cluster_pca( cluster );
 
       LARCV_DEBUG() << "  veto cluster: "
 		    << " nhits=" << cluster.points_v.size()
@@ -400,7 +400,7 @@ namespace reco {
 	larlite::larflowcluster trackcluster;
 	trackcluster.reserve( cluster.hitidx_v.size() );
 
-	int close_end = larflow::reco::cluster_closest_pcaend( cluster, nuvtx.pos );
+	int close_end = larflow::recoutils::cluster_closest_pcaend( cluster, nuvtx.pos );
 	TVector3 start;
 	TVector3 end;
 	TVector3 vdir;

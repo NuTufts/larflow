@@ -1,6 +1,6 @@
 #include "DBScanLArMatchHits.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 #include "nlohmann/json.hpp"
 #include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
@@ -33,7 +33,7 @@ namespace reco {
 
     // cluster track hits
     std::vector<int> used_hits_v;
-    std::vector<cluster_t> cluster_v;
+    std::vector<recoutils::cluster_t> cluster_v;
     makeCluster( *ev_lfhits, cluster_v, used_hits_v );
     
     // form clusters of larflow hits for saving
@@ -57,7 +57,7 @@ namespace reco {
     larlite::event_larflowcluster* evout_noise_lfcluster
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, _out_cluster_tree_name+"noise" );    
     larlite::larflowcluster lfnoise;
-    cluster_t noise_cluster;
+    recoutils::cluster_t noise_cluster;
     for ( size_t i=0; i<ev_lfhits->size(); i++ ) {
       auto& hit = (*ev_lfhits)[i];
       if ( used_hits_v[i]==0 ) {
@@ -76,13 +76,13 @@ namespace reco {
   }
 
   /** 
-   * @brief convert cluster data in cluster_t into a larflowcluster object
+   * @brief convert cluster data in recoutils::cluster_t into a larflowcluster object
    *
    * @param[in] cluster  cluster produced by cluster_sdbscan_larflow3dhits()
    * @param[in] source_lfhit_v larflow3dhit vector passed into cluster_sdbscan_larflow3dhits()
    * @return cluster represented as larlite::larflowcluster object
    */
-  larlite::larflowcluster DBScanLArMatchHits::makeLArFlowCluster( cluster_t& cluster,
+  larlite::larflowcluster DBScanLArMatchHits::makeLArFlowCluster( recoutils::cluster_t& cluster,
                                                                   const std::vector<larlite::larflow3dhit>& source_lfhit_v ) {
     
     larlite::larflowcluster lfcluster;
@@ -121,12 +121,12 @@ namespace reco {
    * @param[in] max_dist2line Maximum distance a space point can be from the downsampled cluster's 1st principle component
    * @return A new cluster_t object that includes all assigned spacepoints
    */
-  cluster_t DBScanLArMatchHits::absorb_nearby_hits( const cluster_t& cluster,
+  recoutils::cluster_t DBScanLArMatchHits::absorb_nearby_hits( const recoutils::cluster_t& cluster,
                                                     const std::vector<larlite::larflow3dhit>& hit_v,
                                                     std::vector<int>& used_hits_v,
                                                     float max_dist2line ) {
 
-    cluster_t newcluster;
+    recoutils::cluster_t newcluster;
     int nused = 0;
     for ( size_t ihit=0; ihit<hit_v.size(); ihit++ ) {
 
@@ -183,7 +183,7 @@ namespace reco {
    *                         This function updates this flag for hits claimed while running this method.
    */
   void DBScanLArMatchHits::makeCluster( const std::vector<larlite::larflow3dhit>& inputhits,
-                                        std::vector<cluster_t>& output_cluster_v,
+                                        std::vector<recoutils::cluster_t>& output_cluster_v,
                                         std::vector<int>& used_hits_v ) {
 
     const int max_pts_to_cluster = 30000;
@@ -223,13 +223,13 @@ namespace reco {
     LARCV_INFO() << inputhits.size() << " hits downsampled to " << downsample_hit_v.size() << std::endl;
 
     // cluster these hits
-    std::vector<larflow::reco::cluster_t> cluster_pass_v;
-    larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
-    larflow::reco::cluster_runpca( cluster_pass_v );
+    std::vector<larflow::recoutils::cluster_t> cluster_pass_v;
+    larflow::recoutils::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+    larflow::recoutils::cluster_runpca( cluster_pass_v );
 
     // we then absorb the hits around these clusters
     for ( auto const& ds_cluster : cluster_pass_v ) {
-      cluster_t dense_cluster = absorb_nearby_hits( ds_cluster,
+      recoutils::cluster_t dense_cluster = absorb_nearby_hits( ds_cluster,
                                                     inputhits,
                                                     used_hits_v,
                                                     10.0 );

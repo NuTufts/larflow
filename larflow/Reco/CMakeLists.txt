@@ -3,8 +3,7 @@ set(MODULE_NAME Reco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h
-  geofuncs.h
+set( HEADERS
   SplitHitsBySSNet.h
   SplitHitsByParticleSSNet.h
   ChooseMaxLArFlowHit.h
@@ -59,8 +58,7 @@ set( HEADERS cluster_functions.h
   TruthRecoMatching.h
   KPSRecoManager.h )
 
-add_library( ${LIBNAME} SHARED cluster_functions.cxx
-  geofuncs.cxx
+add_library( ${LIBNAME} SHARED
   SplitHitsBySSNet.cxx
   SplitHitsByParticleSSNet.cxx
   ChooseMaxLArFlowHit.cxx  

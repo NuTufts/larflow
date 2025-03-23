@@ -13,7 +13,7 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/track.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -51,7 +51,7 @@ namespace reco {
 
     void process( larcv::IOManager& iolc, larlite::storage_manager& ioll );
 
-    int split_clusters( std::vector<cluster_t>& cluster_v,
+    int split_clusters( std::vector<recoutils::cluster_t>& cluster_v,
                         const std::vector<larcv::Image2D>& adc_v,
                         const float min_second_pca_len );
     
@@ -60,10 +60,10 @@ namespace reco {
   protected:
 
     larlite::larflowcluster
-      _makeLArFlowCluster( cluster_t& cluster,
+      _makeLArFlowCluster( recoutils::cluster_t& cluster,
                            const larlite::event_larflow3dhit& source_lfhit_v );
     
-    cluster_t _absorb_nearby_hits( cluster_t& cluster,
+    recoutils::cluster_t _absorb_nearby_hits( recoutils::cluster_t& cluster,
                                    const std::vector<larlite::larflow3dhit>& hit_v,
                                    std::vector<int>& used_hits_v,
                                    std::vector<larlite::larflow3dhit>& downsample_hit_v,
@@ -73,17 +73,17 @@ namespace reco {
     void _runSplitter( const larlite::event_larflow3dhit& inputhits,
                        const std::vector<larcv::Image2D>& adc_v,
                        std::vector<int>& used_hits_v,
-                       std::vector<cluster_t>& output_cluster_v );
+                       std::vector<recoutils::cluster_t>& output_cluster_v );
 
     void _findVetoClusters( const larlite::event_larflow3dhit& inputhits,
 			    const std::vector<larcv::Image2D>& adc_v,
 			    std::vector<int>& used_hits_v,
-			    std::vector<cluster_t>& output_cluster_v );    
+			    std::vector<recoutils::cluster_t>& output_cluster_v );    
     
-    void _defragment_clusters( std::vector<cluster_t>& cluster_v,
+    void _defragment_clusters( std::vector<recoutils::cluster_t>& cluster_v,
                                const float max_2nd_pca_eigenvalue );
 
-    void _select_clusters( std::vector<larflow::reco::cluster_t>& cluster_v,
+    void _select_clusters( std::vector<larflow::recoutils::cluster_t>& cluster_v,
 			   std::vector<int>& used_hits_v,
 			   const std::vector<int>& orig_index_v,
 			   const int min_nhits,
@@ -158,12 +158,12 @@ namespace reco {
 
   public:
     
-    static void fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
+    static void fitLineSegmentsToClusters( const std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                            const larlite::event_larflow3dhit& lfhit_v,
                                            const std::vector<larcv::Image2D>& adc_v,
                                            larlite::event_track& evout_track );
     
-    static larlite::track fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
+    static larlite::track fitLineSegmentToCluster( const larflow::recoutils::cluster_t& cluster,
                                                    const larlite::event_larflow3dhit& lfhit_v,
                                                    const std::vector<larcv::Image2D>& adc_v,
                                                    const float max_line_seg_cm=5.0);

@@ -3,7 +3,7 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/TruthTrackSCE.h"
 #include "ublarcvapp/MCTools/NeutrinoVertex.h"
-#include "larflow/Reco/geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 
 namespace larflow {
@@ -75,10 +75,9 @@ namespace prep {
 
     std::vector<int> pid_v;
     std::vector<int> shower_instance_v;
-    std::vector<larflow::reco::cluster_t> cluster_v;
+    std::vector<larflow::recoutils::cluster_t> cluster_v;    
     LARCV_INFO() << "cluster shower spacepoints by geant4 trackid" << std::endl;
     _cluster_same_showerpid_spacepoints( _shower_info_v, cluster_v, pid_v, shower_instance_v, tripmaker, true );
-
 
     // fix up proton id to not have such small clusters,
     // will reassign to ancestor or nearest proton id
@@ -90,7 +89,7 @@ namespace prep {
     // associate shower cluster fragments
     // for each larlite mcshower and mctrack, we find closest trunk.
     // then we absorb fragments. save as graph
-    std::vector<larflow::reco::cluster_t> merged_showers_v;  
+    std::vector<larflow::recoutils::cluster_t> merged_showers_v;    
     LARCV_INFO() << "use shower info to cluster shower fragments with missing mother connections to primary showers" << std::endl;  
     _merge_shower_fragments( cluster_v, pid_v, shower_instance_v, merged_showers_v );
     _reassign_merged_shower_instance_labels( merged_showers_v, _shower_info_v, tripmaker );
@@ -113,7 +112,7 @@ namespace prep {
    * @param[in] reassign_instance_labels if true, reassign instance labels in PrepMatchTriplets instance
    */
   void TripletTruthFixer::_cluster_same_showerpid_spacepoints( const std::vector<ShowerInfo_t>& shower_info_v,
-                                                               std::vector<larflow::reco::cluster_t>& cluster_v,
+                                                               std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                                                std::vector<int>& pid_v,
                                                                std::vector<int>& shower_instance_v,
                                                                larflow::prep::PrepMatchTriplets& tripmaker,
@@ -134,10 +133,10 @@ namespace prep {
     std::cout << "[TripletTruthFixer::_cluster_same_showerpid_spacepoints.L" << __LINE__ << "] "
               << " protected instances: ";
     std::set<int> mcshower_instances;
-    std::map<int,larflow::reco::cluster_t> mcshower_fragments;
+    std::map<int,larflow::recoutils::cluster_t> mcshower_fragments;
     for ( auto const& info : shower_info_v ) {
       mcshower_instances.insert( info.trackid );
-      mcshower_fragments[info.trackid] = larflow::reco::cluster_t();
+      mcshower_fragments[info.trackid] = larflow::recoutils::cluster_t();
       std::cout << info.trackid << " ";
     }
     std::cout << std::endl;
@@ -173,8 +172,8 @@ namespace prep {
         }
       }
 
-      std::vector< larflow::reco::cluster_t > pid_cluster_v;
-      larflow::reco::cluster_sdbscan_spacepoints( point_v, pid_cluster_v, maxdist, minsize, maxkd );
+      std::vector< larflow::recoutils::cluster_t > pid_cluster_v;
+      larflow::recoutils::cluster_sdbscan_spacepoints( point_v, pid_cluster_v, maxdist, minsize, maxkd );
 
       std::cout << "PID[" << pid << "] has " << pid_cluster_v.size() << " dbscan clusters" << std::endl;
 
@@ -383,10 +382,10 @@ namespace prep {
    * @brief Merge shower fragments onto showers that have mcshower instances
    *
    */
-  void TripletTruthFixer::_merge_shower_fragments( std::vector<larflow::reco::cluster_t>& shower_fragments_v,
+  void TripletTruthFixer::_merge_shower_fragments( std::vector<larflow::recoutils::cluster_t>& shower_fragments_v,
                                                    std::vector<int>& pid_v,
                                                    std::vector<int>& shower_instance_v,
-                                                   std::vector<larflow::reco::cluster_t>& merged_showers_v )
+                                                   std::vector<larflow::recoutils::cluster_t>& merged_showers_v )
   {
 
     merged_showers_v.clear();
@@ -511,7 +510,7 @@ namespace prep {
    * @param[in] shower_dir Vector describing initial 3D shower direction. Not used.
    * 
    */ 
-  int TripletTruthFixer::_find_closest_cluster( std::vector< larflow::reco::cluster_t >& shower_fragment_v,
+  int TripletTruthFixer::_find_closest_cluster( std::vector< larflow::recoutils::cluster_t >& shower_fragment_v,
                                                 std::vector<int>& claimed_cluster_v,
                                                 std::vector<float>& shower_vtx,
                                                 std::vector<float>& shower_dir )
@@ -536,8 +535,8 @@ namespace prep {
       auto& cluster = shower_fragment_v[idx];
       int nhits_cluster = 0;
       for (int ihit=0; ihit<(int)cluster.points_v.size(); ihit++) {
-        float r = larflow::reco::pointLineDistance3f( shower_vtx, trunk_endpt, cluster.points_v[ihit] );
-        float s = larflow::reco::pointRayProjection( shower_vtx, shower_dir, cluster.points_v[ihit] );
+        float r = larflow::recoutils::pointLineDistance3f( shower_vtx, trunk_endpt, cluster.points_v[ihit] );
+        float s = larflow::recoutils::pointRayProjection3f( shower_vtx, shower_dir, cluster.points_v[ihit] );
         float dist2_vtx = 0.;
         for (int i=0; i<3; i++) {
           dist2_vtx += (cluster.points_v[ihit][i]-shower_vtx[i])*(cluster.points_v[ihit][i]-shower_vtx[i]);
@@ -582,10 +581,10 @@ namespace prep {
    * @param[out] merged_cluster_v  Output merged clusters
    */
   void TripletTruthFixer::_trueshowers_absorb_clusters( std::vector<ShowerInfo_t>& shower_info_v,
-                                                        std::vector<larflow::reco::cluster_t>& shower_fragment_v,
+                                                        std::vector<larflow::recoutils::cluster_t>& shower_fragment_v,
                                                         std::vector<int>& fragment_pid_v,
                                                         std::vector<int>& cluster_used_v,
-                                                        std::vector<larflow::reco::cluster_t>& merged_cluster_v )
+                                                        std::vector<larflow::recoutils::cluster_t>& merged_cluster_v )
   {
 
     std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
@@ -615,10 +614,9 @@ namespace prep {
       else {
         // an empty cluster
         std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
-                  << " no fragment found for shower info trackid="
-		  << info.trackid
+                  << " no fragment found for shower info"
 		  << std::endl;
-        merged_cluster_v.push_back( larflow::reco::cluster_t() );
+        merged_cluster_v.push_back( larflow::recoutils::cluster_t() );	
       }
       auto& trunk_end_v = trunk_end_vv[ish];
       trunk_end_v.resize(3,0);
@@ -663,8 +661,8 @@ namespace prep {
         
         for (int ihit=0; ihit<(int)cluster.points_v.size(); ihit++) {
             
-          float r = larflow::reco::pointLineDistance3f(  info.shower_vtx, trunk_end_v, cluster.points_v[ihit] );
-          float s = larflow::reco::pointRayProjection3f( info.shower_vtx, info.shower_dir, cluster.points_v[ihit] );
+          float r = larflow::recoutils::pointLineDistance3f(  info.shower_vtx, trunk_end_v, cluster.points_v[ihit] );
+          float s = larflow::recoutils::pointRayProjection3f( info.shower_vtx, info.shower_dir, cluster.points_v[ihit] );
 
           float dist = 0.;
           for (int i=0; i<3; i++) {
@@ -718,7 +716,7 @@ namespace prep {
         cluster_used_v[icluster] = 1;
         shower_info_v[best_shower_index].absorbed_cluster_index_v.push_back(icluster);
         // merged_cluster_v[best_shower_index].push_back( truehit_v[hitidx] ); // copy of hit
-        larflow::reco::cluster_append( merged_cluster_v[best_shower_index], cluster );
+        larflow::recoutils::cluster_append( merged_cluster_v[best_shower_index], cluster );
       }
       else  {
         // std::cout << "[TripletTruthFixer::_trueshowers_absorb_clusters.L" << __LINE__ << "] "
@@ -738,7 +736,7 @@ namespace prep {
    * @param[in] shower_info_v
    * @param[inout] tripmaker
    */
-  void TripletTruthFixer::_reassign_merged_shower_instance_labels( std::vector<larflow::reco::cluster_t>& merged_showers_v,
+  void TripletTruthFixer::_reassign_merged_shower_instance_labels( std::vector<larflow::recoutils::cluster_t>& merged_showers_v,
                                                                    std::vector<ShowerInfo_t>& shower_info_v,
                                                                    larflow::prep::PrepMatchTriplets& tripmaker )
   {
