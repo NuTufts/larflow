@@ -449,7 +449,7 @@ namespace reco {
     //cluster_pca( cluster );
     
     KPCluster kpc;
-    kpc.center_pt_v = { mean[0], mean[1], mean[2] };
+    kpc.center_pt_v = { (float)mean[0], (float)mean[1], (float)mean[2] };
     kpc.center_pt_rmse_v = { rmse[0], rmse[1], rmse[2] };
     kpc.center_pt_rsqr_v = { rsqr[0], rsqr[1], rsqr[2] };
     

@@ -83,7 +83,7 @@ namespace reco {
       ProngRank_t( std::string p, int pi, int ci, float s )
         : producer(p), prong_idx(pi), container_idx(ci), score(s)
       {};
-      bool operator<( const ProngRank_t& rhs ) {
+      bool operator<( const ProngRank_t& rhs ) const {
         // threshold on hits, else rank on hits        
         if ( score<rhs.score ) return true;
         return false;
@@ -457,7 +457,7 @@ namespace reco {
       CandRank_t( int ii, float ll )
         : idx(ii), llscore(ll)
       {};
-      bool operator<( const CandRank_t& rhs ) {
+      bool operator<( const CandRank_t& rhs ) const {
         if ( llscore<rhs.llscore )
           return true;
         return false;

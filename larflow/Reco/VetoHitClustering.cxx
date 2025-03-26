@@ -198,7 +198,7 @@ namespace reco {
       ProngAddition_t(float ss, float rr, float ii )
 	: s(ss), r(rr), origindex(ii)
       {};
-      bool operator<( const ProngAddition_t& rhs ) {
+      bool operator<( const ProngAddition_t& rhs ) const {
 	if ( s<rhs.s) return true;
 	return false;
       };

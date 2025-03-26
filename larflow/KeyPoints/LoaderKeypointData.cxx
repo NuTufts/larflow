@@ -177,10 +177,12 @@ namespace keypoints {
     
     // make match index array
     LARCV_DEBUG() << "make triplets" << std::endl;
-    if ( _exclude_neg_examples )
+    if ( _exclude_neg_examples ) {
       LARCV_DEBUG() << "exclude negative examples" << std::endl;
-    else
+    }
+    else {
       LARCV_DEBUG() << "include both negative and positive examples" << std::endl;
+    }
     
     PyArrayObject* matches =
       (PyArrayObject*)triplet_v->at(0).sample_triplet_matches( num_max_samples, nfilled, withtruth );
