@@ -5,12 +5,19 @@
  * class used to help load keypoint ground truth data for training
  *
  */
-
+#ifndef __CINT__
+#ifndef __CLING__
 #include <Python.h>
 #include "bytesobject.h"
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
+#endif
+#endif
+
+#if defined(__CINT__) || defined(__CLING__)
+class PyArrayObject;
+#endif
 
 #include <string>
 #include <vector>
