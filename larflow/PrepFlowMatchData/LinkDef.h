@@ -27,6 +27,7 @@
 #pragma link C++ class larflow::prep::CropPixData_t+;
 #pragma link C++ class std::vector< larflow::prep::PixData_t >+;
 #pragma link C++ class std::vector< larflow::prep::CropPixData_t >+;
+#pragma link C++ class std::vector< std::vector<larflow::prep::CropPixData_t> >+;
 #pragma link C++ class larflow::prep::FlowTriples+;
 #pragma link C++ class larflow::prep::PrepMatchTriplets+;
 #pragma link C++ class std::vector<larflow::prep::PrepMatchTriplets>+;
