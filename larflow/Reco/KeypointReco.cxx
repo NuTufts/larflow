@@ -37,6 +37,14 @@ namespace reco {
     _keypoint_type = -1;
     _threshold_cluster_max_score = 0.75;
   }
+
+  void KeypointReco::clear_output()
+  {
+    output_pt_v.clear();    
+    _cluster_v.clear();
+    _initial_pt_pos_v.clear();
+    _initial_pt_used_v.clear();
+  }
   
   /**
    * @brief take in storage manager, get larflow3dhits, which stores keypoint scores, 
@@ -107,7 +115,7 @@ namespace reco {
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
   {
 
-    output_pt_v.clear();
+    //output_pt_v.clear();
     
     _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 

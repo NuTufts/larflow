@@ -327,6 +327,7 @@ namespace reco {
 
     if ( _reco_version==1 ) {
       // neutrino
+      _kpreco_nu.clear_output();
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_output_tree_name( "keypoint" );    
       _kpreco_nu.set_sigma( 10.0 );
@@ -338,7 +339,8 @@ namespace reco {
       _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
       _kpreco_nu.set_lfhit_score_index( 13 ); // (v1 larmatch network score index in hit)
       _kpreco_nu.process( ioll );
-      
+
+      _kpreco_track.clear_output();      
       _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_track.set_output_tree_name( "keypoint" );        
       _kpreco_track.set_sigma( 10.0 );    
@@ -350,7 +352,8 @@ namespace reco {
       _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
       _kpreco_track.set_lfhit_score_index( 14 ); // (v1 larmatch network track-score index in hit)
       _kpreco_track.process( ioll );
-      
+
+      _kpreco_shower.clear_output();
       _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_shower.set_output_tree_name( "keypoint" );
       _kpreco_shower.set_sigma( 10.0 );    
@@ -363,6 +366,7 @@ namespace reco {
       _kpreco_shower.set_lfhit_score_index( 15 ); // (v1 larmatch network shower-score index in hit)
       _kpreco_shower.process( ioll );
 
+      _kpreco_track_cosmic.clear_output();      
       _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
       _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
       _kpreco_track_cosmic.set_sigma( 50.0 );    
@@ -383,6 +387,7 @@ namespace reco {
       // so we simply re-run the algorithms to work with the additional vertex types.
 
       // neutrino
+      _kpreco_nu.clear_output();
       _kpreco_nu.set_verbosity( logger().level() );
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_sigma( 10.0 );
@@ -397,6 +402,7 @@ namespace reco {
       _kpreco_nu.process( ioll );
 
       // neutrino interaction track: we have track starts and ends
+      _kpreco_track.clear_output();      
       _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_track.set_sigma( 10.0 );    
       _kpreco_track.set_min_cluster_size(   50.0, 0 );
@@ -414,7 +420,9 @@ namespace reco {
       _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
       _kpreco_track.set_lfhit_score_index( 19 ); // (v2 larmatch-minkowski network track-end-score index in hit)
       _kpreco_track.process( ioll );
+      
       // neutrino interaction shower
+      _kpreco_shower.clear_output();            
       _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_shower.set_output_tree_name( "keypoint" );
       _kpreco_shower.set_sigma( 10.0 );    
@@ -436,6 +444,7 @@ namespace reco {
       _kpreco_shower.process( ioll );
 
       // cosmic keypoints
+      _kpreco_track_cosmic.clear_output();                  
       _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
       _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
       _kpreco_track_cosmic.set_sigma( 50.0 );    
