@@ -4,6 +4,7 @@
 
 #include <map>
 #include <vector>
+#include <cmath>
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larcv/core/DataFormat/Image2D.h"
@@ -80,10 +81,11 @@ namespace prep {
       int rawRow; ///< row of pixel in original image
       int rawCol; ///< col of pixel in original image
       float val; ///< value of pixel
+      bool inCrop; ///< pixel is inside crop
       int idx;   ///< index in container
       
       CropPixData_t()
-      : row(0),col(0),rawRow(0),rawCol(0),val(0.0),idx(0)
+      : row(0),col(0),rawRow(0),rawCol(0),val(0.0),inCrop(true),idx(0)
       {};
 
       /** @brief constructor with row, col, value 
@@ -92,11 +94,11 @@ namespace prep {
        *  @param[in] v value of pixel
        */      
       CropPixData_t( int r, int c, int rr, int rc, float v)
-      : row(r),col(c),rawRow(rr),rawCol(rc),val(v),idx(0) {};
+      : row(r),col(c),rawRow(rr),rawCol(rc),val(v),inCrop(true),idx(0) {};
 
       /** @brief equality operator based on row, col, and value */
       bool operator==( const CropPixData_t& rhs ) const {
-        if(rawRow == rhs.rawRow && rawCol == rhs.rawCol && val == rhs.val) return true;
+        if(rawRow == rhs.rawRow && rawCol == rhs.rawCol && fabs(val - rhs.val) < 1e-3) return true;
         return false;
       };
 
