@@ -1,11 +1,15 @@
 #ifndef __LOADER_AFFINITY_FIELD_DATA_H__
 #define __LOADER_AFFINITY_FIELD_DATA_H__
 
+#ifndef __CINT__
+#ifndef __CLING__
 #include <Python.h>
 #include "bytesobject.h"
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
+#endif
+#endif
 
 #include <string>
 #include <vector>

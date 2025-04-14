@@ -37,6 +37,8 @@ namespace recoutils {
     virtual ~ClusterFunctions() {};
     
   };
+
+  cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster );  
     
 #ifndef __CINT__
 #ifndef __CLING__
@@ -96,8 +98,6 @@ namespace recoutils {
   larlite::pcaxis cluster_make_pcaxis_wrt_point( const cluster_t& c,
                                                  const std::vector<float>& refpt,
                                                  int cidx=0 );
-
-  cluster_t cluster_from_larflowcluster( const larlite::larflowcluster& lfcluster );
   
   std::vector<float> cluster_pixelsum( const cluster_t& cluster,
                                        const std::vector<larcv::Image2D>& img_v  );

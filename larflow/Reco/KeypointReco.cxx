@@ -44,6 +44,14 @@ namespace reco {
     __keypoint_type_names[4] = "michel";
     __keypoint_type_names[5] = "delta";
   }
+
+  void KeypointReco::clear_output()
+  {
+    output_pt_v.clear();    
+    _cluster_v.clear();
+    _initial_pt_pos_v.clear();
+    _initial_pt_used_v.clear();
+  }
   
   /**
    * @brief take in storage manager, get larflow3dhits, which stores keypoint scores, 
@@ -113,11 +121,6 @@ namespace reco {
    */
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
   {
-
-    output_pt_v.clear();
-    _cluster_v.clear();
-    _initial_pt_pos_v.clear();
-    _initial_pt_used_v.clear();
     
     _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 

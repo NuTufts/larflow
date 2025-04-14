@@ -50,10 +50,10 @@ namespace reco {
         attached(0),
         trackorshower(ts)
       {};
-      bool operator<( SecondaryCandidate_t& rhs ) const {
-        if ( dist<rhs.dist )
-          return true;
-        return false;
+      bool operator<( const SecondaryCandidate_t& rhs ) const {
+	if ( dist<rhs.dist )
+	  return true;
+	return false;
       };
     };
 

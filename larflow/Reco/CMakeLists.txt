@@ -151,7 +151,7 @@ target_include_directories(${LIBNAME}
   $<INSTALL_INTERFACE:include/larflow/${MODULE_NAME}>
   ${PUB_INC_DIRS}
   PRIVATE
-  ${PRI_INC_DIRS} )
+  ${PRI_INC_DIRS} )  
 target_link_libraries(${LIBNAME} PUBLIC
   ${UBLARCVAPP_LIBS_USED}
   ${LARCV_LIBS_USED}

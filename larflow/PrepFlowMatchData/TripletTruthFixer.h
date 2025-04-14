@@ -52,7 +52,7 @@ namespace prep {
       std::vector<float> shower_vtx; ///< det profile shower start
       //std::vector<float> shower_vtx_sce;
       /** @brief comparison operator for struct used for sorting by priority and charge */
-      bool operator<(const ShowerInfo_t& rhs ) {
+      bool operator<(const ShowerInfo_t& rhs ) const {
         if ( priority<rhs.priority ) return true;
         else if ( priority==rhs.priority && highq_plane>rhs.highq_plane ) return true;
         return false;

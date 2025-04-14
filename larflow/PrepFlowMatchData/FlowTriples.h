@@ -68,6 +68,13 @@ namespace prep {
     //const std::vector<int>& getTargetIndicesFromSourcePixel( int col, int row ) const;
     //const std::vector<int>& getTruthVectorFromSourcePixel( int col, int row ) const;
 
+    static std::vector< std::vector<larflow::prep::CropPixData_t> >
+      make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v, 
+                                                    const std::vector<larcv::Image2D>& thrumu_v,
+                                                    const larlite::larflowcluster& prong,
+                                                    const TVector3& cropCenter, 
+                                                    float threshold, int rowSpan, int colSpan );
+    
 #ifndef __CINT__
 #ifndef __CLING__
     static std::vector< std::vector<larflow::prep::PixData_t> >
@@ -80,13 +87,6 @@ namespace prep {
                                                      int trackid, float threshold,
                                                      int rowSpan, int colSpan,
                                                      bool shower=true );
-
-    static std::vector< std::vector<larflow::prep::CropPixData_t> >
-      make_cropped_initial_sparse_prong_image_reco( const std::vector<larcv::Image2D>& adc_v, 
-                                                    const std::vector<larcv::Image2D>& thrumu_v,
-                                                    const larlite::larflowcluster& prong,
-                                                    const TVector3& cropCenter, 
-                                                    float threshold, int rowSpan, int colSpan );
 
     static std::vector< std::vector<larflow::prep::CropPixData_t> >
       make_cropped_initial_sparse_prong_image_reco_rmContextPart( const std::vector<larcv::Image2D>& adc_v, 

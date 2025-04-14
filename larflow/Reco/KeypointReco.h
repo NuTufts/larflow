@@ -99,7 +99,9 @@ namespace reco {
 
     /** @brief set index of feature vector of larflow3dhit where larmatch score is stored */
     void set_lfhit_score_index( int idx ) { _lfhit_score_index=idx; };
-    
+
+    /** @brief clear **/
+    void clear_output();
 
     void process( larlite::storage_manager& io_ll );
     void process( const std::vector<larlite::larflow3dhit>& input_lfhits );

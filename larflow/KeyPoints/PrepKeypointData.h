@@ -10,7 +10,7 @@
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
-#include "KPdata.h"
+#include "larflow/KeyPoints/KPdata.h"
 
 class TH1F;
 class TH2D;

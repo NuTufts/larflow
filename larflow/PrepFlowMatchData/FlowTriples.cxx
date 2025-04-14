@@ -886,14 +886,16 @@ namespace prep {
         int col = hit.targetwire[p];
         float val = adc_v[p].pixel(row, col);
         float val_cosmic = thrumu_v[p].pixel(row, col);
-          if ( val >= threshold && val_cosmic < threshold &&
-               row >= imgBounds[p][0] && row < imgBounds[p][1] &&
-               col >= imgBounds[p][2] && col < imgBounds[p][3] ) {
-            CropPixData_t cropPixData(row - imgBounds[p][0], col - imgBounds[p][2], row, col, val);
-            if( std::find(sparseimg_vv[p].begin(), sparseimg_vv[p].end(), cropPixData) == 
-                sparseimg_vv[p].end() )
-              sparseimg_vv[p].push_back(cropPixData);
+        if ( val >= threshold && val_cosmic < threshold ){
+          CropPixData_t cropPixData(row - imgBounds[p][0], col - imgBounds[p][2], row, col, val);
+          if( std::find(sparseimg_vv[p].begin(), sparseimg_vv[p].end(), cropPixData) != sparseimg_vv[p].end() )
+            continue;
+          if ( !(row >= imgBounds[p][0] && row < imgBounds[p][1] &&
+                 col >= imgBounds[p][2] && col < imgBounds[p][3]) ) {
+            cropPixData.inCrop = false;
           }
+          sparseimg_vv[p].push_back(cropPixData);
+        }
       }
 
       int idx=0;

@@ -240,7 +240,6 @@ namespace reco {
       LARCV_NORMAL() << "  number of shower keypoints: " << showerkp_v.size() << std::endl;
     }
 
-
     // these are parameters controlling how the shower prongs are formed and built
     // we need to optimize them
     const float r_mollier = 9.04; // cm, liquid argon
@@ -1115,7 +1114,7 @@ namespace reco {
       CandRank_t( int ii, float ll )
         : idx(ii), llscore(ll)
       {};
-      bool operator<( const CandRank_t& rhs ) {
+      bool operator<( const CandRank_t& rhs ) const {
         if ( llscore<rhs.llscore )
           return true;
         return false;
