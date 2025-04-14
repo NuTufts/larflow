@@ -218,7 +218,7 @@ if __name__ == "__main__":
         epochs_per_checkpoint=1,
         eval_nvalid_batches=1,
         use_early_stopping=False,
-        reload_optimizer_state=True,
+        reload_optimizer_state=False,
         Loss={"name":"WeightedFocalLoss",
               "params":{
                   "gamma":2.0
@@ -276,7 +276,7 @@ if __name__ == "__main__":
     train_params['lr_scheduler']['params']['epoch_period'] = 100
     train_params['lr_scheduler']['params']['lr_max'] = 1.0e-3
     train_params['lr_scheduler']['params']['lr_min'] = 0.5e-3
-    train_params['lr_scheduler']['params']['linear_ramp_epochs'] = 5
+    train_params['lr_scheduler']['params']['linear_ramp_epochs'] = 10
     train_params['lr_scheduler']['params']['iters_per_epoch'] = 5205
     train_params['lr_scheduler']['params']['iter_offset']  = 291499
     train_params['lr_scheduler']['params']['epoch_offset'] = 0    
