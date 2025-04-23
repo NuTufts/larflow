@@ -119,6 +119,13 @@ namespace prep {
 #endif
 #endif
 
+    static std::vector< larcv::Image2D > 
+      make_thrumu_image_with_restored_ssnet_shower_pixels( larcv::IOManager& iolcv,
+                                                           const std::string ssnet_stem_name, 
+                                                           const std::string thrumu_name );
+
+    static void make_trackshower_images_from_sparse_uresnet_output( larcv::IOManager& iolcv );
+    
     /** @brief index of the source plane considered */
     int get_source_plane_index() { return _source_plane; };
 

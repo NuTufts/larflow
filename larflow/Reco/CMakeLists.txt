@@ -6,6 +6,7 @@ set( LIBNAME LArFlow_${MODULE_NAME} )
 set( HEADERS
   SplitHitsBySSNet.h
   SplitHitsByParticleSSNet.h
+  ShowerTruthMetricsMaker.h
   ChooseMaxLArFlowHit.h
   DBScanLArMatchHits.h
   ProjectionDefectSplitter.h
@@ -60,6 +61,7 @@ set( HEADERS
 add_library( ${LIBNAME} SHARED
   SplitHitsBySSNet.cxx
   SplitHitsByParticleSSNet.cxx
+  ShowerTruthMetricsMaker.cxx
   ChooseMaxLArFlowHit.cxx  
   DBScanLArMatchHits.cxx
   ProjectionDefectSplitter.cxx
