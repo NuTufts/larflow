@@ -17,52 +17,53 @@
 
 //#pragma link C++ namespace larflow;
 #pragma link C++ namespace larflow::reco;
-#pragma link C++ function larflow::reco::pointLineDistance3f+;
-#pragma link C++ function larflow::reco::pointLineDistance3d+;
-#pragma link C++ function larflow::reco::pointRayProjection3f+;
-#pragma link C++ function larflow::reco::pointLineDistance3d+;
-#pragma link C++ class std::vector<TLorentzVector>+;
-#pragma link C++ class larflow::reco::ProjectionDefectSplitter+;
-#pragma link C++ class larflow::reco::PyLArFlow+;
-#pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+;
-#pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+;
-#pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+;
-#pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+;
+/* #pragma link C++ function larflow::reco::pointLineDistance3f+; */
+/* #pragma link C++ function larflow::reco::pointLineDistance3d+; */
+/* #pragma link C++ function larflow::reco::pointRayProjection3f+; */
+/* #pragma link C++ function larflow::reco::pointLineDistance3d+; */
+/* #pragma link C++ class std::vector<TLorentzVector>+; */
+/* #pragma link C++ class larflow::reco::ProjectionDefectSplitter+; */
+/* #pragma link C++ class larflow::reco::PyLArFlow+; */
+/* #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+; */
+/* #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wssnet+; */
+/* #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wprob+; */
+/* #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wdeadch+; */
 #pragma link C++ class larflow::reco::KPCluster+;
 #pragma link C++ class larflow::reco::NuVertexCandidate+;
-#pragma link C++ class larflow::reco::SplitHitsBySSNet+;
-#pragma link C++ class larflow::reco::SplitHitsByParticleSSNet+;
+#pragma link C++ class std::vector< larflow::reco::NuVertexCandidate >+;
 #pragma link C++ class larflow::reco::ShowerTruthMetricsMaker+;
-#pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+;
-#pragma link C++ class larflow::reco::DBScanLArMatchHits+;
-#pragma link C++ class larflow::reco::KeypointReco+;
-#pragma link C++ class larflow::reco::EventKeypointReco+;
-#pragma link C++ class larflow::reco::TrackClusterBuilder+;
-#pragma link C++ class larflow::reco::CosmicTrackBuilder+;
-#pragma link C++ class larflow::reco::TrackOTFit+;
-#pragma link C++ class larflow::reco::NuVertexMaker+;
-#pragma link C++ class larflow::reco::NuVertexActivityReco+;
-#pragma link C++ class larflow::reco::NuTrackBuilder+;
-#pragma link C++ class larflow::reco::TrackdQdx+;
+/* #pragma link C++ class larflow::reco::SplitHitsBySSNet+; */
+/* #pragma link C++ class larflow::reco::SplitHitsByParticleSSNet+; */
+/* #pragma link C++ class larflow::reco::ChooseMaxLArFlowHit+; */
+/* #pragma link C++ class larflow::reco::DBScanLArMatchHits+; */
+/* #pragma link C++ class larflow::reco::KeypointReco+; */
+/* #pragma link C++ class larflow::reco::EventKeypointReco+; */
+/* #pragma link C++ class larflow::reco::TrackClusterBuilder+; */
+/* #pragma link C++ class larflow::reco::CosmicTrackBuilder+; */
+/* #pragma link C++ class larflow::reco::TrackOTFit+; */
+/* #pragma link C++ class larflow::reco::NuVertexMaker+; */
+/* #pragma link C++ class larflow::reco::NuVertexActivityReco+; */
+/* #pragma link C++ class larflow::reco::NuTrackBuilder+; */
+/* #pragma link C++ class larflow::reco::TrackdQdx+; */
 #pragma link C++ class larflow::reco::NuSelectionVariables+;
 #pragma link C++ class std::vector<larflow::reco::NuSelectionVariables>+;
-#pragma link C++ class larflow::reco::LikelihoodProtonMuon+;
-#pragma link C++ class larflow::reco::ShowerBilineardEdx+;
-#pragma link C++ class larflow::reco::ShowerdQdx+;
-#pragma link C++ class larflow::reco::CosmicProtonFinder+;
-#pragma link C++ class larflow::reco::PerfectTruthNuReco+;
-#pragma link C++ class larflow::reco::TrackForwardBackwardLL+;
-#pragma link C++ class larflow::reco::TrackFindBadConnection+;
-#pragma link C++ class larflow::reco::NuTrackKinematics+;
-#pragma link C++ class larflow::reco::NuShowerKinematics+;
-#pragma link C++ class larflow::reco::NuSelProngVars+;
-#pragma link C++ class larflow::reco::NuSelVertexVars+;
-#pragma link C++ class std::vector<larlite::track>+;
-#pragma link C++ class larflow::reco::NuSelShowerTrunkAna+;
-#pragma link C++ class larflow::reco::NuSelTruthOnNuPixel+;
-#pragma link C++ class larflow::reco::NuSelUnrecoCharge+;
-#pragma link C++ class larflow::reco::NuSel1e1pEventSelection+;
-#pragma link C++ class larflow::reco::NuSelCosmicTagger+;
-#pragma link C++ class larflow::reco::KPSRecoManager+;
+/* #pragma link C++ class larflow::reco::LikelihoodProtonMuon+; */
+/* #pragma link C++ class larflow::reco::ShowerBilineardEdx+; */
+/* #pragma link C++ class larflow::reco::ShowerdQdx+; */
+/* #pragma link C++ class larflow::reco::CosmicProtonFinder+; */
+/* #pragma link C++ class larflow::reco::PerfectTruthNuReco+; */
+/* #pragma link C++ class larflow::reco::TrackForwardBackwardLL+; */
+/* #pragma link C++ class larflow::reco::TrackFindBadConnection+; */
+/* #pragma link C++ class larflow::reco::NuTrackKinematics+; */
+/* #pragma link C++ class larflow::reco::NuShowerKinematics+; */
+/* #pragma link C++ class larflow::reco::NuSelProngVars+; */
+/* #pragma link C++ class larflow::reco::NuSelVertexVars+; */
+/* #pragma link C++ class std::vector<larlite::track>+; */
+/* #pragma link C++ class larflow::reco::NuSelShowerTrunkAna+; */
+/* #pragma link C++ class larflow::reco::NuSelTruthOnNuPixel+; */
+/* #pragma link C++ class larflow::reco::NuSelUnrecoCharge+; */
+/* #pragma link C++ class larflow::reco::NuSel1e1pEventSelection+; */
+/* #pragma link C++ class larflow::reco::NuSelCosmicTagger+; */
+/* #pragma link C++ class larflow::reco::KPSRecoManager+; */
 //ADD_NEW_CLASS ... do not change this line
 #endif

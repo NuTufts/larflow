@@ -35,6 +35,15 @@ endif()
 set( larcv_DIR "$ENV{LARCV_LIBDIR}/cmake/larcv")
 find_package( larcv REQUIRED )
 
+#---check CVMFS json, otherwise comes with larcv
+if(EXISTS "$ENV{NLOHMANN_JSON_DIR}/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake")
+  message( STATUS "Use cmvfs nlohmann/json")
+  set( nlohmann_json_DIR )
+  find_package( nlohmann_json REQUIRED )
+  set(LARFLOW_JSON_INCLUDE_DIR $ENV{NLOHMANN_JSON_INC})
+endif()
+
+
 #---ublarcvapp (required)
 set( ublarcvapp_DIR "$ENV{UBLARCVAPP_LIBDIR}/cmake/ublarcvapp")
 find_package( ublarcvapp REQUIRED )
