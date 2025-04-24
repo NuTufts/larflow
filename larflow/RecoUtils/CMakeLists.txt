@@ -7,12 +7,14 @@ set( HEADERS
   geofuncs.h
   cluster_t.h
   cluster_functions.h
+  CompressRecoTrack.h
 )
 
 add_library( ${LIBNAME} SHARED
   geofuncs.cxx
   cluster_t.cxx
   cluster_functions.cxx
+  CompressRecoTrack.cxx  
 )
 
 # create a property to hold our headers

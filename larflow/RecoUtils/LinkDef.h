@@ -20,6 +20,7 @@
 #pragma link C++ class larflow::recoutils::cluster_t+;
 #pragma link C++ class larflow::recoutils::ClusterFunctions+;
 #pragma link C++ function larflow::recoutils::cluster_from_larflowcluster( const larlite::larflowcluster& )+;
+#pragma link C++ class larflow::recoutils::CompressRecoTrack+;
 /* #pragma link C++ function larflow::recoutils::cluster_spacepoint_v; */
 /* #pragma link C++ function larflow::recoutils::cluster_sdbscan_spacepoint_v; */
 //ADD_NEW_CLASS ... do not change this line

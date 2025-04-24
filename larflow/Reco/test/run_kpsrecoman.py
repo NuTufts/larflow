@@ -160,6 +160,7 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( "track", "boundarycosmic" )
     io.set_data_to_write( "track", "boundarycosmicnoshift" )
     io.set_data_to_write( "track", "containedcosmic" )
+    io.set_data_to_write( "track", "cosmicproton" )
     io.set_data_to_write( "track", "nutrack_fitted" )  
     io.set_data_to_write( "larflowcluster", "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
     io.set_data_to_write( "pcaxis", "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
