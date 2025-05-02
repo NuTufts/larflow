@@ -88,6 +88,7 @@ io.set_verbosity(1)
 io.specify_data_read( larcv.kProductImage2D,  args.adc_name )
 io.specify_data_read( larcv.kProductChStatus, args.chstatus_name )
 io.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
+io.specify_data_read( larcv.kProductSparseImage, "sparsessnet" )
 if args.has_mc:
     io.specify_data_read( larcv.kProductImage2D, "instance" )
     io.specify_data_read( larcv.kProductImage2D, "ancestor" )    
@@ -315,4 +316,4 @@ out.close()
 io.finalize()
 
 print("DONE")
-os._exit(0)
+#os._exit(0)

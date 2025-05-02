@@ -54,9 +54,10 @@ print("[OUTPUT]    ",args.output)
 recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
 recoman.set_verbosity(args.loglevel)
 recoman.logger().default_level(args.loglevel)
-# if args.loglevel == 0:
-#   recoman.set_verbosity(larcv.msg.kDEBUG)
-#   recoman.logger().default_level(larcv.msg.kDEBUG)
+if args.loglevel == 0:
+    recoman.set_verbosity(larcv.msg.kDEBUG)
+    recoman.logger().default_level(larcv.msg.kDEBUG)
+    io.set_verbosity(args.loglevel)
 # elif args.loglevel == 1:
 #   recoman.set_verbosity(larcv.msg.kINFO)
 #   recoman.logger().default_level(larcv.msg.kINFO)
@@ -124,14 +125,14 @@ iolcv.specify_data_read( "chstatus", "wire" );
 iolcv.specify_data_read( "image2d", "ubspurn_plane0" )
 iolcv.specify_data_read( "image2d", "ubspurn_plane1" )
 iolcv.specify_data_read( "image2d", "ubspurn_plane2" )
-iolcv.specify_data_read( "sparseimage", "sparseuresnetout" ) 
+iolcv.specify_data_read( larcv.kProductSparseImage, "sparseuresnetout" )
+iolcv.specify_data_read( larcv.kProductSparseImage, "sparsessnet" ) 
 #iolcv.addto_storeonly_list( ... )
 if args.tickbackwards:
     iolcv.reverse_all_products()
 
 io.set_out_filename( args.output.replace(".root","_larlite.root") )
 iolcv.set_out_file( args.output.replace(".root","_larcv.root") )
-
 
     
 if args.products in ["rerun"]:
@@ -142,7 +143,8 @@ if args.products in ["rerun"]:
     iolcv.addto_storeonly_list( "chstatus", "wire" )          
     for p in range(3):
         iolcv.addto_storeonly_list( "image2d", "ubspurn_plane%d"%(p) )
-    iolcv.addto_storeonly_list( "sparseimage", "sparseuresnetout" )
+    iolcv.addto_storeonly_list( larcv.kProductSparseImage, "sparseuresnetout" )
+    iolcv.addto_storeonly_list( larcv.kProductSparseImage, "sparsessnet" )    
     for truthproduct in ["instance","segment","ancestor","larflow"]:
         iolcv.addto_storeonly_list( "image2d", truthproduct )
          
@@ -210,21 +212,24 @@ if args.num_entries is not None:
 else:
     end_entry = nentries
 
-io.go_to( args.start_entry )
-#io.next_event()
+io.enable_event_alignment(False) # hack
+#io.go_to( args.start_entry )
+#io.next_event(False)
 #io.go_to( args.start_entry )
 for ientry in range( args.start_entry, end_entry ):
     print("[ENTRY ",ientry,"]")
     iolcv.read_entry(ientry)
-
+    io.go_to(ientry,False) # read without writing
+    print("io larlite: ",io.run_id(), io.subrun_id(), io.event_id())
     print("reco, make nu candidates, calculate selection variables")
     sys.stdout.flush()
     recoman.process( iolcv, io )
-
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
-    io.next_event()
+    io.go_to(ientry,True) # write
     iolcv.save_entry()
     sys.stdout.flush()
+# write last event
+
 
 print("Event Loop finished")
 #del kpsrecoman
@@ -234,5 +239,3 @@ io.close()
 iolcv.finalize()
 recoman.write_ana_file()
 recoman.close_ana_file()
-
-os._exit(0)
