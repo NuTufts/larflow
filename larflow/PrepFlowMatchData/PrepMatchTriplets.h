@@ -45,7 +45,9 @@ namespace prep {
 
     PrepMatchTriplets()
       : _kStopAtTripletMax(false),
-	_kTripletLimit(1000000),
+	_kTripletLimit(5000000),
+	_kPlaneTriplesLimit(5000000),
+	_kEventHitLimits(false),
 	_kshuffle_indices_when_sampling(true),
 	_do_deadch_bug(false)
     {};
@@ -70,9 +72,11 @@ namespace prep {
                                 const std::vector<larcv::Image2D>& adc_v );
     void make_origin_vector_frommcreco( larlite::storage_manager& ioll );    
     void process_truth_labels( larcv::IOManager& iolcv, larlite::storage_manager& ioll, std::string wire_producer="wire" );
-    void setStopAtTripletMax( bool stop, int limit=1000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
+    void setStopAtTripletMax( bool stop, long limit=5000000) { _kStopAtTripletMax = stop; _kTripletLimit = limit; };
+    void setStopAtSourcePlaneTriples( bool stop, long limit=5000000) { _kStopAtTripletMax = stop; _kPlaneTriplesLimit = limit; };    
     void setShuffleWhenSampling( bool shuffle ) { _kshuffle_indices_when_sampling = shuffle; };
     void setDoDeadChannelBug( bool doit ) { _do_deadch_bug = doit; };
+    bool didEventReachLimits() { return _kEventHitLimits; };
 
     std::vector<int> get_triplet_imgcoord_rowcol( int idx_triplet );
     
@@ -152,7 +156,9 @@ namespace prep {
   protected:
 
     bool _kStopAtTripletMax;
-    int  _kTripletLimit;
+    long _kTripletLimit;
+    long _kPlaneTriplesLimit;
+    bool _kEventHitLimits;
     bool _kshuffle_indices_when_sampling;
     bool _do_deadch_bug;
 
