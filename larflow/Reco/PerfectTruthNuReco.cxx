@@ -7,8 +7,8 @@
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "TrackdQdx.h"
 
-#include "geofuncs.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -72,7 +72,8 @@ namespace reco {
 
     LARCV_DEBUG() << "Make Tracks" << std::endl;    
     ublarcvapp::mctools::TruthTrackSCE track_convertor( _psce );
-    track_convertor.set_verbosity( larcv::msg::kDEBUG );
+    //track_convertor.set_verbosity( larcv::msg::kDEBUG );
+    track_convertor.set_verbosity( logger().level() );
     TrackdQdx dqdxalgo;
     
     for ( auto const& track : ev_mctrack ) {
@@ -314,8 +315,8 @@ namespace reco {
 
         auto& trunk = shower_trunk_v.at(ishower);
 
-        larflow::reco::cluster_t clust = larflow::reco::cluster_from_larflowcluster( shower_cluster );
-        larlite::pcaxis pca = larflow::reco::cluster_make_pcaxis( clust );
+        larflow::recoutils::cluster_t clust = larflow::recoutils::cluster_from_larflowcluster( shower_cluster );
+        larlite::pcaxis pca = larflow::recoutils::cluster_make_pcaxis( clust );
       
         //larlite::track dqdx_trunk = dqdxalgo.calculatedQdx( trunk, shower_cluster, adc_v );
         nuvtx.shower_v.emplace_back( std::move(shower_cluster) );

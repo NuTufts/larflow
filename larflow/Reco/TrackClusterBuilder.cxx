@@ -2,13 +2,12 @@
 #include <sstream>
 #include "TVector3.h"
 
-#include "larflow/Reco/geofuncs.h"
-
 #include "larcv/core/DataFormat/Image2D.h"
 #include "ublarcvapp/ubdllee/dwall.h"
 #include "ublarcvapp/UBImageMod/TrackImageMask.h"
+#include "larflow/RecoUtils/geofuncs.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
-#include "larflow/Reco/cluster_functions.h"
 
 #include "ClusterImageMask.h"
 
@@ -1056,8 +1055,8 @@ namespace reco {
     
     for ( size_t iseg=0; iseg<_segment_v.size(); iseg++ ) {
       auto const& seg = _segment_v[iseg];
-      float dist = pointLineDistance<float>(  seg.start, seg.end, testpt );
-      float proj = pointRayProjection<float>( seg.start, seg.dir, testpt );
+      float dist = recoutils::pointLineDistance3f(  seg.start, seg.end, testpt );
+      float proj = recoutils::pointRayProjection3f( seg.start, seg.dir, testpt );
 
       if ( proj>-max_dist && proj<=seg.len+max_dist && dist<max_dist ) {
         if ( mindist>dist || min_segidx<0 ) {
@@ -1230,14 +1229,14 @@ namespace reco {
             // loop over cluster hits
             // of our two segments
 
-            larflow::reco::cluster_t gapcluster;
+            larflow::recoutils::cluster_t gapcluster;
             const larlite::larflowcluster* lfclusters[2] = { _segment_v[last_segidx].cluster, _segment_v[segidx].cluster };
             larlite::event_larflow3dhit gap_lfhit;
             for (int ic=0; ic<2; ic++) {
               for (auto const& lfhit : *(lfclusters[ic]) ) {
                 std::vector<float> hit = { lfhit[0], lfhit[1], lfhit[2] };
-                float s = larflow::reco::pointRayProjection<float>( gap_start, gap_dir, hit );
-                //float r = larflow::reco::pointLineDistance<float>( gap_start, gap_end, hit );
+                float s = larflow::recoutils::pointRayProjection3f( gap_start, gap_dir, hit );
+                //float r = larflow::recoutils::pointLineDistance<float>( gap_start, gap_end, hit );
                 if ( s>=0 && s<=gaplen) {
                   gapcluster.points_v.push_back( hit );
                   gap_lfhit.push_back( lfhit );
@@ -1249,7 +1248,7 @@ namespace reco {
 
             larlite::track gaptrack;
             if ( gapcluster.points_v.size()>=5 ) {
-              larflow::reco::cluster_pca( gapcluster );
+              larflow::recoutils::cluster_pca( gapcluster );
               gaptrack = larflow::reco::ProjectionDefectSplitter::fitLineSegmentToCluster( gapcluster, gap_lfhit, adc_v );
             }
             else {

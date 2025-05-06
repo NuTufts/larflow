@@ -12,8 +12,8 @@
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/storage_manager.h"
 
-#include "cluster_functions.h"
-#include "KPCluster.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/Reco/KPCluster.h"
 
 namespace larflow {
 namespace reco {
@@ -99,14 +99,16 @@ namespace reco {
 
     /** @brief set index of feature vector of larflow3dhit where larmatch score is stored */
     void set_lfhit_score_index( int idx ) { _lfhit_score_index=idx; };
-    
+
+    /** @brief clear **/
+    void clear_output();
 
     void process( larlite::storage_manager& io_ll );
     void process( const std::vector<larlite::larflow3dhit>& input_lfhits );
     void dump2json( std::string outfilename="dump_keypointreco.json" );    
 
     std::vector< KPCluster > output_pt_v;  ///< container of class representing reco. vertices
-    std::vector< cluster_t >   _cluster_v; ///< clusters of spacepoints with keypoint score above some threshold
+    std::vector< recoutils::cluster_t >   _cluster_v; ///< clusters of spacepoints with keypoint score above some threshold
 
     // make initial points
     std::vector< std::vector<float> > _initial_pt_pos_v;  ///< initial points we are searching (x,y,z,kp-score,lm-score)
@@ -123,11 +125,11 @@ namespace reco {
                                  std::vector<std::vector<float> >& skimmed_pt_v,
                                  std::vector<int>& skimmed_index_v );
 
-    KPCluster _characterize_cluster( cluster_t& cluster,
+    KPCluster _characterize_cluster( recoutils::cluster_t& cluster,
                                      std::vector< std::vector<float> >& skimmed_pt_v,
                                      std::vector< int >& skimmed_index_v );
 
-    KPCluster _fit_cluster_CARUANA( cluster_t& cluster,
+    KPCluster _fit_cluster_CARUANA( recoutils::cluster_t& cluster,
 				    std::vector< std::vector<float> >& skimmed_pt_v,
 				    std::vector< int >& skimmed_index_v );
     

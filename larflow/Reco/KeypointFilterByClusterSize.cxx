@@ -1,8 +1,8 @@
 #include "KeypointFilterByClusterSize.h"
 
-#include "cluster_functions.h"
 #include "larlite/DataFormat/larflow3dhit.h"
 #include "larlite/DataFormat/pcaxis.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -123,7 +123,7 @@ namespace reco {
                     << ", kpindex=" << keypoint_idx << std::endl;
       
       // cluster hits
-      std::vector< cluster_t > cluster_v;
+      std::vector< recoutils::cluster_t > cluster_v;
       cluster_spacepoint_v( nearby_v, cluster_v, 10, 3.0, 30 );
 
       // find cluster keypoint is on and get its size

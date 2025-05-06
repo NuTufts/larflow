@@ -13,7 +13,7 @@
 #include "larcv/core/DataFormat/ImageMeta.h"
 #include "larcv/core/DataFormat/Image2D.h"
 
-#include "VoxelizeTriplets.h"
+#include "larflow/Voxelizer/VoxelizeTriplets.h"
 
 
 namespace larflow {

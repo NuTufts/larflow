@@ -100,7 +100,7 @@ namespace reco {
     // make five particle ssnet images
     larflow::reco::SplitHitsByParticleSSNet fiveparticlealgo;
     //fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
-    fiveparticlealgo.set_verbosity( larcv::msg::kINFO );
+    fiveparticlealgo.set_verbosity( logger().level() );
     try {
       fiveparticlealgo.process( iolcv, ioll );
     }
@@ -243,6 +243,7 @@ namespace reco {
     // output:
     //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
     //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
+    _splithits_wcfilter.set_verbosity( logger().level() );
     _splithits_wcfilter.set_larmatch_tree_name( _spacepoint_input_container_name );
     _splithits_wcfilter.process_labelonly( iolcv, ioll );    
 
@@ -281,7 +282,7 @@ namespace reco {
     //  * larflow3dhit_maxtrackhit_wcfilter_tree: in-time track hits after filter
     _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_trackhit" );
     _choosemaxhit.set_output_larflow3dhit_treename( "maxtrackhit_wcfilter" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.set_verbosity( logger().level() );
     _choosemaxhit.process( iolcv, ioll );
     // input:
     //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
@@ -289,7 +290,7 @@ namespace reco {
     //  * larflow3dhit_maxshowerhit_tree: in-time shower hits after filter
     _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_wcfilter_showerhit" );
     _choosemaxhit.set_output_larflow3dhit_treename( "maxshowerhit" );
-    _choosemaxhit.set_verbosity( larcv::msg::kINFO );
+    _choosemaxhit.set_verbosity( logger().level() );
     _choosemaxhit.process( iolcv, ioll );
 
     // PREP: SPLIT SHOWER/TRACK FOR COSMIC HITS
@@ -298,6 +299,7 @@ namespace reco {
     // output:
     //  * larflow3dhit_ssnetsplit_full_showerhit_tree: out-of-time shower hits
     //  * larflow3dhit_ssnetsplit_full_trackhit_tree:  out-of-time track hits
+    _splithits_full.set_verbosity( logger().level() );
     _splithits_full.set_larmatch_tree_name( "taggerrejecthit" );
     _splithits_full.set_output_tree_stem_name( "ssnetsplit_offtrigger" );
     _splithits_full.process_splitonly( iolcv, ioll );
@@ -347,6 +349,7 @@ namespace reco {
 
     if ( _reco_version==1 ) {
       // neutrino
+      _kpreco_nu.clear_output();
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_output_tree_name( "keypoint" );    
       _kpreco_nu.set_sigma( 10.0 );
@@ -358,7 +361,8 @@ namespace reco {
       _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
       _kpreco_nu.set_lfhit_score_index( 13 ); // (v1 larmatch network score index in hit)
       _kpreco_nu.process( ioll );
-      
+
+      _kpreco_track.clear_output();      
       _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_track.set_output_tree_name( "keypoint" );        
       _kpreco_track.set_sigma( 10.0 );    
@@ -370,7 +374,8 @@ namespace reco {
       _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
       _kpreco_track.set_lfhit_score_index( 14 ); // (v1 larmatch network track-score index in hit)
       _kpreco_track.process( ioll );
-      
+
+      _kpreco_shower.clear_output();
       _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_shower.set_output_tree_name( "keypoint" );
       _kpreco_shower.set_sigma( 10.0 );    
@@ -383,6 +388,7 @@ namespace reco {
       _kpreco_shower.set_lfhit_score_index( 15 ); // (v1 larmatch network shower-score index in hit)
       _kpreco_shower.process( ioll );
 
+      _kpreco_track_cosmic.clear_output();      
       _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
       _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
       _kpreco_track_cosmic.set_sigma( 50.0 );    
@@ -426,7 +432,8 @@ namespace reco {
       // so we simply re-run the algorithms to work with the additional vertex types.
 
       // neutrino
-      //_kpreco_nu.set_verbosity( larcv::msg::kINFO );
+      _kpreco_nu.clear_output();
+      _kpreco_nu.set_verbosity( logger().level() );
       _kpreco_nu.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_nu.set_sigma( 10.0 );
       _kpreco_nu.set_min_cluster_size(   20.0, 0 );
@@ -440,6 +447,7 @@ namespace reco {
       _kpreco_nu.process( ioll );
 
       // neutrino interaction track: we have track starts and ends
+      _kpreco_track.clear_output();      
       _kpreco_track.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_track.set_sigma( 10.0 );    
       _kpreco_track.set_min_cluster_size(   20.0, 0 );
@@ -457,7 +465,9 @@ namespace reco {
       _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
       _kpreco_track.set_lfhit_score_index( 19 ); // (v2 larmatch-minkowski network track-end-score index in hit)
       _kpreco_track.process( ioll );
+      
       // neutrino interaction shower
+      _kpreco_shower.clear_output();            
       _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_shower.set_output_tree_name( "keypoint" );
       _kpreco_shower.set_sigma( 10.0 );    
@@ -479,25 +489,24 @@ namespace reco {
       _kpreco_shower.process( ioll );
 
       // cosmic keypoints
-      // why are these here?
-      // _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
-      // _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
-      // _kpreco_track_cosmic.set_sigma( 50.0 );    
-      // _kpreco_track_cosmic.set_min_cluster_size(   25.0, 0 );
-      // _kpreco_track_cosmic.set_max_dbscan_dist( 10.0 );
-      // _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 0 );
-      // _kpreco_track_cosmic.set_min_cluster_size(   15.0, 1 );    
-      // _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
-      // _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
+      _kpreco_track_cosmic.clear_output();                  
+      _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
+      _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
+      _kpreco_track_cosmic.set_sigma( 50.0 );    
+      _kpreco_track_cosmic.set_min_cluster_size(   50.0, 0 );
+      _kpreco_track_cosmic.set_max_dbscan_dist( 10.0 );
+      _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 0 );
+      _kpreco_track_cosmic.set_min_cluster_size(   20.0, 1 );    
+      _kpreco_track_cosmic.set_keypoint_threshold( 0.5, 1 );    
+      _kpreco_track_cosmic.set_larmatch_threshold( 0.5 );
 
-      // _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackStart );
-      // _kpreco_track_cosmic.set_lfhit_score_index( 18 ); // (v2 larmatch network track-start-score index in hit)
-      // _kpreco_track_cosmic.process( ioll );
+      _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackStart );
+      _kpreco_track_cosmic.set_lfhit_score_index( 18 ); // (v2 larmatch network track-start-score index in hit)
+      _kpreco_track_cosmic.process( ioll );
 
-      // _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
-      // _kpreco_track_cosmic.set_lfhit_score_index( 19 ); // (v2 larmatch network track-end-score index in hit)
-      // _kpreco_track_cosmic.process( ioll );
-      
+      _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
+      _kpreco_track_cosmic.set_lfhit_score_index( 19 ); // (v2 larmatch network track-end-score index in hit)
+      _kpreco_track_cosmic.process( ioll );
       
     }
     else {
@@ -569,7 +578,7 @@ namespace reco {
     const float _maxkd   = 100;
     LARCV_INFO() << "RUN PROJ-SPLITTER ON: maxtrackhit_wcfilter (in-time track hits)" << std::endl;
     //_projsplitter.set_verbosity( larcv::msg::kDEBUG );
-    _projsplitter.set_verbosity( larcv::msg::kINFO );    
+    _projsplitter.set_verbosity( logger().level() );    
     _projsplitter.set_dbscan_pars( _maxdist, _minsize, _maxkd );
     _projsplitter.doClusterVetoHits(false);
     _projsplitter.set_fit_line_segments_to_clusters( true );
@@ -579,8 +588,10 @@ namespace reco {
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
     _projsplitter.process( iolcv, ioll );
 
+
     // PRIMITIVE TRACK FRAGMENTS: OFF-TRIGGER TRACK HITS
-    LARCV_INFO() << "RUN PROJ-SPLITTER ON: offtrigger_maxtrackhit (out-of-time hits)" << std::endl;    
+    LARCV_INFO() << "RUN PROJ-SPLITTER ON: offtrigger_maxtrackhit (out-of-time hits)" << std::endl;
+    _projsplitter_cosmic.set_verbosity( logger().level() );    
     _projsplitter_cosmic.set_verbosity( larcv::msg::kINFO );
     //_projsplitter_cosmic.set_verbosity( larcv::msg::kDEBUG );    
     _projsplitter_cosmic.set_dbscan_pars( 5.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
@@ -596,12 +607,12 @@ namespace reco {
     _showerkp.set_ssnet_lfhit_tree_name( "maxshowerhit" );
     //_showerkp.set_ssnet_lfhit_tree_name( "ssnetsplit_wcfilter_showerhit" );    
     //_showerkp.set_verbosity( larcv::msg::kDEBUG );
-    _showerkp.set_verbosity( larcv::msg::kINFO );    
+    _showerkp.set_verbosity( logger().level() );    
     _showerkp.process( iolcv, ioll );
 
     // SHORT HIP FRAGMENTS
     //_short_proton_reco.set_verbosity( larcv::msg::kDEBUG );
-    _short_proton_reco.set_verbosity( larcv::msg::kINFO );    
+    _short_proton_reco.set_verbosity( logger().level() );    
     _short_proton_reco.clear_clustertree_checklist();
     _short_proton_reco.add_clustertree_forcheck( "trackprojsplit_wcfilter" );
     _short_proton_reco.process( iolcv, ioll );
@@ -637,7 +648,7 @@ namespace reco {
   {
 
 
-    _nuvertexactivity.set_verbosity( larcv::msg::kINFO );
+    _nuvertexactivity.set_verbosity( logger().level() );
     //_nuvertexactivity.set_verbosity( larcv::msg::kDEBUG );    
 
     // configure to use shower and in-time hits
@@ -653,7 +664,7 @@ namespace reco {
     //_nuvertexactivity.process( iolcv, ioll );
     
     //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertexmaker.set_verbosity( larcv::msg::kINFO );
+    _nuvertexmaker.set_verbosity( logger().level() );
     _nuvertexmaker.clear();
     _nuvertexmaker.add_keypoint_producer( "keypoint" );
     _nuvertexmaker.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
@@ -678,9 +689,9 @@ namespace reco {
     // NuTrackBuilder class
     _nu_track_builder.clear();
     if ( _stop_after_nutracker )
-      _nu_track_builder.set_verbosity( larcv::msg::kDEBUG );    
+      _nu_track_builder.set_verbosity( logger().level() );    
     else 
-      _nu_track_builder.set_verbosity( larcv::msg::kINFO );
+      _nu_track_builder.set_verbosity( logger().level() );
     //_nu_track_builder.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     _nu_track_builder.process( iolcv, ioll,
 			       _nuvertexmaker.get_mutable_output_candidates(),
@@ -709,7 +720,7 @@ namespace reco {
 
     // simpler, cone-based reco
     //_nuvertex_shower_reco.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO ); 
+    _nuvertex_shower_reco.set_verbosity( logger().level() );    
     //_nuvertex_shower_reco.activateMCanalysisMode(true);
     _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
     //_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
@@ -809,12 +820,12 @@ namespace reco {
     
     _cosmic_track_builder.clear();
     //_cosmic_track_builder.set_verbosity( larcv::msg::kDEBUG );
-    _cosmic_track_builder.set_verbosity( larcv::msg::kINFO );    
+    _cosmic_track_builder.set_verbosity( logger().level() );    
     _cosmic_track_builder.do_boundary_analysis( true );
     _cosmic_track_builder.process( iolcv, ioll );
 
     //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
-    _cosmic_proton_finder.set_verbosity( larcv::msg::kINFO );    
+    _cosmic_proton_finder.set_verbosity( logger().level() );    
     _cosmic_proton_finder.process( iolcv, ioll );
     
   }
@@ -856,6 +867,17 @@ namespace reco {
     _event_mcshower_v->clear();
     _mcphoton_tree->Branch( "mcshower_v", &_event_mcshower_v );
 
+  }
+
+  /**
+   * @brief Close ana file
+   *
+   */
+  void KPSRecoManager::close_ana_file()
+  {
+    _ana_file->Close();
+    _ana_file = nullptr;
+    _ana_tree = nullptr;
   }
   
   /**
@@ -943,14 +965,15 @@ namespace reco {
     // NuSelUnrecoCharge   unrecocharge;
     // NuSelCosmicTagger   cosmictagger;
     // TrackForwardBackwardLL muvsproton;
-    _prongvars.set_verbosity(larcv::msg::kDEBUG);
-    _vertexvars.set_verbosity(larcv::msg::kDEBUG);
-    _wcoverlapvars.set_verbosity(larcv::msg::kDEBUG);
-    _showergapana2d.set_verbosity(larcv::msg::kDEBUG);
+
+    _prongvars.set_verbosity(logger().level());
+    _vertexvars.set_verbosity(logger().level());
+    _wcoverlapvars.set_verbosity(logger().level());
+    _showergapana2d.set_verbosity(logger().level());
     _unrecocharge.setSaveMask(false);
-    _unrecocharge.set_verbosity(larcv::msg::kINFO);
-    _cosmictagger.set_verbosity(larcv::msg::kDEBUG);
-    _muvsproton.set_verbosity(larcv::msg::kINFO);
+    _unrecocharge.set_verbosity(logger().level());
+    _cosmictagger.set_verbosity(logger().level());
+    _muvsproton.set_verbosity(logger().level());
 
     _nu_sel_v.clear();
     _nu_sel_v.reserve( nuvtx_v.size() );
@@ -1065,8 +1088,8 @@ namespace reco {
   {
     
     LARCV_INFO() << "Calculate prong kinematics" << std::endl;
-    _nu_track_kine.set_verbosity(larcv::msg::kDEBUG);
-    _nu_shower_kine.set_verbosity(larcv::msg::kDEBUG);
+    _nu_track_kine.set_verbosity( logger().level() );
+    _nu_shower_kine.set_verbosity( logger().level() );
 
     _nu_track_kine.clear();
     _nu_shower_kine.clear();

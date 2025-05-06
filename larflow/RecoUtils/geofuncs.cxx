@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 namespace larflow {
-namespace reco {
+namespace recoutils {
 
   /**
    * @brief template function that gets distance of test point from line defined by two points.

@@ -1,6 +1,6 @@
 #include "PostNuCheckShowerTrunkOverlap.h"
 
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -137,10 +137,10 @@ namespace reco {
 	      pt[v] = track.LocationAtPoint(ipt)[v];
 	      d_v[ipt] += (pt[v]-nucand.pos[v])*(pt[v]-nucand.pos[v]);
 	    }
-	    float s_trunk = larflow::reco::pointRayProjection3f( vshowertrunk_start, vshowertrunk_dir, pt );
-	    float r_trunk = larflow::reco::pointLineDistance3f(  vshowertrunk_start, vshowertrunk_end, pt );
-	    float s_pca   = larflow::reco::pointRayProjection3f( vshowerpca_start, vshowerpca_dir, pt );
-	    float r_pca   = larflow::reco::pointLineDistance3f(  vshowerpca_start, vshowerpca_end, pt );
+	    float s_trunk = larflow::recoutils::pointRayProjection3f( vshowertrunk_start, vshowertrunk_dir, pt );
+	    float r_trunk = larflow::recoutils::pointLineDistance3f(  vshowertrunk_start, vshowertrunk_end, pt );
+	    float s_pca   = larflow::recoutils::pointRayProjection3f( vshowerpca_start, vshowerpca_dir, pt );
+	    float r_pca   = larflow::recoutils::pointLineDistance3f(  vshowerpca_start, vshowerpca_end, pt );
 	    s_trunk_v[ipt] = s_trunk;
 	    r_trunk_v[ipt] = r_trunk;
 	    s_pca_v[ipt] = s_pca;

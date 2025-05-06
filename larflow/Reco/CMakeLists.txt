@@ -3,8 +3,7 @@ set(MODULE_NAME Reco )
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS cluster_functions.h
-  geofuncs.h
+set( HEADERS
   SplitHitsBySSNet.h
   SplitHitsByParticleSSNet.h
   ChooseMaxLArFlowHit.h
@@ -59,8 +58,7 @@ set( HEADERS cluster_functions.h
   TruthRecoMatching.h
   KPSRecoManager.h )
 
-add_library( ${LIBNAME} SHARED cluster_functions.cxx
-  geofuncs.cxx
+add_library( ${LIBNAME} SHARED
   SplitHitsBySSNet.cxx
   SplitHitsByParticleSSNet.cxx
   ChooseMaxLArFlowHit.cxx  
@@ -153,7 +151,7 @@ target_include_directories(${LIBNAME}
   $<INSTALL_INTERFACE:include/larflow/${MODULE_NAME}>
   ${PUB_INC_DIRS}
   PRIVATE
-  ${PRI_INC_DIRS} )
+  ${PRI_INC_DIRS} )  
 target_link_libraries(${LIBNAME} PUBLIC
   ${UBLARCVAPP_LIBS_USED}
   ${LARCV_LIBS_USED}

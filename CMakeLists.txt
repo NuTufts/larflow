@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(larflow VERSION 0.1)
 
 set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 
 #---Install location by default is in the build directory
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -17,7 +18,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(ROOT CONFIG REQUIRED)
 # we set the compiler version based on the one used for ROOT
 execute_process(
-    COMMAND bash "-c" "root-config --features | awk '{print $1}'"
+    COMMAND bash "-c" "root-config --features"
     OUTPUT_VARIABLE TEST_ROOT_CXX_STANDARD )
 if (${TEST_ROOT_CXX_STANDARD} MATCHES "cxx17")
   message( STATUS "using cxx17")
@@ -89,6 +90,7 @@ endif()
 
 #---Eigen
 find_package(Eigen3 REQUIRED)
+get_property(EIGEN3_INCLUDE_DIRS TARGET Eigen3::Eigen PROPERTY INTERFACE_INCLUDE_DIRECTORIES )
 
 #---Cilantro
 set( CILANTRO_INC_DIR "$ENV{CILANTRO_INC_DIR}" )

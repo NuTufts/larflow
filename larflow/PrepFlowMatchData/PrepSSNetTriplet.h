@@ -7,7 +7,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larcv/core/DataFormat/Image2D.h"
-#include "PrepMatchTriplets.h"
+#include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
 namespace larflow {
 namespace prep {

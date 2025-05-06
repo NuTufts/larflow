@@ -16,7 +16,8 @@ namespace reco {
     std::vector<larlite::track> split_v;
 
     larflow::reco::ClusterImageMask masker;
-    masker.set_verbosity( larcv::msg::kDEBUG );
+    //masker.set_verbosity( larcv::msg::kDEBUG );
+    masker.set_verbosity( logger().level() );
     
     int npts = track.NumberTrajectoryPoints();
     if ( npts==1 )

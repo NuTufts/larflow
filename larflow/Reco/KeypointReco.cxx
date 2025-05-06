@@ -13,7 +13,7 @@
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 
 
@@ -43,6 +43,14 @@ namespace reco {
     __keypoint_type_names[3] = "shower";
     __keypoint_type_names[4] = "michel";
     __keypoint_type_names[5] = "delta";
+  }
+
+  void KeypointReco::clear_output()
+  {
+    output_pt_v.clear();    
+    _cluster_v.clear();
+    _initial_pt_pos_v.clear();
+    _initial_pt_used_v.clear();
   }
   
   /**
@@ -113,11 +121,6 @@ namespace reco {
    */
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
   {
-
-    output_pt_v.clear();
-    _cluster_v.clear();
-    _initial_pt_pos_v.clear();
-    _initial_pt_used_v.clear();
     
     _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 
@@ -223,7 +226,7 @@ namespace reco {
 
 
     // cluster the points
-    std::vector< cluster_t > cluster_v;
+    std::vector< recoutils::cluster_t > cluster_v;
     float maxdist = _max_dbscan_dist;
     int maxkd     = 100;
 
@@ -318,7 +321,7 @@ namespace reco {
    * @param[in] skimmed_index_v  Index of point in the Original Point list, _initial_pt_pos_v.
    * @return Keypoint cluster represented as KPCluster object
    */
-  KPCluster KeypointReco::_characterize_cluster( cluster_t& cluster,
+  KPCluster KeypointReco::_characterize_cluster( recoutils::cluster_t& cluster,
                                                  std::vector< std::vector<float> >& skimmed_pt_v,
                                                  std::vector< int >& skimmed_index_v )
   {
@@ -405,7 +408,7 @@ namespace reco {
    * @param[in] skimmed_index_v  Index of point in the Original Point list, _initial_pt_pos_v.
    * @return Keypoint cluster represented as KPCluster object
    */
-  KPCluster KeypointReco::_fit_cluster_CARUANA( cluster_t& cluster,
+  KPCluster KeypointReco::_fit_cluster_CARUANA( recoutils::cluster_t& cluster,
 						std::vector< std::vector<float> >& skimmed_pt_v,
 						std::vector< int >& skimmed_index_v )
   {

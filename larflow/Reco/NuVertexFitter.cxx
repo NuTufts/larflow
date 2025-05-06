@@ -3,8 +3,8 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larlite/DataFormat/larflowcluster.h"
 #include "larlite/DataFormat/pcaxis.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 #include "NuVertexCandidate.h"
-#include "cluster_functions.h"
 #include "TrackOTFit.h"
 
 namespace larflow {
@@ -72,7 +72,7 @@ namespace reco {
         prong.endpt.resize(3,0);
         prong.startpt.resize(3,0);
 
-        cluster_t clust;
+	larflow::recoutils::cluster_t clust;
 
         int npts_in_radius = 0;
 

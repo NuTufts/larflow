@@ -6,10 +6,9 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
-
-#include "NuVertexCandidate.h"
-#include "ClusterBookKeeper.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/Reco/NuVertexCandidate.h"
+#include "larflow/Reco/ClusterBookKeeper.h"
 
 
 
@@ -66,7 +65,7 @@ namespace reco {
     bool _mc_analysis_mode;
     ublarcvapp::mctools::MCPixelPGraph* _mcpg;
     void _truthMatchShowerFragments(); ///< use truth to match reco clusters to true shower trunks
-    void _gatherTruthShowerFeatures( larflow::reco::cluster_t& prong, 
+    void _gatherTruthShowerFeatures( larflow::recoutils::cluster_t& prong, 
       larflow::reco::NuVertexCandidate& vtx,
       RecoShowerInfo_t& showerinfo );
 

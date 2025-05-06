@@ -4,8 +4,8 @@
 #include "larlite/DataFormat/pcaxis.h"
 #include "larlite/DataFormat/track.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
-#include "cluster_functions.h"
-#include "geofuncs.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -99,14 +99,14 @@ namespace reco {
     const float maxdist = 1.0;
     const int minsize = 5;
     const int maxkd = 50;
-    std::vector< larflow::reco::cluster_t > cluster_v;
-    larflow::reco::cluster_sdbscan_spacepoints( points_v, cluster_v, maxdist, minsize, maxkd );
-    larflow::reco::cluster_runpca( cluster_v );
+    std::vector< larflow::recoutils::cluster_t > cluster_v;
+    larflow::recoutils::cluster_sdbscan_spacepoints( points_v, cluster_v, maxdist, minsize, maxkd );
+    larflow::recoutils::cluster_runpca( cluster_v );
 
     LARCV_INFO() << "number of clusters after dbscan: " << cluster_v.size() << std::endl;
 
     // find short, straight clusters
-    std::vector< larflow::reco::cluster_t > proton_candidates_v;
+    std::vector< larflow::recoutils::cluster_t > proton_candidates_v;
     for ( auto& c : cluster_v ) {
       if ( c.pca_len>max_length )
         continue;
@@ -141,7 +141,7 @@ namespace reco {
       for ( auto& idx : cluster.hitidx_v ) {
         lfcluster.push_back( (*ev_hit)[ orig_idx_v[idx] ] );
       }
-      larlite::pcaxis pc = larflow::reco::cluster_make_pcaxis( cluster, c );
+      larlite::pcaxis pc = larflow::recoutils::cluster_make_pcaxis( cluster, c );
       larlite::track lltrack;
       lltrack.reserve(2);
 
@@ -173,7 +173,7 @@ namespace reco {
   }
 
   void ShortProtonClusterReco::checkForOverlap( larlite::storage_manager& io,
-                                                std::vector< larflow::reco::cluster_t >& proton_cluster_v,
+                                                std::vector< larflow::recoutils::cluster_t >& proton_cluster_v,
                                                 std::vector< std::string >& cluster_overlap_list )
   {
     std::vector<int> has_overlap( proton_cluster_v.size(), 0 );
@@ -215,7 +215,7 @@ namespace reco {
           for (int iend=0; iend<2; iend++) {
 
             const std::vector<float>& endpt = proton.pca_ends_v[iend];
-            float dist = larflow::reco::pointLineDistance3f( start, end, endpt );
+            float dist = larflow::recoutils::pointLineDistance3f( start, end, endpt );
             if ( dist<overlap_radius )
               nends_within_threshold++;
           }
@@ -223,8 +223,8 @@ namespace reco {
           if ( nends_within_threshold==2 ) {
             // close to parallel
             // check location along line
-            float s0 = larflow::reco::pointRayProjection3f( start, dir, proton.pca_ends_v[0] );
-            float s1 = larflow::reco::pointRayProjection3f( start, dir, proton.pca_ends_v[1] );
+            float s0 = larflow::recoutils::pointRayProjection3f( start, dir, proton.pca_ends_v[0] );
+            float s1 = larflow::recoutils::pointRayProjection3f( start, dir, proton.pca_ends_v[1] );
 
             if ( s0>=-dlen && s0<=len+dlen && s1>=-dlen && s1<=len+dlen )
               has_overlap[iproton] = 1;
@@ -236,7 +236,7 @@ namespace reco {
 
 
     // no we filter
-    std::vector<larflow::reco::cluster_t> filtered_v;
+    std::vector<larflow::recoutils::cluster_t> filtered_v;
     filtered_v.reserve( proton_cluster_v.size() );
     
     for (int iproton=0; iproton<(int)proton_cluster_v.size(); iproton++) {

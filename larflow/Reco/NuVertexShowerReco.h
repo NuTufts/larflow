@@ -8,9 +8,9 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/larflowcluster.h"
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
-#include "NuVertexCandidate.h"
-#include "cluster_functions.h"
-#include "ClusterBookKeeper.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/Reco/NuVertexCandidate.h"
+#include "larflow/Reco/ClusterBookKeeper.h"
 
 #include <xgboost/c_api.h>
 
@@ -170,7 +170,7 @@ namespace reco {
 
     bool _mc_analysis_mode;
     ublarcvapp::mctools::MCPixelPGraph* _mcpg;
-    void _gatherTruthShowerFeatures( larflow::reco::cluster_t& prong, 
+    void _gatherTruthShowerFeatures( larflow::recoutils::cluster_t& prong, 
       larflow::reco::NuVertexCandidate& vtx,
       RecoShowerInfo_t& showerinfo );
 

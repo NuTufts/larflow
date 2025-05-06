@@ -1,6 +1,6 @@
 #include "ProjectionDefectSplitter.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 #include "nlohmann/json.hpp"
 #include "ublarcvapp/ContourTools/ContourClusterAlgo.h"
@@ -12,7 +12,7 @@
 
 #include "TRandom3.h"
 
-#include "larflow/Reco/geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 #include "larflow/Reco/TrackOTFit.h"
 
 #include <opencv2/core.hpp>
@@ -69,7 +69,7 @@ namespace reco {
 
     // cluster track hits
     std::vector<int> used_hits_v( ev_lfhits->size(), 0 );
-    std::vector<cluster_t> cluster_track_v;
+    std::vector<recoutils::cluster_t> cluster_track_v;
     _runSplitter( *ev_lfhits, adc_v, used_hits_v, cluster_track_v );
 
     // look for short proton clusters in left over veto hits
@@ -140,7 +140,7 @@ namespace reco {
    * @return The number of times a cluster was split
    *
    */
-  int ProjectionDefectSplitter::split_clusters( std::vector<cluster_t>& cluster_v,
+  int ProjectionDefectSplitter::split_clusters( std::vector<recoutils::cluster_t>& cluster_v,
                                                 const std::vector<larcv::Image2D>& adc_v,
                                                 const float min_second_pca_len ) {
 
@@ -148,10 +148,10 @@ namespace reco {
     std::clock_t begin = std::clock();
     
     // allocate output vector of clusters
-    std::vector<cluster_t> out_v;
+    std::vector<recoutils::cluster_t> out_v;
 
     // for debug
-    //std::vector<cluster_t> tmp;
+    //std::vector<recoutils::cluster_t> tmp;
 
     // allocate an array of blank images for 2D contouring purposes
     std::vector<larcv::Image2D> projimg_v;
@@ -198,7 +198,7 @@ namespace reco {
       
       // we split this contour (or at least try)
       LARCV_DEBUG() << "populate image with contour" << std::endl;
-      larflow::reco::cluster_imageprojection( clust, projimg_v );
+      larflow::recoutils::cluster_imageprojection( clust, projimg_v );
 
       LARCV_DEBUG() << "make contours" << std::endl;
       ublarcvapp::ContourClusterAlgo contour_algo;
@@ -284,7 +284,7 @@ namespace reco {
         auto const& contourmeta = contour_algo.m_plane_atomicmeta_v[c.plane][c.index];
       
         // we now collect the 3d points from this contour
-        cluster_t contourcluster;
+        recoutils::cluster_t contourcluster;
         contourcluster.points_v.reserve( clust.imgcoord_v.size() );
         contourcluster.imgcoord_v.reserve( clust.imgcoord_v.size() );
         contourcluster.hitidx_v.reserve( clust.imgcoord_v.size() );
@@ -322,7 +322,7 @@ namespace reco {
           continue;
         
         // get pca of new cluster
-        larflow::reco::cluster_pca( contourcluster );
+        larflow::recoutils::cluster_pca( contourcluster );
 
         LARCV_DEBUG() << "     pca-eigenvalue[1]=" << contourcluster.pca_eigenvalues[1] << std::endl;
 
@@ -350,7 +350,7 @@ namespace reco {
 
       if ( totclaimed+5<claimedpts.size() ) {
         LARCV_DEBUG() << "make unclaimed cluster" << std::endl;
-        cluster_t unclaimedcluster;
+        recoutils::cluster_t unclaimedcluster;
         for ( size_t idx=0; idx<claimedpts.size(); idx++ ) {
           if ( claimedpts[idx]==0 ) {
             unclaimedcluster.points_v.push_back(   clust.points_v[idx] );
@@ -358,7 +358,7 @@ namespace reco {
             unclaimedcluster.hitidx_v.push_back( clust.hitidx_v[idx] );
           }
         }
-        larflow::reco::cluster_pca( unclaimedcluster );
+        larflow::recoutils::cluster_pca( unclaimedcluster );
         //tmp.push_back( unclaimedcluster );
         out_v.emplace_back( std::move(unclaimedcluster) );
       }
@@ -366,7 +366,7 @@ namespace reco {
     }//loop over clusters
 
     LARCV_DEBUG() << "out_v.size()=" << out_v.size() << " and swatp with cluster_v (size=" << cluster_v.size() << ")" << std::endl;
-    //larflow::reco::cluster_dump2jsonfile( tmp, "dump_split.json" );
+    //larflow::recoutils::cluster_dump2jsonfile( tmp, "dump_split.json" );
 
     std::swap( out_v, cluster_v );
     //end of split cluster
@@ -388,12 +388,12 @@ namespace reco {
    * @param[in] cluster_v All the current clusters
    * @param[in] max_2nd_pca_eigenvalue The maximum length of the second largest principle component
    */
-  void ProjectionDefectSplitter::_defragment_clusters( std::vector<cluster_t>& cluster_v,
+  void ProjectionDefectSplitter::_defragment_clusters( std::vector<recoutils::cluster_t>& cluster_v,
                                                        const float max_2nd_pca_eigenvalue ) {
 
     int nsplit = 0;
     
-    std::vector<cluster_t> out_v;
+    std::vector<recoutils::cluster_t> out_v;
     for ( auto& cluster : cluster_v ) {
 
       if ( cluster.pca_eigenvalues[1]<max_2nd_pca_eigenvalue ) {
@@ -419,7 +419,7 @@ namespace reco {
 
           auto& dbclust = dbcluster_v[ic];
           
-          cluster_t c;
+          recoutils::cluster_t c;
           c.points_v.reserve( dbclust.size() );
           c.imgcoord_v.reserve( dbclust.size() );
           c.hitidx_v.reserve( dbclust.size() );
@@ -442,16 +442,16 @@ namespace reco {
   }
 
   /**
-   * @brief convert cluster_t instance into a larflowcluster instance
+   * @brief convert recoutils::cluster_t instance into a larflowcluster instance
    *
-   * @param[in] cluster A cluster_t cluster of spacepoints
+   * @param[in] cluster A recoutils::cluster_t cluster of spacepoints
    * @param[in] source_lfhit_v The original set of hits used to make the given cluster. 
    *                           The info form the hits are copied into the larflowcluster.
-   * @return A larflowcluster instance made from the input cluster_t instance
+   * @return A larflowcluster instance made from the input recoutils::cluster_t instance
    *
    */
   larlite::larflowcluster
-  ProjectionDefectSplitter::_makeLArFlowCluster( cluster_t& cluster,
+  ProjectionDefectSplitter::_makeLArFlowCluster( recoutils::cluster_t& cluster,
                                                  const larlite::event_larflow3dhit& source_lfhit_v ) {
     
     larlite::larflowcluster lfcluster;
@@ -490,14 +490,14 @@ namespace reco {
    *                          of the given cluster.
    * @return A new cluster with additional hits added to the given cluster
    */
-  cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( cluster_t& cluster,
+  recoutils::cluster_t ProjectionDefectSplitter::_absorb_nearby_hits( recoutils::cluster_t& cluster,
                                                            const std::vector<larlite::larflow3dhit>& hit_v,
                                                            std::vector<int>& used_hits_v,
                                                            std::vector<larlite::larflow3dhit>& downsample_hit_v,
                                                            std::vector<int>& orig_idx_v,
                                                            float max_dist2line ) {
 
-    cluster_t newcluster;
+    recoutils::cluster_t newcluster;
     int nused = 0;
     std::vector<int> absorbed_orig_index_v;
     
@@ -588,7 +588,7 @@ namespace reco {
   void ProjectionDefectSplitter::_runSplitter( const larlite::event_larflow3dhit& inputhits,
                                                const std::vector<larcv::Image2D>& adc_v,
                                                std::vector<int>& used_hits_v,
-                                               std::vector<cluster_t>& output_cluster_v )
+                                               std::vector<recoutils::cluster_t>& output_cluster_v )
   {
 
     const int max_pts_to_cluster = 30000;
@@ -673,9 +673,9 @@ namespace reco {
     LARCV_DEBUG() << "number of pushed hits = " << npushed << std::endl;
 
     // cluster the hits in the downsample_hit_v vector
-    std::vector<larflow::reco::cluster_t> cluster_pass_v;
+    std::vector<larflow::recoutils::cluster_t> cluster_pass_v;
     //larflow::reco::cluster_sdbscan_larflow3dhits( downsample_hit_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
-    larflow::reco::cluster_sdbscan_spacepoints( downsample_pt_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
+    larflow::recoutils::cluster_sdbscan_spacepoints( downsample_pt_v, cluster_pass_v, _maxdist, _minsize, _maxkd ); // external implementation, seems best
 
     // now we have to replace the position of some clusters with the "unpushed" positions
     // before we calculate the pca
@@ -692,21 +692,21 @@ namespace reco {
     }
 
     LARCV_DEBUG() << "run pca" << std::endl;
-    larflow::reco::cluster_runpca( cluster_pass_v ); // get pca for each cluster
+    larflow::recoutils::cluster_runpca( cluster_pass_v ); // get pca for each cluster
     LARCV_DEBUG() << "After dbscan, number of clusters is " << cluster_pass_v.size() << std::endl;
 
     _select_clusters( cluster_pass_v, used_hits_v, orig_idx_v, 10, 3.0 );
 
     // now we want to absorb unsampled hits into the clusters we just made
     int nused_final = 0;
-    std::vector<larflow::reco::cluster_t> dense_cluster_v;    
+    std::vector<larflow::recoutils::cluster_t> dense_cluster_v;    
     if ( sample && downsample_hit_v.size()<inputhits.size() ) {
 
       LARCV_INFO() << "Absorb unused hits" << std::endl;
       
       // we then absorb the hits around these clusters
       for ( auto& ds_cluster : cluster_pass_v ) {
-        cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
+        recoutils::cluster_t dense_cluster = _absorb_nearby_hits( ds_cluster,
                                                        inputhits,
                                                        used_hits_v,
                                                        downsample_hit_v,
@@ -777,9 +777,9 @@ namespace reco {
 		  int closest_cluster_idx = -1;
 
 		  float dist_to_pca_line =
-		    larflow::reco::pointLineDistance3f( cluster.pca_ends_v[iend],fkphit, hitpt );
+		    larflow::recoutils::pointLineDistance3f( cluster.pca_ends_v[iend],fkphit, hitpt );
 
-		  float ptproj = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[iend], fkphit, hitpt );
+		  float ptproj = larflow::recoutils::pointRayProjection3f( cluster.pca_ends_v[iend], fkphit, hitpt );
 
 		  if ( dist_to_pca_line<1.5 && ptproj>0.0 ) {
 
@@ -851,7 +851,7 @@ namespace reco {
       for ( int ic=0; ic<(int)dense_cluster_v.size(); ic++ ) {
         if ( modded_cluster[ic]==1 ) {
           auto& cluster = dense_cluster_v[ic];
-          larflow::reco::cluster_pca(cluster);
+          larflow::recoutils::cluster_pca(cluster);
           nmodded++;
         }
       }
@@ -1044,7 +1044,7 @@ namespace reco {
    * @param[out] evout_track Container of tracks made of the fitted line segments to the clusters. 
    *                         Should be same length as cluster_v.
    */
-  void ProjectionDefectSplitter::fitLineSegmentsToClusters( const std::vector<larflow::reco::cluster_t>& cluster_v,
+  void ProjectionDefectSplitter::fitLineSegmentsToClusters( const std::vector<larflow::recoutils::cluster_t>& cluster_v,
                                                              const larlite::event_larflow3dhit& lfhit_v,
                                                              const std::vector<larcv::Image2D>& adc_v,
                                                              larlite::event_track& evout_track )
@@ -1076,7 +1076,7 @@ namespace reco {
   /**
    * @brief fit line segments to clusters
    *
-   * We break the pca-line into line segments and use larflow::reco::TrackOTFit to fit each piece.
+   * We break the pca-line into line segments and use larflow::recoutils::TrackOTFit to fit each piece.
    * 
    * @param[in] cluster Cluster to fit
    * @param[in] lfhit_v Source of his used to make clusters
@@ -1084,7 +1084,7 @@ namespace reco {
    * @param[in] max_line_seg_cm Maximum distance a line segment can be when we break up a cluster before fitting.
    * @return Line segments fitted to cluster in the form of a larlite track object
    */
-  larlite::track ProjectionDefectSplitter::fitLineSegmentToCluster( const larflow::reco::cluster_t& cluster,
+  larlite::track ProjectionDefectSplitter::fitLineSegmentToCluster( const larflow::recoutils::cluster_t& cluster,
                                                                     const larlite::event_larflow3dhit& lfhit_v,
                                                                     const std::vector<larcv::Image2D>& adc_v,
                                                                     const float max_line_seg_cm )
@@ -1188,11 +1188,11 @@ namespace reco {
     // get projection s relative to the start point
     std::vector<float> proj_s( nhits, 0 );
     for (int ihit=0; ihit<nhits; ihit++) {
-      proj_s[ihit] = larflow::reco::pointRayProjection3f( cluster.pca_ends_v[0], cluster.pca_axis_v[0], cluster.points_v[ihit] );
+      proj_s[ihit] = larflow::recoutils::pointRayProjection3f( cluster.pca_ends_v[0], cluster.pca_axis_v[0], cluster.points_v[ihit] );
     }
 
     // for the first segment, we could be way off, so we seed by using the first pca-axis
-    larflow::reco::cluster_t seg0_cluster;
+    larflow::recoutils::cluster_t seg0_cluster;
     seg0_cluster.points_v.reserve( int( nhits*2.0*init_seg_len/pca_len ) );
 
     // label the segment each point is assigned to
@@ -1220,7 +1220,7 @@ namespace reco {
     const float lr = 1.0e-1;
       
     if ( seg0_cluster.points_v.size()>3 ) {
-      larflow::reco::cluster_pca( seg0_cluster );
+      larflow::recoutils::cluster_pca( seg0_cluster );
     
       // we minizer over the first segment twice.
       // first we hold the start fixed and vary the end
@@ -1371,7 +1371,7 @@ namespace reco {
   void ProjectionDefectSplitter::_findVetoClusters( const larlite::event_larflow3dhit& inputhits,
 						    const std::vector<larcv::Image2D>& adc_v,
 						    std::vector<int>& used_hits_v,
-						    std::vector<cluster_t>& output_cluster_v )
+						    std::vector<recoutils::cluster_t>& output_cluster_v )
   {
 
     std::vector< std::vector<float> > veto_pts_v;
@@ -1391,11 +1391,11 @@ namespace reco {
       }
     }
 
-    std::vector< larflow::reco::cluster_t > veto_clusters_v;
-    larflow::reco::cluster_sdbscan_spacepoints( veto_pts_v, veto_clusters_v,
+    std::vector< larflow::recoutils::cluster_t > veto_clusters_v;
+    larflow::recoutils::cluster_sdbscan_spacepoints( veto_pts_v, veto_clusters_v,
 						1.0, 10, _maxkd ); // external implementation, seems best
 
-    larflow::reco::cluster_runpca( veto_clusters_v );
+    larflow::recoutils::cluster_runpca( veto_clusters_v );
 
     LARCV_DEBUG() << "look for veto point clusters within " << veto_pts_v.size() << " veto hits" << std::endl;
     for (int icluster=0; icluster<(int)veto_clusters_v.size()-1; icluster++) {
@@ -1420,14 +1420,14 @@ namespace reco {
    * @brief use some minimum quality cuts to remove some clusters
    *
    */
-  void ProjectionDefectSplitter::_select_clusters( std::vector<larflow::reco::cluster_t>& cluster_v,
+  void ProjectionDefectSplitter::_select_clusters( std::vector<larflow::recoutils::cluster_t>& cluster_v,
 						   std::vector<int>& used_hits_v,
 						   const std::vector<int>& orig_index_v,
 						   const int min_nhits,
 						   const float max_second_pca_len ) 
   {
 
-    std::vector<larflow::reco::cluster_t> out_v;
+    std::vector<larflow::recoutils::cluster_t> out_v;
     out_v.reserve( cluster_v.size() );
     
     for ( size_t i=0; i<cluster_v.size(); i++ ) {

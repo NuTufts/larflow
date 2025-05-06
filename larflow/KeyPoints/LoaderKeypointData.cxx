@@ -174,7 +174,6 @@ namespace keypoints {
                                              bool withtruth )
   {
 
-
     if ( !_setup_numpy ) {
       import_array1(0);
       _setup_numpy = true;
@@ -184,10 +183,12 @@ namespace keypoints {
     
     // make match index array
     LARCV_DEBUG() << "make triplets" << std::endl;
-    if ( _exclude_neg_examples )
+    if ( _exclude_neg_examples ) {
       LARCV_DEBUG() << "exclude negative examples" << std::endl;
-    else
+    }
+    else {
       LARCV_DEBUG() << "include both negative and positive examples" << std::endl;
+    }
 
     // get pointer to the PrepMatchTriplets instance that has made and stored our spacepoints and labels
     larflow::prep::PrepMatchTriplets* ptripletmaker = nullptr;
@@ -195,8 +196,9 @@ namespace keypoints {
       ptripletmaker = &(triplet_v->at(0));
     else
       ptripletmaker = ptriplet_v.at(0);
-
+      
     LARCV_NORMAL() << "Sample labels for triplets." << std::endl;   
+    
     PyArrayObject* matches =
       (PyArrayObject*)ptripletmaker->sample_triplet_matches( num_max_samples, nfilled, withtruth );
 
@@ -211,16 +213,16 @@ namespace keypoints {
     for (size_t i=0; i<nfilled; i++) {
       long ispositive = *((long*)PyArray_GETPTR2(matches,i,3));
       if (ispositive==1) {
-        npos++;
-        pos_index_v.push_back(i);
+	npos++;
+	pos_index_v.push_back(i);
       }
       else {
-        nneg++;
+	nneg++;
       }
     }
     LARCV_DEBUG() << " npos=" << npos << " nneg=" <<  nneg << std::endl;
     PyObject *match_key = Py_BuildValue("s", "matchtriplet");
-
+    
     // make match weight array
     npy_intp match_weight_dim[] = { nfilled };
     PyArrayObject* match_weights = (PyArrayObject*)PyArray_SimpleNew( 1, match_weight_dim, NPY_FLOAT );
@@ -235,7 +237,7 @@ namespace keypoints {
         *((float*)PyArray_GETPTR1(match_weights,i)) = w_neg/w_norm;
     }
     PyObject *match_weight_key = Py_BuildValue("s", "match_weight");
-
+    
     LARCV_NORMAL() << "Prepare 3D positions of triplets" << std::endl;
 
     // make spacepoint position array
@@ -251,7 +253,7 @@ namespace keypoints {
       }
     }
     PyObject* spacepoint_key = Py_BuildValue("s", "spacepoints");
-
+    
     LARCV_NORMAL() << "make positive (i.e. non-ghost) index array" << std::endl;
     
     // make index array

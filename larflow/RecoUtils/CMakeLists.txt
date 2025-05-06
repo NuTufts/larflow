@@ -1,20 +1,19 @@
-set(MODULE_NAME KeyPoints )
+set(MODULE_NAME RecoUtils )
 
 # DEFINE THE TARGET
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
-set( HEADERS KPdata.h
-  PrepKeypointData.h
-  LoaderKeypointData.h
-  PrepAffinityField.h
-  LoaderAffinityField.h )
+set( HEADERS 
+  geofuncs.h
+  cluster_t.h
+  cluster_functions.h
+)
 
 add_library( ${LIBNAME} SHARED
-  KPdata.cxx
-  PrepKeypointData.cxx  
-  LoaderKeypointData.cxx
-  PrepAffinityField.cxx
-  LoaderAffinityField.cxx )
+  geofuncs.cxx
+  cluster_t.cxx
+  cluster_functions.cxx
+)
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -23,13 +22,13 @@ set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
 message("python include: ${PYTHON_INCLUDE_PATH}")
 
 # larcv libs used
-set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor)
+set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVCorePyUtil)
 
 # ublarcvapp libs used
-set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod LArCVApp_MCTools )
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod LArCVApp_dbscan LArCVApp_ContourTools )
 
 # larflow libs
-set(LARFLOW_LIBS_USED LArFlow_PrepFlowMatchData )
+set(LARFLOW_LIBS_USED LArFlow_LArFlowConstants )
 
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
@@ -43,10 +42,25 @@ target_include_directories(${LIBNAME}
   ${NUMPY_INCLUDES}
   PRIVATE
   ${PROJECT_SOURCE_DIR}
+  ${EIGEN3_INCLUDE_DIRS}
+  ${CILANTRO_INC_DIR}
+  ${OpenCV_INCLUDE_DIRS}
   )
-target_link_libraries(${LIBNAME} ${LARFLOW_LIBS_USED} ${UBLARCVAPP_LIBS_USED} ${LARCV_LIBS_USED} ${LARLITE_LIBS} ${PYTHON_LIBRARIES} opencv_imgcodecs opencv_core )
+target_link_libraries(${LIBNAME}
+  opencv_core
+  ${LARFLOW_LIBS_USED}
+  ${UBLARCVAPP_LIBS_USED}
+  ${LARCV_LIBS_USED}
+  ${LARLITE_LIBS}
+  ${PYTHON_LIBRARIES} )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${LARCV_INCLUDE_DIR} ${LARLITE_INC_DIRS} ${UBLARCVAPP_INCLUDE_DIR} ${PYTHON_INCLUDE_PATH} ${NUMPY_INCLUDES} )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}
+  ${LARCV_INCLUDE_DIR}
+  ${LARLITE_INC_DIRS}
+  ${UBLARCVAPP_INCLUDE_DIR}
+  ${PYTHON_INCLUDE_PATH}
+  ${NUMPY_INCLUDES}
+  ${OpenCV_INCLUDE_DIRS} )
 ROOT_GENERATE_DICTIONARY(G__${LIBNAME} ${ALL_HEADERS} LINKDEF LinkDef.h)
 target_sources( ${LIBNAME} PRIVATE G__${LIBNAME}.cxx )
 
@@ -61,5 +75,3 @@ install( FILES
   ${CMAKE_CURRENT_BINARY_DIR}/lib${LIBNAME}_rdict.pcm
   ${CMAKE_CURRENT_BINARY_DIR}/lib${LIBNAME}.rootmap
   DESTINATION lib  )
-
-#add_subdirectory(test)

@@ -32,7 +32,6 @@ class CosineAnnealingWithWarmup:
         x = iiter - self.iter_offset
         epoch_equiv = max( float(x) / float(self.iters_per_epoch) - float(self.epoch_offset), 0.0 )
         
-        
         # Are we in the warm-up phase?
         if epoch_equiv < self.warmup_epochs:
             return self.lr_warmup

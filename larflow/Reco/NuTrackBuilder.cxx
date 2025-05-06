@@ -1,7 +1,7 @@
 #include "NuTrackBuilder.h"
-#include "larflow/Reco/cluster_functions.h"
 #include "larflow/Reco/TrackdQdx.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 #include <ctime>
 
@@ -133,7 +133,7 @@ namespace reco {
           = ((larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, vtxcluster.producer))->at(vtxcluster.index);
 
         // transform back to cluster_t type
-        larflow::reco::cluster_t cluster = larflow::reco::cluster_from_larflowcluster( lfcluster );
+        larflow::recoutils::cluster_t cluster = larflow::recoutils::cluster_from_larflowcluster( lfcluster );
         
         LARCV_DEBUG() << "Finding track paths from cluster seeding point: "
                       << "(" << vtxcluster.pos[0] << "," << vtxcluster.pos[1] << "," << vtxcluster.pos[2] << ")"

@@ -4,7 +4,7 @@ class LArMatchHDF5Writer:
 
     ModuleList = ['preptriplets','kpana','ssnet','kpflow','truthfixer']
 
-    def __init__(self, treename_for_adc_image="wire" ):
+    def __init__(self, treename_for_adc_image="wire", use_triplet_skip_limit=False ):
         
         # import bindings for ROOT-based c++ classes and functions
         # ROOT analysis framework
@@ -29,6 +29,13 @@ class LArMatchHDF5Writer:
 
         # makes spacepoint proposals from larcv images and provides functions to provide spacepoints with groundtruth labels
         self.preptriplets = larflow.prep.PrepMatchTriplets()
+        self.use_triplet_skip_limit = use_triplet_skip_limit
+        if self.use_triplet_skip_limit:
+            self.preptriplets.setStopAtTripletMax( True )
+            self.preptriplets.setStopAtSourcePlaneTriples( True )
+        else:
+            self.preptriplets.setStopAtTripletMax( False )
+            self.preptriplets.setStopAtSourcePlaneTriples( False )
 
         # keypoint score data
         self.kpana = larflow.keypoints.PrepKeypointData()
@@ -106,6 +113,9 @@ class LArMatchHDF5Writer:
     
         # make triplet proposals
         self.preptriplets.process( adc_v, badch_v, 10.0, True )
+        if self.use_triplet_skip_limit and self.preptriplets.didEventReachLimits():
+            print("  PREPTRIPLET: max triplets or triples reached. Clear proposals, effectively removing event.")
+            self.preptriplets.clear()
 
         if run_process_truthlabels:
             """ run code to make truth labels and convert them into numpy arrays """

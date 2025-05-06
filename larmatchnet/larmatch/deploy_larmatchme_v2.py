@@ -14,6 +14,7 @@ parser.add_argument('-ill', '--input-larlite', required=True,help="input larlite
 parser.add_argument('-ao', '--allow-output-overwrite', default=False, help="If flag given, allow output file to overwrite")
 parser.add_argument('-tf','--tickforwards',action='store_true',default=False,help="Indicate that input larcv file is tick-forward [default: F]")
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument("--use-skip-limit",default=False,action='store_true',help="Specify a max triplet let. If surpassed, skip network eval.")
 
 args = parser.parse_args()
 
@@ -118,7 +119,7 @@ outll.open()
 
 # we use the LArMatchHDFWriter class to help us convert larcv/larlite data into numpy arrays
 from larmatch.data.larmatch_hdf5_writer import LArMatchHDF5Writer
-lmwriter = LArMatchHDF5Writer()
+lmwriter = LArMatchHDF5Writer( use_triplet_skip_limit=args.use_skip_limit )
 num_max_spacepoints = 10000000
 process_truth_labels = False
 

@@ -108,7 +108,7 @@ namespace reco {
     result.reco_visible_pixels=reco_visible_pixels;
     result.misreco_visible_pixels=misreco_visible_pixels;
     result.frac_visible_pixels=frac_visible_pixels;
-    
+    return result;
   }
 
   

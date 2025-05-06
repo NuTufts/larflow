@@ -1,11 +1,11 @@
 #include "NuVertexShowerReco.h"
 
+
 #include "larlite/DataFormat/mctruth.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
-
-#include "geofuncs.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 // ROOT
 #include "TLorentzVector.h"
@@ -240,7 +240,6 @@ namespace reco {
       LARCV_NORMAL() << "  number of shower keypoints: " << showerkp_v.size() << std::endl;
     }
 
-
     // these are parameters controlling how the shower prongs are formed and built
     // we need to optimize them
     const float r_mollier = 9.04; // cm, liquid argon
@@ -323,7 +322,7 @@ namespace reco {
       if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
         //LARCV_INFO() << "run mcanalysis for prong" << std::endl;
         // convert larlite::cluster into larflow::reco::cluster_t
-        larflow::reco::cluster_t showercluster;
+        larflow::recoutils::cluster_t showercluster;
         showercluster.points_v.reserve( lfcluster.size() );
         for (int ii=0; ii<(int)lfcluster.size(); ii++) {
           std::vector<float> pt = { lfcluster[ii][0], lfcluster[ii][1], lfcluster[ii][2] };
@@ -379,7 +378,7 @@ namespace reco {
       }
 
       // impact parameter
-      float b_impact_par = larflow::reco::pointLineDistance<float>( shower_start, shower_end, nuvtx.pos );
+      float b_impact_par = larflow::recoutils::pointLineDistance<float>( shower_start, shower_end, nuvtx.pos );
 
       // cosine between axis and shower_dir
       float c_cosine = 0.;
@@ -705,7 +704,7 @@ namespace reco {
               LARCV_INFO() << "  dir2: " << prev_prong.pca1dir[0] << "," << prev_prong.pca1dir[1] << "," << prev_prong.pca1dir[2] << std::endl;
               // float r = larflow::reco::lineLineDistance3f(  prev_prong.axis_start, x2,
               //                                               rankedprong.axis_start, y2 );
-              float r = larflow::reco::lineLineDistance3f_claude( rankedprong.axis_start, rankedprong.pca1dir, prev_prong.axis_start, prev_prong.pca1dir );
+              float r = larflow::recoutils::lineLineDistance3f_claude( rankedprong.axis_start, rankedprong.pca1dir, prev_prong.axis_start, prev_prong.pca1dir );
               line_line_r = r;
               if ( r < 20.0 ) {
                 passes = true;
@@ -848,8 +847,8 @@ namespace reco {
             int nclose_to_axis = 0;
             for (auto const& trackhit : track_lfcluster ) {
               std::vector<float> trackpt = { (float)trackhit[0], (float)trackhit[1], (float)trackhit[2] };
-              float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, trackpt );
-              float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, trackpt );
+              float r = larflow::recoutils::pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, trackpt );
+              float s = larflow::recoutils::pointRayProjection3f( rankedprong.axis_start, rankedprong.axis, trackpt );
               float vtxdist = 0.;
               for (int i=0; i<3; i++)
                 vtxdist += ( trackpt[i]-nuvtx.pos[i] )*( trackpt[i]-nuvtx.pos[i] );
@@ -857,7 +856,7 @@ namespace reco {
               if ( s>-rankedprong.dist2vtx && s<0 && ((vtxdist<1.0 && r<0.5) || (vtxdist>0.0 && r<2.0)) )  {
                 trunk_hit_v.push_back( trackhit );
 
-                float trunk_s = pointRayProjection3f( nuvtx.pos, rankedprong.axis, trackpt );
+                float trunk_s = larflow::recoutils::pointRayProjection3f( nuvtx.pos, rankedprong.axis, trackpt );
                 track_s_v.push_back( trunk_s );
                 
                 ntrunk_hits_added++;
@@ -927,8 +926,8 @@ namespace reco {
           int nhits_within_cone = 0;
           for ( auto const& showerhit : shower_lfcluster ) {
             std::vector<float> showerpt = { showerhit[0], showerhit[1], showerhit[2] };
-            float r = pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
-            float s = pointRayProjection3f( rankedprong.axis_start, rankedprong.axis,     showerpt );
+            float r = larflow::recoutils::pointLineDistance3f(  rankedprong.axis_start, rankedprong.axis_end, showerpt );
+            float s = larflow::recoutils::pointRayProjection3f( rankedprong.axis_start, rankedprong.axis,     showerpt );
             
             // set max distance from prong start to the point in question
             float d2 = 0.;
@@ -961,11 +960,11 @@ namespace reco {
 
 
       // get pca of final shower
-      larflow::reco::cluster_t shower_cluster_t = larflow::reco::cluster_from_larflowcluster(shower_hit_v);
-      larflow::reco::cluster_pca( shower_cluster_t );
-      larlite::pcaxis shower_hit_pca = larflow::reco::cluster_make_pcaxis( shower_cluster_t );
+      larflow::recoutils::cluster_t shower_cluster_t = larflow::recoutils::cluster_from_larflowcluster(shower_hit_v);
+      larflow::recoutils::cluster_pca( shower_cluster_t );
+      larlite::pcaxis shower_hit_pca = larflow::recoutils::cluster_make_pcaxis( shower_cluster_t );
       
-      larlite::track shower_trunk = larflow::reco::cluster_make_trunk( shower_cluster_t, nuvtx.pos );
+      larlite::track shower_trunk = larflow::recoutils::cluster_make_trunk( shower_cluster_t, nuvtx.pos );
     
       // larlite::track shower_trunk_dir;
       // shower_trunk_dir.add_vertex( TVector3(rankedprong.axis_start[0],
@@ -1101,8 +1100,8 @@ namespace reco {
     //               << paf_sum_dir[2] << ")"
     //               << std::endl;
 
-    std::vector<cluster_t> trunk_cand_v;
-    larflow::reco::cluster_spacepoint_v( close_hit_v, trunk_cand_v );
+    std::vector<larflow::recoutils::cluster_t> trunk_cand_v;
+    larflow::recoutils::cluster_spacepoint_v( close_hit_v, trunk_cand_v );
     if ( trunk_cand_v.size()==0 ) {
       return 0;
     }    
@@ -1115,7 +1114,7 @@ namespace reco {
       CandRank_t( int ii, float ll )
         : idx(ii), llscore(ll)
       {};
-      bool operator<( const CandRank_t& rhs ) {
+      bool operator<( const CandRank_t& rhs ) const {
         if ( llscore<rhs.llscore )
           return true;
         return false;
@@ -1133,7 +1132,7 @@ namespace reco {
         continue;
       }
 
-      larflow::reco::cluster_pca( trunk );
+      larflow::recoutils::cluster_pca( trunk );
 
       // determine direction
       // we want to use the pca axis, but we can switch to vertex->centroid if the trunk is bad
@@ -1223,7 +1222,7 @@ namespace reco {
    *        the shower to neutrino vertex attachment algorithm
    *
    */
-  void NuVertexShowerReco::_gatherTruthShowerFeatures( larflow::reco::cluster_t& prong,
+  void NuVertexShowerReco::_gatherTruthShowerFeatures( larflow::recoutils::cluster_t& prong,
 						    larflow::reco::NuVertexCandidate& vtx,
                 NuVertexShowerReco::RecoShowerInfo_t& showerinfo )
   {
@@ -1383,7 +1382,7 @@ namespace reco {
     auto const& ptlist = _mcpg->getTruePhotonTrunk3DPoints( max_frac_trackid );
 
     // we need to put the points into the cluster struct
-    larflow::reco::cluster_t trueprong_cluster;
+    larflow::recoutils::cluster_t trueprong_cluster;
     trueprong_cluster.points_v.reserve( ptlist.size() );
     for (auto const& pt : ptlist ) {
       trueprong_cluster.points_v.push_back( pt );
@@ -1391,13 +1390,13 @@ namespace reco {
 
     try {
       // run pca code to calculate principle component of 3d points
-      larflow::reco::cluster_pca( trueprong_cluster );
+      larflow::recoutils::cluster_pca( trueprong_cluster );
 
       // extract the ends of a line segment parallel to the 1st pc component that bounds the 3d points
       // nuvtx.pos is a reference point, meant to ensure that the pc axis line segment
       // has the closest point first.
       larlite::pcaxis clust_axis
-	      = larflow::reco::cluster_make_pcaxis_wrt_point( trueprong_cluster, vtx.pos );
+	      = larflow::recoutils::cluster_make_pcaxis_wrt_point( trueprong_cluster, vtx.pos );
       float trueprong_mag = 0.;
       for (int v=0; v<3; v++) {
         trueprong_dir[v] = (clust_axis.getEigenVectors().at(4)[v]-clust_axis.getEigenVectors().at(3)[v]);

@@ -1,5 +1,5 @@
 #include "ShowerTruthMetricsMaker.h"
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -73,7 +73,7 @@ namespace reco {
     
 
     // pass points into larflow::reco::cluster
-    larflow::reco::cluster_t cluster;
+    larflow::recoutils::cluster_t cluster;
     cluster.points_v.reserve( trunk_point_v.size() );
     cluster.hitidx_v.reserve( trunk_point_v.size() );
     for ( int ipt=0; ipt<(int)trunk_point_v.size(); ipt++ ) {
@@ -85,13 +85,13 @@ namespace reco {
       trunk_segment.clear();
       return trunk_segment;
     }
-    larflow::reco::cluster_pca( cluster );
+    larflow::recoutils::cluster_pca( cluster );
 
     // decide which of the first pca-axis projection points is closer to start of cluster
     float dist[2] = {0,0};
     for (int i=0; i<2; i++) {
       for (int v=0; v<3; v++) {
-	dist[i] += (cluster.pca_ends_v[i][v]-pnode->first_edep_pos[v])*(cluster.pca_ends_v[i][v]-pnode->first_edep_pos[v]);
+        dist[i] += (cluster.pca_ends_v[i][v]-pnode->first_edep_pos[v])*(cluster.pca_ends_v[i][v]-pnode->first_edep_pos[v]);
       }
     }
     int istart = 0;

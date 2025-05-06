@@ -25,7 +25,7 @@
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctruth.h"
 
-#include "larflow/Reco/cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace keypoints {
@@ -105,7 +105,6 @@ namespace keypoints {
     auto ev_instance = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"instance");
     auto ev_ancestor = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"ancestor");
     auto ev_larflow  = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"larflow");    
-
     auto ev_mctrack  = (larlite::event_mctrack*)ioll.get_data(  larlite::data::kMCTrack,  "mcreco" );
     auto ev_mcshower = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcreco" );
     auto ev_mctruth  = (larlite::event_mctruth*)ioll.get_data(  larlite::data::kMCTruth,  "generator" );
@@ -137,7 +136,7 @@ namespace keypoints {
              ev_segment->Image2DArray(),
              ev_instance->Image2DArray(),
              ev_ancestor->Image2DArray(),
-	           ev_larflow->Image2DArray(),
+	     ev_larflow->Image2DArray(),
              *ev_mctrack,
              *ev_mcshower,
              *ev_mctruth );
@@ -1215,18 +1214,18 @@ namespace keypoints {
         point_vv.push_back( std::vector<float>{pt.pos[0],pt.pos[1],pt.pos[2]} );
       }
       
-      std::vector< larflow::reco::cluster_t > cluster_v;
+      std::vector< larflow::recoutils::cluster_t > cluster_v;
       float maxdist = 20.0;
       int minsize=5;
       int maxkd=200;
-      larflow::reco::cluster_spacepoint_v( point_vv, cluster_v, maxdist, minsize, maxkd );
+      larflow::recoutils::cluster_spacepoint_v( point_vv, cluster_v, maxdist, minsize, maxkd );
       LARCV_INFO() << "  clustered same-trackid spacepoints. nclusters= " << cluster_v.size() << std::endl;
 
       bool cluster_ok = true;
       
       if ( cluster_v.size()>0 ) {
         try {
-          larflow::reco::cluster_runpca( cluster_v );
+          larflow::recoutils::cluster_runpca( cluster_v );
         }
         catch (...) {
           cluster_ok = false;
@@ -1263,7 +1262,7 @@ namespace keypoints {
           std::vector<float> end1 = cluster_v[ic].points_v.at(index1);
 
 
-          int closest_end = larflow::reco::cluster_closest_pcaend( cluster_v[ic], kpd.keypt );
+          int closest_end = larflow::recoutils::cluster_closest_pcaend( cluster_v[ic], kpd.keypt );
           std::vector<float> testend;
           if ( closest_end==0 )
             testend = end0;
@@ -1299,7 +1298,7 @@ namespace keypoints {
         LARCV_INFO() << "  1st PCA endpoints: pt0=(" << end0[0] << "," << end0[1] << "," << end0[2] << ") pt1=(" << end1[0] << "," << end1[1] << "," << end1[2] << ")" << std::endl;
         
         
-        closest_end = larflow::reco::cluster_closest_pcaend( *cluster, kpd.keypt );
+        closest_end = larflow::recoutils::cluster_closest_pcaend( *cluster, kpd.keypt );
         if ( closest_end==0 ) {
           kpd.keypt = end0;
         }

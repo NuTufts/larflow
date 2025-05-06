@@ -9,7 +9,7 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/larflowcluster.h"
 
-#include "cluster_functions.h"
+#include "larflow/RecoUtils/cluster_functions.h"
 
 namespace larflow {
 namespace reco {
@@ -72,7 +72,7 @@ namespace reco {
      */
     struct ShowerCandidate_t {
       int cluster_idx; ///< index of shower cluster
-      const cluster_t* cluster; ///< pointer to shower cluster
+      const recoutils::cluster_t* cluster; ///< pointer to shower cluster
       std::vector< ShowerTrunk_t > trunk_candidates_v; ///< possible trunks that this cluster is a part of
     };
 
@@ -90,29 +90,29 @@ namespace reco {
     std::vector< ShowerCandidate_t > _shower_cand_v;  ///< collection of shower (sub)clusters+trunk forming a shower candidate
     std::vector< Shower_t >          _recod_shower_v; ///< final set of reconstructed showers
     
-    void _reconstructClusterTrunks( const std::vector<const cluster_t*>&    showercluster_v,
+    void _reconstructClusterTrunks( const std::vector<const recoutils::cluster_t*>&    showercluster_v,
                                     const std::vector<const larlite::larflow3dhit*>& keypoint_v );    
-    void _buildShowers( const std::vector<const cluster_t*>&  showerhit_cluster_v );
+    void _buildShowers( const std::vector<const recoutils::cluster_t*>&  showerhit_cluster_v );
     Shower_t _buildShowerCandidate( const ShowerCandidate_t& shower_cand,
-                                    const std::vector<const cluster_t*>& showerhit_cluster_v );
+                                    const std::vector<const recoutils::cluster_t*>& showerhit_cluster_v );
     std::set<int> _buildoutShowerTrunkCandidate( const ShowerTrunk_t& trunk_cand,
-                                                 const std::vector<const cluster_t*>& showerhit_cluster_v );
+                                                 const std::vector<const recoutils::cluster_t*>& showerhit_cluster_v );
 
     Shower_t _fillShowerObject( const ShowerCandidate_t& shower_cand,
                                 const std::set<int>& cluster_idx_set,
                                 const int trunk_idx,
-                                const std::vector< const cluster_t* >& showerhit_cluster_v );    
+                                const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v );    
 
     void _fillShowerObject( Shower_t& shower,
-                            const std::vector< const cluster_t* >& showerhit_cluster_v );
+                            const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v );
 
     int _chooseBestTrunk( const ShowerCandidate_t& shower_cand,
                           const std::set<int>& cluster_idx_v,
-                          const std::vector< const cluster_t* >& showerhit_cluster_v );
+                          const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v );
 
-    int _chooseBestShowerForCluster( const cluster_t& cluster,
+    int _chooseBestShowerForCluster( const recoutils::cluster_t& cluster,
                                      const std::set<int>& shower_idx_v,
-                                     const std::vector< const cluster_t* >& showerhit_cluster_v );
+                                     const std::vector< const recoutils::cluster_t* >& showerhit_cluster_v );
 
     
   protected:

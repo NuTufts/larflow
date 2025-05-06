@@ -4,7 +4,7 @@
 #include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/UBImageMod/TrackImageMask.h"
 
-#include "geofuncs.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -93,8 +93,8 @@ namespace reco {
         auto const& pt = point_v[ii];
         auto const& imgcoord = imgcoord_v[ii];
         int hitidx = search_index_v[ii];
-        float r = larflow::reco::pointLineDistance3f( start, end, pt );
-        float s = larflow::reco::pointRayProjection3f( start, dir, pt );
+        float r = larflow::recoutils::pointLineDistance3f( start, end, pt );
+        float s = larflow::recoutils::pointRayProjection3f( start, dir, pt );
         //std::cout << "  point: r=" << r << " s=" << s << std::endl;
           
         if ( r>5.0 || s<0 || s>len ) {
@@ -311,7 +311,8 @@ namespace reco {
     int npts = (int)lltrack.NumberTrajectoryPoints();
 
     ublarcvapp::ubimagemod::TrackImageMask  masker;
-    masker.set_verbosity( larcv::msg::kDEBUG );
+    //masker.set_verbosity( larcv::msg::kDEBUG );
+    masker.set_verbosity( logger().level() );
 
     std::vector< std::vector<float> > plane_dqdx_vv(adc_v.size()*2);
     
@@ -375,7 +376,8 @@ namespace reco {
         std::vector< std::vector<int> > pix2sum_v(abs(bounds[1]-bounds[0])+1);
         for (int i=0; i<abs(bounds[1]-bounds[0])+1; i++)
           pix2sum_v[i] = masker.pixel_v[bounds[0]+i];
-        masker.set_verbosity(larcv::msg::kDEBUG);
+        //masker.set_verbosity(larcv::msg::kDEBUG);
+        masker.set_verbosity( logger().level() );
         float pixsum = masker.sumOverPixelList( pix2sum_v, img, 1, 3, 0.01 );
         float s_min, s_max, s_dummy;
         bool ok_min = masker.getExtremaPixelValues( pix2sum_v, smin_img, 1, 3, 0.01, s_min, s_dummy );

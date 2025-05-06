@@ -98,7 +98,8 @@ if args.has_mc:
     io.specify_data_read( larcv.kProductImage2D, "larflow" )    
 if args.has_wirecell:
     io.specify_data_read( larcv.kProductChStatus, "thrumu" )
-io.reverse_all_products()
+if args.tickbackwards:
+    io.reverse_all_products()
 io.initialize()
 
 
@@ -140,7 +141,7 @@ print("Start event loop")
 
 for ientry in range(NENTRIES):
 
-    evout_lfhits = out.get_data(larlite.data.kLArFlow3DHit,"larmatch")
+    evout_lfhits = out.get_data("larflow3dhit","larmatch")
     evout_lfhits.clear()
 
     io.read_entry(ientry)
@@ -151,8 +152,8 @@ for ientry in range(NENTRIES):
     print("Entry {}".format(ientry))
 
     # get the adc larcv images
-    ev_adc = io.get_data( larcv.kProductImage2D, args.adc_name )
-    ev_chstatus = io.get_data( larcv.kProductChStatus, args.chstatus_name )
+    ev_adc = io.get_data( "image2d", args.adc_name )
+    ev_chstatus = io.get_data( "chstatus", args.chstatus_name )
     adc_v = ev_adc.as_vector()
     
     # clear the hit maker
@@ -317,3 +318,4 @@ out.close()
 io.finalize()
 
 print("DONE")
+os._exit(0)

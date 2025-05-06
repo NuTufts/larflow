@@ -10,7 +10,7 @@
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
 
-#include "KPdata.h"
+#include "larflow/KeyPoints/KPdata.h"
 
 class TH1F;
 class TH2D;
@@ -124,7 +124,6 @@ namespace keypoints {
                               const std::vector<larcv::Image2D>& adc_v,
                               larutil::SpaceChargeMicroBooNE* psce,
                               std::vector<KPdata>& kpdata_v  );
-
     void _move_floating_keypoints(  const larflow::prep::PrepMatchTriplets& match_proposals );
 
     void _clear_output();

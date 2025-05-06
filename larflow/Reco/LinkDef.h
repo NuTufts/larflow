@@ -22,17 +22,6 @@
 #pragma link C++ function larflow::reco::pointRayProjection3f+;
 #pragma link C++ function larflow::reco::pointLineDistance3d+;
 #pragma link C++ class std::vector<TLorentzVector>+;
-#pragma link C++ class larflow::reco::ClusterFunctions+;
-#pragma link C++ class larflow::reco::cluster_t+;
-#pragma link C++ function larflow::reco::cluster_larflow3dhits+;
-#pragma link C++ function larflow::reco::cluster_spacepoint_v+;
-#pragma link C++ function larflow::reco::cluster_sdbscan_larflow3dhits+;
-#pragma link C++ function larflow::reco::cluster_sdbscan_spacepoints+;
-#pragma link C++ function larflow::reco::cluster_dbscan_vp_larflow3dhits+;
-#pragma link C++ function larflow::reco::cluster_dump2jsonfile+;
-#pragma link C++ function larflow::reco::cluster_splitbytrackshower+;
-#pragma link C++ function larflow::reco::cluster_imageprojection+;
-#pragma link C++ function larflow::reco::cluster_getcontours+;
 #pragma link C++ class larflow::reco::ProjectionDefectSplitter+;
 #pragma link C++ class larflow::reco::PyLArFlow+;
 #pragma link C++ function larflow::reco::as_ndarray_larflowcluster_wcharge+;

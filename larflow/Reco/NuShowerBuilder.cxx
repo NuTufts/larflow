@@ -3,9 +3,9 @@
 #include "larlite/DataFormat/mctruth.h"
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
-#include "larflow/Reco/cluster_functions.h"
-#include "larflow/Reco/geofuncs.h"
 #include "larflow/Reco/ProjectionDefectSplitter.h"
+#include "larflow/RecoUtils/cluster_functions.h"
+#include "larflow/RecoUtils/geofuncs.h"
 
 namespace larflow {
 namespace reco {
@@ -159,7 +159,7 @@ namespace reco {
       // loop over shower clusters, gathering info
       // containers for some quantities/metrics
       std::vector<larlite::track> segfit_v;
-      std::vector<larflow::reco::cluster_t> pcacluster_v;
+      std::vector<larflow::recoutils::cluster_t> pcacluster_v;
 
       // the container of prong information we will fill for shower clusters
       std::vector< ShowerProngInfo_t > pronginfo_v;
@@ -209,7 +209,7 @@ namespace reco {
         }
 
         // now collect hits
-        larflow::reco::cluster_t prong;
+        larflow::recoutils::cluster_t prong;
         larlite::event_larflow3dhit lfhit_v;
         for (int ihit=0; ihit<(int)lfcluster.size(); ihit++) {
           if ( dist2vtx[ihit]-mindist < 10.0 ) {
@@ -240,7 +240,7 @@ namespace reco {
 	      }
 
 	      try {
-	        larflow::reco::cluster_pca( prong );
+	        larflow::recoutils::cluster_pca( prong );
 	      }
 	      catch (...) {
 	        pass_showercluster_precuts = false;
@@ -301,10 +301,10 @@ namespace reco {
         for (int i=0; i<3; i++) {
           info.trunk_pt2[i] = info.trunk_pt[i] + 3.0*info.trunk_dir[i];
         }
-        info.impactdist = larflow::reco::pointLineDistance( info.trunk_pt, info.trunk_pt2, nuvtx.pos );
+        info.impactdist = larflow::recoutils::pointLineDistance( info.trunk_pt, info.trunk_pt2, nuvtx.pos );
 
         // pca direction
-        float pca_s = larflow::reco::pointRayProjection3f( info.trunk_pt, prong.pca_axis_v[0], nuvtx.pos );
+        float pca_s = larflow::recoutils::pointRayProjection3f( info.trunk_pt, prong.pca_axis_v[0], nuvtx.pos );
         info.trunk_pca.resize(3,0);        
         if ( pca_s<0 ) {
           for (int i=0; i<3; i++)
@@ -388,8 +388,8 @@ namespace reco {
             for (int i=0; i<3; i++)
               pt2[i] = prong.trunk_pt[i] + 3*prong.trunk_pca[i];
             
-            float r = larflow::reco::pointLineDistance3f( prong.trunk_pt, pt2, pronginfo_v[jprong].trunk_pt );
-            float s = larflow::reco::pointRayProjection3f( prong.trunk_pt, prong.trunk_pca, pronginfo_v[jprong].trunk_pt );
+            float r = larflow::recoutils::pointLineDistance3f( prong.trunk_pt, pt2, pronginfo_v[jprong].trunk_pt );
+            float s = larflow::recoutils::pointRayProjection3f( prong.trunk_pt, prong.trunk_pca, pronginfo_v[jprong].trunk_pt );
             float pt_ang = 0.;
             if ( s!=0.0 )
               pt_ang = atan(r/fabs(s))*180.0/3.14159;
@@ -435,7 +435,7 @@ namespace reco {
    *        the shower to neutrino vertex attachment algorithm
    *
    */
-  void NuShowerBuilder::_gatherTruthShowerFeatures( larflow::reco::cluster_t& prong,
+  void NuShowerBuilder::_gatherTruthShowerFeatures( larflow::recoutils::cluster_t& prong,
 						    larflow::reco::NuVertexCandidate& vtx,
                 NuShowerBuilder::RecoShowerInfo_t& showerinfo )
   {
@@ -590,7 +590,7 @@ namespace reco {
     auto const& ptlist = _mcpg->getTruePhotonTrunk3DPoints( max_frac_trackid );
 
     // we need to put the points into the cluster struct
-    larflow::reco::cluster_t trueprong_cluster;
+    larflow::recoutils::cluster_t trueprong_cluster;
     trueprong_cluster.points_v.reserve( ptlist.size() );
     for (auto const& pt : ptlist ) {
       trueprong_cluster.points_v.push_back( pt );
@@ -598,13 +598,13 @@ namespace reco {
 
     try {
       // run pca code to calculate principle component of 3d points
-      larflow::reco::cluster_pca( trueprong_cluster );
+      larflow::recoutils::cluster_pca( trueprong_cluster );
 
       // extract the ends of a line segment parallel to the 1st pc component that bounds the 3d points
       // nuvtx.pos is a reference point, meant to ensure that the pc axis line segment
       // has the closest point first.
       larlite::pcaxis clust_axis
-	      = larflow::reco::cluster_make_pcaxis_wrt_point( trueprong_cluster, vtx.pos );
+	      = larflow::recoutils::cluster_make_pcaxis_wrt_point( trueprong_cluster, vtx.pos );
       float trueprong_mag = 0.;
       for (int v=0; v<3; v++) {
         trueprong_dir[v] = (clust_axis.getEigenVectors().at(4)[v]-clust_axis.getEigenVectors().at(3)[v]);
