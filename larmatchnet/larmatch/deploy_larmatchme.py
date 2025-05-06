@@ -17,7 +17,7 @@ parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,hel
 parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of ADC tree [default: wire]")
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
-parser.add_argument("--use-skip-limit",default=None,type=int,help="Specify a max triplet let. If surpassed, skip network eval.")
+parser.add_argument("--use-skip-limit",default=False,action='store_true',help="Specify a max triplet let. If surpassed, skip network eval.")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -63,13 +63,14 @@ CHSTATUS_PRODUCER=args.chstatus_name
 USE_GAPCH=True
 RETURN_TRUTH=False
 BATCHSIZE = 1
+MAX_TRIPLET_HITS=5000000
 
 # DEFINE THE CLASSES THAT MAKE FLOW MATCH VECTORS
 # we use a config file
 preplarmatch = larflow.prep.PrepMatchTriplets()
-if args.use_skip_limit is not None:
+if args.use_skip_limit:
     print("Set Triplet Max where we will skip event: ",args.use_skip_limit)
-    preplarmatch.setStopAtTripletMax( True, args.use_skip_limit )
+    preplarmatch.setStopAtTripletMax( True, MAX_TRIPLET_HITS )
 
 #model_dict["larmatch"].eval()
 
@@ -159,6 +160,9 @@ for ientry in range(NENTRIES):
 
     # make triplet proposals
     preplarmatch.process( io, args.adc_name, args.chstatus_name, 10.0, True )
+    if args.use_skip_limit and preplarmatch.didEventReachLimits():
+        # clear triplets to effectively kill this event
+        preplarmatch.clear()
 
     # make truth labels if possible
     if args.has_mc and ioll is not None:
