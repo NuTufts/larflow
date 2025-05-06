@@ -43,6 +43,7 @@ namespace prep {
     _instance_id_v.clear();
     _ancestor_id_v.clear();
     _pdg_v.clear();
+    _kEventHitLimits = false;
     
   }
   
@@ -123,10 +124,12 @@ namespace prep {
     // we order the flows based on the quality of the planes, with the Y plane being better
     
     FlowDir_t flow_order[] = { kY2V, kY2U, kV2Y, kU2Y, kU2V, kV2U };
+
+    std::vector<long> triplets_per_source_plane(3,0);
     
     std::vector< larflow::prep::FlowTriples > triplet_v( larflow::kNumFlows );
     int total_triplets = 0;
-    int max_flow_triplets = 0;
+    long max_flow_triplets = 0;
     for (int flowindex=0; flowindex<(int)larflow::kNumFlows; flowindex++) {
 
       // if ( flowindex!=kV2Y )
@@ -139,12 +142,22 @@ namespace prep {
       triplet_v[flowindex]  = FlowTriples( sourceplane, targetplane,
                                            adc_v, badch_v,
                                            _sparseimg_vv, 10.0, false );
+
+      triplets_per_source_plane[sourceplane] += triplet_v[flowindex].getTriples().size();
+      
       total_triplets += triplet_v[flowindex].getTriples().size();
-      if ( (int)triplet_v[flowindex].getTriples().size()>max_flow_triplets ) {
+      if ( (long)triplet_v[flowindex].getTriples().size()>max_flow_triplets ) {
 	max_flow_triplets = (int)triplet_v[flowindex].getTriples().size();
       }
+      
       if ( _kStopAtTripletMax && max_flow_triplets > _kTripletLimit ) {
-	std::cout << "Reached triplet limit. Not worth analyzing this event. Return." << std::endl;	
+	std::cout << "Reached triplet limit. Not worth analyzing this event. Return." << std::endl;
+	_kEventHitLimits = true;	
+	return;
+      }
+      if ( _kStopAtTripletMax && triplets_per_source_plane[sourceplane]>_kPlaneTriplesLimit ) {
+	std::cout << "Reached triples limit from sourceplane=" << sourceplane << ". Not worth analyzing this event. Return." << std::endl;
+	_kEventHitLimits = true;
 	return;
       }
     }
