@@ -139,7 +139,8 @@ iolcv.specify_data_read( "chstatus", "wire" );
 iolcv.specify_data_read( "image2d", "ubspurn_plane0" )
 iolcv.specify_data_read( "image2d", "ubspurn_plane1" )
 iolcv.specify_data_read( "image2d", "ubspurn_plane2" )
-iolcv.specify_data_read( "sparseimage", "sparseuresnetout" ) 
+iolcv.specify_data_read( "sparseimage", "sparseuresnetout" )
+iolcv.specify_data_read( "sparseimage", "sparsessnet" ) 
 #iolcv.addto_storeonly_list( ... )
 if args.tickbackwards:
     iolcv.reverse_all_products()
@@ -158,6 +159,7 @@ if args.products in ["rerun"]:
     for p in range(3):
         iolcv.addto_storeonly_list( "image2d", "ubspurn_plane%d"%(p) )
     iolcv.addto_storeonly_list( "sparseimage", "sparseuresnetout" )
+    iolcv.addto_storeonly_list( "sparseimage", "sparsessnet" )    
     for truthproduct in ["instance","segment","ancestor","larflow"]:
         iolcv.addto_storeonly_list( "image2d", truthproduct )
          
@@ -175,7 +177,8 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( "track", "boundarycosmic" )
     io.set_data_to_write( "track", "boundarycosmicnoshift" )
     io.set_data_to_write( "track", "containedcosmic" )
-    io.set_data_to_write( "track", "nutrack_fitted" )  
+    io.set_data_to_write( "track", "nutrack_fitted" )
+    io.set_data_to_write( "track", "cosmicproton" )        
     io.set_data_to_write( "larflowcluster", "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
     io.set_data_to_write( "pcaxis", "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
 
