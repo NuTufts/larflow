@@ -144,6 +144,9 @@ set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVAp
 # ublarcvapp libs used
 set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
 
+# larflow libs used
+set(LARFLOW_LIBS_USED LArFlow_RecoUtils)
+
 get_target_property(ALL_HEADERS ${LIBNAME} PUBLIC_HEADER)
 
 target_include_directories(${LIBNAME}
@@ -153,6 +156,7 @@ target_include_directories(${LIBNAME}
   PRIVATE
   ${PRI_INC_DIRS} )  
 target_link_libraries(${LIBNAME} PUBLIC
+  ${LARFLOW_LIBS_USED}
   ${UBLARCVAPP_LIBS_USED}
   ${LARCV_LIBS_USED}
   ${LARLITE_LIBS}

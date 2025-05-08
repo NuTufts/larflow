@@ -47,7 +47,7 @@ if not os.path.exists( os.environ["LARFLOW_BASEDIR"]+"/larflow/Reco/data/Proton_
     sys.exit(0)
 
 
-input_spacepoint_container_name = "larflowhits"
+input_spacepoint_container_name = "larmatch"
 
 io = larlite.storage_manager( larlite.storage_manager.kBOTH )
 tickdir = larcv.IOManager.kTickForward

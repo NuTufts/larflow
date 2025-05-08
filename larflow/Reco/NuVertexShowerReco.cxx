@@ -15,7 +15,9 @@ namespace reco {
 
   NuVertexShowerReco::NuVertexShowerReco()
     : larcv::larcv_base("NuVertexShowerReco"),
+      _mc_analysis_mode(false),
       _mcpg(nullptr),
+      _mc_analysis_saveinfo_for_this_vertex(false),
       _trunk_maxdist_from_closest_cm(10.0),
       _calc_cosmic_overlap(true),
       _boosterhandle(nullptr),

@@ -1,4 +1,3 @@
-
 #ifndef __KPS_RECO_MANAGER_H__
 #define __KPS_RECO_MANAGER_H__
 

@@ -1,3 +1,4 @@
+
 #include "KPSRecoManager.h"
 
 #include <ctime>
@@ -461,13 +462,14 @@ namespace reco {
       _kpreco_track.set_lfhit_score_index( 18 ); // (v2 larmatch-minkowski network track-start-score index in hit)
       _kpreco_track.process( ioll );
       // neutrino interaction track end
+      _kpreco_track.clear_output();      
       _kpreco_track.set_output_tree_name( "keypoint" );              
       _kpreco_track.set_keypoint_type( (int)larflow::kTrackEnd );
       _kpreco_track.set_lfhit_score_index( 19 ); // (v2 larmatch-minkowski network track-end-score index in hit)
       _kpreco_track.process( ioll );
       
       // neutrino interaction shower
-      _kpreco_shower.clear_output();            
+      _kpreco_shower.clear_output();
       _kpreco_shower.set_input_larmatch_tree_name( "taggerfilterhit" );
       _kpreco_shower.set_output_tree_name( "keypoint" );
       _kpreco_shower.set_sigma( 10.0 );    
@@ -480,16 +482,18 @@ namespace reco {
       _kpreco_shower.set_lfhit_score_index( 20 ); // (v2 larmatch-minkowski network nu-shower-score index in hit)
       _kpreco_shower.process( ioll );
       // neutrino+cosmic interaction michel
+      _kpreco_shower.clear_output();      
       _kpreco_shower.set_keypoint_type( (int)larflow::kShowerMichel );
       _kpreco_shower.set_lfhit_score_index( 21 ); // (v2 larmatch-minkowski network michel-shower-score index in hit)
       _kpreco_shower.process( ioll );
       // neutrino+cosmic interaction delta
+      _kpreco_shower.clear_output();      
       _kpreco_shower.set_keypoint_type( (int)larflow::kShowerDelta );
       _kpreco_shower.set_lfhit_score_index( 22 ); // (v2 larmatch-minkowski network delta-shower-score index in hit)
       _kpreco_shower.process( ioll );
 
       // cosmic keypoints
-      _kpreco_track_cosmic.clear_output();                  
+      _kpreco_track_cosmic.clear_output();
       _kpreco_track_cosmic.set_input_larmatch_tree_name( "taggerrejecthit" );
       _kpreco_track_cosmic.set_output_tree_name( "keypointcosmic" );
       _kpreco_track_cosmic.set_sigma( 50.0 );    
@@ -503,7 +507,8 @@ namespace reco {
       _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackStart );
       _kpreco_track_cosmic.set_lfhit_score_index( 18 ); // (v2 larmatch network track-start-score index in hit)
       _kpreco_track_cosmic.process( ioll );
-
+      
+      _kpreco_track_cosmic.clear_output();
       _kpreco_track_cosmic.set_keypoint_type( (int)larflow::kTrackEnd );
       _kpreco_track_cosmic.set_lfhit_score_index( 19 ); // (v2 larmatch network track-end-score index in hit)
       _kpreco_track_cosmic.process( ioll );

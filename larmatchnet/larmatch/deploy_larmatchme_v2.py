@@ -14,6 +14,7 @@ parser.add_argument('-ill', '--input-larlite', required=True,help="input larlite
 parser.add_argument('-ao', '--allow-output-overwrite', default=False, help="If flag given, allow output file to overwrite")
 parser.add_argument('-tf','--tickforwards',action='store_true',default=False,help="Indicate that input larcv file is tick-forward [default: F]")
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument('-n','--nentries',type=int,default=-1,help="(optional) sets number of entries to run. [default: -1, which runs all entries]")
 parser.add_argument("--use-skip-limit",default=False,action='store_true',help="Specify a max triplet let. If surpassed, skip network eval.")
 
 args = parser.parse_args()
@@ -109,6 +110,11 @@ if num_entries>0:
 if end_entry >= nentries_larcv:
     end_entry = nentries_larcv
 
+if args.nentries>0:
+    user_end_entry = start_entry + args.nentries
+    if user_end_entry < end_entry:
+        end_entry = user_end_entry
+
 print("running entries [",start_entry,",",end_entry,"]")
 
 outll = larlite.storage_manager( larlite.storage_manager.kWRITE )
@@ -144,9 +150,9 @@ for ientry in range(start_entry,end_entry):
     ev_chstatus = iolcv.get_data( larcv.kProductChStatus, "wire" )
     adc_v = ev_adc.as_vector()
 
-    evout_lfhits = outll.get_data(larlite.data.kLArFlow3DHit,"larflowhits")
+    evout_lfhits = outll.get_data(larlite.data.kLArFlow3DHit,"larmatch")
     evout_lfhits.clear()
-    evout_lmsp = outll.get_data(larlite.data.kLArMatchSP,"larmatchsp")
+    evout_lmsp = outll.get_data(larlite.data.kLArMatchSP,"splarmatch")
     evout_lmsp.clear()
 
     hitmaker.clear()
@@ -166,16 +172,25 @@ for ientry in range(start_entry,end_entry):
     batch_sparsetensors, batch_triplets, batch_coordqueries = LArMatchHDF5Dataset.make_batch_sparse_tensors( batch, DEVICE, triplet_key=triplet_key )
     dt_prep = time.time()-tprep
 
+    ntriplets = 0
+    for matchtriplet_b in batch_triplets:
+        ntriplets += matchtriplet_b.shape[0]
+    print("Number of spacepoints (i.e. triplets) to evaluate: ",ntriplets)
+
     with torch.no_grad():
         # run larmatch network
         # input: forward( self, input_wireplane_sparsetensors, matchtriplets, query_v, batch_size ):
         tstart_runnet = time.time()
-        larmatchout = single_model( batch_sparsetensors, batch_triplets, batch_coordqueries, batchsize )
+        if ntriplets>0:
+            larmatchout = single_model( batch_sparsetensors, batch_triplets, batch_coordqueries, batchsize )
+        else:
+            print("No spacepoitns to evaluate. make empty output dictionary")
+            larmatchout = {}
         dt_runnet = time.time()-tstart_runnet
 
 
         # output is a dict with keys being the different output heads
-        if True:
+        if True and ntriplets>0:
             print("-----------------------------------")
             #for ib,pred_dict in enumerate(larmatchout):
             pred_dict = larmatchout
@@ -276,14 +291,14 @@ for ientry in range(start_entry,end_entry):
             hitmaker.make_hits( ev_chstatus, adc_v, evout_lfhits )
             hitmaker.make_hits( ev_chstatus, adc_v, evout_lmsp )
             dt_make_hits = time.time()-tstart
-            print("number of hits made: ",evout_lfhits.size())
             print("time to run net: ",dt_runnet," secs")
             print("time to make hits: ",dt_make_hits," secs")
 
-            # End of flow direction loop
-            outll.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
-            outll.next_event(True)
-            sys.stdout.flush()
+        # End of flow direction loop
+        print("number of hits made: ",evout_lfhits.size())        
+        outll.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
+        outll.next_event(True)
+        sys.stdout.flush()
     print("End of entry[",ientry,"]")
     if False and ientry>=2:
         break
