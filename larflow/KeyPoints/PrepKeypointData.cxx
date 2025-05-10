@@ -116,16 +116,16 @@ namespace keypoints {
       badch_v.emplace_back( std::move(blank) );
     }
 
-    std::cout << "[PrepKeypointData Inputs]" << std::endl;
-    std::cout << "  adc images: "      << ev_adc->Image2DArray().size() << std::endl;
-    std::cout << "  badch images: "    << badch_v.size() << std::endl;    
-    std::cout << "  segment images: "  << ev_segment->Image2DArray().size() << std::endl;
-    std::cout << "  instance images: " << ev_instance->Image2DArray().size() << std::endl;
-    std::cout << "  ancestor images: " << ev_ancestor->Image2DArray().size() << std::endl;
-    std::cout << "  larflow images:  " << ev_larflow->Image2DArray().size() << std::endl;    
-    std::cout << "  mctracks: " << ev_mctrack->size() << std::endl;
-    std::cout << "  mcshowers: " << ev_mcshower->size() << std::endl;
-    std::cout << "  mctruths: " << ev_mctruth->size() << std::endl;
+    LARCV_INFO() << "[PrepKeypointData Inputs]" << std::endl;
+    LARCV_INFO() << "  adc images: "      << ev_adc->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  badch images: "    << badch_v.size() << std::endl;    
+    LARCV_INFO() << "  segment images: "  << ev_segment->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  instance images: " << ev_instance->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  ancestor images: " << ev_ancestor->Image2DArray().size() << std::endl;
+    LARCV_INFO() << "  larflow images:  " << ev_larflow->Image2DArray().size() << std::endl;    
+    LARCV_INFO() << "  mctracks: " << ev_mctrack->size() << std::endl;
+    LARCV_INFO() << "  mcshowers: " << ev_mcshower->size() << std::endl;
+    LARCV_INFO() << "  mctruths: " << ev_mctruth->size() << std::endl;
 
     _run    = iolcv.event_id().run();
     _subrun = iolcv.event_id().subrun();
@@ -188,45 +188,43 @@ namespace keypoints {
 
     // build key-points container
     _kpd_v.clear();
-    for (int i=0; i<6; i++) {
-      _kppos_v[i].clear();
-      _kp_pdg_trackid_v[i].clear();      
-    }
+    _clear_output();
 
     // build crossing points for muon track primaries
     std::vector<KPdata> track_kpd
       = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
 
-    std::cout << "[Muon Track Endpoint Results]" << std::endl;
+    LARCV_NORMAL() << "[Muon Track Endpoint Results] numfound=" << track_kpd.size() << std::endl;
     for ( auto const& kpd : track_kpd ) {
-      std::cout << "  " << kpd.str() << std::endl;
+      LARCV_INFO() << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
     std::vector<KPdata> nonmuon_track_kpd 
       = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
-    std::cout << "[Muon Track Endpoint Results]" << std::endl;
+    LARCV_NORMAL() << "[Non-muon track start Results] numfound=" << nonmuon_track_kpd.size() << std::endl;
     for ( auto const& kpd : nonmuon_track_kpd ) {
       std::cout << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
     // add points for shower starts
-    LARCV_NORMAL() << "Make Shower Keypoints" << std::endl;
     std::vector<KPdata> shower_kpd
       = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
-    LARCV_NORMAL() << "[Shower Endpoint Results]" << std::endl;
-    LARCV_NORMAL() << "number of shower keypoints found: " << shower_kpd.size() << std::endl;
+    LARCV_NORMAL() << "[Shower Endpoint Results] numfound=" << shower_kpd.size() << std::endl;
     int ishr=0; 
     for ( auto const& kpd : shower_kpd ) {
-      std::cout << "  [" << ishr << "] " << kpd.str() << std::endl;
+      LARCV_INFO() << "  [" << ishr << "] " << kpd.str() << std::endl;
       ishr++;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
     // we change the kptype to neutrino vertex for those on it
-    LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
+    //LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
+    int npre_nukp = (int)_kpd_v.size();
     _label_nu_keypoints( mctruth_v, adc_v, &sce, _kpd_v );
+    int npost_nukp = (int)_kpd_v.size();
+    LARCV_NORMAL() << "[Nu keypoint results] numfound=" << npost_nukp-npre_nukp << std::endl;
 
     // filter duplicates
     //filter_duplicates();

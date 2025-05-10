@@ -1,5 +1,6 @@
 #include "LoaderKeypointData.h"
 #include <iostream>
+#include <sstream>
 #include "larflow/PrepFlowMatchData/PrepSSNetTriplet.h"
 
 namespace larflow {
@@ -356,9 +357,13 @@ namespace keypoints {
       *((long*)PyArray_GETPTR2(kptruth_ids,ikp,0)) = (long)kp_class[ikp];  // keypoint class
       *((long*)PyArray_GETPTR2(kptruth_ids,ikp,1)) = (long)kp_ids[ikp][0]; // keypoint pdg
       *((long*)PyArray_GETPTR2(kptruth_ids,ikp,2)) = (long)kp_ids[ikp][1]; // keypoint geant4 trackid
+      std::stringstream ss;
+      ss << "kp[" << ikp << "] ";
       for (int v=0; v<3; v++) {
 	*((float*)PyArray_GETPTR2(kptruth_pos,ikp,v)) = (float)kp_pos_v.at(ikp)[v];
+	ss << " " << kp_pos_v.at(ikp)[v];
       }
+      LARCV_INFO() << ss.str() << std::endl;
     }
     PyObject* kp_truth_ids_key = Py_BuildValue("s","keypoint_truth_kptype_pdg_trackid");
     PyObject* kp_truth_pos_key = Py_BuildValue("s","keypoint_truth_pos");

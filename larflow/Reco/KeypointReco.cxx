@@ -35,7 +35,7 @@ namespace reco {
     _input_larflowhit_tree_name = "larmatch";
     _output_tree_name = "keypoint";
     _keypoint_type = -1;
-    _threshold_cluster_max_score = 0.75;
+    _threshold_cluster_max_score = 0.5;
     __keypoint_type_names.resize(6);
     __keypoint_type_names[0] = "nu";
     __keypoint_type_names[1] = "trackstart";
@@ -63,6 +63,8 @@ namespace reco {
     larlite::event_larflow3dhit* ev_larflow_hit
       = (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, _input_larflowhit_tree_name );
 
+    LARCV_NORMAL() << "processing " << ev_larflow_hit->size() << " input hits from tree=" << _input_larflowhit_tree_name << std::endl;
+    
     process( *ev_larflow_hit );
 
     // save into larlite::storage_manager
@@ -78,7 +80,9 @@ namespace reco {
       std::vector<double> vtxpos(3);
       hit.resize( 5, 0 ); // [0-2]: hit pos, [3]: type, [4]: max net score
       for (int i=0; i<3; i++) {
-        hit[i] = kpc.max_pt_v[i];
+        hit[i] = kpc.max_pt_v[i]; // use hit with maximum keypoint score
+	//hit[i] = kpc.center_avg_pt_v[i]; // use (keypoint score)^2 weighted position.
+	//hit[i] = kpc.center_pt_v[i]; // use Gaussian fit position (not good, deprecated)
         vtxpos[i] = kpc.max_pt_v[i];
       }
       hit[3] = kpc._cluster_type;
@@ -231,7 +235,7 @@ namespace reco {
     int maxkd     = 100;
 
     LARCV_INFO() << "finding keypoint clusters using " << skimmed_pt_v.size() << " points" << std::endl;
-    LARCV_DEBUG() << "  clustering pars: maxdist=" << _max_dbscan_dist
+    LARCV_INFO() << "  clustering pars: maxdist=" << _max_dbscan_dist
                   << " minsize=" << min_cluster_size
                   << " maxkd=" <<  maxkd
                   << std::endl;
@@ -239,6 +243,8 @@ namespace reco {
     cluster_sdbscan_spacepoints( skimmed_pt_v, cluster_v, maxdist, min_cluster_size, maxkd );    
 
     float sigma = _sigma; // bandwidth
+
+    LARCV_INFO() << "  dbscan returns with " << cluster_v.size() << " clusters" << std::endl;
 
     for ( auto& cluster : cluster_v ) {
 
@@ -341,8 +347,9 @@ namespace reco {
 
       int skimidx = cluster.hitidx_v[i];
       
-      float w = skimmed_pt_v[ skimidx ][3]*skimmed_pt_v[ skimidx ][4]; // (score * charge)
-      if ( w>10.0 ) w = 10.0;
+      //float w = skimmed_pt_v[ skimidx ][3]*skimmed_pt_v[ skimidx ][4]; // (score * charge)
+      float w = skimmed_pt_v[ skimidx ][3]; // (keypoint score)
+      //if ( w>10.0 ) w = 10.0; // only needed if charge is combined with score
       if ( w<0.0 ) w = 0.0;
       
       for (int v=0; v<3; v++ ) {

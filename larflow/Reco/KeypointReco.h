@@ -75,6 +75,8 @@ namespace reco {
     /** @brief set minimum cluster size when clustering around keypoint */
     void set_min_cluster_size( int minsize, int pass=0 ) { _min_cluster_size_v[pass] = minsize;  };
 
+    void set_threshold_cluster_max_kpscore( float threshold ) { _threshold_cluster_max_score=threshold; };
+
     /** @brief set number of passes */
     void set_num_passes( int npasses )       {
       _num_passes = npasses;
