@@ -17,6 +17,7 @@
 
 // ublarcvapp
 #include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
+#include "ublarcvapp/UBImageMod/PointImageProjection.h"
 #include "ublarcvapp/MCTools/LArbysMC.h"
 
 // larflow
@@ -59,6 +60,8 @@
 #include "NuSelUnrecoCharge.h"
 #include "NuSelCosmicTagger.h"
 #include "TrackForwardBackwardLL.h"
+
+#include "larflow/RecoUtils/CompressRecoTrack.h"
 
 // truth analysis
 // #include "TrackTruthRecoAna.h"
@@ -103,10 +106,15 @@ namespace reco {
 
     // keypoint reconstruction
     KeypointReco     _kpreco_nu; ///< reconstruct keypoints from network scores for neutrino class
-    KeypointReco     _kpreco_track; ///< reconstruct keypoints from network scores for track class
+    KeypointReco     _kpreco_trackstart; ///< reconstruct keypoints from network scores for track class
+    KeypointReco     _kpreco_trackend;   ///< reconstruct keypoints from network scores for track class    
     KeypointReco     _kpreco_shower; ///< reconstruct keypoints from network scores for shower class
+    KeypointReco     _kpreco_michel; ///< reconstruct keypoints from network scores for shower class
+    KeypointReco     _kpreco_deltas; ///< reconstruct keypoints from network scores for shower class
+    
     KeypointReco     _kpreco_track_cosmic;  ///< reconstruct keypoints from network scores for track class on wirecell cosmic-tagged spacepoints
-    KeypointReco     _kpreco_shower_cosmic; ///< reconstruct keypoints from network scores for shower class on wirecell cosmic-tagged spacepoints    
+    KeypointReco     _kpreco_shower_cosmic; ///< reconstruct keypoints from network scores for shower class on wirecell cosmic-tagged spacepoints
+    
     KeypointFilterByClusterSize _kpfilter; ///< filter out reconstructed keypoints on small clusters
     KeypointFilterByWCTagger _wcfilter; ///< filter out keypoints on wirecell cosmic-tagged pixes
 
@@ -160,6 +168,9 @@ namespace reco {
     NuSelUnrecoCharge      _unrecocharge;
     NuSelCosmicTagger      _cosmictagger;
     TrackForwardBackwardLL _muvsproton;
+
+    larflow::recoutils::CompressRecoTrack _compress_reco_track;
+    ublarcvapp::ubimagemod::PointImageProjection _pt_image_projection;
     
 
     // Event Selection modules (only for development)

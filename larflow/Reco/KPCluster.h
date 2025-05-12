@@ -3,6 +3,9 @@
 
 #include <vector>
 
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/pcaxis.h"
+
 namespace larflow {
 namespace reco {
 
@@ -62,6 +65,9 @@ namespace reco {
     int _cluster_type;                                 ///< type of keypoint
     
     void printInfo() const;
+
+    larlite::larflow3dhit as_larflow_hit() const;
+    larlite::pcaxis get_pcaxis(int cidx) const;
 
   };
   

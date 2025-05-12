@@ -76,41 +76,41 @@ namespace reco {
 
     int cidx=0;
     for ( auto const& kpc : output_pt_v ) {
-      larlite::larflow3dhit hit;
-      std::vector<double> vtxpos(3);
-      hit.resize( 5, 0 ); // [0-2]: hit pos, [3]: type, [4]: max net score
-      for (int i=0; i<3; i++) {
-        hit[i] = kpc.max_pt_v[i]; // use hit with maximum keypoint score
-	//hit[i] = kpc.center_avg_pt_v[i]; // use (keypoint score)^2 weighted position.
-	//hit[i] = kpc.center_pt_v[i]; // use Gaussian fit position (not good, deprecated)
-        vtxpos[i] = kpc.max_pt_v[i];
-      }
-      hit[3] = kpc._cluster_type;
-      hit[4] = kpc.max_score;
-
-      hit.targetwire.resize( 3, 0 );
-      for  (int p=0; p<3; p++) 
-        hit.targetwire[p] = larutil::Geometry::GetME()->WireCoordinate( vtxpos, p );
-      hit.tick = vtxpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
       
+      larlite::larflow3dhit hit = kpc.as_larflow_hit();
+      // std::vector<double> vtxpos(3);
+      // hit.resize( 5, 0 ); // [0-2]: hit pos, [3]: type, [4]: max net score
+      // for (int i=0; i<3; i++) {
+      //   hit[i] = kpc.max_pt_v[i]; // use hit with maximum keypoint score
+      // 	//hit[i] = kpc.center_avg_pt_v[i]; // use (keypoint score)^2 weighted position.
+      // 	//hit[i] = kpc.center_pt_v[i]; // use Gaussian fit position (not good, deprecated)
+      //   vtxpos[i] = kpc.max_pt_v[i];
+      // }
+      // hit[3] = kpc._cluster_type;
+      // hit[4] = kpc.max_score;
 
+      // hit.targetwire.resize( 3, 0 );
+      // for  (int p=0; p<3; p++) 
+      //   hit.targetwire[p] = larutil::Geometry::GetME()->WireCoordinate( vtxpos, p );
+      // hit.tick = vtxpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
+      
       // pca-axis
-      larlite::pcaxis::EigenVectors e_v;
-      // just std::vector< std::vector<double> >
-      // we store axes (3) and then the 1st axis end points. So five vectors.
-      for ( auto const& a_v : kpc.pca_axis_v ) {
-        std::vector<double> da_v = { (double)a_v[0], (double)a_v[1], (double) a_v[2] };
-        e_v.push_back( da_v );
-      }
-      // start and end points
-      for ( auto const& p_v : kpc.pca_ends_v ) {
-        std::vector<double> dp_v = { (double)p_v[0], (double)p_v[1], (double)p_v[2] };
-        e_v.push_back( dp_v );
-      }
-      double eigenval[3] = { kpc.pca_eigenvalues[0], kpc.pca_eigenvalues[1], kpc.pca_eigenvalues[2] };
-      double centroid[3] = { kpc.pca_center[0], kpc.pca_center[1], kpc.pca_center[2] };
-      larlite::pcaxis llpca( true, kpc.pt_pos_v.size(), eigenval, e_v, centroid, 0, cidx);
-
+      // larlite::pcaxis::EigenVectors e_v;
+      // // just std::vector< std::vector<double> >
+      // // we store axes (3) and then the 1st axis end points. So five vectors.
+      // for ( auto const& a_v : kpc.pca_axis_v ) {
+      //   std::vector<double> da_v = { (double)a_v[0], (double)a_v[1], (double) a_v[2] };
+      //   e_v.push_back( da_v );
+      // }
+      // // start and end points
+      // for ( auto const& p_v : kpc.pca_ends_v ) {
+      //   std::vector<double> dp_v = { (double)p_v[0], (double)p_v[1], (double)p_v[2] };
+      //   e_v.push_back( dp_v );
+      // }
+      // double eigenval[3] = { kpc.pca_eigenvalues[0], kpc.pca_eigenvalues[1], kpc.pca_eigenvalues[2] };
+      // double centroid[3] = { kpc.pca_center[0], kpc.pca_center[1], kpc.pca_center[2] };
+      // larlite::pcaxis llpca( true, kpc.pt_pos_v.size(), eigenval, e_v, centroid, 0, cidx);
+      larlite::pcaxis llpca = kpc.get_pcaxis(cidx);
       evout_keypoint->emplace_back( std::move(hit) );
       evout_pcaxis->emplace_back( std::move(llpca) );
       cidx++;
@@ -433,7 +433,7 @@ namespace reco {
 
       for (auto const& idx : cluster.hitidx_v ) {
         auto const& pt = skimmed_pt_v.at( idx );
-              if(dim == 0) avg_score += pt[3];
+	if(dim == 0) avg_score += pt[3];
         for (int n=1; n<=4; n++)
           x_sum[n-1] += TMath::Power(pt[dim],n);
         double lny = TMath::Log(pt[3]);
