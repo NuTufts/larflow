@@ -52,7 +52,8 @@ namespace reco {
 
     int _num_input_clusters; ///< number of clusters that has been given to build interactions
     std::vector<ClusterBookKeeper> _cluster_book_v; ///< tracks which clusters have been added to each vertex
-
+    ClusterBookKeeper _event_book;
+    
   protected:
 
     std::map<std::string, larlite::event_larflow3dhit* > _keypoint_producers;      ///< map from tree name to event container for keypoints

@@ -135,44 +135,11 @@ namespace reco {
 
   protected:
 
-    struct ProngRank_t {
-      std::string producer;
-      int prong_idx;
-      int container_idx;
-      float score;
-      float dist2vtx;
-      float impactpar;
-      float cosine;
-      float cos_paf;
-      float pixsum;
-      float cosmic;
-      int ikpbest;
-      float kpdist;
-      float kpmax;
-      std::vector<float> axis;
-      std::vector<float> axis_start;
-      std::vector<float> axis_end;
-      std::vector<float> pca1dir;
-      ProngRank_t( std::string p, int pi, int ci, float s )
-        : producer(p), prong_idx(pi), container_idx(ci), score(s)
-      {};
-      // the following operator is used to sort the prongs by score for seeding priority
-      bool operator<( const ProngRank_t& rhs ) {
-        // threshold on hits, else rank on hits        
-        if ( score>rhs.score ) return true;
-        return false;
-      };
-    };
-
-    void getBDTseedscore( std::vector< NuVertexShowerReco::ProngRank_t >& seed_v );
-
-  protected:
-
     bool _mc_analysis_mode;
     ublarcvapp::mctools::MCPixelPGraph* _mcpg;
     void _gatherTruthShowerFeatures( larflow::recoutils::cluster_t& prong, 
-      larflow::reco::NuVertexCandidate& vtx,
-      RecoShowerInfo_t& showerinfo );
+				     const larflow::reco::NuVertexCandidate& vtx,
+				     RecoShowerInfo_t& showerinfo );
 
     bool _mc_analysis_saveinfo_for_this_vertex;
     std::map< int, RecoShowerInfo_t > _map_prongindex_to_mcanainfo;
@@ -210,6 +177,90 @@ namespace reco {
     std::vector<float> _get_cluster_pixsum( const std::vector<larcv::Image2D>& adc_v,
                                             const larlite::larflowcluster& lfcluster );
 
+    bool _seed_with_existing_clusters;
+
+  public:
+
+    void set_calc_cosmic_overlap( bool doit ) { _calc_cosmic_overlap=doit; };
+    void set_seed_with_existing_clusters( bool doit ) { _seed_with_existing_clusters=doit; };
+
+    
+#ifndef __CINT__
+#ifndef __CLING__
+    // internal and uses nested classes. dont expose it with python bindings
+
+  protected:
+
+    struct ProngRank_t {
+      std::string producer;
+      int prong_idx;
+      int container_idx;
+      int book_idx;
+      float score;
+      float dist2vtx;
+      float impactpar;
+      float cosine;
+      float cos_paf;
+      float pixsum;
+      float cosmic;
+      int ikpbest;
+      float kpdist;
+      float kpmax;
+      std::vector<float> axis;
+      std::vector<float> axis_start;
+      std::vector<float> axis_end;
+      std::vector<float> pca1dir;
+      ProngRank_t( std::string p, int pi, int ci, int bi, float s )
+        : producer(p), prong_idx(pi), container_idx(ci), book_idx(bi), score(s)
+      {};
+      // the following operator is used to sort the prongs by score for seeding priority
+      bool operator<( const ProngRank_t& rhs ) {
+        // threshold on hits, else rank on hits        
+        if ( score>rhs.score ) return true;
+        return false;
+      };
+    };
+
+    struct ProngDistanceSorter_t {
+      int index;
+      float distance;
+      ProngDistanceSorter_t( int idx, float dist )
+      : index(idx),
+        distance(dist)
+      {};
+      bool operator<( ProngDistanceSorter_t& rhs ) {
+        if ( distance < rhs.distance )
+          return true;
+        return false;
+      };
+    };  
+
+    void getBDTseedscore( std::vector< NuVertexShowerReco::ProngRank_t >& seed_v );
+    
+    int _fillShowerProngRank( larlite::storage_manager& ioll,
+			      larcv::IOManager& iolcv,
+			      const larflow::reco::NuVertexCandidate& nuvtx,
+			      const larflow::reco::NuVertexCandidate::VtxCluster_t& vtxcluster,
+			      NuVertexShowerReco::ProngRank_t& prong );
+
+    bool _determine_if_prong( const larflow::reco::NuVertexCandidate& nuvtx,
+			      larflow::reco::NuVertexShowerReco::ProngRank_t& prong );
+
+    bool _add_prong_via_intersection_test( const larflow::reco::NuVertexCandidate& nuvtx,
+					   const std::vector< larflow::reco::NuVertexShowerReco::ProngRank_t >& seed_prongs_v,
+					   const std::vector< larflow::reco::NuVertexShowerReco::ProngDistanceSorter_t >& seed_by_dist_v,
+					   larflow::reco::NuVertexShowerReco::ProngRank_t& prong );
+    
+    float _calculateShowerClusterOverlap( const NuVertexShowerReco::ProngRank_t& trunk_prong,
+					  const larlite::larflowcluster& test_cluster,
+					  const float max_showerpt_d2,
+					  const float r_trunk,
+					  const float r_mollier,
+					  const float s_mollier);
+    
+#endif
+#endif
+    
     // XGBoost 
   protected:
     BoosterHandle* _boosterhandle;

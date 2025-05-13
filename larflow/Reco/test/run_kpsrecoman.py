@@ -40,6 +40,8 @@ from larlite import larlite
 from larcv import larcv
 from ublarcvapp import ublarcvapp
 from larflow import larflow
+larlite.larflow3dhit
+larlite.larflowcluster
 
 # check we have the spline files
 if not os.path.exists( os.environ["LARFLOW_BASEDIR"]+"/larflow/Reco/data/Proton_Muon_Range_dEdx_LAr_TSplines.root" ):
@@ -64,6 +66,7 @@ print("[OUTPUT]    ",args.output)
 recoman = larflow.reco.KPSRecoManager( args.output.replace(".root","_kpsrecomanagerana.root"), args.version )
 recoman.set_verbosity(args.loglevel)
 recoman.logger().default_level(args.loglevel)
+recoman.saveNuAttachableClusters()
 # if args.loglevel == 0:
 #   recoman.set_verbosity(larcv.msg.kDEBUG)
 #   recoman.logger().default_level(larcv.msg.kDEBUG)
@@ -199,7 +202,7 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( "larflowcluster", "showerkp" )      # in-time shower clusters, found using shower keypoints
     io.set_data_to_write( "larflowcluster", "showergoodhit" ) # in-time shower clusters
     io.set_data_to_write( "larflowcluster", "hip" )           # in-time proton tracks
-    io.set_data_to_write( "pcaxis", "trackprojsplit_wcfilter" ) # in-time track clusters
+    io.set_data_to_write( "pcaxis", "maxtrackhit_wcfilter" ) # in-time track clusters
     io.set_data_to_write( "pcaxis", "showerkp" )      # in-time shower clusters, found using shower keypoints
     io.set_data_to_write( "pcaxis", "showergoodhit" ) # in-time shower clusters
     io.set_data_to_write( "pcaxis", "hip" )           # in-time proton tracks

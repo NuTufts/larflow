@@ -275,7 +275,7 @@ namespace reco {
       // { "trackprojsplit_full",
       //   "trackprojsplit_wcfilter",
       //   "hip" };
-      { "trackprojsplit_wcfilter", "cosmicproton" };
+      { "trackprojsplit_wcfilter" };
 
     for ( auto const& producer : cluster_producers ) {
 

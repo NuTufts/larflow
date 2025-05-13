@@ -196,6 +196,7 @@ namespace reco {
     void saveSelectedNuVerticesOnly( bool save_selected ) { _save_selected_only = save_selected; }; ///< if true, only store selected vertices
     void saveEventKeypoints(bool save_keypoints=true ) { _save_keypoints_in_anafile=save_keypoints; }; ///< if true, store keypoints
     void runPerfectMCreco( bool run_perfect=true ) { _run_perfect_mcreco=run_perfect; }; ///< if true and save MC info also set to true, run mc perfect reco
+    void saveNuAttachableClusters() { _save_attachable_clusters=true; }; ///< if called, will save larflow3dclusters showing prongs we can attach along with pcaxis
 
     void clear();
 
@@ -204,6 +205,7 @@ namespace reco {
     bool _save_event_mc_info; ///< if true, save event-level mc info to ana tree
     TFile* _ana_file; ///< output file for non-larlite and non-larcv reco products
     TTree* _ana_tree; ///< tree to store non-larlite and non-larcv reco products
+    TTree* _nuvertexmaker_tree; //< for debug
     std::string _ana_output_file; ///< name of the ana file to create
     int _ana_run; ///< run number for tree entry
     int _ana_subrun; ///< subrun number for tree entry
@@ -211,6 +213,17 @@ namespace reco {
     float _t_event_elapsed; ///< runtime for event
     bool _save_selected_only; ///< if true, save only selected nu vertex candidates
     bool _save_keypoints_in_anafile; ///< if true save keypoints to ana file
+
+    bool _save_nustream_hits; ///< if true, save larmatch hits for debug
+    // std::vector< larlite::larflow3dhit > _nustream_shower_hits_v;
+    // std::vector< larlite::larflow3dhit > _nustream_track_hits_v;    
+
+    bool _save_attachable_clusters; ///< if true, store candidate clusters to attach to keypoints, for debug
+    std::vector< larlite::larflowcluster > _nuvertexmaker_track_v; // store of clusters, for debug
+    std::vector< larlite::pcaxis >         _nuvertexmaker_track_pcaxis_v;  // store of cluster, for debug
+    std::vector< larlite::larflowcluster > _nuvertexmaker_shower_v; // store of clusters, for debug
+    std::vector< larlite::pcaxis >         _nuvertexmaker_shower_pcaxis_v;  // store of cluster, for debug
+    
     void make_ana_file();
 
     std::vector< larflow::reco::NuSelectionVariables > _nu_sel_v; ///< selection variables for nuvtx candidates

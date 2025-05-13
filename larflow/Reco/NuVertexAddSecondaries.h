@@ -6,6 +6,7 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "NuVertexCandidate.h"
 #include "ClusterBookKeeper.h"
+#include "NuTrackBuilder.h"
 
 namespace larflow {
 namespace reco {
@@ -42,6 +43,10 @@ namespace reco {
 				       std::vector<float>& attach_pos,
 				       std::vector<float>& attach_dir,
 				       std::vector<float>& seedpos );
+
+    void init_trackbuilder_for_event( larcv::IOManager& iolcv, larlite::storage_manager& ioll  );
+    
+    NuTrackBuilder _nu_track_builder;
     
   };
   

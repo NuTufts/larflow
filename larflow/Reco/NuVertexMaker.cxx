@@ -80,6 +80,8 @@ namespace reco {
     // load clusters
     int cluster_index = 0;    
     LARCV_INFO() << "Number of cluster producers: " << _cluster_producers.size() << std::endl;
+    _event_book.clear();
+    
     for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
       LARCV_INFO() << "Load cluster data with tree name[" << it->first << "]" << std::endl;
       it->second = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, it->first );
@@ -99,8 +101,14 @@ namespace reco {
 
       // we provide a cluster index label. this is to help downstream algorithms
       // an easy way to identify the same cluster
+      int ic = 0;
       for (auto& c : *it->second ) {
         c.matchedflash_idx = cluster_index;
+	_event_book.cluster_producer_v.push_back( it->first );
+	_event_book.cluster_container_index_v.push_back( ic );
+	_event_book.cluster_status_v.push_back( 0 );
+	_event_book.cluster_type_v.push_back( (int)_cluster_type[it->first] );
+	ic++;
         cluster_index++;
       }
     }
@@ -123,9 +131,9 @@ namespace reco {
       if ( vertex.cluster_v.size()>0 ) {
         _vertex_v.emplace_back( std::move(vertex) );
         if ( logger().debug() ) {
-          LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", " << vertex.keypoint_index << "] " << std::endl;
+          LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", IDX=" << vertex.keypoint_index << "] " << std::endl;
           LARCV_DEBUG() << "  number of clusters: " << vertex.cluster_v.size() << std::endl;
-          LARCV_DEBUG() << "  producer: " << vertex.keypoint_producer << std::endl;
+	  LARCV_DEBUG() << "  keypoint_type: " << vertex.keypoint_type << std::endl;
           LARCV_DEBUG() << "  pos: (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ")" << std::endl;
           LARCV_DEBUG() << "  score: " << vertex.score << std::endl;
           for (size_t ic=0; ic<vertex.cluster_v.size(); ic++) {
@@ -141,7 +149,7 @@ namespace reco {
       }//end of if has clusters
     }//end of vertex loop
         
-    _refine_position( iolcv, ioll );
+    //_refine_position( iolcv, ioll );
 
     // make cluster book
     _buildClusterBook();
@@ -246,6 +254,10 @@ namespace reco {
       auto& vertex = seed_v[vtxid];
 
       LARCV_DEBUG() << "=== ATTACH TO (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ") ===" << std::endl;
+      LARCV_DEBUG() << "  keypoint_producer: " << vertex.keypoint_producer << std::endl;      
+      LARCV_DEBUG() << "  keypoint_index: " << vertex.keypoint_index << std::endl;
+      LARCV_DEBUG() << "  keypoint_type: " << vertex.keypoint_type << std::endl;
+      LARCV_DEBUG() << "  ------------------------------------------------------------------------------" << std::endl;
       for ( auto it=_cluster_producers.begin(); it!=_cluster_producers.end(); it++ ) {
         if ( it->second==nullptr ) continue;
 
@@ -321,17 +333,21 @@ namespace reco {
    */
   void NuVertexMaker::_set_defaults()
   {
+
+    // we set fairly tight restrictions
+    // nuvertexshower builder will get chance to add more showers, using keypoints
+    
     // Track
     _cluster_type_max_impact_radius[ NuVertexCandidate::kTrack ] = 5.0;
     _cluster_type_max_gap[ NuVertexCandidate::kTrack ] = 10.0;
 
     // ShowerKP
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 10.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kShowerKP ]           = 50.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShowerKP ] = 5.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kShowerKP ]           = 10.0;
 
     // Shower
-    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 10.0;
-    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 50.0;
+    _cluster_type_max_impact_radius[ NuVertexCandidate::kShower ] = 5.0;
+    _cluster_type_max_gap[ NuVertexCandidate::kShower ]           = 10.0;
 
     _apply_cosmic_veto = false;
     _num_input_clusters = 0;
@@ -363,15 +379,15 @@ namespace reco {
     for ( auto& cluster : vtx.cluster_v ) {
       float clust_score = 1.0;
       if ( cluster.type==NuVertexCandidate::kTrack ) {
-        if ( cluster.gap>3.0 )
+        if ( cluster.gap>5.0 )
           clust_score *= (1.0/tau_gap_track)*exp( -cluster.gap/tau_gap_track );
-        if ( cluster.impact>3.0 )
+        if ( cluster.impact>5.0 )
           clust_score *= (1.0/tau_impact_track)*exp( -cluster.impact/tau_impact_track );
       }
       else {
         float ratio = cluster.impact/cluster.gap;
         clust_score *= (1.0/tau_ratio_shower)*exp( -ratio/tau_ratio_shower );
-        if ( cluster.impact>3.0 )
+        if ( cluster.impact>5.0 )
           clust_score *= (1.0/tau_impact_shower)*exp( -cluster.impact/tau_impact_shower );
       }
       //std::cout << "cluster[type=" << cluster.type << "] impact=" << cluster.impact << " gap=" << cluster.gap << " score=" << clust_score << std::endl;
@@ -391,10 +407,10 @@ namespace reco {
   {
     _ana_tree = tree;
     _own_tree = false;
-    tree->Branch("nuvertex_v", &_vertex_v );
-    tree->Branch("numerged_v", &_merged_v );
+    //tree->Branch("nuvertex_v", &_vertex_v );
+    //traee->Branch("numerged_v", &_merged_v );
     tree->Branch("nuvetoed_v", &_vetoed_v );
-    tree->Branch("nufitted_v", &_fitted_v);    
+    //tree->Branch("nufitted_v", &_fitted_v);    
   }
 
 
@@ -698,27 +714,52 @@ namespace reco {
     float projs = larflow::recoutils::pointRayProjection3f( startpt, dir, vertex.pos );
     float ends  = larflow::recoutils::pointRayProjection3f( startpt, dir, endpt );
 
+    bool pass_cuts = true;
+    bool pass_maxgap = true;
+    bool pass_max_impact = true;
+    bool pass_showerend_overlap = true;
+    
     if ( apply_cut ) {
       
-      LARCV_DEBUG() << "  connection metrics: "
-		    << " gapdist=" << gapdist << " [" << (gapdist<_cluster_type_max_gap[ctype]) << "]"
-		    << " r=" << r << " [" << (r<_cluster_type_max_impact_radius[ctype]) << "]"
-		    << " projs=" << projs
-		    << " ends=" << ends
-		    << std::endl;
       
       // wide association for now
-      if ( gapdist>_cluster_type_max_gap[ctype] )
-        return false;
+      if ( gapdist>_cluster_type_max_gap[ctype] ) {
+	pass_maxgap = false;
+	pass_cuts = false;
+      }
           
-      if ( r>_cluster_type_max_impact_radius[ctype] )
-        return false;
+      if ( r>_cluster_type_max_impact_radius[ctype] ) {
+	pass_max_impact = false;
+	pass_cuts = false;
+      }
 
       if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
-        if ( projs>2.0 && projs < (ends-2.0) )
-          return false;
+        if ( projs>2.0 && projs < (ends-2.0) ) {
+	  pass_showerend_overlap = false;
+	  pass_cuts = false;
+	}
+      }
+
+      if ( logger().level()!=larcv::msg::kDEBUG && pass_cuts ) {
+	LARCV_INFO() << " add cluster[" << producer << ", " << icluster << "] to vertex: "
+		     << " type=" << ctype
+		     << " gapdist=" << gapdist
+		     << " r=" << r 
+		     << " projs=" << projs
+		     << " ends=" << ends
+		     << std::endl;
+      }
+      else if ( logger().level()==larcv::msg::kDEBUG ) {	
+	LARCV_DEBUG() << " connection metrics for cluster[[" << producer << ", " << icluster << "] to vertex" << std::endl;
+	LARCV_DEBUG() << "   gapdist=" << gapdist << " [pass: " << pass_maxgap << "]" << std::endl;
+	LARCV_DEBUG() << "   r=" << r << " [pass: " << pass_max_impact << "]" << std::endl;
+	LARCV_DEBUG() << "   projs=" << projs << " ends=" << ends << "[pass: " << pass_showerend_overlap << "]" << std::endl;
+	LARCV_DEBUG() << "   result: " << pass_cuts << std::endl;
       }
     }
+
+    if ( !pass_cuts )
+      return false;
 
     // else attach
     NuVertexCandidate::VtxCluster_t cluster;
@@ -912,15 +953,20 @@ namespace reco {
     _cluster_book_v.reserve( get_mutable_output_candidates().size() );
 
     for (int ivtx=0; ivtx<(int)get_mutable_output_candidates().size(); ivtx++) {
-      ClusterBookKeeper book;
-      book.cluster_status_v.clear();
-      book.cluster_status_v.resize(_num_input_clusters,0);
+
+      // copy event book
+      ClusterBookKeeper book = _event_book;
+
+      // mark used clusters
       auto& nuvtx = get_mutable_output_candidates().at(ivtx);
       for (size_t ic=0; ic<nuvtx.cluster_v.size(); ic++) {
         std::string producer = nuvtx.cluster_v[ic].producer;
         int idx = nuvtx.cluster_v[ic].index;
         int cindex = _cluster_producers[producer]->at(idx).matchedflash_idx;
-        book.cluster_status_v.at(cindex) = 1; // has been assigned
+        book.cluster_status_v.at(cindex) = 2; // has been assigned as a seed
+	book.cluster_producer_v.at(cindex) = producer;
+	book.cluster_container_index_v.at(cindex) = idx;
+	book.cluster_type_v.at(cindex) = _cluster_type[producer];
       }
       _cluster_book_v.emplace_back( std::move(book) );
     }

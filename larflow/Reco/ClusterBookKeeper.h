@@ -23,11 +23,15 @@ namespace reco {
       {};
     virtual ~ClusterBookKeeper() {};
 
+    void clear();
     void set_cluster_status( int clusterid, int status );
     int get_cluster_status( int clusterid ) const;
     int numUsed() const;
-    
+
+    std::vector<std::string> cluster_producer_v;
+    std::vector<int> cluster_container_index_v;
     std::vector<int> cluster_status_v;
+    std::vector<int> cluster_type_v;
       
   };
   

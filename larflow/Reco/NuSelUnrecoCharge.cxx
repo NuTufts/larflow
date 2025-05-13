@@ -173,7 +173,6 @@ namespace reco {
       }
     }
     
-    LARCV_INFO() << "Results" << std::endl;
     std::stringstream ss_intime;
     ss_intime << "  intime counts: ";
     for (auto const& count : unreco_intime_counts )
@@ -189,7 +188,8 @@ namespace reco {
     std::stringstream ss_frac;
     for (auto const& frac : unreco_fraction )
       ss_frac << frac << " ";
-    
+
+    LARCV_INFO() << "Results" << std::endl;    
     LARCV_INFO() << ss_intime.str() << std::endl;
     LARCV_INFO() << ss_unreco.str() << std::endl;
     LARCV_INFO() << ss_reco.str() << std::endl;    
@@ -242,8 +242,8 @@ namespace reco {
     // first thing to do is make a mask of where our charge is.
     const float adc_threshold = 10;
     
-    std::vector< std::string > spacepoint_producers
-      = { "maxtrackhit_wcfilter", "maxshowerhit" };
+    std::vector< std::string > cluster_producers
+      = { "trackprojsplit_wcfilter", "showergoodhit" };
 
     larcv::EventImage2D* ev_img
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
@@ -251,12 +251,14 @@ namespace reco {
 
     std::map< int, int > idxhit_v;
     int nhits = 0;
-    for (auto& producer : spacepoint_producers ) {
-      larlite::event_larflow3dhit* ev_hit =
-	(larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, producer );
-      for ( auto const& hit : *(ev_hit) ) {
-	idxhit_v[ hit.idxhit ] = 0;
-	nhits++;
+    for (auto& producer : cluster_producers ) {
+      larlite::event_larflowcluster* ev_cluster
+	= (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
+      for ( auto const& cluster : *(ev_cluster) ) {
+	for ( auto const& hit : cluster ) {
+	  idxhit_v[ hit.idxhit ] = 0;
+	  nhits++;
+	}
       }
     }
     LARCV_INFO() << "nhits=" << nhits << "  idxhit_v.size()=" << idxhit_v.size() << std::endl;
@@ -291,14 +293,14 @@ namespace reco {
       }
     }
 
-    output.intime_count_v = std::vector<int>(1,nhits);
-    output.unreco_count_v = std::vector<int>(1,nhits-(nfound_track+nfound_shower));
+    output.intime_count_v.push_back( nhits );
+    output.unreco_count_v.push_back( nhits-(nfound_track+nfound_shower));
     if ( nhits>0 )
-      output.unreco_fraction_v = std::vector<float>(1, float(nhits-(nfound_track+nfound_shower))/float(nhits) );
+      output.unreco_fraction_v.push_back( (nhits-(nfound_track+nfound_shower))/float(nhits) );
     else
-      output.unreco_fraction_v = std::vector<float>(1, 0.);
+      output.unreco_fraction_v.push_back( 0.0 );
 
-    LARCV_INFO() << "Results" << std::endl;
+    LARCV_INFO() << "Results [spacepoint results appended at end]" << std::endl;
     std::stringstream ss_intime;
     ss_intime << "  intime counts: ";
     for (auto const& count : output.intime_count_v )
@@ -308,7 +310,7 @@ namespace reco {
     for (auto const& count : output.unreco_count_v )
       ss_unreco << count << " ";
     std::stringstream ss_reco;
-    ss_reco << "  reco counts: ntrack=" << nfound_track << " nshower=" << nfound_shower << std::endl;
+    ss_reco << "  reco counts: ntrack=" << nfound_track << " nshower=" << nfound_shower;
     std::stringstream ss_frac;
     for (auto const& frac : output.unreco_fraction_v )
       ss_frac << frac << " ";
