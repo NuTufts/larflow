@@ -204,7 +204,7 @@ namespace keypoints {
       = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
     LARCV_NORMAL() << "[Non-muon track start Results] numfound=" << nonmuon_track_kpd.size() << std::endl;
     for ( auto const& kpd : nonmuon_track_kpd ) {
-      std::cout << "  " << kpd.str() << std::endl;
+      LARCV_NORMAL() << "  " << kpd.str() << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 

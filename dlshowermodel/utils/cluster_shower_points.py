@@ -4,7 +4,8 @@ from .densityawaresampling import DensityAwareSemanticSampling
 
 def cluster_lmshower_points( pos, lm_logits, shower_prob, 
                             dbscan_eps=0.5, dbscan_minsamples=5,
-                            lmscore_threshold=0.20, ssnet_threshold=0.5,
+                            lmscore_threshold=0.20, 
+                            ssnet_threshold=0.5,
                             lmtruept_index=-1,
                             use_scikit=False ):
     """
@@ -49,12 +50,15 @@ class ClusterShowerPoints:
     def __init__(self, max_samples_per_cluster=16, 
                 dbscan_eps=0.5, dbscan_minsamples=5,
                 min_cluster_size=60,
-                lmscore_threshold=0.5, lmtruept_index=-1 ):
+                lmscore_threshold=0.3, 
+                shower_score_threshold=0.5,
+                lmtruept_index=-1 ):
 
         self.max_samples_per_cluster = max_samples_per_cluster
         self.dbscan_eps = dbscan_eps
         self.dbscan_minsamples = dbscan_minsamples
         self.lmscore_threshold = lmscore_threshold
+        self.shower_score_threshold = shower_score_threshold
         self.lmtruept_index = lmtruept_index
         self.min_cluster_size = min_cluster_size
         self.max_samples_per_cluster = max_samples_per_cluster

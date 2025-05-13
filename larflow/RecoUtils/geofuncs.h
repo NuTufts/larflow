@@ -47,41 +47,68 @@ namespace recoutils {
   class GeoFuncVector3D {
     public:
 
-      GeoFuncVector3D( double xx, double yy, double zz )
+    GeoFuncVector3D( double xx, double yy, double zz )
       : x(xx),
-      y(yy),
-      z(zz)
-      {};
+	y(yy),
+	z(zz)
+    {};
 
-      double x;
-      double y;
-      double z;
+    double x;
+    double y;
+    double z;
       
-      GeoFuncVector3D operator-(const GeoFuncVector3D& other) const {
-          return {x - other.x, y - other.y, z - other.z};
-      };
-      
-      double dot(const GeoFuncVector3D& other) const {
-          return x * other.x + y * other.y + z * other.z;
-      }
-      
-      GeoFuncVector3D cross(const GeoFuncVector3D& other) const {
-          return {
+    GeoFuncVector3D operator-(const GeoFuncVector3D& other) const {
+      return {x - other.x, y - other.y, z - other.z};
+    };
+
+    GeoFuncVector3D operator+(const GeoFuncVector3D& other) const {
+      return {x + other.x, y + other.y, z + other.z};
+    };
+
+    GeoFuncVector3D operator*(const double scalar ) const {
+      return { x*scalar, y*scalar, z*scalar };
+    };
+          
+    double dot(const GeoFuncVector3D& other) const {
+      return x * other.x + y * other.y + z * other.z;
+    };
+    
+    GeoFuncVector3D cross(const GeoFuncVector3D& other) const {
+      return {
               y * other.z - z * other.y,
               z * other.x - x * other.z,
               x * other.y - y * other.x
-          };
       };
-      
-      double magnitude() const {
-          return std::sqrt(dot(*this));
-      };
+    };
+    
+    double magnitude() const {
+      return std::sqrt(dot(*this));
+    };
+
+    std::vector<double> as_vectord() const {
+      std::vector<double> out(3,0);
+      out[0] = x;
+      out[1] = y;
+      out[2] = z;
+      return out;
+    };
+    
+    std::vector<float> as_vectorf() const {
+      std::vector<float> out(3,0);
+      out[0] = (float)x;
+      out[1] = (float)y;
+      out[2] = (float)z;
+      return out;
+    };
+    
   };
 
   float lineLineDistance3f_claude( const std::vector<float>& x1,
-			    const std::vector<float>& dir1,
-			    const std::vector<float>& x2,
-			    const std::vector<float>& dir2 );
+				   const std::vector<float>& dir1,
+				   const std::vector<float>& x2,
+				   const std::vector<float>& dir2,
+				   std::vector<float>& minseg_pt1,
+				   std::vector<float>& minseg_pt2);
   
 }
 }

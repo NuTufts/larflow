@@ -209,9 +209,11 @@ namespace recoutils {
    * @return projected distance
    */      
   float lineLineDistance3f_claude( const std::vector<float>& x1,
-          const std::vector<float>& fdir1,
-			    const std::vector<float>& x2,
-			    const std::vector<float>& fdir2 )
+				   const std::vector<float>& fdir1,
+				   const std::vector<float>& x2,
+				   const std::vector<float>& fdir2,
+				   std::vector<float>& minseg_pt1,
+				   std::vector<float>& minseg_pt2)				   
   {
     // Convert points to vectors for easier calculation
     GeoFuncVector3D p1v(x1[0],x1[1],x1[2]);
@@ -224,21 +226,47 @@ namespace recoutils {
     double len2 = dir2.magnitude();
     GeoFuncVector3D d1( dir1.x/len1, dir1.y/len1, dir1.z/len1 );
     GeoFuncVector3D d2( dir2.x/len2, dir2.y/len2, dir2.z/len2 );
-    
-    // Calculate cross product of direction vectors
-    GeoFuncVector3D n = d1.cross(d2);
-    
-    // If lines are parallel, use distance between any point and the other line
-    if (n.magnitude() < 1e-10) {
-        GeoFuncVector3D v = p2v - p1v;
-        GeoFuncVector3D cross = v.cross(d1);
-        return cross.magnitude();
+
+    // Get vector connecting two starting points
+    GeoFuncVector3D r = p1v-p2v;
+
+    // Compute various dot products we'll need
+    double a = d1.dot(d1);
+    double b = d1.dot(d2);
+    double c = d2.dot(d2);
+    double d = d1.dot(r);
+    double e = d2.dot(r);
+
+    double denom = a*c - b*b;
+    if ( std::fabs(denom)<1.0e-10 ) {
+      // parallel lines
+      // project r onto dir1 to find closest point
+      double t1 = -d/a;
+      GeoFuncVector3D closest1 = p1v + d1*t1;
+      GeoFuncVector3D diff = closest1-p2v;
+      double t2 = diff.dot( d2 );
+      GeoFuncVector3D closest2 = p2v + d2*t2;
+
+      GeoFuncVector3D mindiff = closest1-closest2;
+      
+      minseg_pt1 = closest1.as_vectorf();
+      minseg_pt2 = closest2.as_vectorf();
+      double mindist = mindiff.magnitude();
+      return mindist;
     }
-    
-    // Calculate shortest distance using the formula:
-    // distance = |((p2 - p1) · n)| / |n|
-    GeoFuncVector3D diff = p2v - p1v;
-    return std::abs(diff.dot(n)) / n.magnitude();
+
+    double t1 = (b*e - c*d )/denom;
+    double t2 = (a*e - b*d )/denom;
+
+    GeoFuncVector3D closest1 = p1v + d1*t1;
+    GeoFuncVector3D closest2 = p2v + d2*t2;
+    GeoFuncVector3D mindiff = closest1-closest2;
+      
+    minseg_pt1 = closest1.as_vectorf();
+    minseg_pt2 = closest2.as_vectorf();
+    double mindist = mindiff.magnitude();
+    return mindist;
+
   }
 
 }
