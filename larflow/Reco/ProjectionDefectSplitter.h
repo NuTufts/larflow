@@ -36,6 +36,7 @@ namespace reco {
       : larcv::larcv_base("ProjectionDefectSplitter"),
       _input_lfhit_tree_name("larmatch"),
       _output_cluster_tree_name("projsplit"),
+      _output_kpvetoed_tree_name("projsplitvetoed"),
       _min_larmatch_score(0.0),
       _maxdist(1.0),
       _minsize(20),
@@ -95,6 +96,7 @@ namespace reco {
     
     std::string _input_lfhit_tree_name;     ///< name of tree to get larflow hits to cluster
     std::string _output_cluster_tree_name;  ///< name of tree to store output clusters
+    std::string _output_kpvetoed_tree_name; ///< name of the tree to store veto hits
     float _min_larmatch_score;              ///< minimum larmatch score spacepoint must have to be included
     float _maxdist;                         ///< maximum distance two spacepoints can be connected for dbscan
     int   _minsize;                         ///< minimum cluster size for dbscan
@@ -109,6 +111,9 @@ namespace reco {
 
     /** @brief set name of the tree to write output clusters */
     void set_output_tree_name( std::string name ) { _output_cluster_tree_name=name; };
+
+    /** @brief set name of the tree that stores hits vetoed by keypoints to help break lines */
+    void set_output_kpvetoed_tree_name( std::string name ) { _output_kpvetoed_tree_name=name; };
 
     /** @brief set minimum larmatch score must have to be included in clusters */
     void set_min_larmatch_score( float min_score ) { _min_larmatch_score = min_score; };

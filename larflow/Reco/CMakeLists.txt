@@ -33,6 +33,7 @@ set( HEADERS
   NuVertexShowerTrunkCheck.h
   NuVertexActivityReco.h
   NuVertexAddSecondaries.h
+  NuVertexRestoreKPHits.h
   VetoHitClustering.h
   PerfectTruthNuReco.h
   TrackdQdx.h
@@ -88,7 +89,8 @@ add_library( ${LIBNAME} SHARED
   NuVertexShowerReco.cxx
   NuVertexShowerTrunkCheck.cxx  
   NuVertexActivityReco.cxx
-  NuVertexAddSecondaries.cxx  
+  NuVertexAddSecondaries.cxx 
+  NuVertexRestoreKPHits.cxx 
   VetoHitClustering.cxx  
   PostNuCheckShowerTrunkOverlap.cxx  
   PerfectTruthNuReco.cxx  

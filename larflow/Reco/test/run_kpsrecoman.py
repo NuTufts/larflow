@@ -199,9 +199,10 @@ if args.products in ["rerun","min"]:
     # mc info
     io.set_data_to_write( larlite.data.kMCShower, "mcdetectableshower" )
     io.set_data_to_write( "larflowcluster", "trackprojsplit_wcfilter" ) # in-time track clusters
-    io.set_data_to_write( "larflowcluster", "showerkp" )      # in-time shower clusters, found using shower keypoints
-    io.set_data_to_write( "larflowcluster", "showergoodhit" ) # in-time shower clusters
-    io.set_data_to_write( "larflowcluster", "hip" )           # in-time proton tracks
+    io.set_data_to_write( "larflowcluster", "showerkp" )        # in-time shower clusters, found using shower keypoints
+    io.set_data_to_write( "larflowcluster", "showergoodhit" )   # in-time shower clusters
+    io.set_data_to_write( "larflowcluster", "hip" )             # in-time proton tracks
+    io.set_data_to_write( "larflow3dhit", "projsplitvetoed" ) # vetoed kp hits
     io.set_data_to_write( "pcaxis", "maxtrackhit_wcfilter" ) # in-time track clusters
     io.set_data_to_write( "pcaxis", "showerkp" )      # in-time shower clusters, found using shower keypoints
     io.set_data_to_write( "pcaxis", "showergoodhit" ) # in-time shower clusters

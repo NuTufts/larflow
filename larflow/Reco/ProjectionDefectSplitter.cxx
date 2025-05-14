@@ -120,8 +120,9 @@ namespace reco {
         evout_noise->push_back( ev_lfhits->at(i) );
       }
     }
-    // store veto'd hits
-    larlite::event_larflow3dhit* evout_veto = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "projsplitvetoed" );    
+    // store veto'd hits: default name "projsplitvetoed"
+    larlite::event_larflow3dhit* evout_veto 
+    = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _output_kpvetoed_tree_name );    
     for ( size_t i=0; i<ev_lfhits->size(); i++ ) {
       if ( used_hits_v[i]==2 )
         evout_veto->push_back( ev_lfhits->at(i) );

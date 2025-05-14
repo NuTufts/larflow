@@ -37,8 +37,10 @@
 #include "NuVertexShowerReco.h"
 #include "NuVertexShowerTrunkCheck.h"
 #include "NuVertexActivityReco.h"
-#include "VetoHitClustering.h"
 #include "NuVertexAddSecondaries.h"
+#include "larflow/Reco/NuVertexRestoreKPHits.h"
+
+#include "VetoHitClustering.h"
 #include "NuTrackdQdx.h"
 #include "PerfectTruthNuReco.h"
 #include "NuTrackKinematics.h"
@@ -141,6 +143,7 @@ namespace reco {
     VetoHitClustering    _nuvertex_cluster_vetohits; ///< add veto'd hits during prong formation to reco'd-prongs
     NuTrackdQdx          _nuvertex_trackdqdx; ///< calculates dq/dx of tracks
     NuVertexAddSecondaries _nuvertex_add_secondaries; ///< add secondary particles to neutrino interaction
+    NuVertexRestoreKPHits  _nuvertex_restore_kphits; ///< adds back vetoed keypoint hits to prong ends near vertex
     
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
     CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices

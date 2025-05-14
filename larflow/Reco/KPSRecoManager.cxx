@@ -706,6 +706,7 @@ namespace reco {
     //_projsplitter.set_input_larmatchhit_tree_name( "ssnetsplit_wcfilter_trackhit" );    
     _projsplitter.add_input_keypoint_treename_for_hitveto( "keypoint" );
     _projsplitter.set_output_tree_name("trackprojsplit_wcfilter");
+    _projsplitter.set_output_kpvetoed_tree_name( "projsplitvetoed" );
     _projsplitter.process( iolcv, ioll );
 
 
@@ -954,6 +955,10 @@ namespace reco {
       _nuvertex_add_secondaries.process( nuvtx, book, iolcv, ioll );
     }    
 
+
+    _nuvertex_restore_kphits.set_verbosity( logger().level() );
+    _nuvertex_restore_kphits.process( _nuvertexmaker.get_mutable_output_candidates(), ioll, iolcv );
+    
     // - add dq/dx information
     //_nuvertex_trackdqdx.set_verbosity( larcv::msg::kDEBUG );
     /*
