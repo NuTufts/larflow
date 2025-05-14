@@ -93,7 +93,7 @@ namespace reco {
             //     for (int i=0; i<3; i++)
             //         track_dir[i] /= tracklen;
             // }
-	    std::vector<float> track_dir = nuvtx.track_dir_v.at(trackidx);
+	        std::vector<float> track_dir = nuvtx.track_dir_v.at(trackidx);
 
             std::vector<float> prong_dists 
                 = getHitDistancesFromProngEnds( nuvtx.pos, track_start, track_dir, nearby_hits_v );
@@ -141,8 +141,21 @@ namespace reco {
             iprong++;
         }
 
+        // get original number of hits: helps us know which hits are new
+	    std::vector<int> original_prong_num_hits_v( nprongs, 0 );
+        for (int ii=0; ii<nprongs; ii++ ) {
+            if ( ii<(int)prim_track_indices.size() ) {
+                original_prong_num_hits_v[ii] = nuvtx.track_hitcluster_v.at( prim_track_indices[ii] ).size();
+            }
+            else {
+                int shower_index = ii-(int)prim_track_indices.size();
+                original_prong_num_hits_v[ii] = nuvtx.shower_v.at( prim_shower_indices[shower_index] ).size();	    
+            }
+        }
+	
         // we filled the distance array, now do assignments
         std::vector<int> number_added_to_prong_v( nprongs, 0 );
+
         for (int ipt=0; ipt<npts; ipt++) {
             auto& hit = nearby_hits_v.at(ipt);
             int min_prong_index = dist_data.get_closest_prong( ipt );
@@ -163,14 +176,42 @@ namespace reco {
         }
 
         LARCV_INFO() << "Number of veto hits added to NuVertexCandidate primary prongs: " << std::endl;
-        for (int iprong=0; iprong<nprongs; iprong++ ) {
-            if ( iprong<(int)prim_track_indices.size() ) {
-                LARCV_INFO() << "  track[" << prim_track_indices[iprong] << "]: " << number_added_to_prong_v[iprong] << std::endl;
+        for (int ii=0; ii<nprongs; ii++ ) {
+
+	    // we need to extend certain objects
+	    // for track, need to add first step to larlite::track
+	    // for shower, need to mod first point
+	  
+            if ( ii<(int)prim_track_indices.size() ) {
+		        int trackidx = prim_track_indices[ii];
+                LARCV_INFO() << "  track[" << prim_track_indices[ii] << "]: " << number_added_to_prong_v[ii] << std::endl;
+                if ( number_added_to_prong_v[ii]>0 ) {
+                    larlite::track extended_track;
+                    bool was_extended = _extendTrack( nuvtx.track_v.at(trackidx),
+                                  nuvtx.track_dir_v.at(trackidx),
+                                  nuvtx.track_hitcluster_v.at(trackidx),
+                                  extended_track,
+                                  original_prong_num_hits_v[ii], ii );
+                    if (was_extended) {
+                        std::swap( nuvtx.track_v.at( trackidx ), extended_track );
+                    }
+                }
             }
             else {
-                int shower_index = iprong-(int)prim_track_indices.size();
-                LARCV_INFO() << "  shower[" << prim_shower_indices[shower_index] << "]: " << number_added_to_prong_v[iprong] << std::endl;
+                int shower_index = ii-(int)prim_track_indices.size();
+                LARCV_INFO() << "  shower[" << prim_shower_indices[shower_index] << "]: " << number_added_to_prong_v[ii] << std::endl;
+                if ( number_added_to_prong_v[ii]>0 )  {
+                    larlite::track extended_track;
+                    bool was_extended = _extendShower( nuvtx.shower_v.at(shower_index), // hits
+                        nuvtx.shower_trunk_v.at(shower_index), // trunk dir inform of larlite::track (why)
+                        extended_track,
+                        original_prong_num_hits_v[ii],  ii);
+                    if (was_extended) {
+                        std::swap( nuvtx.shower_trunk_v.at(shower_index), extended_track );
+                    }
+                }
             }
+	    
         }
     }
 
@@ -206,21 +247,21 @@ namespace reco {
 
         std::vector<float> dist_v( nearby_kpvetoed_hits_v.size(), 9999.0 );
 
-	float dist2vtx = 0.;
-	for (int i=0; i<3; i++) {
-	  dist2vtx += ( prong_start[i]-vtxpos[i] )*( prong_start[i]-vtxpos[i] );
-	}
-	dist2vtx = sqrt( dist2vtx );
+        float dist2vtx = 0.;
+        for (int i=0; i<3; i++) {
+        dist2vtx += ( prong_start[i]-vtxpos[i] )*( prong_start[i]-vtxpos[i] );
+        }
+        dist2vtx = sqrt( dist2vtx );
 
-	if ( dist2vtx>1.5*_collection_radius_cm ) {
-	  // dont absorb for this cluster - its' too far from the vertex
-	  return dist_v;
-	}
+        if ( dist2vtx>1.5*_collection_radius_cm ) {
+        // dont absorb for this cluster - its' too far from the vertex
+        return dist_v;
+        }
 
-	float min_s_hit = 1.0e9;
-	float max_s_hit = 0.0;
-	float s_vtx = larflow::recoutils::pointRayProjection( prong_start, prong_dir, vtxpos );
-	s_vtx = fabs(s_vtx);
+        float min_s_hit = 1.0e9;
+        float max_s_hit = 0.0;
+        float s_vtx = larflow::recoutils::pointRayProjection( prong_start, prong_dir, vtxpos );
+        s_vtx = fabs(s_vtx);
 	
         for (int ipt=0; ipt<(int)nearby_kpvetoed_hits_v.size(); ipt++ ) {
             auto const& hit = nearby_kpvetoed_hits_v.at(ipt);
@@ -229,24 +270,110 @@ namespace reco {
             float s_hit = larflow::recoutils::pointRayProjection( prong_start, prong_dir, hitpos );
             //std::cout << "[" << ipt << "] d=" << d << " s_hit=" << s_hit << " s_vtx=" << s_vtx << std::endl;
             // only update the distance if its closer than the vertex
-	    s_hit = fabs(s_hit);
+            s_hit = fabs(s_hit);
             if ( d<1.0 && (fabs(s_hit) < fabs(s_vtx)) ) {
                 dist_v[ipt] =  d;
-		if ( s_hit < min_s_hit )
-		  min_s_hit = s_hit;
-		if ( s_hit > max_s_hit )
-		  max_s_hit = s_hit;
-	    }
+                if ( s_hit < min_s_hit )
+                    min_s_hit = s_hit;
+                if ( s_hit > max_s_hit )
+                    max_s_hit = s_hit;
+            }
         }
 
-	// we want to make sure we fill in prongs that actually are missing the trunk along the track
-	if ( min_s_hit > _max_s_hit_gap_cm ) {
-	  LARCV_INFO() << "gap between vtx and hits: " << min_s_hit << " > " << _max_s_hit_gap_cm << std::endl;
-	  // absorb nothing: reject results and return no matches
-	  return std::vector<float>( nearby_kpvetoed_hits_v.size(), 9999.0 );
-	}
+        // we want to make sure we fill in prongs that actually are missing the trunk along the track
+        if ( min_s_hit > _max_s_hit_gap_cm ) {
+            LARCV_INFO() << "gap between vtx and hits: " << min_s_hit << " > " << _max_s_hit_gap_cm << std::endl;
+            // absorb nothing: reject results and return no matches
+            return std::vector<float>( nearby_kpvetoed_hits_v.size(), 9999.0 );
+        }
 
         return dist_v;
+    }
+
+    bool NuVertexRestoreKPHits::_extendShower( const larlite::larflowcluster& hitcluster, 
+                                               const larlite::track& trunk, 
+                                               larlite::track& extended_trunk,
+                                               int num_orig, int prongidx )
+    {
+        // loop over new hits. find the firstest projection s
+        TVector3 start = trunk.LocationAtPoint(0);
+        TVector3 end = trunk.LocationAtPoint(1);
+        TVector3 diff = end-start;
+        double mag = diff.Mag();
+        if ( mag>1.0e-10 ) {
+            for (int i=0; i<3; i++)
+                diff[i] /= mag;
+        }
+
+        std::vector<float> trunk_dir = { (float)diff[0], (float)diff[1], (float)diff[2] };
+        std::vector<float> fstart = { (float)start[0], (float)start[1], (float)start[2] };
+        std::vector<float> fend   = { (float)end[0], (float)end[1], (float)end[2] };
+        float min_s = 1.0e9;
+        for (int ihit=num_orig; ihit<(int)hitcluster.size(); ihit++ ) {
+            auto& hit = hitcluster.at(ihit);
+            std::vector<float> testpt = { (float)hit[0], (float)hit[1], (float)hit[2] };
+            float s = larflow::recoutils::pointRayProjection3f( fstart, trunk_dir, testpt );
+            // we expect s to be negative since we added points back to the vertex
+            if ( s < min_s )
+                min_s = s;
+        }
+        std::vector<float> fnewstart(3,0);
+        if ( min_s<0 ) {
+            for (int v=0; v<3; v++) {
+                fnewstart[v] = fstart[v] + min_s*trunk_dir[v];
+            }
+            // replace
+            extended_trunk.clear_data();
+            extended_trunk.set_track_id( prongidx );
+            TVector3 tv3start( fnewstart[0], fnewstart[1], fnewstart[2] );
+            TVector3 tv3end  = end;
+            extended_trunk.add_vertex( tv3start );
+            extended_trunk.add_direction( diff );
+            extended_trunk.add_vertex( tv3end );
+            extended_trunk.add_direction( diff );
+            return true;
+        }
+
+        return false;
+    }
+
+
+    bool NuVertexRestoreKPHits::_extendTrack( const larlite::track& orig,
+                                            const std::vector<float>& track_dir,
+                                            const larlite::larflowcluster& hitcluster,
+                                            larlite::track& extended_track,
+                                            int num_orig_hits, int trackidx )
+    {
+        TVector3 start = orig.LocationAtPoint(0);
+        TVector3 vdir( track_dir[0], track_dir[1], track_dir[2] );
+        std::vector<float> fstart = { (float)start[0], (float)start[1], (float)start[2] };
+        float min_s = 1.0e9;
+        for (int ihit=num_orig_hits; ihit<(int)hitcluster.size(); ihit++ ) {
+            auto& hit = hitcluster.at(ihit);
+            std::vector<float> testpt = { (float)hit[0], (float)hit[1], (float)hit[2] };
+            float s = larflow::recoutils::pointRayProjection3f( fstart, track_dir, testpt );
+            // we expect s to be negative since we added points back to the vertex
+            if ( s < min_s )
+                min_s = s;
+        }
+
+        if ( min_s<0 ) {
+            // rebuild track. yay.
+            TVector3 newstart = start + min_s*vdir;
+            extended_track.clear_data();
+            extended_track.set_track_id( trackidx );
+            int npts = orig.NumberTrajectoryPoints()+1;
+            extended_track.reserve( npts );
+            extended_track.add_vertex( newstart );
+            extended_track.add_direction( vdir );
+            for (int i=1; i<npts; i++) {
+                extended_track.add_vertex( orig.LocationAtPoint(i-1) );
+                extended_track.add_direction( orig.DirectionAtPoint(i-1));
+            }
+            return true;
+        }
+    
+        return false;
     }
 
 }

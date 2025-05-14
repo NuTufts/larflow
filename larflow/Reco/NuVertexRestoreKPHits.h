@@ -22,6 +22,8 @@
 #include "larcv/core/DataFormat/IOManager.h"
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "larflow/Reco/NuVertexCandidate.h"
 
 namespace larflow {
@@ -62,6 +64,18 @@ namespace reco {
         std::string _input_kpvetoed_hit_treename;
         float _collection_radius_cm;
         float _max_s_hit_gap_cm;
+
+        bool _extendShower( const larlite::larflowcluster& hitcluster, 
+                            const larlite::track& trunk, 
+                            larlite::track& extended_trunk,
+                            int num_orig, int prongidx );
+
+        bool _extendTrack( const larlite::track& orig,
+                            const std::vector<float>& track_dir,
+                            const larlite::larflowcluster& hitcluster,
+                            larlite::track& extended_track,
+                            int num_orig_hits, int trackidx );
+
 
 #ifndef __CLING__
 #ifndef __CINT__

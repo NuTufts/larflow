@@ -4,6 +4,9 @@
 
 #include "larcv/core/DataFormat/EventImage2D.h"
 #include "larcv/core/DataFormat/EventPixel2D.h"
+#include "larlite/DataFormat/larflow3dhit.h"
+#include "larlite/DataFormat/larflowcluster.h"
+
 
 #include "ClusterImageMask.h"
 
@@ -253,13 +256,20 @@ namespace reco {
     int nhits = 0;
     for (auto& producer : cluster_producers ) {
       larlite::event_larflowcluster* ev_cluster
-	= (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
+        = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producer);
       for ( auto const& cluster : *(ev_cluster) ) {
-	for ( auto const& hit : cluster ) {
-	  idxhit_v[ hit.idxhit ] = 0;
-	  nhits++;
-	}
+        for ( auto const& hit : cluster ) {
+          idxhit_v[ hit.idxhit ] = 0;
+          nhits++;
+        }
       }
+    }
+
+    larlite::event_larflow3dhit* ev_kpvetoed 
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "projsplitvetoed");
+    for ( auto const& hit : *(ev_kpvetoed) ) {
+      idxhit_v[ hit.idxhit ] = 0;
+      nhits++;
     }
     LARCV_INFO() << "nhits=" << nhits << "  idxhit_v.size()=" << idxhit_v.size() << std::endl;
 
@@ -267,29 +277,29 @@ namespace reco {
     int nfound_track = 0;
     for ( auto& trackcluster : nuvtx.track_hitcluster_v ) {
       for ( auto& trackhit : trackcluster ) {
-	auto it = idxhit_v.find( trackhit.idxhit );
-	if ( it==idxhit_v.end() ) {
-	  LARCV_INFO() << "  trackhit not in original hit map. idxhit=" << trackhit.idxhit << std::endl;
-	}
-	else {
-	  // set value to 1, to indicate it was found.
-	  it->second = 1;
-	  nfound_track++;
-	}
+        auto it = idxhit_v.find( trackhit.idxhit );
+        if ( it==idxhit_v.end() ) {
+          LARCV_INFO() << "  trackhit not in original hit map. idxhit=" << trackhit.idxhit << std::endl;
+        }
+        else {
+          // set value to 1, to indicate it was found.
+          it->second = 1;
+          nfound_track++;
+        }
       }
     }
     int nfound_shower = 0;
     for ( auto& shower : nuvtx.shower_v ) {
       for ( auto& hit : shower ) {
-	auto it = idxhit_v.find( hit.idxhit );
-	if ( it==idxhit_v.end() ) {
-	  LARCV_INFO() << "  shower hit not in original hit map. idxhit=" << hit.idxhit << std::endl;
-	}
-	else {
-	  // set value to 1, to indicate it was found.
-	  it->second = 1;
-	  nfound_shower++;
-	}
+        auto it = idxhit_v.find( hit.idxhit );
+        if ( it==idxhit_v.end() ) {
+          LARCV_INFO() << "  shower hit not in original hit map. idxhit=" << hit.idxhit << std::endl;
+        }
+        else {
+          // set value to 1, to indicate it was found.
+          it->second = 1;
+          nfound_shower++;
+        }
       }
     }
 
