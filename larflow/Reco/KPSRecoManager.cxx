@@ -848,6 +848,26 @@ namespace reco {
 			       _nuvertexmaker.get_mutable_output_candidates(),
 			       _nuvertexmaker.get_candidate_cluster_book() );
 
+    // compress track representation
+    larflow::recoutils::CompressRecoTrack track_compressor;
+    float max_saggita=0.3;
+    float max_step_size=5.0;
+    for ( auto& nuvtx : _nuvertexmaker.get_mutable_output_candidates() ) {
+      for ( int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++ ) {
+	auto& track = nuvtx.track_v.at(itrack);
+	if ( track.NumberTrajectoryPoints() > 50 ) {
+	  larlite::track compressed = track_compressor.compress( track, max_saggita, max_step_size );
+	  LARCV_INFO() << "nuvtx:track[" << itrack << "] "
+		       << "compressed npts=" << track.NumberTrajectoryPoints() << " --> "
+		       << "npts=" << compressed.NumberTrajectoryPoints()
+		       << std::endl;
+	  if ( compressed.NumberTrajectoryPoints()<track.NumberTrajectoryPoints() ){
+	    std::swap(track,compressed); // danger?
+	  }
+	}
+      }
+    }
+
     LARCV_NORMAL() << "Cluster-book summary after [NuTrackBuilder]" << std::endl;    
     for (int ivtx=0; ivtx<(int)_nuvertexmaker.get_mutable_output_candidates().size(); ivtx++) {
       auto const& nucand = _nuvertexmaker.get_mutable_output_candidates().at(ivtx);

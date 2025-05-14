@@ -221,12 +221,51 @@ namespace reco {
         //     nuvtx.track_v.push_back(fitted);
         //   }
         // }
-	if (fitted.NumberTrajectoryPoints()>0) {
+	if (fitted.NumberTrajectoryPoints()>=2) {
 	  track_saved_v[itrack] = 1;
 	  nuvtx.track_v.push_back(fitted);
-	}
-      }
-
+	  // make a track dir
+	  float current_len = 0.;
+	  std::vector<float> first_pt(3,0);
+	  for (int iv=0; iv<3; iv++) {
+	    first_pt[iv] = fitted.LocationAtPoint(0)[iv];
+	  }
+	  std::vector<float> last_pt(3,0);
+	  for (int ipt=0; ipt<(int)fitted.NumberTrajectoryPoints()-1; ipt++) {
+	    const TVector3& pt1 = fitted.LocationAtPoint(ipt);
+	    const TVector3& pt2 = fitted.LocationAtPoint(ipt+1);
+	    TVector3 diff = pt2-pt1;
+	    float seglen = diff.Mag();
+	    float next_len = current_len + seglen;
+	    if ( next_len > 5.0 ) {
+	      float overhang = (next_len-5.0); // distance past the 5 cm we want to estimate the track dir
+	      float s = fabs( seglen-overhang );
+	      for (int iv=0; iv<3; iv++) {
+		last_pt[iv] = first_pt[iv] + (s/seglen)*diff[iv];
+	      }
+	      break;
+	    }
+	    else {
+	      // else just use the current next pt
+	      for (int iv=0; iv<3; iv++)
+		last_pt[iv] = pt2[iv];
+	    }
+	  }//end of loop over traj points
+	  std::vector<float> trackdir(3,0);
+	  float norm = 0.;
+	  for (int iv=0; iv<3; iv++) {
+	    trackdir[iv] = last_pt[iv]-first_pt[iv];
+	    norm += trackdir[iv]*trackdir[iv];
+	  }
+	  norm = sqrt(norm);
+	  if ( norm>1.0e-9 ) {
+	    for (int iv=0; iv<3; iv++)
+	      trackdir[iv] /= norm;
+	  }
+	  nuvtx.track_dir_v.push_back( trackdir );
+	}//if track size is good enough
+      }//end of loop over fitted tracks
+      
       // pass the hit clusters on
       nuvtx.track_hitcluster_v.reserve( fitted_v.size() );
       for ( int itrack=0; itrack<(int)fitted_hitcluster_v.size(); itrack++ ) {

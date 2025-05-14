@@ -79,20 +79,21 @@ namespace reco {
             for (size_t i=0; i<3; i++)
                 track_start[i] = track.LocationAtPoint(0)[i];
 
-            std::vector<float> track_dir(3,0);
-            int itrackpt = 3;
-            if ( itrackpt >= track.NumberTrajectoryPoints() )
-                itrackpt = track.NumberTrajectoryPoints()-1;
-            float tracklen = 0.;
-            for (int i=0; i<3; i++) {
-                track_dir[i] = track.LocationAtPoint(itrackpt)[i]-track_start[i];
-                tracklen += track_dir[i]*track_dir[i];
-            }
-            tracklen = sqrt(tracklen);
-            if ( tracklen>0 ) {
-                for (int i=0; i<3; i++)
-                    track_dir[i] /= tracklen;
-            }
+            //std::vector<float> track_dir(3,0);
+            // int itrackpt = 3;
+            // if ( itrackpt >= track.NumberTrajectoryPoints() )
+            //     itrackpt = track.NumberTrajectoryPoints()-1;
+            // float tracklen = 0.;
+            // for (int i=0; i<3; i++) {
+            //     track_dir[i] = track.LocationAtPoint(itrackpt)[i]-track_start[i];
+            //     tracklen += track_dir[i]*track_dir[i];
+            // }
+            // tracklen = sqrt(tracklen);
+            // if ( tracklen>0 ) {
+            //     for (int i=0; i<3; i++)
+            //         track_dir[i] /= tracklen;
+            // }
+	    std::vector<float> track_dir = nuvtx.track_dir_v.at(trackidx);
 
             std::vector<float> prong_dists 
                 = getHitDistancesFromProngEnds( nuvtx.pos, track_start, track_dir, nearby_hits_v );
@@ -204,17 +205,46 @@ namespace reco {
         }
 
         std::vector<float> dist_v( nearby_kpvetoed_hits_v.size(), 9999.0 );
+
+	float dist2vtx = 0.;
+	for (int i=0; i<3; i++) {
+	  dist2vtx += ( prong_start[i]-vtxpos[i] )*( prong_start[i]-vtxpos[i] );
+	}
+	dist2vtx = sqrt( dist2vtx );
+
+	if ( dist2vtx>1.5*_collection_radius_cm ) {
+	  // dont absorb for this cluster - its' too far from the vertex
+	  return dist_v;
+	}
+
+	float min_s_hit = 1.0e9;
+	float max_s_hit = 0.0;
+	float s_vtx = larflow::recoutils::pointRayProjection( prong_start, prong_dir, vtxpos );
+	s_vtx = fabs(s_vtx);
+	
         for (int ipt=0; ipt<(int)nearby_kpvetoed_hits_v.size(); ipt++ ) {
             auto const& hit = nearby_kpvetoed_hits_v.at(ipt);
             std::vector<float> hitpos = { hit[0], hit[1], hit[2] };
             float d = larflow::recoutils::pointLineDistance3f( prong_start, prong_end, hitpos );
             float s_hit = larflow::recoutils::pointRayProjection( prong_start, prong_dir, hitpos );
-            float s_vtx = larflow::recoutils::pointRayProjection( prong_start, prong_dir, vtxpos );
             //std::cout << "[" << ipt << "] d=" << d << " s_hit=" << s_hit << " s_vtx=" << s_vtx << std::endl;
             // only update the distance if its closer than the vertex
-            if ( d<1.0 && (fabs(s_hit) < fabs(s_vtx)) )
+	    s_hit = fabs(s_hit);
+            if ( d<1.0 && (fabs(s_hit) < fabs(s_vtx)) ) {
                 dist_v[ipt] =  d;
+		if ( s_hit < min_s_hit )
+		  min_s_hit = s_hit;
+		if ( s_hit > max_s_hit )
+		  max_s_hit = s_hit;
+	    }
         }
+
+	// we want to make sure we fill in prongs that actually are missing the trunk along the track
+	if ( min_s_hit > _max_s_hit_gap_cm ) {
+	  LARCV_INFO() << "gap between vtx and hits: " << min_s_hit << " > " << _max_s_hit_gap_cm << std::endl;
+	  // absorb nothing: reject results and return no matches
+	  return std::vector<float>( nearby_kpvetoed_hits_v.size(), 9999.0 );
+	}
 
         return dist_v;
     }

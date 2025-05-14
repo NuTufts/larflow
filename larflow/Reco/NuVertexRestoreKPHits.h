@@ -34,7 +34,8 @@ namespace reco {
         NuVertexRestoreKPHits()
         : larcv::larcv_base("NuVertexRestoreKPHits"),
         _input_kpvetoed_hit_treename("projsplitvetoed"),
-        _collection_radius_cm(5.0)
+	  _collection_radius_cm(5.0),
+	  _max_s_hit_gap_cm(3.0)
         {};
 
         virtual ~NuVertexRestoreKPHits() {};
@@ -60,6 +61,7 @@ namespace reco {
 
         std::string _input_kpvetoed_hit_treename;
         float _collection_radius_cm;
+        float _max_s_hit_gap_cm;
 
 #ifndef __CLING__
 #ifndef __CINT__
