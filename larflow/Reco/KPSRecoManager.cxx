@@ -922,46 +922,35 @@ namespace reco {
       LARCV_NORMAL() << "  pos: (" << nucand.pos[0] << ", " << nucand.pos[1] << ", " << nucand.pos[2] << ")" << std::endl;      
     }    
 
-    /*
-
-    // - repair shower trunks by absorbing tracks or creating hits
-    //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
-    _nuvertex_shower_trunk_check.set_verbosity( logger().level() );
-    int ivtx = 0;
-    //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
-    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
-      LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
-      _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
-      //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
-      ivtx++;
-    }
+    // // - repair shower trunks by absorbing tracks or creating hits
+    // //_nuvertex_shower_trunk_check.set_verbosity( larcv::msg::kDEBUG );
+    // _nuvertex_shower_trunk_check.set_verbosity( logger().level() );
+    // int ivtx = 0;
+    // //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
+    //   LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
+    //   _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
+    //   //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+    //   ivtx++;
+    // }
 
     // post-neutrino-candidate processing:
     // - remove tracks from neutrino candidates that significantly overlap with showers
-    //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
+    _nuvertex_postcheck_showertrunkoverlap.set_verbosity( larcv::msg::kDEBUG );
     //_nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_fitted_candidates() );
-    _nuvertex_postcheck_showertrunkoverlap.set_verbosity( logger().level() );
+    //_nuvertex_postcheck_showertrunkoverlap.set_verbosity( logger().level() );
     _nuvertex_postcheck_showertrunkoverlap.process( _nuvertexmaker.get_mutable_output_candidates() );
 
-    // - add hits vetod around keypoints to the ends of track prongs
-    _nuvertex_cluster_vetohits.set_verbosity( logger().level() );
-    LARCV_NORMAL() << "RUN NUVERTEX CLUSTER VETOHITS" << std::endl;    
-    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {    
-      _nuvertex_cluster_vetohits.process( ioll, iolcv, vtx );
-    }
-
-    // - repair shower trunks again by absorbing tracks or creating hits for new near-vertex tracks
-    ivtx = 0;
-    //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
-    _nuvertex_shower_trunk_check.set_verbosity( logger().level() );
-    for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
-      LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
-      _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
-      //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
-      ivtx++;
-    }
-
-    */
+    // // - repair shower trunks again by absorbing tracks or creating hits for new near-vertex tracks
+    // ivtx = 0;
+    // //for ( auto& vtx : _nuvertexmaker.get_mutable_fitted_candidates() ) {
+    // _nuvertex_shower_trunk_check.set_verbosity( logger().level() );
+    // for ( auto& vtx : _nuvertexmaker.get_mutable_output_candidates() ) {
+    //   LARCV_DEBUG() << "Run shower trunk check on vertex candidate [" << ivtx << "]" << std::endl;
+    //   _nuvertex_shower_trunk_check.checkNuCandidateProngs( vtx );
+    //   //_nuvertex_shower_trunk_check.checkNuCandidateProngsForMissingCharge( vtx, iolcv, ioll );
+    //   ivtx++;
+    // }
 
     // - add secondaries
     _nuvertex_add_secondaries.set_verbosity( logger().level() );

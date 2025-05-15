@@ -64,17 +64,17 @@ namespace reco {
         dist(9999.0),
         attached(0),
         trackorshower(ts),
-	producername(""),
-	bookidx(-1),
-	cluster_type(-1),
-	container_idx(-1),
-	npts(0)
+      	producername(""),
+      	bookidx(-1),
+      	cluster_type(-1),
+      	container_idx(-1),
+      	npts(0)
       {};
       bool operator<( const SecondaryCandidate_t& rhs ) const {
-	// sort by distance from attachment point
-	if ( dist<rhs.dist )
-	  return true;
-	return false;
+      	// sort by distance from attachment point
+      	if ( dist<rhs.dist )
+      	  return true;
+      	return false;
       };
     };
 
@@ -85,17 +85,17 @@ namespace reco {
     for (int icluster=0; icluster<(int)nuclusterbook.cluster_producer_v.size(); icluster++) {
 
       if ( nuclusterbook.cluster_status_v.at(icluster)!=0 )
-	continue; // used to vetoed
+	      continue; // used to vetoed
       
       std::string producername = nuclusterbook.cluster_producer_v.at(icluster);
       int container_index = nuclusterbook.cluster_container_index_v.at(icluster);
       int ictype = nuclusterbook.cluster_type_v.at(icluster);
       if ( ictype<0 || ictype>2 )
-	continue; // weird value
+	      continue; // weird value
       
       larflow::reco::NuVertexCandidate::ClusterType_t ctype = (larflow::reco::NuVertexCandidate::ClusterType_t)ictype;
       
-      LARCV_INFO() << "try to attach to cluster[" << producername << ", con_idx=" << container_index << ", ctype=" << ictype << "]" << std::endl;
+      LARCV_DEBUG() << "try to attach to cluster[" << producername << ", con_idx=" << container_index << ", ctype=" << ictype << "]" << std::endl;
       
       larlite::event_larflowcluster* ev_cluster =
       	(larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, producername );
@@ -104,7 +104,7 @@ namespace reco {
 
       // not in container
       if ( container_index<0 && container_index >= (int)ev_cluster->size() )
-	continue;      
+	      continue;      
 
       auto& cluster = ev_cluster->at(container_index);
       auto& clusterpca = ev_cluster_pca->at(container_index);	
@@ -113,42 +113,42 @@ namespace reco {
       // determine if should attach this cluster
       // look for proximity to exiting track
       for (size_t itrack=0; itrack<nuvtx.track_v.size(); itrack++) {
-	LARCV_DEBUG() << "Test cluster(" << producername << "," << icluster << "," << cluster.matchedflash_idx << ")"
+	      LARCV_DEBUG() << "Test cluster(" << producername << "," << icluster << "," << cluster.matchedflash_idx << ")"
 		      << " with nutrack[" << itrack << "]" << std::endl;
-	auto& track = nuvtx.track_v.at(itrack);
-	std::vector<float> attach_pos(3,0);
-	std::vector<float> attach_dir(3,0);
-	std::vector<float> seedpos(3,0);
-	float mindist = 999999;
-	if ( ctype==larflow::reco::NuVertexCandidate::kTrack ) {
-	  // intersection test if track
-	  mindist = testTrackTrackIntersection( track, clusterpca, 2.0,
-						attach_pos, attach_dir, seedpos );
-	}
-	else {
-	  // intersection test if shower
-	  mindist = testShowerTrackIntersection( track, clusterpca, 5.0,
-						 attach_pos, attach_dir, seedpos );
-	}
-
-	float mindist_threshold = (ctype==larflow::reco::NuVertexCandidate::kTrack) ? 2.0 : 100.0;
-	if (mindist<mindist_threshold) {
-	  // register as potential new seed point	  
-	  int track_or_shower = (ctype==larflow::reco::NuVertexCandidate::kTrack) ? 0 : 1;
-	  
-	  SecondaryCandidate_t cand( &cluster, track_or_shower );	    
-	  cand.dist = mindist;
-	  cand.producername = producername; // name of cluster container
-	  cand.bookidx = icluster; // book index
-	  cand.container_idx = container_index; // index in cluster container
-	  cand.cluster_type = ctype;
-	  cand.attach_pos = attach_pos;
-	  cand.attach_dir = attach_dir;
-	  cand.seedpos = seedpos;
-	  cand.npts = cluster.size();
-	  candidates_v.emplace_back( std::move(cand) );
-
-	}
+      	auto& track = nuvtx.track_v.at(itrack);
+      	std::vector<float> attach_pos(3,0);
+      	std::vector<float> attach_dir(3,0);
+      	std::vector<float> seedpos(3,0);
+      	float mindist = 999999;
+      	if ( ctype==larflow::reco::NuVertexCandidate::kTrack ) {
+      	  // intersection test if track
+      	  mindist = testTrackTrackIntersection( track, clusterpca, 2.0,
+      						attach_pos, attach_dir, seedpos );
+      	}
+      	else {
+      	  // intersection test if shower
+      	  mindist = testShowerTrackIntersection( track, clusterpca, 5.0,
+      						 attach_pos, attach_dir, seedpos );
+      	}
+      
+      	float mindist_threshold = (ctype==larflow::reco::NuVertexCandidate::kTrack) ? 2.0 : 100.0;
+      	if (mindist<mindist_threshold) {
+      	  // register as potential new seed point	  
+      	  int track_or_shower = (ctype==larflow::reco::NuVertexCandidate::kTrack) ? 0 : 1;
+      	  
+      	  SecondaryCandidate_t cand( &cluster, track_or_shower );	    
+      	  cand.dist = mindist;
+      	  cand.producername = producername; // name of cluster container
+      	  cand.bookidx = icluster; // book index
+      	  cand.container_idx = container_index; // index in cluster container
+      	  cand.cluster_type = ctype;
+      	  cand.attach_pos = attach_pos;
+      	  cand.attach_dir = attach_dir;
+      	  cand.seedpos = seedpos;
+      	  cand.npts = cluster.size();
+      	  candidates_v.emplace_back( std::move(cand) );
+      
+      	}
       }//end of loop over tracks in the nuvertexcandidate
     }//end of cluster loop
 
@@ -158,15 +158,16 @@ namespace reco {
     LARCV_INFO() << "Number of candidate additions: " << candidates_v.size() << std::endl;
     for (auto& candidate : candidates_v) {
       if ( candidate.trackorshower==1 )
-	LARCV_INFO() << "  shower[" << candidate.producername
+	      LARCV_INFO() << "  shower[" << candidate.producername
 		     << ", conidx=" << candidate.container_idx
 		     << ", bookidx=" << candidate.bookidx << "] "
 		     << " dist=" << candidate.dist << std::endl;
-      else
-	LARCV_INFO() << "  track[" << candidate.producername
+      else {
+	      LARCV_INFO() << "  track[" << candidate.producername
 		     << ", conidx=" << candidate.container_idx
 		     << ", bookidx=" << candidate.bookidx << "] "
-		     << " dist=" << candidate.dist << std::endl;	
+		     << " dist=" << candidate.dist << std::endl;
+      }	
     }
     
     LARCV_DEBUG() << "Now extend tracks using NuTrackBuilder and NuVertexShowerReco" << std::endl;
@@ -190,7 +191,7 @@ namespace reco {
     for ( auto& candidate : candidates_v ) {
 
       if ( nuclusterbook.cluster_status_v.at( candidate.bookidx )!=0 ) {
-	continue; // claimed, so move on.
+	      continue; // claimed, so move on.
       }
 
       // we will treat the secondary intersection point as a new vertex
@@ -200,101 +201,101 @@ namespace reco {
       bool foundmark = false;
       int nused = 0;
       for (int i=0; i<book2.cluster_status_v.size(); i++) {
-	if ( book2.cluster_status_v[i]>0 ) {
-	  book2.cluster_status_v[i] = 1; //mark as used (so skip)
-	  nused++;
-	}
-	if ( candidate.trackorshower==1 ) {
-	  // if shower, we mark a pre-determined prong seed to build a shower from
-	  if ( book2.cluster_producer_v[i]==candidate.producername
-	       && book2.cluster_container_index_v[i]==candidate.container_idx ) {
-	    book2.cluster_status_v[i] = 2; //mark as pre-determined prong seed
-	    foundmark = true;
-	  }
-	}
+      	if ( book2.cluster_status_v[i]>0 ) {
+      	  book2.cluster_status_v[i] = 1; //mark as used (so skip)
+      	  nused++;
+      	}
+      	if ( candidate.trackorshower==1 ) {
+      	  // if shower, we mark a pre-determined prong seed to build a shower from
+      	  if ( book2.cluster_producer_v[i]==candidate.producername
+      	       && book2.cluster_container_index_v[i]==candidate.container_idx ) {
+      	    book2.cluster_status_v[i] = 2; //mark as pre-determined prong seed
+      	    foundmark = true;
+      	  }
+      	}
       }
       if ( candidate.trackorshower==1 && !foundmark ) {
-	LARCV_ERROR() << "Did not find shower cluster to mark in copied clusterbook" << std::endl;
+	      LARCV_ERROR() << "Did not find shower cluster to mark in copied clusterbook" << std::endl;
       }
       LARCV_INFO() << " prepared candidate secondary vertex clusterbook: number used=" << nused << std::endl;
       std::vector< ClusterBookKeeper > book_v;
       book_v.push_back( book2 );
       
       if ( candidate.trackorshower==0 ) {
-	// track-like: extend with nutrackbuilder
-	
-	// make a fake nuvtx candididate for the secondary attach point
-	NuVertexCandidate nuvtx2;
-	nuvtx2.pos = candidate.attach_pos;
-
-	// must provide the seed cluster
-	NuVertexCandidate::VtxCluster_t vtxcluster;
-	vtxcluster.producer = candidate.producername;
-	vtxcluster.type = NuVertexCandidate::kTrack;
-	vtxcluster.index = candidate.container_idx;
-	vtxcluster.pos = candidate.seedpos;
-	vtxcluster.npts = candidate.npts;	
-	nuvtx2.cluster_v.push_back( vtxcluster );
-	
-	std::vector< NuVertexCandidate > nuvtx2_v;
-	nuvtx2_v.push_back( nuvtx2 );
-	
-	_nu_track_builder.set_verbosity( logger().level() );
-	_nu_track_builder.clear_track_proposals();
-	bool reload_clusters = false;
-	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, reload_clusters );
-	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
-	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
-	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
-	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
-          nuvtx.track_isSecondary_v.push_back(1);
-	}
+      	// track-like: extend with nutrackbuilder
+      	
+      	// make a fake nuvtx candididate for the secondary attach point
+      	NuVertexCandidate nuvtx2;
+      	nuvtx2.pos = candidate.attach_pos;
+      
+      	// must provide the seed cluster
+      	NuVertexCandidate::VtxCluster_t vtxcluster;
+      	vtxcluster.producer = candidate.producername;
+      	vtxcluster.type = NuVertexCandidate::kTrack;
+      	vtxcluster.index = candidate.container_idx;
+      	vtxcluster.pos = candidate.seedpos;
+      	vtxcluster.npts = candidate.npts;	
+      	nuvtx2.cluster_v.push_back( vtxcluster );
+      	
+      	std::vector< NuVertexCandidate > nuvtx2_v;
+      	nuvtx2_v.push_back( nuvtx2 );
+      	
+      	_nu_track_builder.set_verbosity( logger().level() );
+      	_nu_track_builder.clear_track_proposals();
+      	bool reload_clusters = false;
+      	_nu_track_builder.process( iolcv, ioll, nuvtx2_v, book_v, reload_clusters );
+      	LARCV_DEBUG() << "tracks made from this seed: " << nuvtx2_v.at(0).track_v.size() << std::endl;
+      	if ( nuvtx2_v.at(0).track_v.size()>0 ) {
+      	  nuvtx.track_v.push_back( nuvtx2_v.at(0).track_v.at(0) );
+      	  nuvtx.track_hitcluster_v.push_back( nuvtx2_v.at(0).track_hitcluster_v.at(0) );
+                nuvtx.track_isSecondary_v.push_back(1);
+      	}
       }
       else {
-	// shower
-	NuVertexShowerReco _nuvertex_shower_reco;
-	//_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );
-	_nuvertex_shower_reco.set_verbosity( logger().level() );
-	//_nuvertex_shower_reco.set_seed_with_existing_clusters( false );
-	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );	
-	_nuvertex_shower_reco.loadClusters(ioll); // load clusters
-	
-	// make a fake nuvtx candididate for the secondary attach point
-	NuVertexCandidate nuvtx2;
-	nuvtx2.pos = candidate.seedpos;
-	LARCV_INFO() << "  Build secondary shower vertex at ("
-		     << nuvtx2.pos[0] << ","
-		     << nuvtx2.pos[1] << ","
-		     << nuvtx2.pos[2] << ")"
-		     << " using cluster[" << nuclusterbook.cluster_producer_v.at( candidate.pcluster->matchedflash_idx )
-		     << ", " << candidate.pcluster->matchedflash_idx << "]"
-		     << std::endl;
+      	// shower
+      	NuVertexShowerReco _nuvertex_shower_reco;
+      	//_nuvertex_shower_reco.set_verbosity( larcv::msg::kINFO );
+      	_nuvertex_shower_reco.set_verbosity( logger().level() );
+      	//_nuvertex_shower_reco.set_seed_with_existing_clusters( false );
+      	_nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
+      	_nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );	
+      	_nuvertex_shower_reco.loadClusters(ioll); // load clusters
+      	
+      	// make a fake nuvtx candididate for the secondary attach point
+      	NuVertexCandidate nuvtx2;
+      	nuvtx2.pos = candidate.seedpos;
+      	LARCV_INFO() << "  Build secondary shower vertex at ("
+      		     << nuvtx2.pos[0] << ","
+      		     << nuvtx2.pos[1] << ","
+      		     << nuvtx2.pos[2] << ")"
+      		     << " using cluster[" << nuclusterbook.cluster_producer_v.at( candidate.pcluster->matchedflash_idx )
+      		     << ", " << candidate.pcluster->matchedflash_idx << "]"
+      		     << std::endl;
+      
+      	// must provide the seed cluster
+      	NuVertexCandidate::VtxCluster_t vtxcluster;
+      	vtxcluster.producer = candidate.producername;
+      	vtxcluster.type = NuVertexCandidate::kShower;
+      	vtxcluster.index = candidate.container_idx;
+      	vtxcluster.pos = candidate.seedpos;
+      	vtxcluster.npts = candidate.npts;
+      	nuvtx2.cluster_v.push_back( vtxcluster );
 
-	// must provide the seed cluster
-	NuVertexCandidate::VtxCluster_t vtxcluster;
-	vtxcluster.producer = candidate.producername;
-	vtxcluster.type = NuVertexCandidate::kShower;
-	vtxcluster.index = candidate.container_idx;
-	vtxcluster.pos = candidate.seedpos;
-	vtxcluster.npts = candidate.npts;
-	nuvtx2.cluster_v.push_back( vtxcluster );
-
-	_nuvertex_shower_reco.build_vertex_showers( nuvtx2,
-						    book2,
-						    iolcv, 
-						    ioll );
-	LARCV_INFO() << "  secondary showers made from this seed: " << nuvtx2.shower_v.size() << std::endl;
-	for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
-	  nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
-	  nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
-	  nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
-          nuvtx.shower_isSecondary_v.push_back(1);
-	  // update the nucluster book
-	  for (int ic=0; ic<(int)book2.cluster_status_v.size(); ic++) {
-	    //
-	  }
-	}
+      	_nuvertex_shower_reco.build_vertex_showers( nuvtx2,
+      						    book2,
+      						    iolcv, 
+      						    ioll );
+      	LARCV_INFO() << "  secondary showers made from this seed: " << nuvtx2.shower_v.size() << std::endl;
+      	for (size_t ishower=0; ishower<nuvtx2.shower_v.size(); ishower++) {
+      	  nuvtx.shower_v.push_back( nuvtx2.shower_v.at(ishower) );
+      	  nuvtx.shower_trunk_v.push_back( nuvtx2.shower_trunk_v.at(ishower) );
+      	  nuvtx.shower_pcaxis_v.push_back( nuvtx2.shower_pcaxis_v.at(ishower) );
+                nuvtx.shower_isSecondary_v.push_back(1);
+      	  // update the nucluster book
+      	  for (int ic=0; ic<(int)book2.cluster_status_v.size(); ic++) {
+      	    //
+      	  }
+      	}
 	
       }//end of else if shower candidate
     }//end of loop over secondary candidates
