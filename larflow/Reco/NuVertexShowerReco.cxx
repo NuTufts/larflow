@@ -65,7 +65,7 @@ namespace reco {
   void NuVertexShowerReco::process( larcv::IOManager& iolcv,
                                     larlite::storage_manager& ioll,
                                     std::vector<NuVertexCandidate>& nu_candidate_v,
-				    std::vector<ClusterBookKeeper>& nu_cluster_book_v )
+				                            std::vector<ClusterBookKeeper>& nu_cluster_book_v )
   {
 
     if ( _mcpg ) {
@@ -277,8 +277,8 @@ namespace reco {
     if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
 
       if ( _mcpg ) {
-	delete _mcpg;
-	_mcpg = nullptr;
+	      delete _mcpg;
+	      _mcpg = nullptr;
       }
 
       LARCV_DEBUG() << " INITIALIZE MC ANALYSIS FOR SHOWER RECO STUDY: build MCPixelPGraph" << std::endl;
@@ -309,49 +309,73 @@ namespace reco {
     // shower prongs.
     // The cluster book tells us which shower clusters are attached.
 
-    // loop over clusters in the book
+    // loop over clusters in the book, looking over clusters marked as seeds. (status==2)
+    // NuVertexMaker::buildclusterbook did this for us.
     for ( int ibookidx=0; ibookidx<(int)nuclusterbook.cluster_producer_v.size(); ibookidx++) {
 
       int status = nuclusterbook.cluster_status_v.at(ibookidx);
+
+      std::string container_name = nuclusterbook.cluster_producer_v.at(ibookidx);
+      int container_index = nuclusterbook.cluster_container_index_v.at(ibookidx);
+      LARCV_INFO() << "  cluster[bookidx=" << ibookidx 
+              << ", producer=" << container_name 
+              << ", conidx=" << container_index 
+              << "] status=" << status 
+              << std::endl;
+
       if ( status!=2 ) {
-	// not added as marked for seed, skip this cluster
-	continue;
+      	// not added as marked for seed, skip this cluster
+      	continue;
       }
 	
       // look for it in this class' cluster container      
-      std::string container_name = nuclusterbook.cluster_producer_v.at(ibookidx);
-      int container_index = nuclusterbook.cluster_container_index_v.at(ibookidx);
-      LARCV_INFO() << "  cluster[bookidx=" << ibookidx << ", producer=" << container_name << ", conidx=" << container_index << "] marked as prong seed" << std::endl;
+      // LARCV_INFO() << "  cluster[bookidx=" << ibookidx 
+      //              << ", producer=" << container_name 
+      //              << ", conidx=" << container_index 
+      //              << "] marked as prong seed" 
+      //              << std::endl;
       bool found_match = false;
       for ( int iprong=0; iprong<(int)_showercluster_candidates_v.size(); iprong++ ) {
-	auto const& shower = _showercluster_candidates_v.at(iprong);
+	      auto const& shower = _showercluster_candidates_v.at(iprong);
 	
-	if ( shower.producer==container_name && shower.index==container_index ) {
-	  // found match
-	  auto const& vtxcluster = _showercluster_candidates_v.at(iprong);
-	  found_match = true;
-	  // only use shower and showerkp clusters
-	  if ( vtxcluster.type==NuVertexCandidate::kTrack )
-	    continue;
+      	if ( shower.producer==container_name && shower.index==container_index ) {
+      	  // found match
+      	  auto const& vtxcluster = _showercluster_candidates_v.at(iprong);
+      	  found_match = true;
 
-	  // make a ProngRank_t object to use this cluster as a seed for our shower building functions
-	  ProngRank_t prong( shower.producer, iprong, shower.index, ibookidx, 0.0 );
-	  int status = _fillShowerProngRank( ioll, iolcv, nuvtx, shower, prong );
-	  if ( status==0 ) {
-	    LARCV_INFO() << "  add existing shower prong[idx=" << iprong << "] as seed." << std::endl;
-	    prong.ikpbest = 20; // force to pass in next stage
-	    seed_rank_v.emplace_back( std::move(prong) );
-	    prong_used_v[iprong] = 1;
-	    // no need to search for this cluster any longer if exit code is good
-	    break;
-	  }
-	  else {
-	    LARCV_INFO() << "  rejected existing shower prong[idx=" << iprong << "] as seed. status=" << status << std::endl;
-	  }
-	}
+      	  // only use shower and showerkp clusters
+      	  if ( vtxcluster.type==NuVertexCandidate::kTrack ) {
+            // for track-like clusters, we usually skip it. 
+            // however, we look for clusters that the 2d ssnet thinks is track-like
+            // and use the larmatch particle ID labels instead
+
+            bool includeit = _include_trackcluster_as_showerprong( nuvtx, vtxcluster, ioll );
+            if (!includeit)
+      	      continue;
+
+            // met the requirements of being reinterpretted as a shower prong!
+            LARCV_INFO() << "  reinterpret trackcluster[" << vtxcluster.producer << ",idx=" << vtxcluster.index << "] "
+                         << " as a shower prong." << std::endl;
+          }
+      
+      	  // make a ProngRank_t object to use this cluster as a seed for our shower building functions
+      	  ProngRank_t prong( shower.producer, iprong, shower.index, ibookidx, 0.0 );
+      	  int status = _fillShowerProngRank( ioll, iolcv, nuvtx, shower, prong );
+      	  if ( status==0 ) {
+      	    LARCV_INFO() << "  add existing shower[" << shower.producer << ", idx=" << iprong << "] as seed." << std::endl;
+      	    prong.ikpbest = 20; // force to pass in next stage
+      	    seed_rank_v.emplace_back( std::move(prong ) );
+      	    prong_used_v[iprong] = 1;
+      	    // no need to search for this cluster any longer if exit code is good
+      	    break;
+      	  }
+      	  else {
+      	    LARCV_INFO() << "  rejected existing shower prong[idx=" << iprong << "] as seed. status=" << status << std::endl;
+      	  }
+      	}
       }//end of prong loop
       if ( !found_match ) {
-	LARCV_ERROR() << "did not find marked cluster prong seed in class' cluster library" << std::endl;
+	      LARCV_ERROR() << "did not find marked cluster prong seed in class' cluster library" << std::endl;
       }
     }
 
@@ -362,7 +386,7 @@ namespace reco {
       auto const& vtxcluster = _showercluster_candidates_v.at(iprong); 
       // -log(exp[-r/tau]) = r/tau
       
-      // only deal with showers
+      // only deal with shower-like clusters
       if ( vtxcluster.type!=NuVertexCandidate::kShower && vtxcluster.type!=NuVertexCandidate::kShowerKP ) {
         continue;
       }
@@ -379,19 +403,19 @@ namespace reco {
       }
       
       if ( prong_used_v[iprong]==1 )
-	found = true;
+	      found = true;
 
       // check with the cluster book as well
       int book_index = -1;
       for ( size_t ibookidx=0; ibookidx<nuclusterbook.cluster_status_v.size(); ibookidx++) {
-	if ( nuclusterbook.cluster_producer_v[ibookidx]==vtxcluster.producer
-	     && nuclusterbook.cluster_container_index_v[ibookidx]==vtxcluster.index ) {
-	  book_index = ibookidx;
-	  if ( nuclusterbook.cluster_status_v[ibookidx]>0 ) {
-	    found = true;
-	    break;
-	  }
-	}
+      	if ( nuclusterbook.cluster_producer_v[ibookidx]==vtxcluster.producer
+      	     && nuclusterbook.cluster_container_index_v[ibookidx]==vtxcluster.index ) {
+      	  book_index = ibookidx;
+      	  if ( nuclusterbook.cluster_status_v[ibookidx]>0 ) {
+      	    found = true;
+      	    break;
+      	  }
+      	}
       }
       
       if ( found ) {
@@ -401,25 +425,25 @@ namespace reco {
         continue;
       }
       if ( book_index<0 ) {
-	LARCV_ERROR() << "The shower cluster we're investigating has no match in the clusterbook" << std::endl;
-	continue;
+      	LARCV_ERROR() << "The shower cluster we're investigating has no match in the clusterbook" << std::endl;
+      	continue;
       }
       
       ProngRank_t prong( vtxcluster.producer, iprong, vtxcluster.index, book_index, 0.0 );      
       int status = _fillShowerProngRank( ioll, iolcv, nuvtx, vtxcluster, prong );
       if ( status!=0 )  {
-	continue;
+	      continue;
       }
 
       // do we want to seed with this prong?
       bool use_as_prong = _determine_if_prong( nuvtx, prong );
 
       if ( use_as_prong )  {
-	seed_rank_v.push_back( prong );
-	prong_used_v[prong.prong_idx] = 1; 
+	      seed_rank_v.push_back( prong );
+	      prong_used_v[prong.prong_idx] = 1; 
       }
       else {
-	other_prong_v.push_back( prong );
+	      other_prong_v.push_back( prong );
       }
     }//end of loop over prong
     
@@ -437,28 +461,28 @@ namespace reco {
       int num_added = 0;
       for ( auto& prong : other_prong_v ) {
         
-	// skip prongs already assigned as seed already
-	if ( prong_used_v[prong.prong_idx]==1 )
-	  continue;
+      	// skip prongs already assigned as seed already
+      	if ( prong_used_v[prong.prong_idx]==1 )
+      	  continue;
 	
-	bool pass = _add_prong_via_intersection_test( nuvtx, seed_rank_v, seed_sort_by_distance, prong );
-	if ( pass ) {
-	  LARCV_INFO() << "  added shower prong[" << prong.prong_idx << "] as seed using prong-intersection" << std::endl;
-	  //prong.ikpbest = 20; // to make sure it passes (intersection test enforces shower keypoint so dont add it here
-	  seed_rank_v.push_back( prong );
-	  prong_used_v[prong.prong_idx] = 1; // used now as seed
-	  num_added++;
-	}
+      	bool pass = _add_prong_via_intersection_test( nuvtx, seed_rank_v, seed_sort_by_distance, prong );
+      	if ( pass ) {
+      	  LARCV_INFO() << "  added shower prong[" << prong.prong_idx << "] as seed using prong-intersection" << std::endl;
+      	  //prong.ikpbest = 20; // to make sure it passes (intersection test enforces shower keypoint so dont add it here
+      	  seed_rank_v.push_back( prong );
+      	  prong_used_v[prong.prong_idx] = 1; // used now as seed
+      	  num_added++;
+      	}
       }
       if ( num_added>0 ) {
-	LARCV_INFO() << "Added " << num_added << " shower seed prong(s) from intersection test." << std::endl;
-	// resort seed_sort_by_distance
-	seed_sort_by_distance.clear();
-	seed_sort_by_distance.reserve( seed_rank_v.size() );
-	for (int idx=0; idx<(int)seed_rank_v.size(); idx++) {
-	  seed_sort_by_distance.push_back( ProngDistanceSorter_t(idx,seed_rank_v.at(idx).dist2vtx) ); // store index in seed_rank_v
-	}
-	std::sort( seed_sort_by_distance.begin(), seed_sort_by_distance.end() );
+      	LARCV_INFO() << "Added " << num_added << " shower seed prong(s) from intersection test." << std::endl;
+      	// resort seed_sort_by_distance
+      	seed_sort_by_distance.clear();
+      	seed_sort_by_distance.reserve( seed_rank_v.size() );
+      	for (int idx=0; idx<(int)seed_rank_v.size(); idx++) {
+      	  seed_sort_by_distance.push_back( ProngDistanceSorter_t(idx,seed_rank_v.at(idx).dist2vtx) ); // store index in seed_rank_v
+      	}
+      	std::sort( seed_sort_by_distance.begin(), seed_sort_by_distance.end() );
       }
     }    
     else {
@@ -474,56 +498,56 @@ namespace reco {
       auto& prong = seed_rank_v.at( seed_sort_by_distance.at(idist).index );
       
       if ( prong_used_v[ prong.prong_idx ] == 0 )
-	continue; // no longer used as a seed. dont test overlaps.
+       	continue; // no longer used as a seed. dont test overlaps.
       
       for (int jdist=idist+1; jdist<(int)seed_sort_by_distance.size(); jdist++) {
 
-	// get prong farther away
-	auto& further_prong = seed_rank_v.at( seed_sort_by_distance.at(jdist).index );
+      	// get prong farther away
+      	auto& further_prong = seed_rank_v.at( seed_sort_by_distance.at(jdist).index );
+      	
+      	// if we already absorbed it: dont check again
+      	if ( mark_seed_prong_to_remove[seed_sort_by_distance.at(jdist).index]==1 )
+      	  continue;
+      
+      	// test overlap
+      	// to do so, we need the cluster and its hits of the further prong
+      	larlite::event_larflowcluster* ev_cluster =
+      	  (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, further_prong.producer );
+      	auto const& lfcluster = ev_cluster->at( further_prong.container_idx );
+      	float frac_overlap = _calculateShowerClusterOverlap( prong, lfcluster,
+      							     max_showerpt_d2,
+      							     r_trunk,
+      							     r_mollier,
+      							     s_mollier );
 	
-	// if we already absorbed it: dont check again
-	if ( mark_seed_prong_to_remove[seed_sort_by_distance.at(jdist).index]==1 )
-	  continue;
-
-	// test overlap
-	// to do so, we need the cluster and its hits of the further prong
-	larlite::event_larflowcluster* ev_cluster =
-	  (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, further_prong.producer );
-	auto const& lfcluster = ev_cluster->at( further_prong.container_idx );
-	float frac_overlap = _calculateShowerClusterOverlap( prong, lfcluster,
-							     max_showerpt_d2,
-							     r_trunk,
-							     r_mollier,
-							     s_mollier );
-	
-	LARCV_DEBUG() << "  overlaptest between seeds(" << idist << "," << jdist << ") overlap: " << frac_overlap << std::endl;
-	
-	if ( frac_overlap>0.5 ) {
-	  LARCV_INFO() << "  candidate prong[" << further_prong.producer
-		       << ", cidx=" << further_prong.container_idx << "] "
-		       << " overlaps with closer prong[" << prong.producer
-		       << ",cidx=" << prong.container_idx << "] "
-		       << "with frac=" << frac_overlap << "."
-		       << " remove from seed prongs."
-		       << std::endl;
-	  prong_used_v[ further_prong.prong_idx ] = 0; // now available to be absorped
-	  mark_seed_prong_to_remove[seed_sort_by_distance.at(jdist).index] = 1; // mark prong for removal from seed_rank_v container
-	  num_removed_by_overlap++;
-	}
-      }//end of loop over further seed prongs
-    }//loop over seed prongs
-    LARCV_INFO() << " number of seed prongs to remove due to overlap: " << num_removed_by_overlap << std::endl;
-
-    if ( num_removed_by_overlap>0 ) {
-      std::vector< ProngRank_t > kept_v;
-      for (int iseed=0; iseed<(int)seed_rank_v.size(); iseed++) {
-	if ( mark_seed_prong_to_remove[iseed]!=1 ) {
-	  kept_v.push_back( seed_rank_v.at(iseed) );	  
-	}
-	else {
-	  // put into the other pool
-	  other_prong_v.push_back( seed_rank_v.at(iseed) );
-	}
+      	LARCV_DEBUG() << "  overlaptest between seeds(" << idist << "," << jdist << ") overlap: " << frac_overlap << std::endl;
+      	
+      	if ( frac_overlap>0.5 ) {
+      	  LARCV_INFO() << "  candidate prong[" << further_prong.producer
+      		       << ", cidx=" << further_prong.container_idx << "] "
+      		       << " overlaps with closer prong[" << prong.producer
+      		       << ",cidx=" << prong.container_idx << "] "
+      		       << "with frac=" << frac_overlap << "."
+      		       << " remove from seed prongs."
+      		       << std::endl;
+      	  prong_used_v[ further_prong.prong_idx ] = 0; // now available to be absorped
+      	  mark_seed_prong_to_remove[seed_sort_by_distance.at(jdist).index] = 1; // mark prong for removal from seed_rank_v container
+      	  num_removed_by_overlap++;
+      	}
+            }//end of loop over further seed prongs
+          }//loop over seed prongs
+          LARCV_INFO() << " number of seed prongs to remove due to overlap: " << num_removed_by_overlap << std::endl;
+      
+          if ( num_removed_by_overlap>0 ) {
+            std::vector< ProngRank_t > kept_v;
+            for (int iseed=0; iseed<(int)seed_rank_v.size(); iseed++) {
+      	if ( mark_seed_prong_to_remove[iseed]!=1 ) {
+      	  kept_v.push_back( seed_rank_v.at(iseed) );	  
+      	}
+      	else {
+      	  // put into the other pool
+      	  other_prong_v.push_back( seed_rank_v.at(iseed) );
+      	}
       }
       seed_rank_v.clear();
       seed_rank_v = kept_v; // could use a swap if i wasnt scared
@@ -531,7 +555,7 @@ namespace reco {
       seed_sort_by_distance.clear();
       seed_sort_by_distance.reserve( seed_rank_v.size() );      
       for (int idx=0; idx<(int)seed_rank_v.size(); idx++) {
-	seed_sort_by_distance.push_back( ProngDistanceSorter_t(idx,seed_rank_v.at(idx).dist2vtx) );
+      	seed_sort_by_distance.push_back( ProngDistanceSorter_t(idx,seed_rank_v.at(idx).dist2vtx) );
       }
       std::sort( seed_sort_by_distance.begin(), seed_sort_by_distance.end() );
     }
@@ -596,7 +620,7 @@ namespace reco {
       
       // no keypoint spacepoints on cluster. dont print for consideration
       if ( rankedprong.ikpbest==0 ) {
-	LARCV_INFO() << " ShowerProng[" << prongidx << "] none of the hits in cluster have high enough keypoint score. do not build out." << std::endl;
+	      LARCV_INFO() << " ShowerProng[" << prongidx << "] none of the hits in cluster have high enough keypoint score. do not build out." << std::endl;
         continue;
       }
 
@@ -684,8 +708,8 @@ namespace reco {
       LARCV_INFO() << "  Number of TRACK hits found: " << ntrunk_hits_added << " max gap=" << max_gap_s << std::endl;      
       if ( max_gap_s<3.0 ) {
         for (auto& hit : trunk_hit_v )
-	shower_hit_v.push_back(hit);
-	}
+	        shower_hit_v.push_back(hit);
+	    }
       */
       
       // absorb shower clusters within cone. we sample from all producers given, not just within vertex.
@@ -725,20 +749,20 @@ namespace reco {
           // skip zero clusters
           if ( shower_lfcluster.size()==0 )
             continue;
-                  
-	  // how much does this further shower fragment overlap with seed prong?
-	  float frac_overlap = _calculateShowerClusterOverlap( rankedprong, shower_lfcluster,
-							       max_showerpt_d2,
-							       r_trunk,
-							       r_mollier,
-							       s_mollier );
+                        
+      	  // how much does this further shower fragment overlap with seed prong?
+      	  float frac_overlap = _calculateShowerClusterOverlap( rankedprong, shower_lfcluster,
+      							       max_showerpt_d2,
+      							       r_trunk,
+      							       r_mollier,
+      							       s_mollier );
 	  
           if ( frac_overlap>0.5 ) {
             // add the shower cluster
             LARCV_INFO() << "Shower(sub)Prong[" << sub_prongidx << "] added to Shower(seed)Prong[" << prongidx << "] "
-			 << " frac_within_cone=" << frac_overlap
-			 << std::endl;
-	    // copy over this shower fragment's hits over to the prong shower
+      			             << " frac_within_cone=" << frac_overlap
+      			             << std::endl;
+      	    // copy over this shower fragment's hits over to the prong shower
             for ( auto const& showerhit : shower_lfcluster )
               shower_hit_v.push_back( showerhit );
             prong_used_v[sub_prongidx] = 100*(nuvtx.shower_v.size()+1); // mark that we've used it
@@ -786,12 +810,12 @@ namespace reco {
     // book the clusters we used
     for ( auto& seed_prong : seed_rank_v ) {
       if ( prong_used_v[seed_prong.prong_idx]>0 ) {
-	nuclusterbook.cluster_status_v[ seed_prong.book_idx ] = 1;
+	      nuclusterbook.cluster_status_v[ seed_prong.book_idx ] = 1;
       }
     }
     for ( auto& prong : other_prong_v ) {
       if ( prong_used_v[prong.prong_idx]>0 )
-	nuclusterbook.cluster_status_v[ prong.book_idx ] = 1;
+	      nuclusterbook.cluster_status_v[ prong.book_idx ] = 1;
     }
     
     if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
@@ -1508,7 +1532,8 @@ namespace reco {
 						larcv::IOManager& iolcv,
 						const larflow::reco::NuVertexCandidate& nuvtx,
 						const larflow::reco::NuVertexCandidate::VtxCluster_t& vtxcluster,
-						NuVertexShowerReco::ProngRank_t& prong ) {
+						NuVertexShowerReco::ProngRank_t& prong ) 
+  {
     
     // get the cluster of hits from the event container
     // (note: who made these?)
@@ -1525,8 +1550,8 @@ namespace reco {
       larflow::recoutils::cluster_t showercluster;
       showercluster.points_v.reserve( lfcluster.size() );
       for (int ii=0; ii<(int)lfcluster.size(); ii++) {
-	std::vector<float> pt = { lfcluster[ii][0], lfcluster[ii][1], lfcluster[ii][2] };
-	showercluster.points_v.push_back( pt );
+	      std::vector<float> pt = { lfcluster[ii][0], lfcluster[ii][1], lfcluster[ii][2] };
+	      showercluster.points_v.push_back( pt );
       }
       NuVertexShowerReco::RecoShowerInfo_t showerinfo;
       _gatherTruthShowerFeatures( showercluster, nuvtx, showerinfo );
@@ -1550,8 +1575,8 @@ namespace reco {
       // the shower cluster wasn't well-formed enough to return a trunk
       LARCV_INFO() << "ShowerProng[" << prong.prong_idx << "] cannot build trunk." << std::endl;
       if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
-	_map_prongindex_to_mcanainfo[ prong.prong_idx ]._reco_outcome = kFailPreCuts;
-	LARCV_INFO() << " prong ground truth: " <<  _map_prongindex_to_mcanainfo[ prong.prong_idx ]._correct_outcome << std::endl;
+	      _map_prongindex_to_mcanainfo[ prong.prong_idx ]._reco_outcome = kFailPreCuts;
+	      LARCV_INFO() << " prong ground truth: " <<  _map_prongindex_to_mcanainfo[ prong.prong_idx ]._correct_outcome << std::endl;
       }
       return 1; // exit code: bad trunk
     }
@@ -1574,7 +1599,7 @@ namespace reco {
     if ( a_dist>0 ) {
       a_dist = sqrt(a_dist);
       for (int i=0; i<3; i++)
-	axis[i] /= a_dist;
+	      axis[i] /= a_dist;
     }
 
     // impact parameter
@@ -1601,11 +1626,11 @@ namespace reco {
     if ( _calc_cosmic_overlap ) {
       larcv::EventImage2D* ev_thrumu = nullptr;
       try {
-	ev_thrumu = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"thrumu");
-	cluster_cosmic_pixsum_v = _get_cluster_pixsum( ev_thrumu->as_vector(), lfcluster );
+	      ev_thrumu = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"thrumu");
+	      cluster_cosmic_pixsum_v = _get_cluster_pixsum( ev_thrumu->as_vector(), lfcluster );
       }
       catch (std::exception& err) {
-	// pass
+	      // pass
       }
     }
       
@@ -1628,15 +1653,15 @@ namespace reco {
     if ( _mc_analysis_mode && _mc_analysis_saveinfo_for_this_vertex ) {
       auto it_mcana = _map_prongindex_to_mcanainfo.find( prong.prong_idx );
       if ( it_mcana!=_map_prongindex_to_mcanainfo.end() ) {
-	auto& mcana_info = it_mcana->second;
-	mcana_info._recoshower_dist2vtx  = a_dist;
-	mcana_info._recoshower_impactpar = b_impact_par;
-	mcana_info._recoshower_cosine    = c_cosine;
-	mcana_info._recoshower_pixsum_MeV = d_pixsum;
-	mcana_info._recoshower_cosmic_pixsum = e_cosmic;
-	mcana_info._recoshower_trunkdir = std::vector<float>{ 0, 0, 0};
-	for (int v=0; v<3; v++)
-	  mcana_info._recoshower_trunkdir[v] = shower_dir[v];
+	      auto& mcana_info = it_mcana->second;
+	      mcana_info._recoshower_dist2vtx  = a_dist;
+	      mcana_info._recoshower_impactpar = b_impact_par;
+	      mcana_info._recoshower_cosine    = c_cosine;
+	      mcana_info._recoshower_pixsum_MeV = d_pixsum;
+	      mcana_info._recoshower_cosmic_pixsum = e_cosmic;
+	      mcana_info._recoshower_trunkdir = std::vector<float>{ 0, 0, 0};
+	      for (int v=0; v<3; v++)
+	        mcana_info._recoshower_trunkdir[v] = shower_dir[v];
       }
     }
 
@@ -1690,7 +1715,7 @@ namespace reco {
     pcanorm = sqrt(pcanorm);
     if ( pcanorm>0.0 ) {
       for (int i=0; i<3; i++)
-	prong.pca1dir[i] /= pcanorm;
+	      prong.pca1dir[i] /= pcanorm;
     }
     
     return 0;// exit code good
@@ -1725,12 +1750,12 @@ namespace reco {
     bool pass_kpdist = prong.kpdist<5.0;
     
     if (  prong.pixsum>=15.0
-	  && prong.impactpar<20.0 
-	  && prong.dist2vtx < 500.0
-	  && ( prong.dist2vtx<5.0 || prong.cosine>0.8 )
-	  && prong.ikpbest>=10 
-	  && prong.kpmax>0.55
-	  && prong.kpdist<5.0 ) {
+	        && prong.impactpar<20.0 
+	        && prong.dist2vtx < 500.0
+	        && ( prong.dist2vtx<5.0 || prong.cosine>0.8 )
+	        && prong.ikpbest>=10 
+	        && prong.kpmax>0.55
+	        && prong.kpdist<5.0 ) {
       passes = true;
     }
     
@@ -1741,9 +1766,9 @@ namespace reco {
     //float line_line_r = -1.0;
     if ( nuvtx.keypoint_type>=3 && nuvtx.keypoint_type<=5 ) {
       if (prong.kpdist>1.5 || prong.dist2vtx>1.5) {
-	// two far, so setup to reject
-	passes = false;
-	pass_showerkp_near = false;
+	      // two far, so setup to reject
+	      passes = false;
+	      pass_showerkp_near = false;
       }
     }
     //   else if ( nuvtx.shower_v.size()>0 && prong.pixsum>15.0 && prong.kpdist<10.0 && prong.ikpbest>=5 && prong.dist2vtx<200.0 ) {
@@ -1815,35 +1840,35 @@ namespace reco {
       // already have one shower attached. so now we allow a shower to pair,
       // if the shower cluster's pcaxis intersects with the trunk-line
       for (int iprev=0; iprev<(int)seed_by_dist_v.size(); iprev++) {
-	  int prev_index = seed_by_dist_v.at(iprev).index;
-
-	  // we test against prong seeds that are already used.
-	  auto& prev_prong = seed_prongs_v.at( prev_index );
-	  std::vector<float> x2 = { prev_prong.axis_start[0]+(float)5.0*prev_prong.pca1dir[0],
-				    prev_prong.axis_start[1]+(float)5.0*prev_prong.pca1dir[1],
-				    prev_prong.axis_start[2]+(float)5.0*prev_prong.pca1dir[2]};
-	  std::vector<float> y2 = { prong.axis_start[0]+(float)5.0*prong.pca1dir[0],
-				    prong.axis_start[1]+(float)5.0*prong.pca1dir[1],
-				    prong.axis_start[2]+(float)5.0*prong.pca1dir[2]};
-	  LARCV_DEBUG() << "line-line test" << std::endl;
-	  LARCV_DEBUG() << "  x1: " << prong.axis_start[0] << "," << prong.axis_start[1] << "," << prong.axis_start[2] << std::endl;
-	  LARCV_DEBUG() << "  dir1: " << prong.pca1dir[0] << "," << prong.pca1dir[1] << "," << prong.pca1dir[2] << std::endl;
-	  LARCV_DEBUG() << "  x2: " << prev_prong.axis_start[0] << "," << prev_prong.axis_start[1] << "," << prev_prong.axis_start[2] << std::endl;
-	  LARCV_DEBUG() << "  dir2: " << prev_prong.pca1dir[0] << "," << prev_prong.pca1dir[1] << "," << prev_prong.pca1dir[2] << std::endl;
-	  // float r = larflow::reco::lineLineDistance3f(  prev_prong.axis_start, x2,
-	  //                                               prong.axis_start, y2 );
-	  std::vector<float> closest1(3,0);
-	  std::vector<float> closest2(3,0);
-	  float r = larflow::recoutils::lineLineDistance3f_claude( prong.axis_start,
-								   prong.pca1dir,
-								   prev_prong.axis_start,
-								   prev_prong.pca1dir,
-								   closest1,
-								   closest2);
-	  line_line_r = r;
-	  if ( r < 20.0 ) {
-	    pass_by_line_line_intersection = true;
-	  }
+	      int prev_index = seed_by_dist_v.at(iprev).index;
+    
+	      // we test against prong seeds that are already used.
+	      auto& prev_prong = seed_prongs_v.at( prev_index );
+	      std::vector<float> x2 = { prev_prong.axis_start[0]+(float)5.0*prev_prong.pca1dir[0],
+		    		    prev_prong.axis_start[1]+(float)5.0*prev_prong.pca1dir[1],
+		    		    prev_prong.axis_start[2]+(float)5.0*prev_prong.pca1dir[2]};
+	      std::vector<float> y2 = { prong.axis_start[0]+(float)5.0*prong.pca1dir[0],
+		    		    prong.axis_start[1]+(float)5.0*prong.pca1dir[1],
+		    		    prong.axis_start[2]+(float)5.0*prong.pca1dir[2]};
+	      LARCV_DEBUG() << "line-line test" << std::endl;
+	      LARCV_DEBUG() << "  x1: " << prong.axis_start[0] << "," << prong.axis_start[1] << "," << prong.axis_start[2] << std::endl;
+	      LARCV_DEBUG() << "  dir1: " << prong.pca1dir[0] << "," << prong.pca1dir[1] << "," << prong.pca1dir[2] << std::endl;
+	      LARCV_DEBUG() << "  x2: " << prev_prong.axis_start[0] << "," << prev_prong.axis_start[1] << "," << prev_prong.axis_start[2] << std::endl;
+	      LARCV_DEBUG() << "  dir2: " << prev_prong.pca1dir[0] << "," << prev_prong.pca1dir[1] << "," << prev_prong.pca1dir[2] << std::endl;
+	      // float r = larflow::reco::lineLineDistance3f(  prev_prong.axis_start, x2,
+	      //                                               prong.axis_start, y2 );
+	      std::vector<float> closest1(3,0);
+	      std::vector<float> closest2(3,0);
+	      float r = larflow::recoutils::lineLineDistance3f_claude( prong.axis_start,
+		    						   prong.pca1dir,
+		    						   prev_prong.axis_start,
+		    						   prev_prong.pca1dir,
+		    						   closest1,
+		    						   closest2);
+	      line_line_r = r;
+	      if ( r < 20.0 ) {
+	        pass_by_line_line_intersection = true;
+	      }
       }//end of loop over previous seeds, sorted by distance     
     }//end of if nuvertex comes from shower-like keypoint type
     return pass_by_line_line_intersection;
@@ -1890,18 +1915,54 @@ namespace reco {
       // set max distance from prong start to the point in question
       float d2 = 0.;
       for (int i=0; i<3; i++)
-	d2 += ( trunk_prong.axis_start[i]-showerpt[i] )*( trunk_prong.axis_start[i]-showerpt[i] );      
+	      d2 += ( trunk_prong.axis_start[i]-showerpt[i] )*( trunk_prong.axis_start[i]-showerpt[i] );      
       if ( s>0.0 && d2<max_showerpt_d2 ) {
-	// simple column absorbption
-	if ( (s<5.0 && r<r_trunk) || (s>=5.0 && r<r_mollier ) ) {
-	  // mollier/radiation length
-	  nhits_within_shower++;
-	}
+	      // simple column absorbption
+	      if ( (s<5.0 && r<r_trunk) || (s>=5.0 && r<r_mollier ) ) {
+	        // mollier/radiation length
+	        nhits_within_shower++;
+	      }
       }
     }//end of loop over hits in shower cluster
 
     float frac_within_shower = nhits_within_shower/float(test_cluster.size());
     return frac_within_shower;
+  }
+
+  /*
+  * @brief determine if we should use track-like cluster as shower prong
+  *
+  * We do this if
+  *   1) the cluster is attached to the vertex
+  *   2) 
+  */
+  bool NuVertexShowerReco::_include_trackcluster_as_showerprong( const NuVertexCandidate& nuvtx, 
+                                                                 const NuVertexCandidate::VtxCluster_t& vtxcluster,
+                                                                 larlite::storage_manager& ioll ) 
+  {
+    int num_larmatch_spacepoints = 0;
+    
+    // get the cluster
+    larlite::event_larflowcluster* ev_cluster 
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, vtxcluster.producer);
+    auto const& lfcluster = ev_cluster->at(vtxcluster.index);
+
+    int num_hits = lfcluster.size();
+
+    for (auto const& hit : lfcluster ) {
+      float lm_shower_score = hit[10]+hit[11];
+      float lm_track_score  = hit[12]+hit[13]+hit[14];
+      float lm_normed_showerscore = lm_shower_score/(lm_shower_score+lm_track_score);
+      if ( lm_normed_showerscore>0.5 )
+        num_larmatch_spacepoints++;
+    }
+
+    float frac_is_lm_shower = (float)num_larmatch_spacepoints/float(num_hits);
+
+    if ( frac_is_lm_shower<0.75 )
+      return false;
+
+    return true;
   }
   
 }

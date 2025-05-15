@@ -26,7 +26,7 @@ namespace reco {
     int num = 0;
     for ( auto const&  status : cluster_status_v ) {
       if ( status!=0 )
-	num++;
+	      num++;
     }
     return num;
   }

@@ -46,7 +46,7 @@ namespace reco {
     void process( larcv::IOManager& iolcv,
                   larlite::storage_manager& ioll,
                   std::vector<NuVertexCandidate>& nu_candidate_v,
-		  std::vector<ClusterBookKeeper>& nu_cluster_book_v );
+		              std::vector<ClusterBookKeeper>& nu_cluster_book_v );
     void loadClusters( larlite::storage_manager& ioll );
     void use_shower_keypoints( bool use, std::string container_name ) {
       _use_showerkp=use;
@@ -257,6 +257,11 @@ namespace reco {
 					  const float r_trunk,
 					  const float r_mollier,
 					  const float s_mollier);
+
+    bool _include_trackcluster_as_showerprong( const NuVertexCandidate& nuvtx, 
+                                               const NuVertexCandidate::VtxCluster_t& vtxcluster,
+                                               larlite::storage_manager& ioll );
+
     
 #endif
 #endif

@@ -104,11 +104,11 @@ namespace reco {
       int ic = 0;
       for (auto& c : *it->second ) {
         c.matchedflash_idx = cluster_index;
-	_event_book.cluster_producer_v.push_back( it->first );
-	_event_book.cluster_container_index_v.push_back( ic );
-	_event_book.cluster_status_v.push_back( 0 );
-	_event_book.cluster_type_v.push_back( (int)_cluster_type[it->first] );
-	ic++;
+      	_event_book.cluster_producer_v.push_back( it->first );
+      	_event_book.cluster_container_index_v.push_back( ic );
+      	_event_book.cluster_status_v.push_back( 0 );
+      	_event_book.cluster_type_v.push_back( (int)_cluster_type[it->first] );
+      	ic++;
         cluster_index++;
       }
     }
@@ -133,7 +133,7 @@ namespace reco {
         if ( logger().debug() ) {
           LARCV_DEBUG() << "Vertex[" << vertex.keypoint_producer << ", IDX=" << vertex.keypoint_index << "] " << std::endl;
           LARCV_DEBUG() << "  number of clusters: " << vertex.cluster_v.size() << std::endl;
-	  LARCV_DEBUG() << "  keypoint_type: " << vertex.keypoint_type << std::endl;
+	        LARCV_DEBUG() << "  keypoint_type: " << vertex.keypoint_type << std::endl;
           LARCV_DEBUG() << "  pos: (" << vertex.pos[0] << "," << vertex.pos[1] << "," << vertex.pos[2] << ")" << std::endl;
           LARCV_DEBUG() << "  score: " << vertex.score << std::endl;
           for (size_t ic=0; ic<vertex.cluster_v.size(); ic++) {
@@ -227,9 +227,9 @@ namespace reco {
         vertex.keypoint_index = vtxid;
         vertex.keypoint_type = (lf_vertex.size()>3) ? lf_vertex[3] : -1;
 
-	// don't use michel or delta keypoints
-	if ( vertex.keypoint_type==4 || vertex.keypoint_type==5 )
-	  continue;
+	      // don't use michel or delta keypoints
+	      if ( vertex.keypoint_type==4 || vertex.keypoint_type==5 )
+	        continue;
 	
         vertex.pos.resize(3,0);
         for (int i=0; i<3; i++)
@@ -724,24 +724,24 @@ namespace reco {
       
       // wide association for now
       if ( gapdist>_cluster_type_max_gap[ctype] ) {
-	pass_maxgap = false;
-	pass_cuts = false;
+	      pass_maxgap = false;
+	      pass_cuts = false;
       }
           
       if ( r>_cluster_type_max_impact_radius[ctype] ) {
-	pass_max_impact = false;
-	pass_cuts = false;
+	      pass_max_impact = false;
+	      pass_cuts = false;
       }
 
       if ( ctype==NuVertexCandidate::kShowerKP || ctype==NuVertexCandidate::kShower ) {
         if ( projs>2.0 && projs < (ends-2.0) ) {
-	  pass_showerend_overlap = false;
-	  pass_cuts = false;
-	}
+	        pass_showerend_overlap = false;
+	        pass_cuts = false;
+	      }
       }
 
       if ( logger().level()!=larcv::msg::kDEBUG && pass_cuts ) {
-	LARCV_INFO() << " add cluster[" << producer << ", " << icluster << "] to vertex: "
+	      LARCV_INFO() << " add cluster[" << producer << ", " << icluster << "] to vertex: "
 		     << " type=" << ctype
 		     << " gapdist=" << gapdist
 		     << " r=" << r 
@@ -750,11 +750,11 @@ namespace reco {
 		     << std::endl;
       }
       else if ( logger().level()==larcv::msg::kDEBUG ) {	
-	LARCV_DEBUG() << " connection metrics for cluster[[" << producer << ", " << icluster << "] to vertex" << std::endl;
-	LARCV_DEBUG() << "   gapdist=" << gapdist << " [pass: " << pass_maxgap << "]" << std::endl;
-	LARCV_DEBUG() << "   r=" << r << " [pass: " << pass_max_impact << "]" << std::endl;
-	LARCV_DEBUG() << "   projs=" << projs << " ends=" << ends << "[pass: " << pass_showerend_overlap << "]" << std::endl;
-	LARCV_DEBUG() << "   result: " << pass_cuts << std::endl;
+	      LARCV_DEBUG() << " connection metrics for cluster[[" << producer << ", " << icluster << "] to vertex" << std::endl;
+	      LARCV_DEBUG() << "   gapdist=" << gapdist << " [pass: " << pass_maxgap << "]" << std::endl;
+	      LARCV_DEBUG() << "   r=" << r << " [pass: " << pass_max_impact << "]" << std::endl;
+	      LARCV_DEBUG() << "   projs=" << projs << " ends=" << ends << "[pass: " << pass_showerend_overlap << "]" << std::endl;
+	      LARCV_DEBUG() << "   result: " << pass_cuts << std::endl;
       }
     }
 
@@ -959,15 +959,27 @@ namespace reco {
 
       // mark used clusters
       auto& nuvtx = get_mutable_output_candidates().at(ivtx);
-      for (size_t ic=0; ic<nuvtx.cluster_v.size(); ic++) {
-        std::string producer = nuvtx.cluster_v[ic].producer;
-        int idx = nuvtx.cluster_v[ic].index;
-        int cindex = _cluster_producers[producer]->at(idx).matchedflash_idx;
-        book.cluster_status_v.at(cindex) = 2; // has been assigned as a seed
-	book.cluster_producer_v.at(cindex) = producer;
-	book.cluster_container_index_v.at(cindex) = idx;
-	book.cluster_type_v.at(cindex) = _cluster_type[producer];
+
+      for (int ibookidx=0; ibookidx<(int)book.cluster_status_v.size(); ibookidx++) {
+        // find match to vertex cluster
+        for (size_t ic=0; ic<nuvtx.cluster_v.size(); ic++) {
+          std::string producer = nuvtx.cluster_v[ic].producer;
+          int idx = nuvtx.cluster_v[ic].index;
+          if ( producer==book.cluster_producer_v[ibookidx] && idx==book.cluster_container_index_v[ibookidx]) {
+            book.cluster_status_v[ibookidx] = 2;
+            break;
+          }
+        }
       }
+      // for (size_t ic=0; ic<nuvtx.cluster_v.size(); ic++) {
+      //   std::string producer = nuvtx.cluster_v[ic].producer;
+      //   int idx = nuvtx.cluster_v[ic].index;
+      //   int cindex = _cluster_producers[producer]->at(idx).matchedflash_idx;
+      //   book.cluster_status_v.at(cindex) = 2; // has been assigned as a seed
+	    //   book.cluster_producer_v.at(cindex) = producer;
+	    //   book.cluster_container_index_v.at(cindex) = idx;
+	    //   book.cluster_type_v.at(cindex) = _cluster_type[producer];
+      // }
       _cluster_book_v.emplace_back( std::move(book) );
     }
   }

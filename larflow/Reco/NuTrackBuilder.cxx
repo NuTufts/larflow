@@ -367,12 +367,14 @@ namespace reco {
       //std::cout << "itrack[" << itrack << "] ------" << std::endl;
       int nbooked = 0;
       for (  auto const& node : track_proposal ) {
-	int clusterid = _segment_v.at( node->segidx ).cluster->matchedflash_idx;
-	//std::cout << " node clusterid=" << clusterid << std::endl;
-	if ( clusterid>=0 && clusterid<nuvtx_cluster_book.cluster_status_v.size() ) {
-	  nuvtx_cluster_book.cluster_status_v.at(clusterid) = 1;
-	  nbooked++;
-	}
+	      int clusterid = _segment_v.at( node->segidx ).cluster->matchedflash_idx;
+	      //std::cout << " node clusterid=" << clusterid << std::endl;
+	      if ( clusterid>=0 && clusterid<nuvtx_cluster_book.cluster_status_v.size() ) {
+          // was unused, mark as used
+          if ( nuvtx_cluster_book.cluster_status_v[clusterid]==0 )
+	          nuvtx_cluster_book.cluster_status_v[clusterid] = 1;
+	        nbooked++;
+	      }
       }
       //std::cout << "num of clusters booked: " << nbooked << std::endl;
       itrack++;

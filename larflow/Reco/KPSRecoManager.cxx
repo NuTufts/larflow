@@ -854,17 +854,17 @@ namespace reco {
     float max_step_size=5.0;
     for ( auto& nuvtx : _nuvertexmaker.get_mutable_output_candidates() ) {
       for ( int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++ ) {
-	auto& track = nuvtx.track_v.at(itrack);
-	if ( track.NumberTrajectoryPoints() > 50 ) {
-	  larlite::track compressed = track_compressor.compress( track, max_saggita, max_step_size );
-	  LARCV_INFO() << "nuvtx:track[" << itrack << "] "
-		       << "compressed npts=" << track.NumberTrajectoryPoints() << " --> "
-		       << "npts=" << compressed.NumberTrajectoryPoints()
-		       << std::endl;
-	  if ( compressed.NumberTrajectoryPoints()<track.NumberTrajectoryPoints() ){
-	    std::swap(track,compressed); // danger?
-	  }
-	}
+	      auto& track = nuvtx.track_v.at(itrack);
+	      if ( track.NumberTrajectoryPoints() > 50 ) {
+	        larlite::track compressed = track_compressor.compress( track, max_saggita, max_step_size );
+	        LARCV_INFO() << "nuvtx:track[" << itrack << "] "
+	      	       << "compressed npts=" << track.NumberTrajectoryPoints() << " --> "
+	      	       << "npts=" << compressed.NumberTrajectoryPoints()
+	      	       << std::endl;
+	        if ( compressed.NumberTrajectoryPoints()<track.NumberTrajectoryPoints() ){
+	          std::swap(track,compressed); // danger?
+	        }
+	      }
       }
     }
 
@@ -908,7 +908,7 @@ namespace reco {
       larlite::event_mcshower* ev_detshower
         = (larlite::event_mcshower*)ioll.get_data( larlite::data::kMCShower, "mcdetectableshower" );
       for (size_t ishower=0; ishower<ev_detshower->size(); ishower++) {
-	_event_mcshower_v->push_back( ev_detshower->at(ishower) );
+	      _event_mcshower_v->push_back( ev_detshower->at(ishower) );
       }
       LARCV_NORMAL() << "Saved " << _event_mcshower_v->size() << " MC detectable photon information" << std::endl;
     }
