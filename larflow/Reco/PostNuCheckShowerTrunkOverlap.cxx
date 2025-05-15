@@ -120,92 +120,95 @@ namespace reco {
 
 	      for (int ipt=0; ipt<(int)npts; ipt++) {
 
-	      if (ipt>0) {
-	        float pt_cos = 0;
-	        float mag = track.DirectionAtPoint(ipt).Mag();
-	        float last_mag = track.DirectionAtPoint(ipt-1).Mag();
-	      
-	        if ( mag>0 && last_mag>0 ) {		
-		      for (int v=0; v<3; v++)
-		        pt_cos += track.DirectionAtPoint(ipt-1)[v]*track.DirectionAtPoint(ipt)[v]/(mag*last_mag);
+	        if (ipt>0) {
+	          float pt_cos = 0;
+	          float mag = track.DirectionAtPoint(ipt).Mag();
+	          float last_mag = track.DirectionAtPoint(ipt-1).Mag();
+	        
+	          if ( mag>0 && last_mag>0 ) {		
+		        for (int v=0; v<3; v++)
+		          pt_cos += track.DirectionAtPoint(ipt-1)[v]*track.DirectionAtPoint(ipt)[v]/(mag*last_mag);
+	          }
+	          pt_cos_v.push_back(pt_cos);
 	        }
-	        pt_cos_v.push_back(pt_cos);
-	      }
 	    
-	      std::vector<float> pt(3,0);
-	      for (int v=0; v<3; v++) {
-	        pt[v] = track.LocationAtPoint(ipt)[v];
-	        d_v[ipt] += (pt[v]-nucand.pos[v])*(pt[v]-nucand.pos[v]);
-	      }
-	      float s_trunk = larflow::recoutils::pointRayProjection3f( vshowertrunk_start, vshowertrunk_dir, pt );
-	      float r_trunk = larflow::recoutils::pointLineDistance3f(  vshowertrunk_start, vshowertrunk_end, pt );
-	      float s_pca   = larflow::recoutils::pointRayProjection3f( vshowerpca_start, vshowerpca_dir, pt );
-	      float r_pca   = larflow::recoutils::pointLineDistance3f(  vshowerpca_start, vshowerpca_end, pt );
-	      s_trunk_v[ipt] = s_trunk;
-	      r_trunk_v[ipt] = r_trunk;
-	      s_pca_v[ipt] = s_pca;
-	      r_pca_v[ipt] = r_pca;
-	      d_v[ipt] = sqrt(d_v[ipt]);
-	    }//end of track point loop
+	        std::vector<float> pt(3,0);
+	        for (int v=0; v<3; v++) {
+	          pt[v] = track.LocationAtPoint(ipt)[v];
+	          d_v[ipt] += (pt[v]-nucand.pos[v])*(pt[v]-nucand.pos[v]);
+	        }
+	        float s_trunk = larflow::recoutils::pointRayProjection3f( vshowertrunk_start, vshowertrunk_dir, pt );
+	        float r_trunk = larflow::recoutils::pointLineDistance3f(  vshowertrunk_start, vshowertrunk_end, pt );
+	        float s_pca   = larflow::recoutils::pointRayProjection3f( vshowerpca_start, vshowerpca_dir, pt );
+	        float r_pca   = larflow::recoutils::pointLineDistance3f(  vshowerpca_start, vshowerpca_end, pt );
+	        s_trunk_v[ipt] = s_trunk;
+	        r_trunk_v[ipt] = r_trunk;
+	        s_pca_v[ipt] = s_pca;
+	        r_pca_v[ipt] = r_pca;
+	        d_v[ipt] = sqrt(d_v[ipt]);
+	      }//end of track point loop
 
 
-	    // decision variables
-	    float frac_inside_cone_pca = 0;
-	    float frac_inside_cone_trunk = 0;
-	    for (int ipt=0; ipt<(int)npts; ipt++) {
-	      // if point outside the end of the cone, it's not inside
-	      if ( s_pca_v[ipt]>pcalen )
-	        continue;
-  
-	      if ( s_pca_v[ipt]<0.0 ) {
-	        if ( d_v[ipt]<3.0 )
-	  	      frac_inside_cone_pca += 1.0;
-	      }
-	      else if ( s_pca_v[ipt]>=0.0 && s_pca_v[ipt]<3.0 ) {
-	        if ( r_pca_v[ipt]<2.0 ) {
-	  	      frac_inside_cone_pca += 1.0;
+	      // decision variables
+	      float frac_inside_cone_pca = 0;
+	      float frac_inside_cone_trunk = 0;
+	      for (int ipt=0; ipt<(int)npts; ipt++) {
+	        // if point outside the end of the cone, it's not inside
+	        if ( s_pca_v[ipt]>pcalen )
+	          continue;
+    
+	        if ( s_pca_v[ipt]<0.0 ) {
+	          if ( d_v[ipt]<3.0 )
+	  	        frac_inside_cone_pca += 1.0;
+	        }
+	        else if ( s_pca_v[ipt]>=0.0 && s_pca_v[ipt]<3.0 ) {
+	          if ( r_pca_v[ipt]<2.0 ) {
+	  	        frac_inside_cone_pca += 1.0;
+	          }
+	        }
+	        else {
+	          float r_pca_cone   = 0.577*s_pca_v[ipt];
+	          //LARCV_DEBUG() << "    ipt[" << ipt << "] s=" << s_pca_v[ipt] << " r=" << r_pca_v[ipt] << "r_cone=" << r_pca_cone << std::endl;
+	          float r_trunk_cone = 0.577*s_trunk_v[ipt];
+	          if ( r_pca_v[ipt]<r_pca_cone )
+	  	        frac_inside_cone_pca += 1.0;
+	          if ( r_trunk_v[ipt]<r_trunk_cone )
+	  	        frac_inside_cone_trunk += 1.0;
 	        }
 	      }
-	      else {
-	        float r_pca_cone   = 0.577*s_pca_v[ipt];
-	        //LARCV_DEBUG() << "    ipt[" << ipt << "] s=" << s_pca_v[ipt] << " r=" << r_pca_v[ipt] << "r_cone=" << r_pca_cone << std::endl;
-	        float r_trunk_cone = 0.577*s_trunk_v[ipt];
-	        if ( r_pca_v[ipt]<r_pca_cone )
-	  	      frac_inside_cone_pca += 1.0;
-	        if ( r_trunk_v[ipt]<r_trunk_cone )
-	  	      frac_inside_cone_trunk += 1.0;
-	      }
-	    }
-	    frac_inside_cone_pca /= (float)npts;
-	    frac_inside_cone_trunk /= (float)npts;
+	      frac_inside_cone_pca /= (float)npts;
+	      frac_inside_cone_trunk /= (float)npts;
 	    
-	    float pt_cos_mean = 0;
-	    float pt_cos_var  = 0;
-	    int pt_n = 0;
-	    for (auto const& pt_cos : pt_cos_v ) {
-	      pt_n++;
-	      pt_cos_mean += pt_cos;
-	      pt_cos_var += pt_cos*pt_cos;
-	    }
-	    if ( pt_n>0 ) {
-	      pt_cos_mean /= (float)pt_n;
-	      pt_cos_var = pt_cos_var/(float)pt_n - pt_cos_mean*pt_cos_mean;
-	    }
-  
-	    LARCV_DEBUG() << "-- decision metrics: nu[" << inu << "]-track[" << itrk << "]-shower[" << ishr << "] ---------" << std::endl;
-	    LARCV_DEBUG() << "  vertex: (" << nucand.pos[0] << "," << nucand.pos[1] << "," << nucand.pos[2] << ")" << std::endl;
-	    LARCV_DEBUG() << "  shower distance to vertex: " << shr_dist_to_vertex << " cm" << std::endl;
-	    LARCV_DEBUG() << "  shower vertex: "
-	  				  << "(" << vshowertrunk_start[0] << "," << vshowertrunk_start[1] << "," << vshowertrunk_start[2] << ")" << std::endl;
-	    LARCV_DEBUG() << "  shower dir: "
-	  				  << "(" << vshowertrunk_dir[0] << "," << vshowertrunk_dir[1] << "," << vshowertrunk_dir[2] << ")" << std::endl;
-	    LARCV_DEBUG() << "  frac inside trunk cone: " << frac_inside_cone_trunk << std::endl;
-	    LARCV_DEBUG() << "  frac inside pca cone:   " << frac_inside_cone_pca << std::endl;
-	    LARCV_DEBUG() << "  pt cosine mean:   " << pt_cos_mean << std::endl;
-	    LARCV_DEBUG() << "  pt cosine variance:   " << pt_cos_var << std::endl;
-  
-	    if ( frac_inside_cone_pca>0.8 )
-	      remove_track[itrk] = 1;
+	      float pt_cos_mean = 0;
+	      float pt_cos_var  = 0;
+	      int pt_n = 0;
+	      for (auto const& pt_cos : pt_cos_v ) {
+	        pt_n++;
+	        pt_cos_mean += pt_cos;
+	        pt_cos_var += pt_cos*pt_cos;
+	      }
+	      if ( pt_n>0 ) {
+	        pt_cos_mean /= (float)pt_n;
+	        pt_cos_var = pt_cos_var/(float)pt_n - pt_cos_mean*pt_cos_mean;
+	      }
+    
+	      LARCV_DEBUG() << "-- decision metrics: nu[" << inu << "]-track[" << itrk << "]-shower[" << ishr << "] ---------" << std::endl;
+	      LARCV_DEBUG() << "  vertex: (" << nucand.pos[0] << "," << nucand.pos[1] << "," << nucand.pos[2] << ")" << std::endl;
+	      LARCV_DEBUG() << "  shower distance to vertex: " << shr_dist_to_vertex << " cm" << std::endl;
+	      LARCV_DEBUG() << "  shower vertex: "
+	  	  			  << "(" << vshowertrunk_start[0] << "," << vshowertrunk_start[1] << "," << vshowertrunk_start[2] << ")" << std::endl;
+	      LARCV_DEBUG() << "  shower dir: "
+	  	  			  << "(" << vshowertrunk_dir[0] << "," << vshowertrunk_dir[1] << "," << vshowertrunk_dir[2] << ")" << std::endl;
+	      LARCV_DEBUG() << "  frac inside trunk cone: " << frac_inside_cone_trunk << std::endl;
+	      LARCV_DEBUG() << "  frac inside pca cone:   " << frac_inside_cone_pca << std::endl;
+	      LARCV_DEBUG() << "  pt cosine mean:   " << pt_cos_mean << std::endl;
+	      LARCV_DEBUG() << "  pt cosine variance:   " << pt_cos_var << std::endl;
+    
+	      if ( frac_inside_cone_pca>0.8 ) {
+	        remove_track[itrk] = 1;
+			LARCV_INFO() << "  remove overlapping track" << std::endl;
+		  }
+
 	    }//end of shower loop
       }//end of track loop
 

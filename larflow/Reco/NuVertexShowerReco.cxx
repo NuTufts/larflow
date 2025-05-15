@@ -657,6 +657,8 @@ namespace reco {
         shower_hit_v.push_back( lfcluster[ihit] );
       }
 
+      int num_starting_hits = shower_hit_v.size();
+
       // loop over TRACK clusters, find those along the shower axis.
       // we are assuming this is ssnet mislabeling
       // encapsulate this ... also what this does is worth checking
@@ -769,6 +771,20 @@ namespace reco {
           }//end of if inside cone
         }//end of if cluster is shower type
       }//loop over other prongs
+
+      int num_hits_added = (int)shower_hit_v.size() - num_starting_hits;
+      if ( vtxcluster.type==larflow::reco::NuVertexCandidate::kTrack ) {
+        // if we reinterpretted a track cluster as a shower prong, but it added no hits, 
+        // we do not create a shower for it.
+        if ( num_hits_added ) {
+          LARCV_INFO() << "  re-interpretted track prong did not add hits. do not make shower." << std::endl;
+          continue;
+        }
+
+        // we are adding hits, so we need to kill the track this cluster made.
+        // PostNuCheckShowerTrunkOverlap will do this for us.
+
+      }
 
       // get pca of final shower
       larflow::recoutils::cluster_t shower_cluster_t = larflow::recoutils::cluster_from_larflowcluster(shower_hit_v);
