@@ -458,11 +458,11 @@ namespace reco {
 
     std::vector< larflow::reco::KeypointReco* > kpreco_v
       = { &_kpreco_nu,
-	  &_kpreco_trackstart,
-	  &_kpreco_trackend,
-	  &_kpreco_shower,
-	  &_kpreco_michel,
-	  &_kpreco_deltas };
+	        &_kpreco_trackstart,
+	        &_kpreco_trackend,
+	        &_kpreco_shower, // showers go another route
+	        &_kpreco_michel,
+	        &_kpreco_deltas };
     
     // loop over algos for each keypoint class
     int intime_cluster_index = 0;
@@ -470,36 +470,36 @@ namespace reco {
     for ( auto& pkpreco : kpreco_v ) {
       // loop over reco keypoints
       for ( auto const& kpc : pkpreco->output_pt_v ) {
-	// cut on max value keypoint score
-	if ( kpc.max_score < 0.7 )
-	  continue;
-	
-	// get if near a cosmic-tagged pixel
-	float thrumu_pixsum_allplanes = 0.;
-	std::vector<float> thrumu_pixsum(nplanes,0);
-	for (int p=0; p<3; p++) {
-	  thrumu_pixsum[p] = _pt_image_projection.getPixelSumAroundProjPoint( kpc.max_pt_v, ev_image2d_v->as_vector().at(p), 2, 10.0 );
-	  thrumu_pixsum_allplanes += thrumu_pixsum[p];
-	}
-
-	/// make larflow3dhit version and add thrumu projection info.
-	larlite::larflow3dhit kphit = kpc.as_larflow_hit();
-	kphit.push_back( thrumu_pixsum_allplanes );	
-	for (int p=0; p<3; p++)
-	  kphit.push_back( thrumu_pixsum[p] );
-
-	if ( thrumu_pixsum_allplanes < 50.0 ) {
-	  // then ok to pass on as potential nu candidate
-	  ev_kpintime->push_back( kphit );
-	  ev_kp_pca->push_back( kpc.get_pcaxis( intime_cluster_index ) );
-	  intime_cluster_index++;
-	}
-	else {
-	  // assign as comics
-	  ev_kpcosmic->push_back( kphit );
-	  ev_kp_pca_cosmic->push_back( kpc.get_pcaxis( cosmic_cluster_index ) );
-	  cosmic_cluster_index++;
-	}
+	      // cut on max value keypoint score
+	      if ( kpc.max_score < 0.5 ) // 0.7 too strong?
+	        continue;
+	      
+	      // get if near a cosmic-tagged pixel
+	      float thrumu_pixsum_allplanes = 0.;
+	      std::vector<float> thrumu_pixsum(nplanes,0);
+	      for (int p=0; p<3; p++) {
+	        thrumu_pixsum[p] = _pt_image_projection.getPixelSumAroundProjPoint( kpc.max_pt_v, ev_image2d_v->as_vector().at(p), 2, 10.0 );
+	        thrumu_pixsum_allplanes += thrumu_pixsum[p];
+	      }
+      
+	      /// make larflow3dhit version and add thrumu projection info.
+	      larlite::larflow3dhit kphit = kpc.as_larflow_hit();
+	      kphit.push_back( thrumu_pixsum_allplanes );	
+	      for (int p=0; p<3; p++)
+	        kphit.push_back( thrumu_pixsum[p] );
+      
+	      if ( thrumu_pixsum_allplanes < 50.0 ) {
+	        // then ok to pass on as potential nu candidate
+	        ev_kpintime->push_back( kphit );
+	        ev_kp_pca->push_back( kpc.get_pcaxis( intime_cluster_index ) );
+	        intime_cluster_index++;
+	      }
+	      else {
+	        // assign as comics
+	        ev_kpcosmic->push_back( kphit );
+	        ev_kp_pca_cosmic->push_back( kpc.get_pcaxis( cosmic_cluster_index ) );
+	        cosmic_cluster_index++;
+	      }
       }
     }
 
@@ -513,69 +513,70 @@ namespace reco {
       
       // recursive check with those before
       for (int jkp=0; jkp<ikp; jkp++) {
-	if ( intime_kp_status[jkp]==0 ) {
-	  // already filtered. skip.
-	  continue;
-	}
-	auto const& past_hit = ev_kpintime->at(jkp);
-	int past_type = int(past_hit[3]);
-	
-	// if the same type, don't do the duplicate removal test
-	if ( kp_type==past_type ) {
-	  continue;
-	}
-
-	float dist = 0.;
-	float dx = 0.;
-	for (int i=0; i<3; i++) {
-	  dx = (past_hit[i]-hit[i]);
-	  dist += dx*dx;
-	}
-	dist = sqrt(dist);
-
-	if ( dist>3.0 ) {
-	  // no overlap
-	  continue;
-	}
-
-	if ( past_type==0 && kp_type!=0 ) {
-	  // past type is nu vertex. we de-activate in favor of that vertex
-	  intime_kp_status[ikp] = 0;
-	  break;
-	}
-	else if ( kp_type==0 && past_type!=0 ) {
-	  // current keypoint is nu-type. deactivate past vertex
-	  intime_kp_status[jkp] = 0;
-	  // keep going
-	}
-	else if ( (kp_type==1 && past_type==2 )
-		  || (kp_type==2 && past_type==1 ) ) {
-	  // comparison between track start and track end
-	  // if we're really close, then go with start label. will use to seed neutrino.
-	  if ( dist<0.7 ) {
-	    if ( kp_type==2 ) {
-	      intime_kp_status[ikp] = 0;
-	      break; // current kp has been deactivated. stop.
-	    }
-	    else if (past_type==2) {
-	      intime_kp_status[jkp] = 0;
-	      // keep going
-	    }
-	  }
-	}
-	else if ( (kp_type==3 && (past_type==1 || past_type==2))
-		  || (past_type==3 && (kp_type==1 || kp_type==2)) ) {
-	  if ( dist<0.7 ) {
-	    if ( kp_type!=3 ) {
-	      intime_kp_status[ikp] = 0;
-	      break; // current kp has been deactivated. stop.
-	    }
-	    else if ( past_type!=3 ) {
-	      intime_kp_status[jkp] = 0;
-	      // keep-going
-	    }
-	  }
-	}//end of case overlap loop
+	      if ( intime_kp_status[jkp]==0 ) {
+	        // already filtered. skip.
+	        continue;
+	      }
+	      auto const& past_hit = ev_kpintime->at(jkp);
+	      int past_type = int(past_hit[3]);
+	      
+	      // if the same type, don't do the duplicate removal test
+	      if ( kp_type==past_type ) {
+	        continue;
+	      }
+      
+	      float dist = 0.;
+	      float dx = 0.;
+	      for (int i=0; i<3; i++) {
+	        dx = (past_hit[i]-hit[i]);
+	        dist += dx*dx;
+	      }
+	      dist = sqrt(dist);
+      
+	      if ( dist>3.0 ) {
+	        // no overlap
+	        continue;
+	      }
+      
+	      if ( past_type==0 && kp_type!=0 ) {
+	        // past type is nu vertex. we de-activate in favor of that vertex
+	        intime_kp_status[ikp] = 0;
+	        break;
+	      }
+	      else if ( kp_type==0 && past_type!=0 ) {
+	        // current keypoint is nu-type. deactivate past vertex
+	        intime_kp_status[jkp] = 0;
+	        // keep going
+	      }
+	      else if ( (kp_type==1 && past_type==2 )
+	      	  || (kp_type==2 && past_type==1 ) ) {
+	        // comparison between track start and track end
+	        // if we're really close, then go with start label. will use to seed neutrino.
+	        if ( dist<0.7 ) {
+	          if ( kp_type==2 ) {
+	            intime_kp_status[ikp] = 0;
+	            break; // current kp has been deactivated. stop.
+	          }
+	          else if (past_type==2) {
+	            intime_kp_status[jkp] = 0;
+	            // keep going
+	          }
+	        }
+	      }
+	      else if ( (kp_type==3 && (past_type==1 || past_type==2))
+	      	  || (past_type==3 && (kp_type==1 || kp_type==2)) ) {
+          // shower keypoints override and remove track end and track start keypoints
+	        if ( dist<0.7 ) {
+	          if ( kp_type!=3 ) {
+	            intime_kp_status[ikp] = 0;
+	            break; // current kp has been deactivated. stop.
+	          }
+	          else if ( past_type!=3 ) {
+	            intime_kp_status[jkp] = 0;
+	            // keep-going
+	          }
+	        }
+	      }//end of case overlap loop
       }
     }
     
@@ -583,8 +584,8 @@ namespace reco {
     int num_deactivated = 0;
     for (int ikp=0; ikp<(int)ev_kpintime->size(); ikp++ ) {
       if ( intime_kp_status[ikp]==0 ) {
-	num_deactivated++;
-	break;
+	      num_deactivated++;
+	      break;
       }
     }
 
@@ -593,17 +594,17 @@ namespace reco {
       std::vector< larlite::larflow3dhit > passing_keypoints;
       std::vector< larlite::pcaxis > passing_pcaxis;
       for (int ikp=0; ikp<(int)ev_kpintime->size(); ikp++ ) {
-	if ( intime_kp_status[ikp]==1 ) {
-	  passing_keypoints.push_back( ev_kpintime->at(ikp) );
-	  passing_pcaxis.push_back( ev_kp_pca->at(ikp) );
-	}
+	       if ( intime_kp_status[ikp]==1 ) {
+	         passing_keypoints.push_back( ev_kpintime->at(ikp) );
+	         passing_pcaxis.push_back( ev_kp_pca->at(ikp) );
+	       }
       }
 
       ev_kpintime->clear();
       ev_kp_pca->clear();
       for (int ikp=0; ikp<(int)passing_keypoints.size(); ikp++) {
-	ev_kpintime->push_back( passing_keypoints.at(ikp) );
-	ev_kp_pca->push_back( passing_pcaxis.at(ikp) );
+	      ev_kpintime->push_back( passing_keypoints.at(ikp) );
+	      ev_kp_pca->push_back( passing_pcaxis.at(ikp) );
       }
       LARCV_NORMAL() << "After cross-type duplicate filter. Number of intime keypoints: " << ev_kpintime->size() << std::endl;
     }
@@ -639,24 +640,24 @@ namespace reco {
       float thrumupixsum = -1;
       if ( kphit.size()>=4 ) {
         kptype = kphit.at(3);
-	maxkpscore = kphit.at(4);
-	thrumupixsum = kphit.at(5);
+	      maxkpscore = kphit.at(4);
+	      thrumupixsum = kphit.at(5);
       }
       LARCV_NORMAL() << " [" << ikp << "] type=" << kptype << " maxscore=" << maxkpscore << " cosmicpixsum=" << thrumupixsum << std::endl;
     }
     
     if ( _save_keypoints_in_anafile ) {
       for ( auto& pkprecotype : kpreco_v ) {
-	for ( auto& kpc : pkprecotype->output_pt_v ) {
-	  if ( kpc._cluster_type==0 )
-	    _event_kpc_nu_v.push_back( kpc );
-	  else if ( kpc._cluster_type==1 || kpc._cluster_type==2 )
-	    _event_kpc_track_v.push_back( kpc );
-	  else if ( kpc._cluster_type>=3 )
-	    _event_kpc_shower_v.push_back( kpc );
-	}
-      // for ( auto& kpc : _kpreco_track_cosmic.output_pt_v  )
-      //_event_kpc_cosmic_v.push_back( kpc );
+	      for ( auto& kpc : pkprecotype->output_pt_v ) {
+	        if ( kpc._cluster_type==0 )
+	          _event_kpc_nu_v.push_back( kpc );
+	        else if ( kpc._cluster_type==1 || kpc._cluster_type==2 )
+	          _event_kpc_track_v.push_back( kpc );
+	        else if ( kpc._cluster_type>=3 )
+	          _event_kpc_shower_v.push_back( kpc );
+	      }
+        // for ( auto& kpc : _kpreco_track_cosmic.output_pt_v  )
+        //_event_kpc_cosmic_v.push_back( kpc );
       }
     }
     
@@ -777,7 +778,8 @@ namespace reco {
       = { "trackprojsplit_wcfilter" }; // in-time track clusters
     std::vector<std::string> input_cluster_shower_list
       = { "showergoodhit" }; // in-time track clusters
-    //= { "showerkp" }; // showers made with keypoint clustering
+    std::vector<std::string> input_cluster_showerkp_list
+      = { "showerkp" }; // showers made with keypoint clustering
 
     // std::vector<std::string> input_hit_list
     //   = {"taggerfilterhit",            // all in-time hits
@@ -786,20 +788,37 @@ namespace reco {
     //_nuvertexactivity.set_input_cluster_list( input_cluster_list );
     //_nuvertexactivity.set_output_treename( "keypoint" );
     //_nuvertexactivity.process( iolcv, ioll );
+
+    larlite::event_larflow3dhit* ev_keypoint
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "keypoint");
+    larlite::event_larflow3dhit* ev_keypoint_showerkp
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "showerkp");
+    larlite::event_larflow3dhit* ev_keypoint_nuvtxseed
+      = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, "keypoint_nuvtxseed");
     
+    for (auto& kp : *ev_keypoint ) {
+      if ( kp.at(3)>=0 && kp.at(3)<=1 ) {
+        ev_keypoint_nuvtxseed->push_back( kp );
+      }
+    }
+    for (auto& kp : *ev_keypoint_showerkp ) {
+      ev_keypoint_nuvtxseed->push_back(kp);
+    }
+
     //_nuvertexmaker.set_verbosity( larcv::msg::kDEBUG );
     //_nuvertexmaker.set_verbosity( larcv::msg::kINFO );        
     _nuvertexmaker.set_verbosity( logger().level() );
     _nuvertexmaker.clear();
-    _nuvertexmaker.add_keypoint_producer( "keypoint" );
+    _nuvertexmaker.add_keypoint_producer( "keypoint_nuvtxseed" );
     for ( auto& name : input_cluster_track_list ) {
       _nuvertexmaker.add_cluster_producer( name, NuVertexCandidate::kTrack);
-    }
-    //_nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
-    ////_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack );    
-    //_nuvertexmaker.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP ); // attempted to build showers based on KP
+    } 
+    for ( auto& name : input_cluster_showerkp_list )
+      _nuvertexmaker.add_cluster_producer(name, NuVertexCandidate::kShowerKP );
     for ( auto& name : input_cluster_shower_list )
       _nuvertexmaker.add_cluster_producer(name, NuVertexCandidate::kShower );
+    //_nuvertexmaker.add_cluster_producer("cosmicproton", NuVertexCandidate::kTrack );
+    ////_nuvertexmaker.add_cluster_producer("hip", NuVertexCandidate::kTrack ); 
     
     _nuvertexmaker.apply_cosmic_veto( true );
     _nuvertexmaker.setOutputStage( larflow::reco::NuVertexMaker::kVetoed );    
@@ -895,7 +914,7 @@ namespace reco {
     _nuvertex_shower_reco.set_verbosity( logger().level() );    
     //_nuvertex_shower_reco.activateMCanalysisMode(true);
     _nuvertex_shower_reco.add_cluster_producer("trackprojsplit_wcfilter", NuVertexCandidate::kTrack );
-    //_nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
+    _nuvertex_shower_reco.add_cluster_producer("showerkp", NuVertexCandidate::kShowerKP );
     _nuvertex_shower_reco.add_cluster_producer("showergoodhit", NuVertexCandidate::kShower );    
     //_nuvertex_shower_reco.process( iolcv, ioll, _nuvertexmaker.get_mutable_fitted_candidates() );
     _nuvertex_shower_reco.process( iolcv, ioll,
@@ -1192,16 +1211,16 @@ namespace reco {
       float tot_tracklen = 0.;
       float tot_showermev = 0.;
       for (int i=0; i<(int)nuvtx.track_v.size(); i++) {
-	tot_tracklen += nuvtx.track_len_v[i];
+	      tot_tracklen += nuvtx.track_len_v[i];
       }
       for (int i=0; i<(int)nuvtx.shower_plane_pixsum_vv.size(); i++) {
-	auto const& plane_pixsum = nuvtx.shower_plane_pixsum_vv.at(i);
-	float maxpixsum = 0.;
-	for (auto const& pixsum : plane_pixsum ) {
-	  if ( pixsum>maxpixsum )
-	    maxpixsum = pixsum;
-	}
-	tot_showermev += maxpixsum*0.0162;
+	      auto const& plane_pixsum = nuvtx.shower_plane_pixsum_vv.at(i);
+	      float maxpixsum = 0.;
+	      for (auto const& pixsum : plane_pixsum ) {
+	        if ( pixsum>maxpixsum )
+	          maxpixsum = pixsum;
+	      }
+	      tot_showermev += maxpixsum*0.0162;
       }
       LARCV_INFO() << "  Total track length: " << tot_tracklen << " cm (" << tot_tracklen*2.2 << " MeV)" << std::endl;
       LARCV_INFO() << "  Shower pixel sum: " << tot_showermev << " MeV" << std::endl;

@@ -187,7 +187,9 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( "pcaxis", "cosmicproton" )  # out-of-time track clusters with dq/dx consistent with possible proton
 
     # keypoint reco
-    io.set_data_to_write( "larflow3dhit", "keypoint" ) # save reco keypoints, used to seed nu candidates
+    io.set_data_to_write( "larflow3dhit", "keypoint" ) # save reco keypoints
+    io.set_data_to_write( "larflow3dhit", "showerkp" ) # save reco keypoints matched to shower clusters
+    io.set_data_to_write( "larflow3dhit", "keypoint_nuvtxseed" ) # save reco keypoints, used to seed nu candidates
     io.set_data_to_write( "larflow3dhit", "keypointcosmic" ) # save reco keypoints, used to seed cosmic candidates    
 
     # cosmic hit clusters:  trade space for time, since can use track paths to pick up hits again

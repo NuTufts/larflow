@@ -55,15 +55,18 @@ namespace reco {
                                const std::vector<larcv::Image2D>& adc_v,
                                const std::vector<larcv::Image2D>& thrumu_v,
                                const float adc_threshold,
-			       std::vector<int>& unreco_intime_counts,			       
-                               std::vector<int>& unreco_counts,
-                               std::vector<int>& reco_counts,			       
-                               std::vector<float>& unreco_fraction );
+                               std::vector<int>& all_intime_counts,   // num above thresh pixels intime
+                               std::vector<int>& reco_intime_counts,  // reco pixel intime
+                               std::vector<int>& reco_outtime_counts, // reco pixel outtime
+                               std::vector<int>& intime_unreco_counts, // intime but not recod						
+                               std::vector<float>& unreco_fraction,
+                               std::vector<float>& cosmic_reco_fraction  );
 
     bool _ksave_mask;
 
     TTree* _tree;
     std::vector<int>   _intime_count_v;
+    std::vector<int>   _reco_outtime_count_v;
     std::vector<int>   _unreco_count_v;
     std::vector<int>   _reco_count_v;
     std::vector<float> _unreco_fraction_v;

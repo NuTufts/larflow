@@ -32,7 +32,7 @@ namespace reco {
     const float adc_threshold = 10;
     
     std::vector< std::string > cluster_producers
-      = { "trackprojsplit_wcfilter", "showergoodhit" };
+      = { "trackprojsplit_wcfilter", "showerkp", "showergoodhit" };
 
     larcv::EventImage2D* ev_img
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );
@@ -49,16 +49,25 @@ namespace reco {
     larcv::EventImage2D* ev_thrumu
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "thrumu");
     auto const& thrumu_v =  ev_thrumu->as_vector();
-    std::vector<int> intime_counts(adc_v.size(),0);    
-    std::vector<int> unreco_counts(adc_v.size(),0);
-    std::vector<int> reco_counts(adc_v.size(),0);
-    std::vector<float> unreco_fraction(adc_v.size(),0);
+    std::vector<int> all_intime_counts;   // num above thresh pixels intime
+    std::vector<int> reco_intime_counts;  // reco pixel intime
+    std::vector<int> reco_outtime_counts; // reco pixel outtime
+    std::vector<int> intime_unreco_counts; // intime but not recod						
+    std::vector<float> unreco_fraction;
+    std::vector<float> cosmic_reco_fraction;
     _count_unreco_pixels( nuvtx_mask_v, adc_v, thrumu_v, adc_threshold,
-                          intime_counts, unreco_counts, reco_counts, unreco_fraction );
+                          all_intime_counts, 
+                          reco_intime_counts, 
+                          reco_outtime_counts,
+                          intime_unreco_counts,
+                          unreco_fraction, cosmic_reco_fraction );
 
-    output.intime_count_v = intime_counts;
-    output.unreco_count_v = unreco_counts;
+    output.intime_count_v = reco_intime_counts;
+    output.unreco_count_v = intime_unreco_counts;
     output.unreco_fraction_v = unreco_fraction;
+    for ( int p=0; p<(int)adc_v.size(); p++ ) {
+      output.unreco_fraction_v.push_back( cosmic_reco_fraction[p] );
+    }
 
     // get/define mask container
     larcv::EventImage2D* evout_mask
@@ -92,22 +101,29 @@ namespace reco {
                                                 const std::vector<larcv::Image2D>& adc_v,
                                                 const std::vector<larcv::Image2D>& thrumu_v,
                                                 const float adc_threshold,
-						std::vector<int>& unreco_intime_counts,
-                                                std::vector<int>& unreco_counts,
-						std::vector<int>& reco_counts,						
-                                                std::vector<float>& unreco_fraction )
+                                                std::vector<int>& all_intime_counts,   // num above thresh pixels intime
+                                                std::vector<int>& reco_intime_counts,  // reco pixel intime
+                                                std::vector<int>& reco_outtime_counts, // reco pixel outtime
+                                                std::vector<int>& intime_unreco_counts, // intime but not recod						
+                                                std::vector<float>& unreco_fraction,
+                                                std::vector<float>& cosmic_reco_fraction  )
   {
 
-    unreco_intime_counts.resize(adc_v.size(),0);
-    unreco_counts.resize( adc_v.size(), 0 );
-    reco_counts.resize( adc_v.size(), 0 );
+    all_intime_counts.resize(adc_v.size(),0);
+    reco_intime_counts.resize(adc_v.size(),0);
+    reco_outtime_counts.resize(adc_v.size(),0);
+    intime_unreco_counts.resize( adc_v.size(), 0 );
     unreco_fraction.resize( adc_v.size(), 0 );
+    cosmic_reco_fraction.resize( adc_v.size(), 0);
     clearVars();
     
     for (int p=0; p<(int)adc_v.size(); p++) {
-      unreco_counts[p] =  0;
-      reco_counts[p] = 0;
-      unreco_fraction[p] = 0.;
+      all_intime_counts[p]=0;
+      reco_intime_counts[p]=0;
+      reco_outtime_counts[p]=0;
+      intime_unreco_counts[p]=0;
+      unreco_fraction[p]=0.;
+      cosmic_reco_fraction[p]=0.;
 
       auto const& img = adc_v[p]; // wire plane image
       auto & mask = numask_v[p];  // has non-zero value where clusters land
@@ -123,30 +139,45 @@ namespace reco {
       
       for (int r=0; r<(int)meta.rows(); r++) {
         for (int c=0; c<(int)meta.cols(); c++) {
-          float imgval  = img.pixel(r,c,__FILE__,__LINE__);
-          float maskval = mask.pixel(r,c,__FILE__,__LINE__);
-          float tagval  = thrumu.pixel(r,c,__FILE__,__LINE__);
+          float imgval  = img.pixel(r,c,__FILE__,__LINE__);    // pixel value
+          float maskval = mask.pixel(r,c,__FILE__,__LINE__);   // reco pixel
+          float tagval  = thrumu.pixel(r,c,__FILE__,__LINE__); // cosmic pixel tag
 
-          if ( imgval>=adc_threshold && tagval<10.0 ) {
-            // pixel with content and not cosmic-tagged
-            unreco_intime_counts[p]++;
+          if ( imgval>=adc_threshold ) {
+            // pixel has above threshold charge
+            if ( tagval<10.0 ) {
+              // pixel with content and not cosmic-tagged
+              all_intime_counts[p]++;
 
-            if ( maskval==0 ) {
-	      // if mask is zero, we missed it, in principle
-              unreco_counts[p]++;
-              unreco_fraction[p]++;
-              mask.set_pixel(r,c,2.0); /// for debug
+              if ( maskval==0 ) {
+                // if mask is zero, we missed it, in principle
+                intime_unreco_counts[p]++;
+                unreco_fraction[p]++;
+                mask.set_pixel(r,c,2.0); /// for debug visualization
+              }
+	            else {
+                // mask value, so a reco sp falls here
+	              reco_intime_counts[p]++;
+	            }
             }
-	    else {
-	      reco_counts[p]++;
-	    }
+            else {
+              // cosmic/out-of-time tagged pixel
+              if ( maskval>0 ) {
+                // we recod on top of this apparently
+                reco_outtime_counts[p]++;
+              }
+            }
           }
                
         }
       }
 
-      if ( unreco_intime_counts[p]>0 ) {
-        unreco_fraction[p] /= (float)unreco_intime_counts[p];
+      if ( all_intime_counts[p]>0 ) {
+        unreco_fraction[p] /= (float)all_intime_counts[p];
+      }
+      int total_reco = reco_intime_counts[p]+reco_outtime_counts[p];
+      if ( total_reco>0 ) {
+        cosmic_reco_fraction[p] = reco_intime_counts[p]/float(total_reco);
       }
       
     }//end of plane loop
@@ -154,8 +185,8 @@ namespace reco {
 
     if ( _tree ) {
       // set tree vars
-      _intime_count_v = unreco_intime_counts;
-      _unreco_count_v = unreco_counts;
+      _intime_count_v = all_intime_counts;
+      _unreco_count_v = intime_unreco_counts;
       _unreco_fraction_v = unreco_fraction;
 
       std::vector<float> copy_frac = _unreco_fraction_v;
@@ -178,25 +209,37 @@ namespace reco {
     
     std::stringstream ss_intime;
     ss_intime << "  intime counts: ";
-    for (auto const& count : unreco_intime_counts )
+    for (auto const& count : all_intime_counts )
       ss_intime << count << " ";
     std::stringstream ss_unreco;
-    ss_unreco << "  unreco counts: ";
-    for (auto const& count : unreco_counts )
+    ss_unreco << "  intime but unreco counts: ";
+    for (auto const& count : intime_unreco_counts )
       ss_unreco << count << " ";
     std::stringstream ss_reco;
-    ss_reco << "  reco counts: ";
-    for (auto const& count : reco_counts )
+    ss_reco << "  intime reco counts: ";
+    for (auto const& count : reco_intime_counts )
       ss_reco << count << " ";
     std::stringstream ss_frac;
+    ss_frac << " frac: ";
     for (auto const& frac : unreco_fraction )
       ss_frac << frac << " ";
+
+    std::stringstream ss_reco_cosmic;
+    ss_reco_cosmic << "  out-of-time reco counts: ";
+    for (auto const& count : reco_outtime_counts )
+      ss_reco_cosmic << count << " ";
+    std::stringstream ss_frac_cosmic;
+    ss_frac_cosmic << " frac: ";
+    for (auto const& frac : cosmic_reco_fraction )
+      ss_frac_cosmic << frac << " ";
+
 
     LARCV_INFO() << "Results" << std::endl;    
     LARCV_INFO() << ss_intime.str() << std::endl;
     LARCV_INFO() << ss_unreco.str() << std::endl;
     LARCV_INFO() << ss_reco.str() << std::endl;    
     LARCV_INFO() << ss_frac.str() << std::endl;
+    LARCV_INFO() << ss_frac_cosmic.str() << std::endl;
     
   }
 
@@ -206,6 +249,7 @@ namespace reco {
     _unreco_count_v.clear();
     _reco_count_v.clear();    
     _unreco_fraction_v.clear();
+    _reco_outtime_count_v.clear();
     _median_fraction = 0;
     _min_fraction = 0;
     _max_fraction = 0;
@@ -246,7 +290,9 @@ namespace reco {
     const float adc_threshold = 10;
     
     std::vector< std::string > cluster_producers
-      = { "trackprojsplit_wcfilter", "showergoodhit" };
+      = { "trackprojsplit_wcfilter", 
+          "showerkp",
+          "showergoodhit" };
 
     larcv::EventImage2D* ev_img
       = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire" );

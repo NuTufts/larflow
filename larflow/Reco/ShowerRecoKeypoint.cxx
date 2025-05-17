@@ -82,12 +82,10 @@ namespace reco {
     cluster_larflow3dhits( shower_goodhit_v, cluster_v, maxdist, minsize, maxkd );
     LARCV_INFO() << "num shower clusters:  " << cluster_v.size() << std::endl;
     
-
     // now for each shower cluster, we find some trunk candidates.
     // can have any number of such candidates per shower cluster
     // we only analyze clusters with a first pc-axis length > 1.0 cm
     std::vector< const recoutils::cluster_t* > showerhit_cluster_v;
-    std::vector<int>                cluster_used_v( cluster_v.size(), 0 );
 
     int idx = -1;
     for ( auto& showercluster : cluster_v ) {
@@ -109,28 +107,10 @@ namespace reco {
       
       if ( len<1.0 ) continue;
       //if ( eigenval_ratio<0.1 ) continue;
-
-      cluster_used_v[idx] = 1;
       showerhit_cluster_v.push_back( &showercluster );
+
     }
 
-
-    // save shower cluster pca's
-    larlite::event_larflowcluster* evout_goodhit_cluster_v
-      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showergoodhit" );
-    larlite::event_pcaxis* evout_goodhit_pca_v
-      = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showergoodhit" );
-    int pcidx = 0;
-    for ( auto const& cluster : cluster_v ) {
-      larlite::larflowcluster lfc;
-      for (auto const& idx : cluster.hitidx_v ) {
-        lfc.push_back( shower_goodhit_v[idx] );
-      }
-      larlite::pcaxis pca = cluster_make_pcaxis( cluster, pcidx );
-      pcidx++;
-      evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
-      evout_goodhit_pca_v->emplace_back( std::move(pca) );
-    }
     
     LARCV_INFO() << "num of trunk candidates: " << showerhit_cluster_v.size() << std::endl;
 
@@ -138,7 +118,7 @@ namespace reco {
     std::vector< const larlite::larflow3dhit* > keypoint_v;
 
     larlite::event_larflow3dhit* evout_keypoint =
-      (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"keypoint");
+      (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit,"keypoint_all");
     for ( auto const& kp : *evout_keypoint ) {
       if (kp.at(3)==(int)larflow::kShowerStart ) {
         keypoint_v.push_back( &kp );
@@ -152,16 +132,49 @@ namespace reco {
     // BUILD SHOWERS FROM CLUSTERS + TRUNK CANDIDATES
     _buildShowers( showerhit_cluster_v );
 
+    // GET/MAKE STORAGE CONTAINERS FOR OUR SHOWER CLUSTERS
+
+    // showerkp: shower clusters with nearby keypoints and a trunk
     larlite::event_larflowcluster* evout_shower_cluster_v
       = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showerkp" );
 
+    // saves the trunk info
     larlite::event_pcaxis* evout_shower_pca_v
-      = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showerkp" );
+      = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showerkp" ); 
 
+    //keypoint matched to shower
     larlite::event_larflow3dhit* evout_shower_keypoint_v
-      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "showerkp" );
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "showerkp" ); 
 
-    std::vector<int> used_v( shower_goodhit_v.size(), 0 );
+    // leftover shower fragments without keypoint trunk
+    larlite::event_larflowcluster* evout_goodhit_cluster_v
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "showergoodhit" );
+    larlite::event_pcaxis* evout_goodhit_pca_v
+      = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "showergoodhit" );
+
+    // int pcidx = 0;
+    // for ( auto const& cluster : cluster_v ) {
+    //   larlite::larflowcluster lfc;
+    //   for (auto const& idx : cluster.hitidx_v ) {
+    //     lfc.push_back( shower_goodhit_v[idx] );
+    //   }
+
+    //   // do some bad things and repurpose some data members
+    //   /*
+    //   std::vector<float> _flash_data_v; // keypoint
+    //   std::vector<float> _flash_hypo_v;
+    //   std::vector<float> _flash_truthmatched_v;
+    //   */
+
+    //   larlite::pcaxis pca = cluster_make_pcaxis( cluster, pcidx );
+    //   pcidx++;
+    //   evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
+    //   evout_goodhit_pca_v->emplace_back( std::move(pca) );
+    // }
+
+    // create a container to keep track of which clusters are used where
+    std::vector<int> used_cluster_v( showerhit_cluster_v.size(), 0 );
+    std::vector<int> used_hit_v( shower_goodhit_v.size(), 0 );
     for ( size_t ireco=0; ireco<_recod_shower_v.size(); ireco++ ) {
 
       auto const& recoshower = _recod_shower_v[ireco];
@@ -170,9 +183,14 @@ namespace reco {
       larlite::larflowcluster lfcluster;      
       for ( auto const& idx : recoshower.hitidx_v ) {
         lfcluster.push_back( shower_goodhit_v.at(idx) );
-        used_v[idx]++;
+        used_hit_v[idx]++;
       }
       evout_shower_cluster_v->emplace_back( std::move(lfcluster) );
+
+      // mark clusters used
+      for (auto& idx : recoshower.cluster_idx ) {
+        used_cluster_v[idx] = 1;
+      }
             
       // we store the cluster's pca if we do not have trunk candidates, otherwise
       larlite::pcaxis::EigenVectors e_v;
@@ -204,21 +222,48 @@ namespace reco {
                            (int)ireco );
       evout_shower_pca_v->emplace_back( std::move(pca) );
 
-      larlite::larflow3dhit shower_keypoint;
-      shower_keypoint.resize(3,0);
-      for (int v=0; v<3; v++) {
-        shower_keypoint[v] = recoshower.trunk.keypoint->at(v);
-      }
-      evout_shower_keypoint_v->push_back( shower_keypoint );
+      // larlite::larflow3dhit shower_keypoint;
+      // shower_keypoint.resize(3,0);
+      // for (int v=0; v<3; v++) {
+      //   shower_keypoint[v] = recoshower.trunk.keypoint->at(v);
+      // }
+      evout_shower_keypoint_v->push_back( *(keypoint_v.at( recoshower.trunk.idx_keypoint )) );
       
     }//end of reco'd shower loop
+
+    // now loop through shower clusters and save
+    int pcidx = 0;
+    for (int icluster=0; icluster<(int)showerhit_cluster_v.size(); icluster++) {
+      // skip clusters absorbed into another shower cluster made with a keypoint
+      if (used_cluster_v[icluster]>0)
+        continue; 
+      
+      const larflow::recoutils::cluster_t* pcluster = showerhit_cluster_v.at(icluster);
+
+      larlite::larflowcluster lfc;
+      for (auto const& idx : pcluster->hitidx_v ) {
+        lfc.push_back( shower_goodhit_v[idx] );
+      }
+
+      // do some bad things and repurpose some data members
+      /*
+      std::vector<float> _flash_data_v; // keypoint
+      std::vector<float> _flash_hypo_v;
+      std::vector<float> _flash_truthmatched_v;
+      */
+
+      larlite::pcaxis pca = cluster_make_pcaxis( *pcluster, pcidx );
+      pcidx++;
+      evout_goodhit_cluster_v->emplace_back( std::move(lfc) );
+      evout_goodhit_pca_v->emplace_back( std::move(pca) );
+    }
 
     // save unused shower points
     larlite::event_larflow3dhit* evout_unused_hit_v
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "showerkpunused" );
 
     for (size_t idx=0; idx<shower_goodhit_v.size(); idx++ ) {
-      if ( used_v[idx]==0 )
+      if ( used_hit_v[idx]==0 )
         evout_unused_hit_v->push_back( shower_goodhit_v.at(idx) );
     }
 
