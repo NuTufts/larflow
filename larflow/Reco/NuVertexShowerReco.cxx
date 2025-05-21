@@ -773,10 +773,11 @@ namespace reco {
       }//loop over other prongs
 
       int num_hits_added = (int)shower_hit_v.size() - num_starting_hits;
+      LARCV_INFO() << "  number of hits added to shower: " << num_hits_added << " (before=" << shower_hit_v.size() << " after=" << num_starting_hits << ")" << std::endl;
       if ( vtxcluster.type==larflow::reco::NuVertexCandidate::kTrack ) {
         // if we reinterpretted a track cluster as a shower prong, but it added no hits, 
         // we do not create a shower for it.
-        if ( num_hits_added ) {
+        if ( num_hits_added<=0 ) {
           LARCV_INFO() << "  re-interpretted track prong did not add hits. do not make shower." << std::endl;
           continue;
         }
