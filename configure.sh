@@ -10,6 +10,12 @@ export PYTORCH_LARFLOW_BASEDIR=${LARFLOW_BASEDIR}/pytorch-larflow
 export LARFLOW_MODELDIR=${LARFLOW_BASEDIR}/models
 export LARFLOW_SPARSEDIR=${LARFLOW_BASEDIR}/sparse_larflow
 export LARFLOW_UTILSDIR=${LARFLOW_BASEDIR}/utils
+export LARFLOW_RECODIR=${LARFLOW_BASEDIR}/larflow/Reco
+			 
+
+# Put folders into path and ld_library_path
+[[ ":$LD_LIBRARY_PATH:" != *":${LARFLOW_LIBDIR}:"* ]] && LD_LIBRARY_PATH="${LARFLOW_LIBDIR}:${LD_LIBRARY_PATH}"
+[[ ":$PATH:" != *":${LARFLOW_RECODIR}/test:"* ]] && PATH="${LARFLOW_RECODIR}/test:${PATH}"
 
 # OPENCV
 #export OPENCV_LIBDIR=/usr/local/lib
@@ -20,12 +26,12 @@ export LARFLOW_UTILSDIR=${LARFLOW_BASEDIR}/utils
 #git submodule update
 
 # setup post-processor
-export LARFLOW_POST_DIR=${LARFLOW_BASEDIR}/postprocessor
-export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
-[[ ":$LD_LIBRARY_PATH:" != *":${LARFLOW_POST_LIBDIR}:"* ]] && LD_LIBRARY_PATH="${LARFLOW_POST_LIBDIR}:${LD_LIBRARY_PATH}"
-[[ ":$PATH:" != *":${LARFLOW_POST_DIR}:"* ]] && PATH="${LARFLOW_POST_DIR}:${PATH}"
-[[ ":$PATH:" != *":${LARFLOW_POST_DIR}/cluster:"* ]] && PATH="${LARFLOW_POST_DIR}/cluster:${PATH}"
-[[ ":$LD_LIBRARY_PATH:" != *":${LARFLOW_LIBDIR}:"* ]] && LD_LIBRARY_PATH="${LARFLOW_LIBDIR}:${LD_LIBRARY_PATH}"
+#export LARFLOW_POST_DIR=${LARFLOW_BASEDIR}/postprocessor
+#export LARFLOW_POST_LIBDIR=${LARFLOW_BASEDIR}/postprocessor/lib
+#[[ ":$LD_LIBRARY_PATH:" != *":${LARFLOW_POST_LIBDIR}:"* ]] && LD_LIBRARY_PATH="${LARFLOW_POST_LIBDIR}:${LD_LIBRARY_PATH}"
+#[[ ":$PATH:" != *":${LARFLOW_POST_DIR}:"* ]] && PATH="${LARFLOW_POST_DIR}:${PATH}"
+#[[ ":$PATH:" != *":${LARFLOW_POST_DIR}/cluster:"* ]] && PATH="${LARFLOW_POST_DIR}/cluster:${PATH}"
+# setup 
 
 
 # add model folder to python path
