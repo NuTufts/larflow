@@ -139,7 +139,7 @@ namespace reco {
       LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
     }
 
-    if ( logger().level()<=larcv::msg::kINFO )
+    if ( logger().level()<=larcv::msg::kDEBUG )
       printAllKPClusterInfo();
     std::string kptypename = "(none)";
     if (_keypoint_type>=0 && _keypoint_type<6 )
@@ -196,7 +196,7 @@ namespace reco {
 
     LARCV_NORMAL() << "num for reco = "
 		   << _initial_pt_pos_v.size()
-		   << "/"
+		   << " / "
 		   << lfhits.size()
 		   << " min-score=" << min_score << " max-score=" << max_score
 		   << std::endl;

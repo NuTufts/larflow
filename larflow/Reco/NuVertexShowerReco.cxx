@@ -792,7 +792,64 @@ namespace reco {
         }
 
         // we are adding hits, so we need to kill the track this cluster made.
-        // PostNuCheckShowerTrunkOverlap will do this for us.
+        // we can match up hit idxs (slow but easy for now)
+        LARCV_INFO() << "  we have re-interpretted track -- need to remove the track from the nuvertex container!" << std::endl;
+        int erase_track_idx = -1;
+        for (int itrack=0; itrack<(int)nuvtx.track_v.size(); itrack++) {
+          auto& track = nuvtx.track_v.at(itrack);
+          auto& trackcluster = nuvtx.track_hitcluster_v.at(itrack);
+          // if we make enough matches then we stop
+          std::set<int> hitidx_track;
+          for (auto& trackhit : trackcluster ) {
+            hitidx_track.insert( trackhit.idxhit);
+          }
+
+          // check out shower
+          int num_matches = 0;
+          for (auto& showerhit : shower_hit_v ) {
+            auto it = hitidx_track.find( showerhit.idxhit );
+            if (it!=hitidx_track.end()) {
+              num_matches++;
+            }
+
+            if (num_matches>=20) {
+              erase_track_idx = itrack;
+              break;
+            }
+          }
+          // we found our track. remove it.
+          if ( erase_track_idx>=0 )
+            break;
+        }//end of loop over track to erase
+
+        if ( erase_track_idx>=0 ) {
+          // if we found it, erase
+          int norig_tracks = nuvtx.track_v.size();
+
+          nuvtx.track_v.erase( nuvtx.track_v.begin()+erase_track_idx );
+          nuvtx.track_hitcluster_v.erase( nuvtx.track_hitcluster_v.begin()+erase_track_idx );
+
+          if ( nuvtx.track_v.size()!=nuvtx.track_hitcluster_v.size() ) {
+            LARCV_ERROR() << "after removing track-converted-to-shower, track_v and track_hitcluster_v does not match." << std::endl;
+          }
+
+          if ( nuvtx.track_len_v.size()==norig_tracks ) {
+            nuvtx.track_len_v.erase( nuvtx.track_len_v.begin()+erase_track_idx );
+            if ( nuvtx.track_v.size()!=nuvtx.track_len_v.size() ) {
+              LARCV_ERROR() << "after removing track-converted-to-shower, track_v and track_len_v does not match." << std::endl;
+            }
+          }
+          if ( nuvtx.track_dir_v.size()==norig_tracks) {
+            nuvtx.track_dir_v.erase( nuvtx.track_dir_v.begin()+erase_track_idx );
+            if ( nuvtx.track_v.size()!=nuvtx.track_dir_v.size() ) {
+              LARCV_ERROR() << "after removing track-converted-to-shower, track_v and track_dir_v does not match." << std::endl;
+            }
+          }
+
+        }
+        else {
+          LARCV_ERROR() << "made a shower based on track -- but cannot find it!" << std::endl;
+        }
 
       }
 
@@ -1985,7 +2042,7 @@ namespace reco {
 
     float frac_is_lm_shower = (float)num_larmatch_spacepoints/float(num_hits);
     LARCV_INFO() << "  shower-hit fraction: " << frac_is_lm_shower  << " numhits=" << num_hits << std::endl;
-    if ( frac_is_lm_shower<0.20 )
+    if ( frac_is_lm_shower<0.0 )
       return false;
 
     return true;
