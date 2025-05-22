@@ -1975,8 +1975,8 @@ namespace reco {
     }
 
     float frac_is_lm_shower = (float)num_larmatch_spacepoints/float(num_hits);
-
-    if ( frac_is_lm_shower<0.75 )
+    LARCV_INFO() << "  shower-hit fraction: " << frac_is_lm_shower  << " numhits=" << num_hits << std::endl;
+    if ( frac_is_lm_shower<0.20 )
       return false;
 
     return true;
