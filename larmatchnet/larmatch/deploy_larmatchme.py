@@ -143,6 +143,9 @@ for ientry in range(NENTRIES):
     evout_lfhits = out.get_data("larflow3dhit","larmatch")
     evout_lfhits.clear()
 
+    evout_userinfo = out.get_data(larlite.data.kUserInfo,"runtimes")
+    userinfo = larlite.user_info()
+
     io.read_entry(ientry)
     if ioll is not None:
         ioll.go_to(ientry)
@@ -211,102 +214,121 @@ for ientry in range(NENTRIES):
     matchtriplet_v = [ torch.from_numpy(matchtriplet_np).to(DEVICE) ]
 
     print("Number of triplets: ",ntriplets)
-    with torch.no_grad():
-        pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
-    print("Ran model: ",pred_dict.keys())
-
-    if "cuda" in args.device_name:
-        torch.cuda.synchronize()
-    sys.stdout.flush()    
-    
-    # EVALUATE LARMATCH SCORES
-    tstart = time.time()
-    with torch.no_grad():
-        lm_prob_t = torch.transpose(  pred_dict["lm"].squeeze(), 1, 0 )
-        lm_prob_t = 1.0-torch.softmax( lm_prob_t, dim=1 )
-        print("  lm_prob_t=",lm_prob_t.shape)
-        #print(lm_prob_t[:10,:])
-
-    # EVALUATE SSNET SCORES
-    if config["RUN_SSNET"]:
+    if ntriplets>0:    
         with torch.no_grad():
-            #print("  pred_dict[ssnet] shape: ",pred_dict["ssnet"].shape)        
-            ssnet_pred_t = torch.transpose( pred_dict["ssnet"].squeeze(), 1, 0 )
-            ssnet_pred_t = torch.softmax( ssnet_pred_t, dim=1 )
-            print("  ssnet_pred_t: ",ssnet_pred_t.shape)
+            tstart_model = time.time()
+            pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
+            print("Ran model: ",pred_dict.keys())            
 
-    # EVALUATE KP-LABEL SCORES
-    with torch.no_grad():
-        #print("  pred_dict[kplabel]: ",pred_dict["kp"].shape)
-        kplabel_pred_t = torch.transpose( pred_dict["kp"].squeeze(), 1, 0 )
-        print("  kplabel_pred_t: ",kplabel_pred_t.shape)
-
-    print("prepare score arrays: ",time.time()-tstart," sec")
+            if "cuda" in args.device_name:
+                torch.cuda.synchronize()
+            sys.stdout.flush()
     
-    # EVALUATE PAF SCORES
-    #with torch.no_grad():
-    #    paf_pred_t = model_dict['paf'].forward( feat_triplet_t )
-    #    paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
-    #    paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )        
-    #print("  paf-pred: ",paf_pred_t.shape)
+            # EVALUATE LARMATCH SCORES
+            lm_prob_t = torch.transpose(  pred_dict["lm"].squeeze(), 1, 0 )
+            lm_prob_t = 1.0-torch.softmax( lm_prob_t, dim=1 )
+            print("  lm_prob_t=",lm_prob_t.shape)
+            #print(lm_prob_t[:10,:])
+
+            # EVALUATE SSNET SCORES
+            if config["RUN_SSNET"]:
+                with torch.no_grad():
+                    #print("  pred_dict[ssnet] shape: ",pred_dict["ssnet"].shape)        
+                    ssnet_pred_t = torch.transpose( pred_dict["ssnet"].squeeze(), 1, 0 )
+                    ssnet_pred_t = torch.softmax( ssnet_pred_t, dim=1 )
+                    print("  ssnet_pred_t: ",ssnet_pred_t.shape)
+
+            # EVALUATE KP-LABEL SCORES
+            #print("  pred_dict[kplabel]: ",pred_dict["kp"].shape)
+            kplabel_pred_t = torch.transpose( pred_dict["kp"].squeeze(), 1, 0 )
+            print("  kplabel_pred_t: ",kplabel_pred_t.shape)
+
+            dt_runmodel = time.time()-tstart_model
+            dt_net += dt_runmodel
+            print("run model + prepare score arrays: ",dt_runmodel," sec")
+    
+            # EVALUATE PAF SCORES
+            #with torch.no_grad():
+            #    paf_pred_t = model_dict['paf'].forward( feat_triplet_t )
+            #    paf_pred_t = paf_pred_t.reshape( (paf_pred_t.shape[1],paf_pred_t.shape[2]) )
+            #    paf_pred_t = torch.transpose( paf_pred_t, 1, 0 )        
+            #print("  paf-pred: ",paf_pred_t.shape)
         
-    tstart = time.time()
-    prob_np = lm_prob_t.to(torch.device("cpu")).detach().numpy()
-    #prob_np[:] = 1.0 # hack to check
+            tstart = time.time()
+            prob_np = lm_prob_t.to(torch.device("cpu")).detach().numpy()
+            #prob_np[:] = 1.0 # hack to check
 
-    pos_v = std.vector("std::vector<float>")()
-    hitmaker.add_triplet_match_data( prob_np,
-                                     matchtriplet_np,
-                                     sparse_np_v[0],
-                                     sparse_np_v[1],
-                                     sparse_np_v[2],
-                                     pos_v,
-                                     adc_v )
+            pos_v = std.vector("std::vector<float>")()
+            hitmaker.add_triplet_match_data( prob_np,
+                                             matchtriplet_np,
+                                             sparse_np_v[0],
+                                             sparse_np_v[1],
+                                             sparse_np_v[2],
+                                             pos_v,
+                                             adc_v )
 
-    if config["RUN_SSNET"]:
-        print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
-        ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
-        hitmaker.add_triplet_ssnet_scores(  matchtriplet_np, 
-                                            sparse_np_v[0],
-                                            sparse_np_v[1],
-                                            sparse_np_v[2],
-                                            adc_v.front().meta(),
-                                            ssnet_np )                                      
+            if config["RUN_SSNET"]:
+                print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
+                ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
+                hitmaker.add_triplet_ssnet_scores(  matchtriplet_np, 
+                                                    sparse_np_v[0],
+                                                    sparse_np_v[1],
+                                                    sparse_np_v[2],
+                                                    adc_v.front().meta(),
+                                                    ssnet_np )                   
 
-    print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
-    kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
-    hitmaker.add_triplet_keypoint_scores(  matchtriplet_np,
-                                           sparse_np_v[0],
-                                           sparse_np_v[1],
-                                           sparse_np_v[2],
-                                           adc_v.front().meta(),
-                                           kplabel_np )
+            print("  add kplabel to hitmaker(...). probshape=",kplabel_pred_t.shape)
+            kplabel_np = kplabel_pred_t.to(torch.device("cpu")).detach().numpy()
+            hitmaker.add_triplet_keypoint_scores(  matchtriplet_np,
+                                                   sparse_np_v[0],
+                                                   sparse_np_v[1],
+                                                   sparse_np_v[2],
+                                                   adc_v.front().meta(),
+                                                   kplabel_np )
 
-    #print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
-    #paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
-    #hitmaker.add_triplet_affinity_field(  matchtriplet_np, 
-    #                                      sparse_np_v[0],
-    #                                      sparse_np_v[1],
-    #                                      sparse_np_v[2],
-    #                                      adc_v.front().meta(),
-    #                                      paf_np[:int(npairs.value)] )
+            #print("  add affinity field prediction to hitmaker(...). probshape=",paf_pred_t.shape)
+            #paf_np = paf_pred_t.to(torch.device("cpu")).detach().numpy()
+            #hitmaker.add_triplet_affinity_field(  matchtriplet_np, 
+            #                                      sparse_np_v[0],
+            #                                      sparse_np_v[1],
+            #                                      sparse_np_v[2],
+            #                                      adc_v.front().meta(),
+            #                                      paf_np[:int(npairs.value)] )
         
-    dt_make_hits = time.time()-tstart
-    dt_save += dt_make_hits
+            dt_make_hits = time.time()-tstart
+            dt_save += dt_make_hits
 
+            print("end of loop over flow matches")
+
+            # make flow hits
+            tstart = time.time()    
+            hitmaker.make_hits( ev_chstatus, adc_v, evout_lfhits )
+            dt_make_hits = time.time()-tstart
+            dt_save += dt_make_hits
+
+            print("try to store 2D ssnet data")
+            tstart = time.time()
+            hitmaker.store_2dssnet_score( io, evout_lfhits )
+            dt_save_ssnet2d = time.time()-tstart
+            dt_save += dt_save_ssnet2d
+            
+    else:
+        print("no spacepoints to run, make empty container")
+        dt_make_hits = 0.0
+        dt_runmodel = 0.0
+        dt_save_ssnet2d = 0.0
         
-    print("end of loop over flow matches")
-
-    # make flow hits
-    tstart = time.time()    
-    hitmaker.make_hits( ev_chstatus, adc_v, evout_lfhits )
-    dt_make_hits = time.time()-tstart
-    dt_save += dt_make_hits
     print("number of hits made: ",evout_lfhits.size())
+    print("run net: ",dt_runmodel," secs")
     print("make hits: ",dt_make_hits," secs")
-    print("time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
-    print("try to store 2D ssnet data")
-    hitmaker.store_2dssnet_score( io, evout_lfhits )
+    print("save ssnet: ",dt_save_ssnet2d," secs")
+    print("total time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
+
+    user_info.store("prep",float(dt_prep))
+    user_info.store("chunk",float(dt_chunk))
+    user_info.store("net",float(dt_net))
+    user_info.store("savehits",float(dt_save))
+    evout_userinfo.push_back( userinfo )
 
     # End of flow direction loop
     out.set_id( io.event_id().run(), io.event_id().subrun(), io.event_id().event() )
@@ -314,6 +336,13 @@ for ientry in range(NENTRIES):
     io.save_entry()
     io.clear_entry()
     sys.stdout.flush()
+
+if NENTRIES>0:
+    print("time of each stage per event")
+    print("  prep=",dt_prep/float(NENTRIES))
+    print("  chunk=",dt_chunk/float(NENTRIES))
+    print("  net=",dt_net/float(NENTNRIES))
+    print("  save=",dt_save/float(NENTRIES)))
 
 print("Close output")
 out.close()
