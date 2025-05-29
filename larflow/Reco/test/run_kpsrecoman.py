@@ -223,7 +223,27 @@ for ientry in range( args.start_entry, end_entry ):
     print("io larlite: ",io.run_id(), io.subrun_id(), io.event_id())
     print("reco, make nu candidates, calculate selection variables")
     sys.stdout.flush()
+
+    # get empty containers to ensure we create an entry for the critical larlite and larcv trees passed
+    # passed to merged dlreco file and kps larlite file
+    io.get_data( larlite.data.kTrack,           "boundarycosmic" )
+    io.get_data( larlite.data.kTrack,           "boundarycosmicnoshift" )
+    io.get_data( larlite.data.kTrack,           "containedcosmic" )
+    io.get_data( larlite.data.kTrack,           "cosmicproton" )
+    io.get_data( larlite.data.kTrack,           "nutrack_fitted" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "keypoint" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "keypointcosmic" )
+    io.get_data( larlite.data.kLArFlowCluster,  "hip" )
+    io.get_data( larlite.data.kPCAxis,          "hip" )    
+    io.get_data( larlite.data.kLArFlowCluster,  "showergoodhit" )
+    io.get_data( larlite.data.kPCAxis,          "showergoodhit" )    
+    io.get_data( larlite.data.kLArFlowCluster,  "showerkp" )
+    io.get_data( larlite.data.kPCAxis,          "showerkp" )    
+    io.get_data( larlite.data.kLArFlowCluster,  "trackprojsplit_wcfilter" )
+    io.get_data( larlite.data.kPCAxis,          "trackprojsplit_wcfilter" )        
+    
     recoman.process( iolcv, io )
+    
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.go_to(ientry,True) # write
     iolcv.save_entry()

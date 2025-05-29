@@ -181,6 +181,9 @@ namespace reco {
     int _ana_subrun; ///< subrun number for tree entry
     int _ana_event; ///< event number for tree entry
     float _t_event_elapsed; ///< runtime for event
+    int _reco_status; //< store reco status    
+    std::vector<std::string> _error_messages; //< store error message if reco fails
+
     bool _save_selected_only; ///< if true, save only selected nu vertex candidates
     bool _save_keypoints_in_anafile; ///< if true save keypoints to ana file
     void make_ana_file();
@@ -227,6 +230,8 @@ namespace reco {
 
     /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
     void debug_stop_at_nutracker( bool stop_here=true ) { _stop_after_nutracker=stop_here; };
+
+    
     
     
   };

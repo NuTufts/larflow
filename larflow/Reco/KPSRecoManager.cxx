@@ -39,7 +39,6 @@ namespace reco {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
-    _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
     _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
   }
 
@@ -61,130 +60,149 @@ namespace reco {
 
     _nu_sel_v.clear(); ///< clear vertex selection variable container
     _nu_perfect_v.clear(); ///< clear perfect reco
+    _event_kpc_nu_v.clear();
+    _event_kpc_track_v.clear();
+    _event_kpc_shower_v.clear();
+    _event_kpc_cosmic_v.clear();
+
+    _reco_status = 0;
+    _t_event_elapsed = 0.0;
+    _error_messages.clear();
+
     
     // PREP: make bad channel image
     larcv::EventImage2D* ev_adc =
       (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
     auto const& adc_v = ev_adc->Image2DArray();
-    
-    larcv::EventChStatus* ev_chstatus =
-      (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus, "wire");
-    // std::vector<larcv::Image2D> gapch_v =
-    //   _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
-    //                                    4, 3, 2400, 6*1008, 3456, 6, 1,
-    //                                    5.0, 50, -1.0 );
-    std::vector<larcv::Image2D> gapch_v =
-      _badchmaker.makeOverlayedBadChannelImage( adc_v, *ev_chstatus, 4, 15.0 );
-    
-    LARCV_INFO() << "Number of badcv images made: " << gapch_v.size() << std::endl;
-    larcv::EventImage2D* evout_badch =
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"badch");
-    for ( auto& gap : gapch_v ) {
-      evout_badch->Emplace( std::move(gap) );
-    }
 
-    // make five particle ssnet images
-    larflow::reco::SplitHitsByParticleSSNet fiveparticlealgo;
-    //fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
-    fiveparticlealgo.set_verbosity( logger().level() );
     try {
-      fiveparticlealgo.process( iolcv, ioll );
-    }
-    catch (std::exception& e ) {
-      std::stringstream msg;
-      msg << "KPSRecoManager.cxx:L." << __LINE__ << " error running SplitHitsByParticleSSNet fiveparticlealgo: "
-          << '\n'
-          << e.what()
-          << std::endl;
-      throw std::runtime_error(msg.str());
-    }
-
-    // Set run, subrun, event indices in ana tree
-    _ana_run = ev_adc->run();
-    _ana_subrun = ev_adc->subrun();
-    _ana_event  = ev_adc->event();
     
-    // PREP SETS OF HITS
-    // ------------------
-    prepSpacepoints( iolcv, ioll  );
-    if ( _stop_after_prepspacepoints ) {
-      // early stoppage to debug (and visualize) prepared spacepoints
-      _ana_tree->Fill();
-      return;
-    }
+      larcv::EventChStatus* ev_chstatus =
+	(larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus, "wire");
+      // std::vector<larcv::Image2D> gapch_v =
+      //   _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
+      //                                    4, 3, 2400, 6*1008, 3456, 6, 1,
+      //                                    5.0, 50, -1.0 );
+      std::vector<larcv::Image2D> gapch_v =
+	_badchmaker.makeOverlayedBadChannelImage( adc_v, *ev_chstatus, 4, 15.0 );
+    
+      LARCV_INFO() << "Number of badcv images made: " << gapch_v.size() << std::endl;
+      larcv::EventImage2D* evout_badch =
+	(larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"badch");
+      for ( auto& gap : gapch_v ) {
+	evout_badch->Emplace( std::move(gap) );
+      }
 
-    // Make keypoint candidates from larmatch vertex
-    // ---------------------------------------------
-    recoKeypoints( iolcv, ioll );
+      // make five particle ssnet images
+      larflow::reco::SplitHitsByParticleSSNet fiveparticlealgo;
+      //fiveparticlealgo.set_verbosity( larcv::msg::kDEBUG );
+      fiveparticlealgo.set_verbosity( logger().level() );
+      try {
+	fiveparticlealgo.process( iolcv, ioll );
+      }
+      catch (std::exception& e ) {
+	std::stringstream msg;
+	msg << "KPSRecoManager.cxx:L." << __LINE__ << " error running SplitHitsByParticleSSNet fiveparticlealgo: "
+	    << '\n'
+	    << e.what()
+	    << std::endl;
+	throw std::runtime_error(msg.str());
+      }
 
-    if ( _stop_after_keypointreco ) {
-      // early stoppage to debug (and visualize) prepared keypoints
-      _ana_tree->Fill();
-      return;
-    }
+      // Set run, subrun, event indices in ana tree
+      _ana_run = ev_adc->run();
+      _ana_subrun = ev_adc->subrun();
+      _ana_event  = ev_adc->event();
+    
+      // PREP SETS OF HITS
+      // ------------------
+      prepSpacepoints( iolcv, ioll  );
+      if ( _stop_after_prepspacepoints ) {
+	// early stoppage to debug (and visualize) prepared spacepoints
+	_ana_tree->Fill();
+	return;
+      }
+
+      // Make keypoint candidates from larmatch vertex
+      // ---------------------------------------------
+      recoKeypoints( iolcv, ioll );
+
+      if ( _stop_after_keypointreco ) {
+	// early stoppage to debug (and visualize) prepared keypoints
+	_ana_tree->Fill();
+	return;
+      }
       
-    // PARTICLE FRAGMENT RECO
-    clusterSubparticleFragments( iolcv, ioll );
-    if ( _stop_after_subclustering ) {
-      // early stopping to debug (and visualize) subclusters
-      _ana_tree->Fill();
-      return;
-    }
+      // PARTICLE FRAGMENT RECO
+      clusterSubparticleFragments( iolcv, ioll );
+      if ( _stop_after_subclustering ) {
+	// early stopping to debug (and visualize) subclusters
+	_ana_tree->Fill();
+	return;
+      }
     
-    // COSMIC RECO
-    cosmicTrackReco( iolcv, ioll );
+      // COSMIC RECO
+      cosmicTrackReco( iolcv, ioll );
     
-    // MULTI-PRONG INTERNAL RECO
-    multiProngReco( iolcv, ioll );
-    // if ( _stop_after_nutracker ) {
-    //   _ana_tree->Fill();
-    //   return;
-    // }
+      // MULTI-PRONG INTERNAL RECO
+      multiProngReco( iolcv, ioll );
+      // if ( _stop_after_nutracker ) {
+      //   _ana_tree->Fill();
+      //   return;
+      // }
 
-    // if ( _stop_after_prongreco ) {
-    //   _ana_tree->Fill();
-    //   return;      
-    // }
+      // if ( _stop_after_prongreco ) {
+      //   _ana_tree->Fill();
+      //   return;      
+      // }
 
-    // kinematics
-    runBasicKinematics( iolcv, ioll );
+      // kinematics
+      runBasicKinematics( iolcv, ioll );
 
-    // dqdx
-    runBasicPID( iolcv, ioll );
+      // dqdx
+      runBasicPID( iolcv, ioll );
     
-    // Copy larlite contents
-    // in-time opflash
-    larlite::event_opflash* ev_input_opflash_beam =
-      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
-    larlite::event_opflash* evout_opflash_beam =
-      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
-    for ( auto const& flash : *ev_input_opflash_beam )
-      evout_opflash_beam->push_back( flash );
+      // Copy larlite contents
+      // in-time opflash
+      larlite::event_opflash* ev_input_opflash_beam =
+	(larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
+      larlite::event_opflash* evout_opflash_beam =
+	(larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash,"simpleFlashBeam");
+      for ( auto const& flash : *ev_input_opflash_beam )
+	evout_opflash_beam->push_back( flash );
 
-    // make selection variables
-    //makeNuCandidateSelectionVariables( iolcv, ioll );
-    if ( _save_event_mc_info ) {
-      _event_mcinfo_maker.process( ioll );      
+      // make selection variables
+      //makeNuCandidateSelectionVariables( iolcv, ioll );
+      if ( _save_event_mc_info ) {
+	_event_mcinfo_maker.process( ioll );      
+      }
+      if ( _save_event_mc_info && _run_perfect_mcreco ) {
+
+	LARCV_DEBUG() << "Run perfect reco." << std::endl;
+	//_perfect_reco.set_verbosity( larcv::msg::kDEBUG );
+	NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
+	_nu_perfect_v.emplace_back( std::move(nuperfect) );
+	//truthAna( iolcv, ioll );
+      }
+
+      // run selection and filter events    
+      //runNuVtxSelection();    
+
+      if ( _kMinize_outputfile_size ) {
+	// save only fitted vertex candidates
+	_nuvertexmaker.get_mutable_nu_candidates().clear();
+	_nuvertexmaker.get_mutable_vetoed_candidates().clear();
+	_nuvertexmaker.get_mutable_merged_candidates().clear();            
+      }
     }
-    if ( _save_event_mc_info && _run_perfect_mcreco ) {
-
-      LARCV_DEBUG() << "Run perfect reco." << std::endl;
-      //_perfect_reco.set_verbosity( larcv::msg::kDEBUG );
-      NuVertexCandidate nuperfect = _perfect_reco.makeNuVertex( iolcv, ioll );
-      _nu_perfect_v.emplace_back( std::move(nuperfect) );
-      //truthAna( iolcv, ioll );
+    catch ( std::exception& e ) {
+      std::stringstream errmsg;
+      errmsg << "reco error: " << e.what() << std::endl;
+      _error_messages.push_back( errmsg.str() );
+      LARCV_WARNING() << "Caught Reco error: " << e.what() << std::endl;
     }
 
-    // run selection and filter events    
-    //runNuVtxSelection();    
-
-    if ( _kMinize_outputfile_size ) {
-      // save only fitted vertex candidates
-      _nuvertexmaker.get_mutable_nu_candidates().clear();
-      _nuvertexmaker.get_mutable_vetoed_candidates().clear();
-      _nuvertexmaker.get_mutable_merged_candidates().clear();            
-    }
-    
+      
     // Fill Ana Tree
     _ana_run = ev_adc->run();
     _ana_subrun = ev_adc->subrun();
@@ -192,8 +210,13 @@ namespace reco {
 
     std::clock_t end_event = std::clock_t();
     _t_event_elapsed = (end_event-start_event)/CLOCKS_PER_SEC;
+    LARCV_NORMAL() << "Save entry [" << _ana_run << ", " << _ana_subrun << ", " << _ana_event << "]"
+		   << " time-elapsed=" << _t_event_elapsed << " secs"
+		   << std::endl;
+    _ana_tree->Fill();
 
-    _ana_tree->Fill();    
+    LARCV_NORMAL() << "Finished Event" << std::endl;
+    return;
     
   }
 
@@ -773,6 +796,9 @@ namespace reco {
     _ana_tree->Branch("run",&_ana_run,"run/I");
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
     _ana_tree->Branch("event",&_ana_event,"event/I");
+    _ana_tree->Branch("reco_status", &_reco_status, "reco_status/I");
+    _ana_tree->Branch("telapsed", &_t_event_elapsed, "telapsed/F" );
+    _ana_tree->Branch("error_messages", &_error_messages);
 
     _ana_tree->Branch( "kpc_nu_v",     &_event_kpc_nu_v );
     _ana_tree->Branch( "kpc_track_v",  &_event_kpc_track_v );
