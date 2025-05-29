@@ -140,6 +140,8 @@ print("Start event loop")
 
 for ientry in range(NENTRIES):
 
+    tstart = time.time()
+    
     evout_lfhits = out.get_data("larflow3dhit","larmatch")
     evout_lfhits.clear()
 
@@ -212,6 +214,9 @@ for ientry in range(NENTRIES):
     # check
     #print("matchtriplet_np: ",matchtriplet_np[:20,:])
     matchtriplet_v = [ torch.from_numpy(matchtriplet_np).to(DEVICE) ]
+
+    dt_prephits = time.time()-tstart
+    dt_prep += dt_prephits
 
     print("Number of triplets: ",ntriplets)
     if ntriplets>0:    
@@ -319,15 +324,16 @@ for ientry in range(NENTRIES):
         dt_save_ssnet2d = 0.0
         
     print("number of hits made: ",evout_lfhits.size())
+    print("prep hits: ",dt_prephits," secs")
     print("run net: ",dt_runmodel," secs")
     print("make hits: ",dt_make_hits," secs")
     print("save ssnet: ",dt_save_ssnet2d," secs")
     print("total time elapsed: prep=",dt_prep," chunk=",dt_chunk," net=",dt_net," save=",dt_save)
 
-    user_info.store("prep",float(dt_prep))
-    user_info.store("chunk",float(dt_chunk))
-    user_info.store("net",float(dt_net))
-    user_info.store("savehits",float(dt_save))
+    userinfo.store("prep",float(dt_prep))
+    userinfo.store("chunk",float(dt_chunk))
+    userinfo.store("net",float(dt_net))
+    userinfo.store("savehits",float(dt_save))
     evout_userinfo.push_back( userinfo )
 
     # End of flow direction loop
@@ -341,8 +347,8 @@ if NENTRIES>0:
     print("time of each stage per event")
     print("  prep=",dt_prep/float(NENTRIES))
     print("  chunk=",dt_chunk/float(NENTRIES))
-    print("  net=",dt_net/float(NENTNRIES))
-    print("  save=",dt_save/float(NENTRIES)))
+    print("  net=",dt_net/float(NENTRIES))
+    print("  save=",dt_save/float(NENTRIES))
 
 print("Close output")
 out.close()
