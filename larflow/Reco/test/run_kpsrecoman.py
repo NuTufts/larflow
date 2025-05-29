@@ -1,6 +1,8 @@
 #!/bin/env python3
 from __future__ import print_function
 import os,sys,argparse,time
+import traceback
+from io import StringIO
 
 """
 Run the PCA-based clustering routine for track space-points.
@@ -196,6 +198,9 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( "larflowcluster", "boundarycosmicnoshift" )
     io.set_data_to_write( "larflowcluster", "containedcosmic" )
 
+    # user info
+    io.set_data_to_write( "user_info", "recoinfo" )
+
     # cluster reco
 
     # mc info
@@ -237,21 +242,48 @@ if args.num_entries is not None:
 else:
     end_entry = nentries
 
+
+error_buffer = io.StringIO()
+original_stderr = sys.stderr
+sys.stderr = error_buffer
+    
 io.go_to( args.start_entry )
 #io.next_event()
 #io.go_to( args.start_entry )
 for ientry in range( args.start_entry, end_entry ):
     print("[ENTRY ",ientry,"]")
+
+    # create storage container for user_info
+    ev_userinfo = io.get_data('user_info','recoinfo')
+    reco_ok = 1
+    reco_err = ""
+    tstart = time.time()
     iolcv.read_entry(ientry)
+    
+    try:
+        print("reco, make nu candidates, calculate selection variables")
+        sys.stdout.flush()
+        recoman.process( iolcv, io )
 
-    print("reco, make nu candidates, calculate selection variables")
-    sys.stdout.flush()
-    recoman.process( iolcv, io )
+    except Exception as e:
+        print("reco failure",file=sys.stderr)
+        print(e,file=sys.stderr)        
+        print(traceback.format_exc(),sys.stderr)
+        error_string = error_buffer.getvalue()
+        reco_ok = 0
 
+    dt_reco = time.time()-tstart
+    user_info = larlite.user_info()
+    user_info.store( "dt_reco", float(dt_reco))
+    user_info.store( "reco_ok", int(reco_ok))
+    user_info.store( "error", str(error_string))
+    ev_userinfo.push_back( user_info )
+    
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
     iolcv.save_entry()
     sys.stdout.flush()
+    
 
 print("Event Loop finished")
 #del kpsrecoman
