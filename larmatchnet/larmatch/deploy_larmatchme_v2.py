@@ -11,9 +11,11 @@ parser.add_argument('-adc','--adc-name',default="wire",type=str,help="Name of AD
 parser.add_argument('-v','--verbose',default=False,action='store_true',help='If flag given, just run 5 events for debugging')
 parser.add_argument('-ilcv','--input-larcv', required=True,help="input larcv file")
 parser.add_argument('-ill', '--input-larlite', required=True,help="input larlite file")
-parser.add_argument('-ao', '--allow-output-overwrite', default=False, help="If flag given, allow output file to overwrite")
+parser.add_argument('-ao', '--allow-output-overwrite', default=False, action='store_true', help="If flag given, allow output file to overwrite")
 parser.add_argument('-tf','--tickforwards',action='store_true',default=False,help="Indicate that input larcv file is tick-forward [default: F]")
 parser.add_argument('-o','--output',required=True,type=str,help="Filename stem for output files")
+parser.add_argument('--save-larcv',default=False,action='store_true',help='If flag given, copy larcv -- useful for when running a subset of events and allowing synced larcv file for downstream input')
+parser.add_argument('-e','--entry',type=int,default=0,help="Starting entry [default: 0]")
 parser.add_argument('-n','--nentries',type=int,default=-1,help="(optional) sets number of entries to run. [default: -1, which runs all entries]")
 parser.add_argument("--use-skip-limit",default=False,action='store_true',help="Specify a max triplet let. If surpassed, skip network eval.")
 
@@ -87,17 +89,24 @@ ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
 ioll.add_in_filename( input_larlite )
 ioll.open()
 
-if args.tickforwards:
-    iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickForward )
+iolcv_mode = larcv.IOManager.kREAD
+if args.save_larcv:
+    iolcv_mode = larcv.IOManager.kBOTH
+    iolcv_out = args.output.replace(".root","_larcvout.root")
+
+if args.tickforwards:    
+    iolcv = larcv.IOManager( iolcv_mode, "larcv", larcv.IOManager.kTickForward )
 else:
-    iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickBackward )
+    iolcv = larcv.IOManager( iolcv_mode, "larcv", larcv.IOManager.kTickBackward )
 
 iolcv.add_in_file( input_larcv )
+if args.save_larcv:
+    iolcv.set_out_file( iolcv_out )
 iolcv.reverse_all_products()
 iolcv.initialize()
 
 nentries_larcv = iolcv.get_n_entries()
-start_entry = 0
+start_entry = max(args.entry,0)
 num_entries = nentries_larcv
 print("Number of entries in file: ",nentries_larcv)
 if start_entry>=nentries_larcv:
@@ -295,9 +304,15 @@ for ientry in range(start_entry,end_entry):
             print("time to make hits: ",dt_make_hits," secs")
 
         # End of flow direction loop
-        print("number of hits made: ",evout_lfhits.size())        
+        print("number of hits made: ",evout_lfhits.size())
+
+        # clear this out for now
+        evout_lmsp.clear()
+        
         outll.set_id( ioll.run_id(), ioll.subrun_id(), ioll.event_id() )
         outll.next_event(True)
+        if args.save_larcv:
+            iolcv.save_entry()
         sys.stdout.flush()
     print("End of entry[",ientry,"]")
     if False and ientry>=2:
