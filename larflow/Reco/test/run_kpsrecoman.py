@@ -199,7 +199,7 @@ if args.products in ["rerun","min"]:
     io.set_data_to_write( "larflowcluster", "containedcosmic" )
 
     # user info
-    io.set_data_to_write( "user_info", "recoinfo" )
+    io.set_data_to_write( larlite.data.kUserInfo, "recoinfo" )
 
     # cluster reco
 
@@ -243,9 +243,9 @@ else:
     end_entry = nentries
 
 
-error_buffer = io.StringIO()
-original_stderr = sys.stderr
-sys.stderr = error_buffer
+#error_buffer = StringIO()
+#original_stderr = sys.stderr
+#sys.stderr = error_buffer
     
 io.go_to( args.start_entry )
 #io.next_event()
@@ -254,31 +254,69 @@ for ientry in range( args.start_entry, end_entry ):
     print("[ENTRY ",ientry,"]")
 
     # create storage container for user_info
-    ev_userinfo = io.get_data('user_info','recoinfo')
+    ev_userinfo = io.get_data(larlite.data.kUserInfo,'recoinfo')
     reco_ok = 1
     reco_err = ""
     tstart = time.time()
     iolcv.read_entry(ientry)
-    
-    try:
-        print("reco, make nu candidates, calculate selection variables")
-        sys.stdout.flush()
-        recoman.process( iolcv, io )
 
-    except Exception as e:
-        print("reco failure",file=sys.stderr)
-        print(e,file=sys.stderr)        
-        print(traceback.format_exc(),sys.stderr)
-        error_string = error_buffer.getvalue()
-        reco_ok = 0
+    # load baseline output data containers
+    """
+    [NORMAL]  <close> TTree "opflash_simpleFlashBeam_tree" for opflash written with 2 events...
+    [NORMAL]  <close> TTree "track_boundarycosmicnoshift_tree" for track written with 2 events...
+    [NORMAL]  <close> TTree "track_nutrack_fitted_tree" for track written with 2 events...
+    [NORMAL]  <close> TTree "user_recoinfo_tree" for user written with 2 events...
+    [NORMAL]  <close> TTree "pcaxis_hip_tree" for pcaxis written with 2 events...
+    [NORMAL]  <close> TTree "pcaxis_showergoodhit_tree" for pcaxis written with 2 events...
+    [NORMAL]  <close> TTree "pcaxis_showerkp_tree" for pcaxis written with 2 events...
+    [NORMAL]  <close> TTree "larflow3dhit_keypoint_tree" for larflow3dhit written with 2 events...
+    [NORMAL]  <close> TTree "larflow3dhit_keypoint_nuvtxseed_tree" for larflow3dhit written with 2 events...
+    [NORMAL]  <close> TTree "larflow3dhit_keypointcosmic_tree" for larflow3dhit written with 2 events...
+    [NORMAL]  <close> TTree "larflow3dhit_projsplitvetoed_tree" for larflow3dhit written with 2 events...
+    [NORMAL]  <close> TTree "larflow3dhit_showerkp_tree" for larflow3dhit written with 2 events...
+    [NORMAL]  <close> TTree "larflowcluster_hip_tree" for larflowcluster written with 2 events...
+    [NORMAL]  <close> TTree "larflowcluster_showergoodhit_tree" for larflowcluster written with 2 events...
+    [NORMAL]  <close> TTree "larflowcluster_showerkp_tree" for larflowcluster written with 2 events...
+    [NORMAL]  <close> TTree "larflowcluster_trackprojsplit_wcfilter_tree" for larflowcluster written with 2 events...
+    """
+    io.get_data( larlite.data.kOpFlash,         "sampleFlashBeam" )
+    io.get_data( larlite.data.kTrack,           "boundarycosmicnoshift" )
+    io.get_data( larlite.data.kTrack,           "nutrack_fitted" )
+    io.get_data( larlite.data.kPCAxis,          "hip" )
+    io.get_data( larlite.data.kPCAxis,          "showergoodhit" )
+    io.get_data( larlite.data.kPCAxis,          "showergoodkp" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "keypoint" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "nuvtxseed" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "keypointcosmic" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "projsplitvetoed" )
+    io.get_data( larlite.data.kLArFlow3DHit,    "showerkp" )
+    io.get_data( larlite.data.kLArFlowCluster,  "hip" )
+    io.get_data( larlite.data.kLArFlowCluster,  "showergoodhit" )
+    io.get_data( larlite.data.kLArFlowCluster,  "showerkp" )
+    io.get_data( larlite.data.kLArFlowCluster,  "trackprojsplit_wcfilter" )
+    
+    #try:
+    print("reco, make nu candidates, calculate selection variables")
+    sys.stdout.flush()
+    recoman.process( iolcv, io )
+
+    #except Exception as e:
+    #print("reco failure",file=sys.stderr)
+    #print(e,file=sys.stderr)        
+    #print(traceback.format_exc(),sys.stderr)
+    #error_string = error_buffer.getvalue()
+    #print(error_string)
+    #print("reco failure")
+    #reco_ok = 0
+    #pass
 
     dt_reco = time.time()-tstart
     user_info = larlite.user_info()
     user_info.store( "dt_reco", float(dt_reco))
     user_info.store( "reco_ok", int(reco_ok))
-    user_info.store( "error", str(error_string))
+    #user_info.store( "error", str(error_string))
     ev_userinfo.push_back( user_info )
-    
+    print("save entry")
     io.set_id( io.run_id(), io.subrun_id(), io.event_id() )
     io.next_event()
     iolcv.save_entry()

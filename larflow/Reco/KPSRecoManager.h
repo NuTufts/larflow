@@ -274,7 +274,12 @@ namespace reco {
 
     /** @brief Set reco chain to stop at subcluster formation and save intermediates for debug/ana/visualization **/
     void debug_stop_at_nutracker( bool stop_here=true ) { _stop_after_nutracker=stop_here; };
-    
+
+  protected:
+
+    // data members to record reco status
+    std::vector<std::string> _error_messages;
+    int _reco_status;
     
   };
 
