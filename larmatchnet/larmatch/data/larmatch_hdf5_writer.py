@@ -144,6 +144,10 @@ class LArMatchHDF5Writer:
 
     def process_truthlabels(self, iolcv, ioll):
 
+        if self.preptriplets._triplet_v.size()==0:
+            # no spacepoint proposals to process. dont bother with below"
+            return False
+        
         # make good/bad triplet ground truth
         self.preptriplets.process_truth_labels( iolcv, ioll, self.adc_treename )
 
@@ -188,9 +192,11 @@ class LArMatchHDF5Writer:
                                                  ssnet, kpflow, 
                                                  num_max_spacepoints=10000000 ):
         # ROOT-based c++ objects for algorithms used to convert larcv and larlite into data for larmatch
+        from larcv import larcv
         from larflow import larflow
         from ctypes import c_int
         loader = larflow.keypoints.LoaderKeypointData()
+        loader.set_verbosity( larcv.msg.kINFO )
         loader.provide_entry_data( preptriplets, kpana, ssnet, kpflow )
          
         nfilled = c_int(0)
