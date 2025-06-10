@@ -279,21 +279,21 @@ for ientry in range( args.start_entry, end_entry ):
     [NORMAL]  <close> TTree "larflowcluster_showerkp_tree" for larflowcluster written with 2 events...
     [NORMAL]  <close> TTree "larflowcluster_trackprojsplit_wcfilter_tree" for larflowcluster written with 2 events...
     """
-    io.get_data( larlite.data.kOpFlash,         "sampleFlashBeam" )
+    io.get_data( larlite.data.kTrack,           "boundarycosmic" )
     io.get_data( larlite.data.kTrack,           "boundarycosmicnoshift" )
+    io.get_data( larlite.data.kTrack,           "containedcosmic" )
+    io.get_data( larlite.data.kTrack,           "cosmicproton" )
     io.get_data( larlite.data.kTrack,           "nutrack_fitted" )
-    io.get_data( larlite.data.kPCAxis,          "hip" )
-    io.get_data( larlite.data.kPCAxis,          "showergoodhit" )
-    io.get_data( larlite.data.kPCAxis,          "showergoodkp" )
     io.get_data( larlite.data.kLArFlow3DHit,    "keypoint" )
-    io.get_data( larlite.data.kLArFlow3DHit,    "nuvtxseed" )
     io.get_data( larlite.data.kLArFlow3DHit,    "keypointcosmic" )
-    io.get_data( larlite.data.kLArFlow3DHit,    "projsplitvetoed" )
-    io.get_data( larlite.data.kLArFlow3DHit,    "showerkp" )
     io.get_data( larlite.data.kLArFlowCluster,  "hip" )
+    io.get_data( larlite.data.kPCAxis,          "hip" )
     io.get_data( larlite.data.kLArFlowCluster,  "showergoodhit" )
+    io.get_data( larlite.data.kPCAxis,          "showergoodhit" )
     io.get_data( larlite.data.kLArFlowCluster,  "showerkp" )
+    io.get_data( larlite.data.kPCAxis,          "showerkp" )
     io.get_data( larlite.data.kLArFlowCluster,  "trackprojsplit_wcfilter" )
+    io.get_data( larlite.data.kPCAxis,          "trackprojsplit_wcfilter" )
     
     #try:
     print("reco, make nu candidates, calculate selection variables")

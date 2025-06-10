@@ -35,7 +35,7 @@ message("python include: ${PYTHON_INCLUDE_PATH}")
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVCorePyUtil)
 
 # ublarcvapp libs used
-set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod LArCVApp_MCTools )
 
 # larflow libs
 #set(LARFLOW_LIBS_USED LArFlow_LArFlowConstants LArFlow_Reco )

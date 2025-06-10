@@ -49,7 +49,6 @@ namespace reco {
     make_ana_file();
     _nuvertexmaker.add_nuvertex_branch( _ana_tree );
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
-    _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );
     _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
 
     _nuvertex_shower_reco.activateMCanalysisMode( true );
@@ -1067,8 +1066,8 @@ namespace reco {
     _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
     _ana_tree->Branch("event",&_ana_event,"event/I");
     _ana_tree->Branch("reco_status", &_reco_status, "reco_status/I");
+    _ana_tree->Branch( "telapsed", &_t_event_elapsed, "telapsed/F" );    
     _ana_tree->Branch("error_messages", &_error_messages);
-    _ana_tree->Branch("elapsed_time", &_t_event_elapsed, "elapsed_time/F");
 
     _event_kpc_nu_v.clear();
     _event_kpc_track_v.clear();

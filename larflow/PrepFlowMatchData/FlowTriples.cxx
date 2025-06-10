@@ -857,12 +857,12 @@ namespace prep {
 
     for ( size_t p=0; p<adc_v.size(); p++ ) {
       if(imgBounds[p][0] < 0) imgBounds[p][0] = 0;
-      if(imgBounds[p][0] + rowSpan > adc_v[p].meta().rows())
-        imgBounds[p][0] = adc_v[p].meta().rows() - rowSpan;
+      if(imgBounds[p][0] + rowSpan > (int)adc_v[p].meta().rows())
+        imgBounds[p][0] = (int)adc_v[p].meta().rows() - rowSpan;
       imgBounds[p][1] = imgBounds[p][0] + rowSpan;
       if(imgBounds[p][2] < 0) imgBounds[p][2] = 0;
-      if(imgBounds[p][2] + colSpan > adc_v[p].meta().cols())
-        imgBounds[p][2] = adc_v[p].meta().cols() - colSpan;
+      if(imgBounds[p][2] + colSpan > (int)adc_v[p].meta().cols())
+        imgBounds[p][2] = (int)adc_v[p].meta().cols() - colSpan;
       imgBounds[p][3] = imgBounds[p][2] + colSpan;
     }
 
