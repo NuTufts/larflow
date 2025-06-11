@@ -13,14 +13,25 @@ namespace reco {
   bool SplitHitsBySSNet::__setup_numpy = false;
 
   /**
-   * @brief split-up container of larflow3dhit using ssnet output images
+   * @brief Combined labeling and splitting of LArMatch hits using SSNet scores
    *
-   * @param[in] ssnet_score_v            SSNet shower score images for each plane
-   * @param[in] larmatch_hit_v           LArMatch hits
-   * @param[in] ssnet_score_threshold    Threshold shower score
-   * @param[in] larmatch_score_threshold Threshold larmatch score
-   * @param[out] accept_v                Hits above threshold
-   * @param[out] reject_v                Hits below threshold
+   * This function performs both the labeling (adding SSNet scores to hits) and 
+   * splitting (separating into track/shower categories) operations in sequence.
+   * It's the most commonly used entry point for SSNet-based classification.
+   *
+   * Algorithm:
+   * 1. Creates a copy of input hits
+   * 2. Projects each hit to wire plane coordinates
+   * 3. Looks up SSNet shower score at projected location
+   * 4. Stores weighted average score in hit.renormed_shower_score
+   * 5. Separates hits into accept/reject based on threshold
+   *
+   * @param[in] ssnet_score_v            Vector of SSNet shower score images (one per wire plane)
+   * @param[in] larmatch_hit_v           Input LArMatch 3D spacepoints to classify
+   * @param[in] ssnet_score_threshold    SSNet shower score threshold for classification (0.0-1.0)
+   * @param[in] larmatch_score_threshold Minimum LArMatch quality score to process hit
+   * @param[out] accept_v                Output container for shower hits (score > threshold)
+   * @param[out] reject_v                Output container for track hits (score <= threshold)
    */
   void SplitHitsBySSNet::label_and_split( const std::vector<larcv::Image2D>& ssnet_score_v,
                                           const larlite::event_larflow3dhit& larmatch_hit_v,
@@ -29,22 +40,38 @@ namespace reco {
                                           std::vector<larlite::larflow3dhit>& accept_v,
                                           std::vector<larlite::larflow3dhit>& reject_v )
   {
-    
+    // Create working copy since label() modifies the hits
     larlite::event_larflow3dhit hitcopy_v = larmatch_hit_v;
+    
+    // Step 1: Add SSNet scores to each hit
     label( ssnet_score_v, hitcopy_v );
+    
+    // Step 2: Split labeled hits into track/shower categories
     split( hitcopy_v, ssnet_score_threshold, larmatch_score_threshold,
            accept_v, reject_v );
     
   }
   
   /**
-   * @brief split-up container of larflow3dhit using ssnet output images
+   * @brief Split pre-labeled hits into track and shower categories
    *
-   * @param[in] larmatch_hit_v           LArMatch hits, already run through `SplitHitsBySSNet::label`.
-   * @param[in] ssnet_score_threshold    Threshold shower score
-   * @param[in] larmatch_score_threshold Threshold larmatch score
-   * @param[out] accept_v                Hits above threshold
-   * @param[out] reject_v                Hits below threshold
+   * Separates hits that already have SSNet scores (stored in renormed_shower_score)
+   * into track and shower containers based on the shower score threshold.
+   * This function modifies the input container by moving hits to output containers.
+   *
+   * Algorithm:
+   * 1. Check each hit's LArMatch quality score
+   * 2. Skip hits below quality threshold
+   * 3. Compare SSNet shower score to threshold
+   * 4. Move hits to appropriate output container (shower if score > threshold, track otherwise)
+   *
+   * Performance: Uses move semantics to avoid copying hit data.
+   *
+   * @param[in,out] larmatch_hit_v       Pre-labeled LArMatch hits (modified: hits are moved out)
+   * @param[in] ssnet_score_threshold    SSNet shower score threshold for classification
+   * @param[in] larmatch_score_threshold Minimum LArMatch quality score to process hit
+   * @param[out] accept_v                Output container for shower hits (score > threshold)
+   * @param[out] reject_v                Output container for track hits (score <= threshold)
    */
   void SplitHitsBySSNet::split( larlite::event_larflow3dhit& larmatch_hit_v,
                                 const float ssnet_score_threshold,
@@ -53,51 +80,68 @@ namespace reco {
                                 std::vector<larlite::larflow3dhit>& reject_v )
   {    
 
-    clock_t begin = clock();
+    clock_t begin = clock();  // Start timing for performance monitoring
     
+    // Prepare output containers
     accept_v.clear();
     reject_v.clear();
-    accept_v.reserve( larmatch_hit_v.size() );
+    accept_v.reserve( larmatch_hit_v.size() );  // Pre-allocate to avoid reallocations
     reject_v.reserve( larmatch_hit_v.size() );
 
-    int below_threshold = 0;
+    int below_threshold = 0;  // Counter for hits below LArMatch quality threshold
     
+    // Process each hit
     for ( auto& hit : larmatch_hit_v ) {
 
-      //std::cout << "hit[9]=" << hit[9] << std::endl;
+      // Quality filter: skip hits with low LArMatch scores
+      // hit[9] contains the LArMatch network confidence score
       if ( larmatch_score_threshold>0 && hit.size()>=10 && hit[9]<larmatch_score_threshold ) {
         below_threshold++;
-        continue;
+        continue;  // Skip this hit
       }
       
-      if ( hit.renormed_shower_score>ssnet_score_threshold ) {           
-        accept_v.emplace_back( std::move(hit) );
+      // Classify based on SSNet shower score
+      if ( hit.renormed_shower_score > ssnet_score_threshold ) {           
+        accept_v.emplace_back( std::move(hit) );  // Shower hit
       }
       else {
-        reject_v.emplace_back( std::move(hit) );
+        reject_v.emplace_back( std::move(hit) );  // Track hit
       }
     }
     
+    // Performance logging
     clock_t end = clock();
     double elapsed = double(end-begin)/CLOCKS_PER_SEC;
     
-    LARCV_INFO() << "original=" << larmatch_hit_v.size()
-                 << " accepted=" << accept_v.size()
-                 << " and rejected=" << reject_v.size()
-                 << " below-threshold=" << below_threshold
-                 << " elasped=" << elapsed << " secs"
+    LARCV_INFO() << "Split " << larmatch_hit_v.size() << " hits: "
+                 << "shower=" << accept_v.size()
+                 << ", track=" << reject_v.size()
+                 << ", below-threshold=" << below_threshold
+                 << ", elapsed=" << elapsed << " secs"
                  << std::endl;
     
   }
   
   /**
-   * @brief split-up container of larflow3dhit using ssnet output images
+   * @brief Split pre-labeled hits without modifying input container
    *
-   * @param[in] larmatch_hit_v           LArMatch hits, already run through `SplitHitsBySSNet::label`.
-   * @param[in] ssnet_score_threshold    Threshold shower score
-   * @param[in] larmatch_score_threshold Threshold larmatch score
-   * @param[out] accept_v                Hits above threshold
-   * @param[out] reject_v                Hits below threshold
+   * Same functionality as split() but preserves the input container by copying
+   * hits instead of moving them. Use this when you need to keep the original
+   * hit collection intact for further processing.
+   *
+   * Algorithm:
+   * 1. Check each hit's LArMatch quality score
+   * 2. Skip hits below quality threshold
+   * 3. Compare SSNet shower score to threshold
+   * 4. Copy hits to appropriate output container
+   *
+   * Performance: Less efficient than split() due to copying overhead.
+   *
+   * @param[in] larmatch_hit_v           Pre-labeled LArMatch hits (not modified)
+   * @param[in] ssnet_score_threshold    SSNet shower score threshold for classification
+   * @param[in] larmatch_score_threshold Minimum LArMatch quality score to process hit
+   * @param[out] accept_v                Output container for shower hits (score > threshold)
+   * @param[out] reject_v                Output container for track hits (score <= threshold)
    */
   void SplitHitsBySSNet::split_constinput( const larlite::event_larflow3dhit& larmatch_hit_v,
                                            const float ssnet_score_threshold,
@@ -106,98 +150,122 @@ namespace reco {
                                            std::vector<larlite::larflow3dhit>& reject_v )
   {    
 
-    clock_t begin = clock();
+    clock_t begin = clock();  // Start timing for performance monitoring
     
+    // Prepare output containers
     accept_v.clear();
     reject_v.clear();
-    accept_v.reserve( larmatch_hit_v.size() );
+    accept_v.reserve( larmatch_hit_v.size() );  // Pre-allocate to avoid reallocations
     reject_v.reserve( larmatch_hit_v.size() );
 
-    int below_threshold = 0;
+    int below_threshold = 0;  // Counter for hits below LArMatch quality threshold
     
+    // Process each hit (const iterator since we're not modifying input)
     for ( auto const& hit : larmatch_hit_v ) {
       
-      //std::cout << "hit[9]=" << hit[9] << std::endl;
+      // Quality filter: skip hits with low LArMatch scores
+      // hit[9] contains the LArMatch network confidence score
       if ( larmatch_score_threshold>0 && hit.size()>=10 && hit[9]<larmatch_score_threshold ) {
         below_threshold++;
-        continue;
+        continue;  // Skip this hit
       }
       
-      if ( hit.renormed_shower_score>ssnet_score_threshold ) {           
-        accept_v.push_back( hit );
+      // Classify based on SSNet shower score and copy to output
+      if ( hit.renormed_shower_score > ssnet_score_threshold ) {           
+        accept_v.push_back( hit );  // Copy shower hit
       }
       else {
-        reject_v.push_back( hit );
+        reject_v.push_back( hit );  // Copy track hit
       }
     }
     
+    // Performance logging
     clock_t end = clock();
     double elapsed = double(end-begin)/CLOCKS_PER_SEC;
     
-    LARCV_INFO() << "original=" << larmatch_hit_v.size()
-                 << " accepted=" << accept_v.size()
-                 << " and rejected=" << reject_v.size()
-                 << " below-threshold=" << below_threshold
-                 << " elasped=" << elapsed << " secs"
+    LARCV_INFO() << "Split " << larmatch_hit_v.size() << " hits (const): "
+                 << "shower=" << accept_v.size()
+                 << ", track=" << reject_v.size()
+                 << ", below-threshold=" << below_threshold
+                 << ", elapsed=" << elapsed << " secs"
                  << std::endl;
     
   }
   
   
   /**
-   * @brief label container of larflow3dhit using 2D track/shower ssnet output images
+   * @brief Add SSNet shower scores to LArMatch hits using 2D projection
    *
-   * calculates weighted ssnet score and modifies hit to carry value.
-   * the weighted ssnet score for the space point is in `larlite::larflow3dhit::renormed_shower_score`
+   * This function labels each 3D spacepoint with its SSNet shower score by:
+   * 1. Projecting the 3D point to 2D wire plane coordinates
+   * 2. Looking up SSNet scores at projected pixel locations
+   * 3. Computing a weighted average score across planes
+   * 4. Storing the result in hit.renormed_shower_score
    *
-   * @param[in] ssnet_score_v            SSNet shower score images for each plane
-   * @param[inout] larmatch_hit_v        LArMatch hits, modified
+   * The 3D hit projects to three 2D locations:
+   * - Plane 0 (U): (tick, targetwire[0])
+   * - Plane 1 (V): (tick, targetwire[1]) 
+   * - Plane 2 (Y): (tick, srcwire)
+   *
+   * Algorithm details:
+   * - Only non-zero scores are included in average
+   * - If no valid scores found, renormed_shower_score = 0.0
+   * - Score represents shower-likeness (0=track, 1=shower)
+   *
+   * @param[in] ssnet_score_v     Vector of SSNet shower score images (one per wire plane)
+   * @param[in,out] larmatch_hit_v LArMatch hits to label (modified in place)
    */
   void SplitHitsBySSNet::label( const std::vector<larcv::Image2D>& ssnet_score_v,
                                 larlite::event_larflow3dhit& larmatch_hit_v )
   {
     
-    clock_t begin = clock();
+    clock_t begin = clock();  // Start timing for performance monitoring
     
+    // Cache image metadata for efficient pixel access
     std::vector< const larcv::ImageMeta* > meta_v( ssnet_score_v.size(),0);
     for ( size_t p=0; p<ssnet_score_v.size(); p++ )
       meta_v[p] = &(ssnet_score_v[p].meta());
 
-    int below_threshold = 0;
-    
+    // Process each 3D hit
     for ( auto & hit : larmatch_hit_v ) {
       
+      // Get SSNet score at projected 2D locations for each wire plane
       std::vector<float> scores(3,0);
-      scores[0] = ssnet_score_v[0].pixel( meta_v[0]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[0], __FILE__, __LINE__ );
-      scores[1] = ssnet_score_v[1].pixel( meta_v[1]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[1], __FILE__, __LINE__ );
-      scores[2] = ssnet_score_v[2].pixel( meta_v[2]->row( hit.tick, __FILE__, __LINE__ ), hit.srcwire,       __FILE__, __LINE__ );
+      scores[0] = ssnet_score_v[0].pixel( meta_v[0]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[0], __FILE__, __LINE__ );  // U plane
+      scores[1] = ssnet_score_v[1].pixel( meta_v[1]->row( hit.tick, __FILE__, __LINE__ ), hit.targetwire[1], __FILE__, __LINE__ );  // V plane
+      scores[2] = ssnet_score_v[2].pixel( meta_v[2]->row( hit.tick, __FILE__, __LINE__ ), hit.srcwire,       __FILE__, __LINE__ );  // Y plane
 
-      // condition ... gather metrics
-      int n_w_score = 0;
-      float tot_score = 0.;
-      float max_score = 0.;
-      float min_non_zero = 1.;
+      // Calculate statistics for score aggregation
+      int n_w_score = 0;      // Number of planes with non-zero scores
+      float tot_score = 0.;   // Sum of all scores
+      float max_score = 0.;   // Maximum score across planes
+      
       for ( auto s : scores ) {
-        if ( s>0 ) n_w_score++;
-        tot_score += s;
-        if ( max_score<s )
-          max_score = s;
-        if ( s>1 && s<min_non_zero )
-          min_non_zero = 0;
+        if ( s > 0 ) {
+          n_w_score++;
+          tot_score += s;
+          if ( max_score < s )
+            max_score = s;
+        }
       }
-      // we form a weighted average of the score
-
-      float weighted_score = tot_score/float(n_w_score);
-      if ( n_w_score>0 )
+      
+      // Store weighted average score in hit
+      if ( n_w_score > 0 ) {
+        float weighted_score = tot_score / float(n_w_score);
         hit.renormed_shower_score = weighted_score;
-      else
-        hit.renormed_shower_score = 0.;
-    }//end of hit loop
+      }
+      else {
+        hit.renormed_shower_score = 0.0;  // No valid SSNet scores found
+      }
+      
+    }  // end of hit loop
     
+    // Performance logging
     clock_t end = clock();
     double elapsed = double(end-begin)/CLOCKS_PER_SEC;
     
-    LARCV_INFO() << " elasped=" << elapsed << " secs" << std::endl;
+    LARCV_INFO() << "Labeled " << larmatch_hit_v.size() << " hits with SSNet scores, "
+                 << "elapsed=" << elapsed << " secs" << std::endl;
     
   }
   
