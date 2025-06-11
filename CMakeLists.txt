@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(larflow VERSION 0.1)
 
-set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 #---Install location by default is in the build directory
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -122,6 +122,33 @@ if(TARGET xgboost::xgboost)
     message(STATUS "XGBoost include dirs: ${xgboost_include_dirs}")
 else()
     message(STATUS "XGBoost target does not exist")
+endif()
+
+## Torch
+# --- Torch
+if (ON_FNAL)
+  # For FNAL
+  set( TBB_DIR "ENV{TBB_FQ_DIR}/lib" )
+  find_package( TBB REQUIRED )
+  set( Torch_DIR "$ENV{LIBTORCH_FQ_DIR}/share/cmake/Torch" )
+  message( STATUS "Set Torch_DIR to find cmake: ${Torch_DIR}" )
+else()
+  # this is the container path
+  set( Torch_DIR /usr/local/lib/python3.8/dist-packages/torch/share/cmake/Torch )
+endif()
+set(USE_CUDA OFF)
+set(USE_CUDNN OFF)
+set(USE_KINETO OFF)
+set(USE_TENSORRT OFF)
+set(TORCH_CUDA_ARCH_LIST "6.0;6.1;7.0;7.5;8.0;8.6")
+#set(TORCH_CUDA_ARCH_LIST "3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0")
+find_package( Torch )
+
+## prongCNN
+if ( TORCH_FOUND )
+  set( larpid_DIR "$ENV{LARPID_DIR}/lib/cmake/larpid")
+  message( STATUS "looking for larpid cmake files at: ${larpid_DIR}")
+  find_package( larpid )
 endif()
   
 ## Setup
