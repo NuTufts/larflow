@@ -21,201 +21,286 @@ namespace larflow {
 namespace reco {
 
   /** 
-   * @brief set default parameter values
+   * @brief Initialize algorithm parameters to sensible defaults for neutrino vertex reconstruction
    *
+   * Sets parameters optimized for MicroBooNE neutrino vertex finding:
+   * - Gaussian suppression: 5.0 cm (typical vertex size scale)
+   * - Score thresholds: 0.5 for both LArMatch and keypoint networks
+   * - DBSCAN clustering: 2.0 cm radius (vertex-scale feature grouping)
+   * - Minimum cluster size: 50 hits (substantial feature requirement)
+   * - Single reconstruction pass (simple case)
+   * - Standard I/O tree names for LArFlow workflow integration
+   * - Physics keypoint type names for human-readable logging
+   *
+   * These defaults work well for most neutrino vertex reconstruction tasks.
+   * Specific keypoint types or detector configurations may require tuning.
    */
   void KeypointReco::set_param_defaults()
   {
-    _sigma = 5.0; // cm
-    _larmatch_score_threshold = 0.5;    
-    _num_passes = 1;
-    _keypoint_score_threshold_v = std::vector<float>( 2, 0.5 );
-    _min_cluster_size_v = std::vector<int>(2,50);
-    _max_dbscan_dist = 2.0;
-    _input_larflowhit_tree_name = "larmatch";
-    _output_tree_name = "keypoint";
-    _keypoint_type = -1;
-    _threshold_cluster_max_score = 0.5;
+    _sigma = 5.0; // cm - Gaussian suppression bandwidth
+    _larmatch_score_threshold = 0.5;    // Medium quality spacepoint requirement
+    _num_passes = 1;                    // Single pass reconstruction
+    _keypoint_score_threshold_v = std::vector<float>( 2, 0.5 );  // Medium confidence threshold
+    _min_cluster_size_v = std::vector<int>(2,50);               // Substantial cluster requirement
+    _max_dbscan_dist = 2.0;            // cm - Vertex-scale clustering
+    _input_larflowhit_tree_name = "larmatch";  // Standard LArFlow input
+    _output_tree_name = "keypoint";            // Standard keypoint output
+    _keypoint_type = -1;                       // Unspecified type (must be set)
+    _threshold_cluster_max_score = 0.5;        // Quality control threshold
+    
+    // Human-readable keypoint type names for logging and debugging
     __keypoint_type_names.resize(6);
-    __keypoint_type_names[0] = "nu";
-    __keypoint_type_names[1] = "trackstart";
-    __keypoint_type_names[2] = "trackend";
-    __keypoint_type_names[3] = "shower";
-    __keypoint_type_names[4] = "michel";
-    __keypoint_type_names[5] = "delta";
+    __keypoint_type_names[0] = "nu";          // Neutrino interaction vertex
+    __keypoint_type_names[1] = "trackstart";  // Track starting point
+    __keypoint_type_names[2] = "trackend";    // Track ending point
+    __keypoint_type_names[3] = "shower";      // Electromagnetic shower start
+    __keypoint_type_names[4] = "michel";      // Michel electron vertex
+    __keypoint_type_names[5] = "delta";       // Delta ray interaction point
   }
 
+  /**
+   * @brief Reset all output containers and algorithm state for new event processing
+   *
+   * Clears all data structures to prepare for processing a new event:
+   * - output_pt_v: Reconstructed keypoint clusters from previous event
+   * - _cluster_v: Intermediate DBSCAN cluster objects
+   * - _initial_pt_pos_v: Working point data with updated scores
+   * - _initial_pt_used_v: Point usage flags
+   *
+   * Call this before processing each new event to ensure clean algorithm state.
+   * Essential for proper multi-event processing in analysis frameworks.
+   */
   void KeypointReco::clear_output()
   {
-    output_pt_v.clear();    
-    _cluster_v.clear();
-    _initial_pt_pos_v.clear();
-    _initial_pt_used_v.clear();
+    output_pt_v.clear();              // Clear reconstructed keypoint clusters
+    _cluster_v.clear();               // Clear intermediate cluster data
+    _initial_pt_pos_v.clear();        // Clear working point coordinates/scores
+    _initial_pt_used_v.clear();       // Clear point usage tracking
   }
   
   /**
-   * @brief take in storage manager, get larflow3dhits, which stores keypoint scores, 
-   * make candidate KPCluster, and store them as larflow3dhit 
+   * @brief Process keypoint reconstruction using I/O framework integration
    *
-   */  
+   * High-level interface that manages data I/O using the larlite storage framework.
+   * Loads spacepoints from the configured input tree, executes reconstruction,
+   * and saves results to output trees with proper data format conversion.
+   *
+   * Algorithm workflow:
+   * 1. **Data Loading**: Read spacepoints from _input_larflowhit_tree_name
+   * 2. **Reconstruction**: Execute core algorithm via process(vector) method
+   * 3. **Format Conversion**: Convert KPCluster objects to larlite format
+   * 4. **Data Saving**: Store keypoints and PCA data to output trees
+   *
+   * Output data products:
+   * - larflow3dhit objects containing keypoint positions and metadata
+   * - pcaxis objects containing PCA analysis (shape characterization)
+   *
+   * @param io_ll larlite storage manager for reading input and writing output
+   */
   void KeypointReco::process( larlite::storage_manager& io_ll )
   {
+    // Load input spacepoints with keypoint network scores
     larlite::event_larflow3dhit* ev_larflow_hit
       = (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, _input_larflowhit_tree_name );
 
-    LARCV_NORMAL() << "processing " << ev_larflow_hit->size() << " input hits from tree=" << _input_larflowhit_tree_name << std::endl;
+    LARCV_NORMAL() << "Processing " << ev_larflow_hit->size() << " input spacepoints from tree=\"" 
+                   << _input_larflowhit_tree_name << "\"" << std::endl;
     
+    // Execute core reconstruction algorithm
     process( *ev_larflow_hit );
 
-    // save into larlite::storage_manager
-    // we need our own data product, but for now we use abuse the larflow3dhit
+    // Prepare output containers for results
     larlite::event_larflow3dhit* evout_keypoint =
       (larlite::event_larflow3dhit*)io_ll.get_data( larlite::data::kLArFlow3DHit, _output_tree_name );
     larlite::event_pcaxis* evout_pcaxis =
       (larlite::event_pcaxis*)io_ll.get_data( larlite::data::kPCAxis, _output_tree_name );
 
-    int cidx=0;
+    // Convert KPCluster objects to larlite data format and save
+    int cidx = 0;
     for ( auto const& kpc : output_pt_v ) {
       
+      // Convert cluster to standard larflow3dhit format
+      // This includes 3D position, keypoint type, and confidence score
       larlite::larflow3dhit hit = kpc.as_larflow_hit();
-      // std::vector<double> vtxpos(3);
-      // hit.resize( 5, 0 ); // [0-2]: hit pos, [3]: type, [4]: max net score
-      // for (int i=0; i<3; i++) {
-      //   hit[i] = kpc.max_pt_v[i]; // use hit with maximum keypoint score
-      // 	//hit[i] = kpc.center_avg_pt_v[i]; // use (keypoint score)^2 weighted position.
-      // 	//hit[i] = kpc.center_pt_v[i]; // use Gaussian fit position (not good, deprecated)
-      //   vtxpos[i] = kpc.max_pt_v[i];
-      // }
-      // hit[3] = kpc._cluster_type;
-      // hit[4] = kpc.max_score;
 
-      // hit.targetwire.resize( 3, 0 );
-      // for  (int p=0; p<3; p++) 
-      //   hit.targetwire[p] = larutil::Geometry::GetME()->WireCoordinate( vtxpos, p );
-      // hit.tick = vtxpos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5+3200;
-      
-      // pca-axis
-      // larlite::pcaxis::EigenVectors e_v;
-      // // just std::vector< std::vector<double> >
-      // // we store axes (3) and then the 1st axis end points. So five vectors.
-      // for ( auto const& a_v : kpc.pca_axis_v ) {
-      //   std::vector<double> da_v = { (double)a_v[0], (double)a_v[1], (double) a_v[2] };
-      //   e_v.push_back( da_v );
-      // }
-      // // start and end points
-      // for ( auto const& p_v : kpc.pca_ends_v ) {
-      //   std::vector<double> dp_v = { (double)p_v[0], (double)p_v[1], (double)p_v[2] };
-      //   e_v.push_back( dp_v );
-      // }
-      // double eigenval[3] = { kpc.pca_eigenvalues[0], kpc.pca_eigenvalues[1], kpc.pca_eigenvalues[2] };
-      // double centroid[3] = { kpc.pca_center[0], kpc.pca_center[1], kpc.pca_center[2] };
-      // larlite::pcaxis llpca( true, kpc.pt_pos_v.size(), eigenval, e_v, centroid, 0, cidx);
+      // Convert cluster PCA analysis to standard pcaxis format
+      // This includes eigenvalues, eigenvectors, and shape characterization
       larlite::pcaxis llpca = kpc.get_pcaxis(cidx);
+      
+      // Store both data products with matching indices
       evout_keypoint->emplace_back( std::move(hit) );
       evout_pcaxis->emplace_back( std::move(llpca) );
       cidx++;
     }
+    
+    // Log reconstruction results
+    std::string kptypename = (_keypoint_type >= 0 && _keypoint_type < 6) ? 
+                             __keypoint_type_names[_keypoint_type] : "(unspecified)";
+    LARCV_NORMAL() << "Reconstructed " << output_pt_v.size() << " keypoints of type \"" 
+                   << kptypename << "\" (ID=" << _keypoint_type << ")" << std::endl;
   }
   
   /**
-   * @brief take in larflow3dhits, which stores keypoint scores, and make candidate KPCluster
+   * @brief Core keypoint reconstruction algorithm operating on spacepoint vectors
    *
-   * @param[in] input_lfhits Vector of larflow3dhit with larmatch and keypoint scores
+   * This is the main algorithmic entry point that implements the multi-pass keypoint
+   * reconstruction with score suppression. The algorithm identifies prominent features
+   * in the keypoint score landscape through iterative clustering and suppression.
    *
+   * Algorithm phases:
+   * 1. **Data Preparation**: Filter and organize input spacepoints by score thresholds
+   * 2. **Multi-pass Clustering**: For each configured pass:
+   *    - Select points above current threshold
+   *    - Apply DBSCAN spatial clustering
+   *    - Characterize and fit cluster centroids
+   *    - Suppress nearby point scores to prevent double-counting
+   * 3. **Quality Control**: Apply minimum cluster size and score requirements
+   * 4. **Logging**: Output reconstruction statistics and debug information
+   *
+   * The multi-pass approach captures features at different prominence scales:
+   * - Early passes find the most confident, prominent features
+   * - Later passes with lower thresholds find weaker features
+   * - Score suppression prevents the same physical feature from being found multiple times
+   *
+   * Results stored in output_pt_v as fully characterized KPCluster objects.
+   *
+   * @param input_lfhits Vector of spacepoints with LArMatch and keypoint network scores
    */
   void KeypointReco::process( const std::vector<larlite::larflow3dhit>& input_lfhits )
   {
-    
+    // Phase 1: Prepare filtered point data for clustering
     _make_initial_pt_data( input_lfhits, _keypoint_score_threshold_v.front(), _larmatch_score_threshold );
 
+    // Phase 2: Multi-pass clustering with progressively relaxed thresholds
     for (int i=0; i<_num_passes; i++ ) {
-      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << std::endl;
+      LARCV_INFO() << "Keypoint reconstruction pass " << i+1 << "/" << _num_passes << std::endl;
+      
+      // Execute clustering for this pass
       _make_kpclusters( _keypoint_score_threshold_v[i], _min_cluster_size_v[i] );
-      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", clusters formed: " << output_pt_v.size() << std::endl;
-      int nabove=0;
+      
+      // Log progress for this pass
+      LARCV_INFO() << "Pass " << i+1 << ": " << output_pt_v.size() << " total clusters found" << std::endl;
+      
+      // Count remaining candidate points above threshold
+      int nabove = 0;
       for (auto& posv : _initial_pt_pos_v ) {
-        if (posv[3]>_keypoint_score_threshold_v[i]) nabove++;
+        if (posv[3] > _keypoint_score_threshold_v[i]) nabove++;
       }
-      LARCV_INFO() << "[KeypointReco::process] Pass " << i+1 << ", points remaining above threshold" << nabove << "/" << _initial_pt_pos_v.size() << std::endl;
+      LARCV_INFO() << "Pass " << i+1 << ": " << nabove << "/" << _initial_pt_pos_v.size() 
+                   << " points remain above threshold" << std::endl;
     }
 
-    if ( logger().level()<=larcv::msg::kDEBUG )
-      printAllKPClusterInfo();
-    std::string kptypename = "(none)";
-    if (_keypoint_type>=0 && _keypoint_type<6 )
-      kptypename = __keypoint_type_names[_keypoint_type];
-    LARCV_NORMAL() << "[ KeypointReco::process (type=" << kptypename <<  "[id=" << _keypoint_type << "], hitindex=" << _lfhit_score_index << ") ] "
-		   << "num kpclusters = " << output_pt_v.size()
-		   << std::endl;
+    // Phase 3: Debug output and final logging
+    if ( logger().level() <= larcv::msg::kDEBUG ) {
+      printAllKPClusterInfo();  // Detailed cluster information for debugging
+    }
+    
+    // Generate human-readable summary
+    std::string kptypename = (_keypoint_type >= 0 && _keypoint_type < 6) ? 
+                             __keypoint_type_names[_keypoint_type] : "(unspecified)";
+    LARCV_NORMAL() << "Keypoint reconstruction complete: type=\"" << kptypename 
+                   << "\" (ID=" << _keypoint_type << ", score_index=" << _lfhit_score_index 
+                   << ") → " << output_pt_v.size() << " keypoint clusters" << std::endl;
   }
   
   /**
-   * @brief scan larflow3dhit input and assemble 3D keypoint data we will work on.
+   * @brief Filter and prepare spacepoint data for clustering algorithm
    *
-   * we select points by filttering based on the score_threshold.
-   * clears and fills:
-   * @verbatim embed:rst:leading-asterisk
-   *  * _initial_pt_pos_v;
-   *  * _initial_pt_used_v;
-   * @endverbatim
+   * This method performs the first phase of keypoint reconstruction by filtering
+   * the input spacepoints based on quality thresholds and organizing them into
+   * the internal working format used by the clustering algorithm.
    *
-   * @param[in] lfhits          LArFlow hits with keypoint network info
-   * @param[in] keypoint_score_threshold Only cluster hits with keypoint score above this threshold
-   * @param[in] larmatch_score_threshold Only cluster hits with larmatch score above this threshold
+   * Filtering criteria:
+   * - Keypoint network score ≥ keypoint_score_threshold
+   * - LArMatch reconstruction score ≥ larmatch_score_threshold
    *
+   * Data organization:
+   * - Creates working point array: (x, y, z, current_keypoint_score, larmatch_score)
+   * - Initializes usage flags for score suppression tracking
+   * - Computes score statistics for algorithm monitoring
+   *
+   * The current_keypoint_score (index 3) will be modified during reconstruction
+   * via Gaussian suppression to prevent double-counting of the same features.
+   *
+   * @param lfhits Input spacepoints with network scores
+   * @param keypoint_score_threshold Minimum keypoint network confidence
+   * @param larmatch_score_threshold Minimum LArMatch reconstruction quality
+   *
+   * Populates: _initial_pt_pos_v (working coordinates/scores), _initial_pt_used_v (usage tracking)
    */
   void KeypointReco::_make_initial_pt_data( const std::vector<larlite::larflow3dhit>& lfhits,
                                             const float keypoint_score_threshold,
                                             const float larmatch_score_threshold )
   {
-
+    // Clear previous event data
     _initial_pt_pos_v.clear();
     _initial_pt_used_v.clear();
 
+    // Track score statistics for algorithm monitoring
     float min_score = 100.0;
-    float max_score = 0.;
+    float max_score = 0.0;
 
+    // Filter spacepoints based on quality thresholds
     for (auto const& lfhit : lfhits ) {
-      const float& kp_score = lfhit[_lfhit_score_index];
-      const float& lm_score = lfhit[9];
-      if ( kp_score>keypoint_score_threshold && lm_score>larmatch_score_threshold ) {
-        std::vector<float> pos3d(5,0);
-        for (int i=0; i<3; i++) pos3d[i] = lfhit[i];
-        //pos3d[3] = (kp_score<1.0) ? kp_score : 1.0;
-        pos3d[3] = kp_score;
-        pos3d[4] = lm_score;
-        if ( kp_score < min_score )
-          min_score = kp_score;
-        if ( max_score < kp_score )
-          max_score = kp_score;
+      const float& kp_score = lfhit[_lfhit_score_index];  // Keypoint network score
+      const float& lm_score = lfhit[9];                   // LArMatch score (standard index)
+      
+      // Apply dual quality filter
+      if ( kp_score > keypoint_score_threshold && lm_score > larmatch_score_threshold ) {
+        
+        // Create working point data: (x, y, z, current_kp_score, lm_score)
+        std::vector<float> pos3d(5, 0);
+        for (int i=0; i<3; i++) pos3d[i] = lfhit[i];  // 3D coordinates
+        pos3d[3] = kp_score;  // Current keypoint score (will be modified by suppression)
+        pos3d[4] = lm_score;  // LArMatch score (unchanged)
+        
+        // Update score statistics
+        if ( kp_score < min_score ) min_score = kp_score;
+        if ( kp_score > max_score ) max_score = kp_score;
+        
         _initial_pt_pos_v.push_back( pos3d );
       }
     }
 
+    // Initialize usage tracking (0 = available, 1 = consumed by cluster)
     _initial_pt_used_v.resize( _initial_pt_pos_v.size(), 0 );
 
-    LARCV_NORMAL() << "num for reco = "
-		   << _initial_pt_pos_v.size()
-		   << " / "
-		   << lfhits.size()
-		   << " min-score=" << min_score << " max-score=" << max_score
-		   << std::endl;
-    
+    // Log data preparation results
+    LARCV_NORMAL() << "Data preparation complete: " << _initial_pt_pos_v.size() << " / "
+		   << lfhits.size() << " spacepoints passed thresholds, score range: " 
+		   << min_score << " → " << max_score << std::endl;
   }
 
   /**
-   * @brief Make clusters with remaining points
+   * @brief Execute one pass of the clustering and suppression algorithm
    *
-   * fills member cluster container, output_pt_v.
-   * internal data members used:
-   * @verbatim embed:rst:leading-asterisk
-   *  * _initial_pt_pos_v: the list of points (x,y,z,current score)
-   *  * _initial_pt_used_v: ==1 if the point has been claimed
-   * @endverbatim
-   * 
-   * @param[in] keypoint_score_threshold Keypoint score threshold
-   * @param[in] min_cluster_size Minimum size of keypoint hit cluster
+   * This method implements the core reconstruction logic for a single pass:
+   * spatial clustering of high-scoring points, cluster characterization and fitting,
+   * quality control, and Gaussian score suppression to prevent double-counting.
    *
+   * Algorithm steps:
+   * 1. **Point Selection**: Collect unused points above current threshold
+   * 2. **Spatial Clustering**: Apply DBSCAN to group nearby high-scoring points
+   * 3. **Cluster Analysis**: Characterize each cluster (basic stats + advanced fitting)
+   * 4. **Quality Control**: Filter by cluster size and maximum score requirements
+   * 5. **Score Suppression**: Reduce scores of nearby points using Gaussian kernel
+   * 6. **Storage**: Add accepted clusters to output container
+   *
+   * The Gaussian suppression is critical for multi-pass reconstruction:
+   * - Suppression radius controlled by _sigma parameter (typically 3-8 cm)
+   * - Score reduction: new_score = old_score - cluster_max_score * exp(-dist²/2σ²)
+   * - Points with suppressed scores ≤ 0 are marked as used
+   * - Prevents the same physical feature from being reconstructed multiple times
+   *
+   * Quality control ensures robust reconstruction:
+   * - Minimum 4 points per cluster (basic geometric requirement)
+   * - Configurable minimum cluster size (statistical significance)
+   * - Maximum score threshold (confidence requirement)
+   *
+   * @param keypoint_score_threshold Minimum score for point inclusion in this pass
+   * @param min_cluster_size Minimum number of points required for cluster acceptance
+   *
+   * Results added to output_pt_v container and _cluster_v for analysis.
    */
   void KeypointReco::_make_kpclusters( float keypoint_score_threshold, int min_cluster_size )
   {
@@ -290,7 +375,7 @@ namespace reco {
       
       output_pt_v.emplace_back( std::move(kpc) );
     }
-    LARCV_INFO() << "[larflow::KeypointReco::_make_kpclusters] number of clusters=" << output_pt_v.size() << std::endl;
+    LARCV_INFO() << "number of clusters=" << output_pt_v.size() << std::endl;
     
   }
 
