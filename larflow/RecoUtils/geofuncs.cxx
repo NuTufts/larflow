@@ -269,5 +269,9 @@ namespace recoutils {
 
   }
 
+  // Explicit template instantiations
+  template float pointRayProjection<float>(const std::vector<float>&, const std::vector<float>&, const std::vector<float>&);
+  template double pointRayProjection<double>(const std::vector<double>&, const std::vector<double>&, const std::vector<double>&);
+
 }
 }
