@@ -75,36 +75,37 @@ namespace reco {
             LARCV_INFO() << "track_dir_v.size()=" << nuvtx.track_dir_v.size() << std::endl;
             LARCV_INFO() << "track ntrajpts=" << track.NumberTrajectoryPoints() << std::endl;
 
-            std::vector<float> track_start(3,0);
-            for (size_t i=0; i<3; i++)
-                track_start[i] = track.LocationAtPoint(0)[i];
-
-            //std::vector<float> track_dir(3,0);
-            // int itrackpt = 3;
-            // if ( itrackpt >= track.NumberTrajectoryPoints() )
-            //     itrackpt = track.NumberTrajectoryPoints()-1;
-            // float tracklen = 0.;
-            // for (int i=0; i<3; i++) {
-            //     track_dir[i] = track.LocationAtPoint(itrackpt)[i]-track_start[i];
-            //     tracklen += track_dir[i]*track_dir[i];
-            // }
-            // tracklen = sqrt(tracklen);
-            // if ( tracklen>0 ) {
-            //     for (int i=0; i<3; i++)
-            //         track_dir[i] /= tracklen;
-            // }
-	        std::vector<float> track_dir = nuvtx.track_dir_v.at(trackidx);
-
-            std::vector<float> prong_dists 
-                = getHitDistancesFromProngEnds( nuvtx.pos, track_start, track_dir, nearby_hits_v );
-            for (int ipt=0; ipt<(int)prong_dists.size(); ipt++)
-                dist_data.set( ipt, iprong, prong_dists[ipt] );
-            iprong++;
+	        if ( track.NumberTrajectoryPoints()>=2 ) {
+	          std::vector<float> track_start(3,0);
+	          for (size_t i=0; i<3; i++)
+                    track_start[i] = track.LocationAtPoint(0)[i];
+    
+	          std::vector<float> track_dir = nuvtx.track_dir_v.at(trackidx);
+              // for debug
+	          //   std::cout << "track_dir=(" << track_dir[0] << ", " << track_dir[1] << "," << track_dir[2] << ")" << std::endl;
+	          //   std::cout << "pos=(" << nuvtx.pos[0] << "," << nuvtx.pos[1] << "," << nuvtx.pos[2] << ")" << std::endl;
+	          //   std::cout << "pos=(" << track_start[0] << "," << track_start[1] << "," << track_start[2] << ")" << std::endl;
+	          //   std::cout << "nearby_hits_v.size()=" << nearby_hits_v.size() << std::endl;
+	          std::vector<float> prong_dists;
+	          try {
+		        prong_dists
+		          = getHitDistancesFromProngEnds( nuvtx.pos, track_start, track_dir, nearby_hits_v );
+	          }
+	          catch ( std::exception& e ) {
+		        LARCV_ERROR() << e.what() << std::endl;
+		        throw std::runtime_error("error calling: getHitDistancesFromProngEnds");
+	          }
+	          std::cout << "prong_dists.size()=" << prong_dists.size() << std::endl;
+	          for (int ipt=0; ipt<(int)prong_dists.size(); ipt++)
+                    dist_data.set( ipt, iprong, prong_dists[ipt] );
+	          iprong++;
+	        }
         }
 
         for (auto const& showeridx : prim_shower_indices )  {
 
             const larlite::track& shower_trunk = nuvtx.shower_trunk_v.at(showeridx);
+            LARCV_INFO() << "shower[idx=" << showeridx << "] of nuvtx.shower_trunk_v.size()="  << nuvtx.shower_trunk_v.size() << std::endl;
 
             std::vector<float> shower_start(3,0);
             std::vector<float> shower_dir(3,0);
