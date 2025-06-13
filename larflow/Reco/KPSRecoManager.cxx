@@ -51,6 +51,12 @@ namespace reco {
     _ana_tree->Branch( "nu_sel_v", &_nu_sel_v );
     _ana_tree->Branch( "nu_perfect_v", &_nu_perfect_v );
 
+    // variables for flash prediction results
+    _ana_tree->Branch( "nu_predicted_flash_v", &_nu_predicted_flash_v );
+    _ana_tree->Branch( "nu_predicted_flash_primonly_v", &_nu_predicted_flash_primonly_v );
+    _ana_tree->Branch( "nuflash_sinkdiv_vv", &_nuflash_sinkdiv_vv);
+    _ana_tree->Branch( "nuflash_sinkdiv_primonly_vv", &_nuflash_sinkdiv_primonly_vv);
+
     _nuvertex_shower_reco.activateMCanalysisMode( true );
     
   }
@@ -77,6 +83,13 @@ namespace reco {
 
     _nu_sel_v.clear(); ///< clear vertex selection variable container
     _nu_perfect_v.clear(); ///< clear perfect reco
+
+    // clear flash-related 
+    _nu_predicted_flash_v.clear();
+    _nu_predicted_flash_primonly_v.clear();
+    _nuflash_sinkdiv_vv.clear();
+    _nuflash_sinkdiv_primonly_vv.clear();
+
 
     // clear storage of mcdetectable photons (might be filled by NuVertexShowerReco
     _event_mcshower_v->clear();

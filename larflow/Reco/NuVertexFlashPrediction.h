@@ -46,7 +46,8 @@ namespace reco {
       const NuVertexCandidate& vertex_candidate,
       const std::vector<larcv::Image2D>& adc_v,
       const float threshold = 10.0,
-      const bool use_trilinear = true
+      const bool use_trilinear = true,
+      const bool primary_prongs_only = false
     );
     
     /**
@@ -163,12 +164,14 @@ namespace reco {
      * @param adc_v Vector of ADC images
      * @param threshold ADC threshold
      * @param use_trilinear Use trilinear interpolation
+     * @param primary_prongs_only If true, exclude secondary tracks to the flash prediction
      */
     void processTracks(
       const NuVertexCandidate& vertex_candidate,
       const std::vector<larcv::Image2D>& adc_v,
       const float threshold,
-      const bool use_trilinear
+      const bool use_trilinear,
+      const bool primary_prongs_only
     );
     
     /**
@@ -177,12 +180,14 @@ namespace reco {
      * @param adc_v Vector of ADC images
      * @param threshold ADC threshold
      * @param use_trilinear Use trilinear interpolation
+     * @param primary_prongs_only If true, exclude secondary showers to the flash prediction
      */
     void processShowers(
       const NuVertexCandidate& vertex_candidate,
       const std::vector<larcv::Image2D>& adc_v,
       const float threshold,
-      const bool use_trilinear
+      const bool use_trilinear,
+      const bool primary_prongs_only
     );
     
   private:

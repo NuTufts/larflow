@@ -33,7 +33,8 @@ namespace reco {
     const NuVertexCandidate& vertex_candidate,
     const std::vector<larcv::Image2D>& adc_v,
     const float threshold,
-    const bool use_trilinear
+    const bool use_trilinear,
+    const bool primary_prongs_only
   ) {
     
     LARCV_DEBUG() << "Starting flash prediction for vertex candidate with " 
@@ -54,10 +55,10 @@ namespace reco {
     }
     
     // Process tracks
-    processTracks(vertex_candidate, adc_v, threshold, use_trilinear);
+    processTracks(vertex_candidate, adc_v, threshold, use_trilinear, primary_prongs_only);
     
     // Process showers  
-    processShowers(vertex_candidate, adc_v, threshold, use_trilinear);
+    processShowers(vertex_candidate, adc_v, threshold, use_trilinear, primary_prongs_only);
     
     // Create opflash object with predicted values
     std::vector<double> pe_per_opdet;
@@ -160,7 +161,8 @@ namespace reco {
     const NuVertexCandidate& vertex_candidate,
     const std::vector<larcv::Image2D>& adc_v,
     const float threshold,
-    const bool use_trilinear
+    const bool use_trilinear,
+    const bool primary_prongs_only
   ) {
     
     LARCV_DEBUG() << "Processing " << vertex_candidate.track_v.size() << " tracks" << std::endl;
@@ -178,6 +180,10 @@ namespace reco {
         LARCV_WARNING() << "Skipping track " << itrack 
                         << " with invalid number of trajectory points: " << num_points << std::endl;
         continue;
+      }
+
+      if ( primary_prongs_only && vertex_candidate.track_isSecondary_v.at(itrack)==1 ) {
+        LARCV_DEBUG() << "Skipping seconday track (index=" << itrack << ")" << std::endl;
       }
       
       LARCV_DEBUG() << "Processing track " << itrack 
@@ -263,7 +269,8 @@ namespace reco {
     const NuVertexCandidate& vertex_candidate,
     const std::vector<larcv::Image2D>& adc_v,
     const float threshold,
-    const bool use_trilinear
+    const bool use_trilinear,
+    const bool primary_prongs_only
   ) {
     
     LARCV_DEBUG() << "Processing " << vertex_candidate.shower_v.size() << " showers" << std::endl;
@@ -280,6 +287,10 @@ namespace reco {
         LARCV_WARNING() << "Skipping shower " << ishower 
                         << " with too few hits: " << shower.size() << std::endl;
         continue;
+      }
+
+      if ( primary_prongs_only && vertex_candidate.shower_isSecondary_v.at(ishower)==1 ) {
+        LARCV_DEBUG() << "Skipping seconday shower (index=" << ishower << ")" << std::endl;
       }
       
       LARCV_DEBUG() << "Processing shower " << ishower 

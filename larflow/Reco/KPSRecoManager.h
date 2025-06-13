@@ -62,6 +62,8 @@
 #include "NuSelUnrecoCharge.h"
 #include "NuSelCosmicTagger.h"
 #include "TrackForwardBackwardLL.h"
+#include "NuVertexFlashPrediction.h"
+#include "SinkhornFlashDivergence.h"
 
 #include "larflow/RecoUtils/CompressRecoTrack.h"
 
@@ -159,6 +161,10 @@ namespace reco {
 
     //TrackTruthRecoAna   _track_truthreco_ana; ///< match reco tracks to truth for performance studies
 
+    // Light Model predictions for selections
+    NuVertexFlashPrediction _nuvertex_flash_predictor;  ///< uses the reco prongs to build a prediction for the in-time flash
+    SinkhornFlashDivergence _sinkhorn_flash_calculator; ///< calculates the sinkhorn divergence between the predicted and observed opflash
+
     // Selection Variable Modules
     LikelihoodProtonMuon _sel_llpmu; ///< proton vs. muon likelihood ratio
     ShowerdQdx           _sel_showerdqdx; ///< shower dq/dx calculation
@@ -235,6 +241,11 @@ namespace reco {
     std::vector< larflow::reco::KPCluster >            _event_kpc_track_v; ///< stores reconstructed keypoints
     std::vector< larflow::reco::KPCluster >            _event_kpc_shower_v; ///< stores reconstructed keypoints
     std::vector< larflow::reco::KPCluster >            _event_kpc_cosmic_v; ///< stores reconstructed keypoints
+    std::vector< float >                               _intime_flash_pe_per_opchan; ///< stores pe per opchannel for the intime flash we compare against
+    std::vector< std::vector<float> >                  _nu_predicted_flash_v; ///< stores predicted flash for each nu candidate
+    std::vector< std::vector<float> >                  _nu_predicted_flash_primonly_v; ///< stores predicted flash for each nu candidate, only using primary prongs
+    std::vector< std::vector<float> >                  _nuflash_sinkdiv_vv; ///< stores sinkhorn divergences at different precision parameters (0.1,1.0,10.0)
+    std::vector< std::vector<float> >                  _nuflash_sinkdiv_primonly_vv; ///< stores sinkhorn divergences at different precision parameters (0.1,1.0,10.0)
 
     TTree* _mcphoton_tree;
     std::vector< larlite::mcshower >* _event_mcshower_v;
