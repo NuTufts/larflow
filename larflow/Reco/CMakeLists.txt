@@ -57,7 +57,8 @@ set( HEADERS
   NuSelCosmicTagger.h
   NuSel1e1pEventSelection.h
   TruthRecoMatching.h
-  KPSRecoManager.h )
+  KPSRecoManager.h
+  NuVertexFlashPrediction.h )
 
 add_library( ${LIBNAME} SHARED
   SplitHitsBySSNet.cxx
@@ -114,7 +115,8 @@ add_library( ${LIBNAME} SHARED
   NuSelCosmicTagger.cxx  
   NuSel1e1pEventSelection.cxx
   TruthRecoMatching.cxx
-  KPSRecoManager.cxx )
+  KPSRecoManager.cxx
+  NuVertexFlashPrediction.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
@@ -144,7 +146,7 @@ endif()
 set(LARCV_LIBS_USED LArCVCoreBase LArCVCoreDataFormat LArCVCoreProcessor LArCVApp_dbscan LArCVApp_MCTools )
 
 # ublarcvapp libs used
-set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod)
+set(UBLARCVAPP_LIBS_USED LArCVApp_UBImageMod LArCVApp_UBPhotonLib LArCVApp_ParticleToPixelUtils)
 
 # larflow libs used
 set(LARFLOW_LIBS_USED LArFlow_RecoUtils)

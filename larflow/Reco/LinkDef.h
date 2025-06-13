@@ -65,5 +65,8 @@
 #pragma link C++ class larflow::reco::NuSelCosmicTagger+;
 #pragma link C++ class larflow::reco::KPSRecoManager+;
 #pragma link C++ class larflow::reco::ClusterImageMask+;
+#pragma link C++ class larflow::reco::NuVertexFlashPrediction+;
+#pragma link C++ class larflow::reco::NuVertexFlashPrediction::ParticleContribution+;
+#pragma link C++ class std::vector<larflow::reco::NuVertexFlashPrediction::ParticleContribution>+;
 //ADD_NEW_CLASS ... do not change this line
 #endif
