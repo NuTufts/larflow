@@ -279,7 +279,7 @@ def create_flash_visualization(predictor, contributions, opflashes, output_filen
     
     text = rt.TText()
     text.SetTextAlign(12)  # Left-center alignment
-    text.SetTextSize(0.06)
+    text.SetTextSize(0.04)
     
     y_pos = 0.95
     dy = 0.08
@@ -498,6 +498,7 @@ def test_nuvertex_flash_prediction(larcv_file, kps_file, larlite_file,
         
         # Create Sinkhorn divergence calculator
         sinkhorn_calc = larflow.reco.SinkhornFlashDivergence()
+        sinkhorn_calc.set_verbosity( larcv.msg.kINFO )
         
         # Get predicted PE per PMT
         pe_per_pmt = predictor.getPredictedPE()
