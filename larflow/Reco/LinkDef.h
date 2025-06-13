@@ -68,5 +68,6 @@
 #pragma link C++ class larflow::reco::NuVertexFlashPrediction+;
 #pragma link C++ class larflow::reco::NuVertexFlashPrediction::ParticleContribution+;
 #pragma link C++ class std::vector<larflow::reco::NuVertexFlashPrediction::ParticleContribution>+;
+#pragma link C++ class larflow::reco::SinkhornFlashDivergence+;
 //ADD_NEW_CLASS ... do not change this line
 #endif

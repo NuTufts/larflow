@@ -492,6 +492,41 @@ def test_nuvertex_flash_prediction(larcv_file, kps_file, larlite_file,
             if pe > 1.0:
                 print(f"    PMT {pmt:2d}: {pe:.1f} PE")
     
+    # Calculate Sinkhorn divergence between prediction and observation
+    if len(opflashes) > 0:
+        print(f"\nCalculating Sinkhorn divergence...")
+        
+        # Create Sinkhorn divergence calculator
+        sinkhorn_calc = larflow.reco.SinkhornFlashDivergence()
+        
+        # Get predicted PE per PMT
+        pe_per_pmt = predictor.getPredictedPE()
+        predicted_pe = []
+        for pmt_id in range(32):
+            if pmt_id in pe_per_pmt:
+                predicted_pe.append(pe_per_pmt[pmt_id])
+            else:
+                predicted_pe.append(0.0)
+        
+        # Get observed PE per PMT
+        flash = opflashes[0]
+        observed_pe = []
+        for pmt_id in range(32):
+            observed_pe.append(flash.PE(pmt_id))
+        
+        # Convert to std::vector<float>
+        pred_vec = std.vector('float')(predicted_pe)
+        obs_vec = std.vector('float')(observed_pe)
+        
+        # Calculate divergence with different regularization parameters
+        regularizations = [0.1, 1.0, 10.0]
+        print(f"  Sinkhorn divergence results:")
+        for reg in regularizations:
+            divergence = sinkhorn_calc.calculateDivergence(pred_vec, obs_vec, reg, 100, 1e-6)
+            converged = sinkhorn_calc.getLastConverged()
+            iterations = sinkhorn_calc.getLastIterations()
+            print(f"    λ={reg:5.2f}: divergence={divergence:8.3f} (converged: {converged}, {iterations:2d} iter)")
+    
     # Create visualization
     if save_output:
         print(f"\nCreating visualization and saving output...")
@@ -511,6 +546,21 @@ def test_nuvertex_flash_prediction(larcv_file, kps_file, larlite_file,
             f.write(f"Individual contributions:\n")
             for i, contrib in enumerate(contributions):
                 f.write(f"  {contrib.type}[{contrib.index}]: {contrib.total_pe:.3f} PE\n")
+            
+            # Add Sinkhorn divergence results if available
+            if len(opflashes) > 0:
+                f.write(f"\nSinkhorn divergence results:\n")
+                pe_per_pmt = predictor.getPredictedPE()
+                predicted_pe = [pe_per_pmt[pmt_id] if pmt_id in pe_per_pmt else 0.0 for pmt_id in range(32)]
+                flash = opflashes[0]
+                observed_pe = [flash.PE(pmt_id) for pmt_id in range(32)]
+                pred_vec = std.vector('float')(predicted_pe)
+                obs_vec = std.vector('float')(observed_pe)
+                sinkhorn_calc = larflow.reco.SinkhornFlashDivergence()
+                for reg in [0.1, 1.0, 10.0]:
+                    divergence = sinkhorn_calc.calculateDivergence(pred_vec, obs_vec, reg, 100, 1e-6)
+                    f.write(f"  λ={reg:5.2f}: {divergence:8.3f}\n")
+                    
         print(f"Summary saved to: {output_file}")
         
         # Keep canvas alive for interactive viewing if desired

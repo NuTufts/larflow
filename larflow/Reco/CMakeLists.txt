@@ -58,7 +58,8 @@ set( HEADERS
   NuSel1e1pEventSelection.h
   TruthRecoMatching.h
   KPSRecoManager.h
-  NuVertexFlashPrediction.h )
+  NuVertexFlashPrediction.h
+  SinkhornFlashDivergence.h )
 
 add_library( ${LIBNAME} SHARED
   SplitHitsBySSNet.cxx
@@ -116,7 +117,8 @@ add_library( ${LIBNAME} SHARED
   NuSel1e1pEventSelection.cxx
   TruthRecoMatching.cxx
   KPSRecoManager.cxx
-  NuVertexFlashPrediction.cxx )
+  NuVertexFlashPrediction.cxx
+  SinkhornFlashDivergence.cxx )
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
