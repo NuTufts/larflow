@@ -287,7 +287,10 @@ namespace reco {
     }
 
     if (!_last_converged) {
-      LARCV_WARNING() << "Sinkhorn did not converge after " << max_iterations << " iterations" << std::endl;
+      LARCV_WARNING() << "Sinkhorn did not converge after " << max_iterations << " iterations" 
+                      << " for transport plan "
+                      << " ( with regularization par = " << regularization << ")" 
+                      << std::endl;
     }
 
     // Calculate optimal transport cost
@@ -405,7 +408,10 @@ namespace reco {
     }
 
     if (!_last_converged) {
-      LARCV_WARNING() << "Sinkhorn did not converge after " << max_iterations << " iterations for transport plan" << std::endl;
+      LARCV_WARNING() << "Sinkhorn did not converge after " << max_iterations << " iterations"
+                      << " for transport plan "
+                      << " ( with regularization par = " << regularization << ")" 
+                      << std::endl;
     }
 
     // Construct transport plan π[i][j] = exp(log_u[i] + log_v[j]) * K[i][j]
