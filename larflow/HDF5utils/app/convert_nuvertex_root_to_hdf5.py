@@ -64,7 +64,7 @@ def process_larflowcluster(cluster):
     hits = []
     for i in range(cluster.size()):
         hit = cluster[i]
-        hits.append([hit[0], hit[1], hit[2]])
+        hits.append([hit[0], hit[1], hit[2], hit.tick, hit.targetwire[0], hit.targetwire[1], hit.targetwire[2] ])
     
     return {
         'n_hits': cluster.size(),
@@ -172,11 +172,15 @@ def convert_nuvertex_candidate(vtx_candidate, entry_idx, vtx_idx, h5_group):
         for i in range(n_tracks):
             track_grp = tracks_group.create_group(f'track_{i}')
             track_data = process_track(vtx_candidate.track_v[i])
+            print('track hitcluster [',i,'] nhits=',vtx_candidate.track_hitcluster_v[i].size())
+            track_hitcluster_data = process_larflowcluster(vtx_candidate.track_hitcluster_v[i])
+            track_grp.attrs['n_hits'] = track_hitcluster_data['n_hits']
             track_grp.attrs['id'] = track_data['id']
             track_grp.attrs['n_points'] = track_data['n_points']
             track_grp.attrs['length'] = track_data['length']
             if track_data['points'].size > 0:
                 track_grp.create_dataset('points', data=track_data['points'])
+            track_grp.create_dataset('hits', data=track_hitcluster_data['hits'])
     
     # Store showers
     showers_group = vtx_group.create_group('showers')
@@ -209,6 +213,7 @@ def convert_nuvertex_candidate(vtx_candidate, entry_idx, vtx_idx, h5_group):
         # Individual shower details
         for i in range(n_showers):
             shower_grp = showers_group.create_group(f'shower_{i}')
+            print('shower hitcluster [',i,'] nhits=',vtx_candidate.shower_v[i].size())
             shower_data = process_larflowcluster(vtx_candidate.shower_v[i])
             shower_grp.attrs['n_hits'] = shower_data['n_hits']
             if shower_data['hits'].size > 0:
