@@ -27,12 +27,21 @@ To run it requires setting up environment variables.
 To setup the various packages within ubdl run (in the ubdl folder):
 
 ```
-source setenv_py.sh
+source setenv_py3.sh
 source configure.sh
 ```
 Then to configure the shell for the larmatch net, run from the `larmatchnet` folder:
 ```
 source set_pythonpath.sh
+```
+
+To build, do the following (starting in the top-level larflow directory which is also the same folder as this README.md):
+```
+mkdir build
+cd build
+cmake -DUSE_PYTHON3=ON ../
+make -j4
+make install
 ```
 
 Then you can run the script. Here is an example of running on off-beam data (EXTBNB).

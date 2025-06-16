@@ -134,7 +134,7 @@ if (ON_FNAL)
   message( STATUS "Set Torch_DIR to find cmake: ${Torch_DIR}" )
 else()
   # this is the container path
-  set( Torch_DIR /usr/local/lib/python3.8/dist-packages/torch/share/cmake/Torch )
+  set( Torch_DIR $ENV{LIBTORCH_CMAKE_DIR} )
 endif()
 set(USE_CUDA OFF)
 set(USE_CUDNN OFF)
@@ -145,10 +145,11 @@ set(TORCH_CUDA_ARCH_LIST "6.0;6.1;7.0;7.5;8.0;8.6")
 find_package( Torch )
 
 ## prongCNN
-if ( TORCH_FOUND )
+if ( Torch_FOUND )
   set( larpid_DIR "$ENV{LARPID_DIR}/lib/cmake/larpid")
   message( STATUS "looking for larpid cmake files at: ${larpid_DIR}")
   find_package( larpid )
+  message( STATUS "Status for finding larpid: ${larpid_FOUND}" )
 endif()
   
 ## Setup
