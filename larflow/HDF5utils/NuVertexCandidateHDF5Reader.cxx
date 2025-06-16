@@ -540,16 +540,35 @@ bool NuVertexCandidateHDF5Reader::readStringAttribute(hid_t obj, const char* nam
   if (attr < 0) return false;
   
   hid_t atype = H5Aget_type(attr);
-  hid_t atype_mem = H5Tget_native_type(atype, H5T_DIR_ASCEND);
-  size_t size = H5Tget_size(atype_mem);
+  hid_t aspace = H5Aget_space(attr);
   
-  char* buffer = new char[size + 1];
-  H5Aread(attr, atype_mem, buffer);
-  buffer[size] = '\0';
-  value = std::string(buffer);
-  delete[] buffer;
+  // Check if it's a variable-length string
+  if (H5Tis_variable_str(atype)) {
+    char* rdata;
+    H5Aread(attr, atype, &rdata);
+    if (rdata) {
+      value = std::string(rdata);
+      H5free_memory(rdata);
+    } else {
+      value = "";
+    }
+  } else {
+    // Fixed-length string
+    size_t size = H5Tget_size(atype);
+    char* buffer = new char[size + 1];
+    H5Aread(attr, atype, buffer);
+    buffer[size] = '\0';
+    
+    // Remove any null padding
+    value = std::string(buffer);
+    size_t nullpos = value.find('\0');
+    if (nullpos != std::string::npos) {
+      value = value.substr(0, nullpos);
+    }
+    delete[] buffer;
+  }
   
-  H5Tclose(atype_mem);
+  H5Sclose(aspace);
   H5Tclose(atype);
   H5Aclose(attr);
   return true;
