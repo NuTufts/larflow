@@ -9,6 +9,7 @@ if (larpid_FOUND)
   add_subdirectory(ProngCNN)
 endif()
 add_subdirectory(Reco)
+add_subdirectory(HDF5utils)
 
 #add_subdirectory(MCTools)
 # #add_subdirectory(FlowContourMatch)
