@@ -17,8 +17,7 @@ namespace reco {
   class CosmicParticleReconstruction : public larcv::larcv_base {
   public:
 
-    CosmicParticleReconstruction()
-      : larcv::larcv_base("CosmicParticleReconstruction") {};
+    CosmicParticleReconstruction();
     ~CosmicParticleReconstruction() {};
     
     void process( larcv::IOManager& iolcv,
@@ -32,6 +31,7 @@ namespace reco {
 
     void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void buildTrackFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
     std::string _flash_producer;
     std::string _wireimg_producer;

@@ -13,9 +13,16 @@
 #include "KeypointFilterByWCTagger.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "KeypointReco.h"
+#include "ProjectionDefectSplitter.h"
 
 namespace larflow {
 namespace reco {
+
+  CosmicParticleReconstruction::CosmicParticleReconstruction()
+    : larcv::larcv_base("CosmicParticleReconstruction")
+  {
+    set_default_param_values();
+  }
 
   void CosmicParticleReconstruction::set_default_param_values()
   {
@@ -59,9 +66,13 @@ namespace reco {
     clear();
 
     // Setup what trees out write for the larlite file
-    ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_offtrigger_trackhit" ); /// track-like and out of time
+    //ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_offtrigger_trackhit" ); /// track-like and out of time
+    ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "offtrigger_maxtrackhit" ); /// track-like and out of time
+    ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "keypoint_all" );   /// all track start and end keypoints
     ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "keypointcosmic" ); /// cosmic keypoints
     ioll.set_data_to_write( larlite::data::kCRTTrack, "crttrack");
+    ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_offtrigger" );
+    ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_offtrigger" );
 
     // Stages
 
@@ -72,8 +83,8 @@ namespace reco {
     // Reconstruct Track-Start and Track-End Keypoints using the larmatch info in the spacepoints
     recoKeypoints( iolcv, ioll );
 
-    // // isolate track-like spacepoints and reconstruct into line-like segments
-    // buildTrackFragments();
+    // isolate track-like spacepoints and reconstruct into line-like segments
+    buildTrackFragments( iolcv, ioll );
 
     // // use the CosmicTrackBuilder to make muon candidates
     // buildCosmicTracks();
@@ -144,9 +155,8 @@ namespace reco {
     // output:
     //  * larflow3dhit_ssnetsplit_wcfilter_showerhit_tree: in-time shower hits
     //  * larflow3dhit_ssnetsplit_wcfilter_trackhit_tree:  in-time track hits
-    //_splithits_wcfilter.set_larmatch_tree_name( _spacepoint_input_container_name ); //< why by-pass cosmic removal?
-    _splithits_wcfilter.set_larmatch_tree_name( "taggerfilterhit"  );
-    _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_wcfilter" );
+    _splithits_wcfilter.set_larmatch_tree_name( "taggerrejecthit"  );
+    _splithits_wcfilter.set_output_tree_stem_name( "ssnetsplit_offtrigger" );
     _splithits_wcfilter.process_splitonly( iolcv, ioll );    
 
     // PREP: MAX-SCORE REDUCTION ON COSMIC HITS
@@ -186,8 +196,15 @@ namespace reco {
 
     // Keypoint Reco algorithm
     larflow::reco::KeypointReco  _kpreco_trackstart; ///< reconstruct keypoints from network scores for track class
+    _kpreco_trackstart.set_keypoint_type( (int)larflow::kTrackStart );
+    _kpreco_trackstart.set_lfhit_score_index( 18 );
+    _kpreco_trackstart.clear_output();
+
     larflow::reco::KeypointReco  _kpreco_trackend;   ///< reconstruct keypoints from network scores for track class
-      
+    _kpreco_trackend.set_keypoint_type( (int)larflow::kTrackEnd );
+    _kpreco_trackend.set_lfhit_score_index( 19 );
+    _kpreco_trackend.clear_output();
+
     // neutrino interaction track: we have track starts and ends
     std::vector< larflow::reco::KeypointReco* > _kpreco_track_v
       = { &_kpreco_trackstart, &_kpreco_trackend };
@@ -202,6 +219,7 @@ namespace reco {
       pkpreco_track->set_min_cluster_size(   10, 0 );
       pkpreco_track->set_keypoint_threshold( 0.2, 0 );
       pkpreco_track->set_output_tree_name( "keypoint_all" );
+      pkpreco_track->process( ioll );
     }
 
     larlite::event_larflow3dhit* ev_kpall
@@ -419,6 +437,25 @@ namespace reco {
     //   }
     // }
     
+  }
+
+  void CosmicParticleReconstruction::buildTrackFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) 
+  {
+    // PRIMITIVE TRACK FRAGMENTS: OFF-TRIGGER TRACK HITS
+    const float _maxdist = 1.0;
+    const float _minsize = 10;
+    const float _maxkd   = 100;
+
+    LARCV_INFO() << "RUN PROJ-SPLITTER applied to 'offtrigger_maxtrackhit' (out-of-time hits)" << std::endl;
+    larflow::reco::ProjectionDefectSplitter _projsplitter_cosmic;
+    _projsplitter_cosmic.set_verbosity( logger().level() );     
+    _projsplitter_cosmic.set_dbscan_pars( 5.0, _minsize, _maxkd ); // cosmic parameters, courser maxdist to reduce number of cosmic fragments
+    _projsplitter_cosmic.doClusterVetoHits(false);
+    _projsplitter_cosmic.set_input_larmatchhit_tree_name( "offtrigger_maxtrackhit" );
+    _projsplitter_cosmic.set_fit_line_segments_to_clusters( true ); // can be slow
+    _projsplitter_cosmic.set_output_tree_name("trackprojsplit_offtrigger");
+    _projsplitter_cosmic.process( iolcv, ioll );
+
   }
 
 }
