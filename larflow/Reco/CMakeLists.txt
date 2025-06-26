@@ -25,8 +25,7 @@ set( HEADERS
   ProjPixFitter.h
   ClusterBookKeeper.h
   NuVertexMaker.h
-  NuVertexFitter.h
-  CosmicVertexBuilder.h  
+  NuVertexFitter.h 
   NuTrackBuilder.h
   NuShowerBuilder.h
   NuVertexShowerReco.h
@@ -59,7 +58,14 @@ set( HEADERS
   TruthRecoMatching.h
   KPSRecoManager.h
   NuVertexFlashPrediction.h
-  SinkhornFlashDivergence.h )
+  SinkhornFlashDivergence.h
+
+  # Cosmic Reco Modules
+  CosmicParticleCandidate.h
+  CosmicParticleReconstruction.h
+)
+
+
 
 add_library( ${LIBNAME} SHARED
   SplitHitsBySSNet.cxx
@@ -85,7 +91,6 @@ add_library( ${LIBNAME} SHARED
   ClusterBookKeeper.cxx
   NuVertexMaker.cxx
   NuVertexFitter.cxx
-  CosmicVertexBuilder.cxx
   NuTrackBuilder.cxx
   NuShowerBuilder.cxx
   NuVertexShowerReco.cxx
@@ -118,10 +123,29 @@ add_library( ${LIBNAME} SHARED
   TruthRecoMatching.cxx
   KPSRecoManager.cxx
   NuVertexFlashPrediction.cxx
-  SinkhornFlashDivergence.cxx )
+  SinkhornFlashDivergence.cxx
+
+  # Cosmic Reco modules
+  CosmicParticleCandidate.cxx
+  CosmicParticleReconstruction.cxx
+
+)
+
+# Add Prong CNN Interface if we have found it
+if(larpid_FOUND)
+  list(APPEND HEADERS NuVertexProngCNN.h)
+  message( INFO "Including ProngCNN interface in LArFlow_Reco build" )
+else()
+  message( INFO "No ProngCNN interface in LArFlow_Reco" )
+endif()
 
 # create a property to hold our headers
 set_target_properties(${LIBNAME} PROPERTIES PUBLIC_HEADER "${HEADERS}")
+
+# Add conditional source after library creation
+if(larpid_FOUND)
+  target_sources( ${LIBNAME} PRIVATE NuVertexProngCNN.cxx )
+endif()
 
 # DEFINE SOME VARS THAT MIGHT BE USEFUL FOR SUBMODULES
 #message("python include: ${PYTHON_INCLUDE_PATH}")

@@ -30,7 +30,6 @@
 #include "ShortProtonClusterReco.h"
 #include "ChooseMaxLArFlowHit.h"
 #include "NuVertexMaker.h"
-#include "CosmicVertexBuilder.h"
 #include "CosmicTrackBuilder.h"
 #include "NuTrackBuilder.h"
 #include "NuShowerBuilder.h"
@@ -148,7 +147,6 @@ namespace reco {
     NuVertexRestoreKPHits  _nuvertex_restore_kphits; ///< adds back vetoed keypoint hits to prong ends near vertex
     
     CosmicTrackBuilder  _cosmic_track_builder; ///< build tracks using cosmic clusters
-    CosmicVertexBuilder _cosmic_vertex_builder; ///< build stopmu vertices
     NuTrackBuilder      _nu_track_builder;  ///< build tracks for non-comic track clusters
     NuShowerBuilder     _nu_shower_builder; ///< build showers using those associated to vertex (NOT RUN!!)
 
