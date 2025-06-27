@@ -6,6 +6,7 @@
 #include "larlite/LArUtil/LArProperties.h"
 #include "larlite/LArUtil/Geometry.h"
 #include "ublarcvapp/Reco3D/TrackReverser.h"
+#include "ublarcvapp/UBImageMod/EmptyChannelAlgo.h"
 
 #include "larflow/LArFlowConstants/LArFlowConstants.h"
 #include "TrackdQdx.h"
@@ -14,27 +15,73 @@
 #include "ChooseMaxLArFlowHit.h"
 #include "KeypointReco.h"
 #include "ProjectionDefectSplitter.h"
+#include "CosmicTrackBuilder.h"
 
 namespace larflow {
 namespace reco {
 
   CosmicParticleReconstruction::CosmicParticleReconstruction()
-    : larcv::larcv_base("CosmicParticleReconstruction")
+    : larcv::larcv_base("CosmicParticleReconstruction"),
+    _ana_file(nullptr),
+    _ana_tree(nullptr)
   {
     set_default_param_values();
   }
 
   void CosmicParticleReconstruction::set_default_param_values()
   {
+
     _flash_producer   = "simpleFlashCosmic";
     _wireimg_producer = "wire";
     _outoftime_tagged_pixels_producer = "thrumu";
     _larmatch_hit_producer   = "larmatch";
+    _ana_output_file  = "test_cosmicreco.root";
+
+    _ana_run = 0;
+    _ana_subrun = 0;
+    _ana_event = 0;
+    _reco_status = 0;
+    _t_event_elapsed = 0.;   
+    
   }
 
   void CosmicParticleReconstruction::clear()
   {
     _cosmic_candidates_v.clear();
+  }
+
+  /**
+   * @brief create ana file and define output tree
+   *
+   * The tree created is `KPSRecoManagerTree`.
+   *
+   */
+  void CosmicParticleReconstruction::make_reco_output_file()
+  {
+
+    if ( _ana_output_file=="" ) {
+      LARCV_ERROR() << "Did not specify an output file." << std::endl;
+    }
+    
+    
+    LARCV_NORMAL() << "Create Ana Output File: " << _ana_output_file << std::endl;
+    
+    _ana_file = new TFile(_ana_output_file.c_str(), "recreate");
+    _ana_tree = new TTree("KPSCosmicTree","Output of CosmicParticleReconstruction algorithms");
+
+    // event book-keeping indicies: run, subrun, event
+    _ana_tree->Branch("run",&_ana_run,"run/I");
+    _ana_tree->Branch("subrun",&_ana_subrun,"subrun/I");
+    _ana_tree->Branch("event",&_ana_event,"event/I");
+    _ana_tree->Branch("reco_status", &_reco_status, "reco_status/I");
+    _ana_tree->Branch("telapsed", &_t_event_elapsed, "telapsed/F" );    
+    //_ana_tree->Branch("error_messages", &_error_messages);
+
+    _event_kpc_track_start_v.clear(); 
+    _event_kpc_track_end_v.clear();    
+    _ana_tree->Branch( "kpc_track_start_v",  &_event_kpc_track_start_v );
+    _ana_tree->Branch( "kpc_track_end_v",    &_event_kpc_track_end_v );
+
   }
 
   /**
@@ -67,12 +114,14 @@ namespace reco {
 
     // Setup what trees out write for the larlite file
     //ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "ssnetsplit_offtrigger_trackhit" ); /// track-like and out of time
-    ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "offtrigger_maxtrackhit" ); /// track-like and out of time
-    ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "keypoint_all" );   /// all track start and end keypoints
-    ioll.set_data_to_write( larlite::data::kLArFlow3DHit, "keypointcosmic" ); /// cosmic keypoints
-    ioll.set_data_to_write( larlite::data::kCRTTrack, "crttrack");
+    ioll.set_data_to_write( larlite::data::kLArFlow3DHit,   "offtrigger_maxtrackhit" ); /// track-like and out of time
+    ioll.set_data_to_write( larlite::data::kLArFlow3DHit,   "keypoint_all" );   /// all track start and end keypoints
+    ioll.set_data_to_write( larlite::data::kLArFlow3DHit,   "keypointcosmic" ); /// cosmic keypoints
+    ioll.set_data_to_write( larlite::data::kCRTTrack,       "crttrack");
     ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_offtrigger" );
-    ioll.set_data_to_write( larlite::data::kPCAxis, "trackprojsplit_offtrigger" );
+    ioll.set_data_to_write( larlite::data::kPCAxis,         "trackprojsplit_offtrigger" );
+    ioll.set_data_to_write( larlite::data::kTrack,          "cosmictrack");
+    ioll.set_data_to_write( larlite::data::kLArFlowCluster, "cosmictrack");
 
     // Stages
 
@@ -87,7 +136,7 @@ namespace reco {
     buildTrackFragments( iolcv, ioll );
 
     // // use the CosmicTrackBuilder to make muon candidates
-    // buildCosmicTracks();
+    buildCosmicTracks( iolcv, ioll );
 
     // // make flash predictions and make possible matches
     // makeFlashPredictionAndMatches();
@@ -95,8 +144,15 @@ namespace reco {
     // // make CRT connections
     // makeCRTConnections();
 
-    
+    // Set run, subrun, event indices in ana tree
+    larlite::event_larflow3dhit* ev_larmatch =
+      (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, _larmatch_hit_producer );
+    _ana_run    = ev_larmatch->run();
+    _ana_subrun = ev_larmatch->subrun();
+    _ana_event  = ev_larmatch->event_id();
 
+    if ( _ana_tree )
+      _ana_tree->Fill();
   }
   
   /**
@@ -168,6 +224,8 @@ namespace reco {
     _choosemaxhit.set_input_larflow3dhit_treename( "ssnetsplit_offtrigger_trackhit" );
     _choosemaxhit.set_output_larflow3dhit_treename( "offtrigger_maxtrackhit" );
     _choosemaxhit.process( iolcv, ioll );
+
+
   }
 
   /**
@@ -226,6 +284,16 @@ namespace reco {
       = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "keypoint_all" );
     LARCV_INFO() << "Number of total track-start + track-end keypoints reconstructed: " << ev_kpall->size() << std::endl;
 
+    for ( auto& pkprecotype : _kpreco_track_v ) {
+	    for ( auto& kpc : pkprecotype->output_pt_v ) {
+
+        if ( kpc._cluster_type==1 )
+	        _event_kpc_track_start_v.push_back( kpc );
+        else if (kpc._cluster_type==2 )
+          _event_kpc_track_start_v.push_back( kpc );
+
+	    }
+    } 
     
     // // filter out keypoints by in-time and cosmic
     // larlite::event_larflow3dhit* ev_kpintime = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "keypoint" );
@@ -456,6 +524,147 @@ namespace reco {
     _projsplitter_cosmic.set_output_tree_name("trackprojsplit_offtrigger");
     _projsplitter_cosmic.process( iolcv, ioll );
 
+  }
+
+  /**
+   * @brief Perform cosmic ray reconstruction
+   *
+   * At some point, execute Mask-RCNN here
+   *
+   */
+  void CosmicParticleReconstruction::buildCosmicTracks( larcv::IOManager& iolcv, larlite::storage_manager& ioll ) 
+  {
+
+    LARCV_INFO() << "reco cosmic tracks" << std::endl;
+
+    // PREP: make bad channel image
+    larcv::EventImage2D* ev_adc =
+      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D, "wire");
+    auto const& adc_v = ev_adc->Image2DArray();
+
+    ublarcvapp::EmptyChannelAlgo _badchmaker;
+    try {
+    
+      larcv::EventChStatus* ev_chstatus =
+        (larcv::EventChStatus*)iolcv.get_data(larcv::kProductChStatus, "wire");
+      // std::vector<larcv::Image2D> gapch_v =
+      //   _badchmaker.makeGapChannelImage( adc_v, *ev_chstatus,
+      //                                    4, 3, 2400, 6*1008, 3456, 6, 1,
+      //                                    5.0, 50, -1.0 );
+      std::vector<larcv::Image2D> gapch_v =
+        _badchmaker.makeOverlayedBadChannelImage( adc_v, *ev_chstatus, 4, 15.0 );
+    
+      LARCV_INFO() << "Number of badcv images made: " << gapch_v.size() << std::endl;
+      
+      larcv::EventImage2D* evout_badch =
+        (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"badch");
+      for ( auto& gap : gapch_v ) {
+        evout_badch->Emplace( std::move(gap) );
+      }
+    }
+    catch (std::exception& e ) {
+      std::stringstream msg;
+      msg << "KPSRecoManager.cxx:L." << __LINE__ << " error running : makeOverlayedBadChannelImage() - "
+          << '\n'
+	        << e.what()
+	        << std::endl;
+      throw std::runtime_error(msg.str());
+    }
+
+    // filter keypoints, split into start and end
+    // sort by keypoint score
+    larlite::event_larflow3dhit* ev_kpall
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "keypoint_all" );
+
+    struct KeypointInfo_t {
+      float score;
+      int index;
+      KeypointInfo_t( float s, int idx )
+      : score(s), index(idx)
+      {};
+
+      bool operator<(const KeypointInfo_t& rhs) const {
+        if ( score > rhs.score ) 
+          return true;
+        return false;
+      };
+    };
+
+    std::vector< KeypointInfo_t > kp_by_score;
+    kp_by_score.reserve( ev_kpall->size() );
+
+    larlite::event_larflow3dhit* ev_kpstart
+      = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "keypoint_cosmic_start" );
+    for ( size_t i=0; i<ev_kpall->size(); i++ ) {
+      auto& pkp = ev_kpall->at(i);
+
+      int kp_type    = (int)pkp.at(3);
+      float kp_score = pkp.at(4);
+
+
+      if ( kp_type==1 && kp_score>0.8 ) {
+        kp_by_score.push_back( KeypointInfo_t(kp_score, (int)i) );
+      }
+    }
+
+    std::sort( kp_by_score.begin(), kp_by_score.end() );
+    LARCV_INFO() << "Sorted cosmic track-start keypoints: " << std::endl;
+    for ( auto& info : kp_by_score ) {
+      auto& pkp = ev_kpall->at( info.index );
+      LARCV_INFO() << "  [" << info.index << "] score=" << info.score << " type=" << (int)pkp.at(3) << std::endl;
+      ev_kpstart->push_back( pkp );
+    }
+
+    LARCV_INFO() << "Number of track-start keypoints to seed cosmic reconstruction: " << ev_kpstart->size() << std::endl;
+    
+    larflow::reco::CosmicTrackBuilder  _cosmic_track_builder;
+    _cosmic_track_builder.clear();
+    _cosmic_track_builder.set_verbosity( logger().level() );
+    _cosmic_track_builder.do_boundary_analysis( false );
+    _cosmic_track_builder.add_cluster_treename( "trackprojsplit_offtrigger" );
+    _cosmic_track_builder.set_keypoint_treename( "keypoint_cosmic_start" );
+    _cosmic_track_builder.process( iolcv, ioll );
+
+    // filter repeats
+    larlite::event_larflowcluster* ev_trackclusters
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "trackprojsplit_offtrigger" );
+    std::vector< int > cluster_used_v( ev_trackclusters->size(), 0 );
+
+    larlite::event_track* ev_cosmic_tracks
+      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, "simplecosmictrack" );
+    larlite::event_larflowcluster* ev_cosmic_trackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "simplecosmictrack" );
+
+    larlite::event_track* ev_filtered_tracks
+      = (larlite::event_track*)ioll.get_data( larlite::data::kTrack, "cosmictrack" );
+    larlite::event_larflowcluster* ev_filtered_trackcluster
+      = (larlite::event_larflowcluster*)ioll.get_data( larlite::data::kLArFlowCluster, "cosmictrack" );
+
+    for ( size_t i=0; i<ev_cosmic_tracks->size(); i++ ) {
+      std::vector<int> segment_idx = _cosmic_track_builder.getProposalSegmentContainerIndices( i );
+      bool hasrepeat = false;
+      for (auto& idx : segment_idx) {
+        if ( idx >=0 && idx<(int)cluster_used_v.size() && cluster_used_v[idx]==1 ) {
+          hasrepeat = true;
+        }
+      }
+      if ( !hasrepeat ) {
+        ev_filtered_tracks->push_back(       ev_cosmic_tracks->at(i) );
+        ev_filtered_trackcluster->push_back( ev_cosmic_trackcluster->at(i) );
+
+        for (auto& idx : segment_idx) {
+          cluster_used_v[idx]=1;
+        }
+
+      }
+    }
+    ev_cosmic_tracks->clear();
+    ev_cosmic_trackcluster->clear();
+
+    //_cosmic_proton_finder.set_verbosity( larcv::msg::kDEBUG );
+    // _cosmic_proton_finder.set_verbosity( logger().level() );    
+    // _cosmic_proton_finder.process( iolcv, ioll );
+    
   }
 
 }

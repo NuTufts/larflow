@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "TFile.h"
+#include "TTree.h"
+
 #include "larlite/DataFormat/storage_manager.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
@@ -27,11 +30,22 @@ namespace reco {
 
     void set_default_param_values();
 
+    void make_reco_output_file();
+
+    /** @brief write the reco products to file */
+    void write_output_file() { 
+      if (!_ana_file) 
+        return;
+      _ana_file->cd();  
+      _ana_file->Write(); 
+    };
+
   protected:
 
     void prepSpacepoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void buildTrackFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void buildCosmicTracks( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
 
     std::string _flash_producer;
     std::string _wireimg_producer;
@@ -43,6 +57,15 @@ namespace reco {
     // storage for keypoint clusters
     std::vector< larflow::reco::KPCluster > _event_kpc_track_start_v;
     std::vector< larflow::reco::KPCluster > _event_kpc_track_end_v;
+
+    TFile* _ana_file; ///< output file for non-larlite and non-larcv reco products
+    TTree* _ana_tree; ///< tree to store non-larlite and non-larcv reco products
+    std::string _ana_output_file; ///< name of the ana file to create
+    int _ana_run; ///< run number for tree entry
+    int _ana_subrun; ///< subrun number for tree entry
+    int _ana_event; ///< event number for tree entry
+    float _t_event_elapsed; ///< runtime for event
+    int _reco_status;
 
   };
   

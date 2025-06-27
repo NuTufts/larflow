@@ -27,8 +27,7 @@ namespace larflow {
 namespace prongcnn {
 
 
-  class ProngCNNInterface {
-  //}: public larcv::larcv_base {
+  class ProngCNNInterface : public larcv::larcv_base {
 
   public:
     

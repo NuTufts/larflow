@@ -111,6 +111,7 @@ namespace reco {
       seg.cluster  = &cluster;
       seg.pca      = &pca;
       seg.trackseg = trackseg;
+      seg.source_index = i;
 
       if ( seg.len<1.0 )
         continue;
@@ -208,8 +209,8 @@ namespace reco {
         auto it_segedge = _segedge_m.find( std::pair<int,int>(inode,jnode) );
         if ( it_segedge!=_segedge_m.end() )
           continue;
-
-	LARCV_DEBUG() << "--- check node[" << inode << "] -> node[" << jnode << "]" << std::endl;	
+        
+        LARCV_DEBUG() << "--- check node[" << inode << "] -> node[" << jnode << "]" << std::endl;	
                 
         // define a connection in both directions
         NodePos_t& node_j = _nodepos_v.at(jnode);
@@ -222,15 +223,19 @@ namespace reco {
         }
         dist = sqrt(dist);
         if ( dist>0 ) for (int v=0; v<3; v++) dir_ij[v] /= dist;
-	LARCV_DEBUG() << "  pos[" << inode << "]: (" << node_i.pos[0] << "," << node_i.pos[1] << "," << node_i.pos[2] << ")" << std::endl;
-	LARCV_DEBUG() << "  pos[" << jnode << "]: (" << node_j.pos[0] << "," << node_j.pos[1] << "," << node_j.pos[2] << ")" << std::endl;
-	LARCV_DEBUG() << "  dist=" << dist << std::endl;
+
+        int start_seg_idx = _segment_v.at( node_i.segidx ).source_index;
+        int end_seg_idx   = _segment_v.at( node_j.segidx ).source_index;
+        LARCV_DEBUG() << "  segindex[" << start_seg_idx << "] -> segindex[" << end_seg_idx << "]" << std::endl;
+        LARCV_DEBUG() << "  pos[" << inode << "]: (" << node_i.pos[0] << "," << node_i.pos[1] << "," << node_i.pos[2] << ")" << std::endl;
+        LARCV_DEBUG() << "  pos[" << jnode << "]: (" << node_j.pos[0] << "," << node_j.pos[1] << "," << node_j.pos[2] << ")" << std::endl;
+        LARCV_DEBUG() << "  dist=" << dist << std::endl;
 
         // enforce max distance two cluster ends can be connected
         if ( dist>_max_node_endpt_dist ) {
-	  LARCV_DEBUG() << "  no connect: dist=" << dist << "> max_node_endpt_dist (" << _max_node_endpt_dist << ")" << std::endl;
-	  continue;
-	}
+          LARCV_DEBUG() << "  no connect: dist=" << dist << "> max_node_endpt_dist (" << _max_node_endpt_dist << ")" << std::endl;
+          continue;
+        }
 
         // make sure this is the shortest distance
         // between the segments
@@ -250,7 +255,7 @@ namespace reco {
 
         if ( pairdist<dist ) {
           // the node's segment pair is closer to node_i, so we do not make this connection
-	  LARCV_DEBUG() << "  no connect: segment pair closer" << std::endl;
+	        LARCV_DEBUG() << "  no connect: segment pair closer" << std::endl;
           continue;
         }
 
@@ -287,43 +292,39 @@ namespace reco {
           //masker.set_verbosity( larcv::msg::kDEBUG );
           std::vector<float> ncharged_v(mask_adc_v.size(),0);
           std::vector<float> frac_v(mask_adc_v.size(),0);
-	  std::vector<float> plane_gap_dist(mask_adc_v.size(),0);
-	  std::vector< std::vector<float> > plane_gap_dir(mask_adc_v.size());
-	  float maxgapsize = 0.0;
+	        std::vector<float> plane_gap_dist(mask_adc_v.size(),0);
+	        std::vector< std::vector<float> > plane_gap_dir(mask_adc_v.size());
+	        float maxgapsize = 0.0;
+          int n_plane_w_gap = 0;
           for (int p=0; p<(int)mask_adc_v.size(); p++) {
             auto& mask = mask_adc_v.at(p);
             //auto const& adc = padc_v->at(p);
-	    auto const& adc = pbadch_v->at(p); // use bad channel filled image
+	          auto const& adc = pbadch_v->at(p); // use bad channel filled image
             ncharged_v[p] = (float)masker.maskTrack( gap, adc, mask, 10.0, 0, 0, 0.3 );
-	    float nall = masker.getPathPixels();
+	          float nall = masker.getPathPixels();
             if ( nall>0 ) {              
               frac_v[p] = ncharged_v[p]/nall;
             }
 	    
-	    // record the maxgap info
-	    std::vector< std::vector<float> > gap_colrow_coord;
-	    float plane_gapsize = masker.getMaximumChargeGap(gap_colrow_coord);
-	    plane_gap_dist[p] = plane_gapsize;
-	    if ( plane_gapsize>maxgapsize )
-	      maxgapsize = plane_gapsize;
-	    plane_gap_dir[p].resize(2,0);
-	    for (int v=0; v<2; v++) {
-	      plane_gap_dir[p][v] = gap_colrow_coord.at(1).at(v)-gap_colrow_coord.at(0).at(v);
-	    }
-	    
-	    LARCV_DEBUG() << "  plane[" << p << "]"
-			  << " maxgap=" << plane_gapsize
-			  << " gap (col,row)="
-			  << "(" << gap_colrow_coord[0][0] << "," << gap_colrow_coord[0][1] << ")"
-			  << "->(" << gap_colrow_coord[1][0] << "," << gap_colrow_coord[1][1] << ")"
-			  << std::endl;
+	          // record the maxgap info
+	          std::vector< std::vector<float> > gap_colrow_coord;
+	          float plane_gapsize = masker.getMaximumChargeGap(gap_colrow_coord);
+	          plane_gap_dist[p] = plane_gapsize;
+	          if ( plane_gapsize>maxgapsize )
+	            maxgapsize = plane_gapsize;
+	          plane_gap_dir[p].resize(2,0);
+	          for (int v=0; v<2; v++) {
+	            plane_gap_dir[p][v] = gap_colrow_coord.at(1).at(v)-gap_colrow_coord.at(0).at(v);
+	          }
+	          
+	          LARCV_DEBUG() << "  plane[" << p << "]"
+			        << " maxgap=" << plane_gapsize
+			        << " gap (col,row)="
+			        << "(" << gap_colrow_coord[0][0] << "," << gap_colrow_coord[0][1] << ")"
+			        << "->(" << gap_colrow_coord[1][0] << "," << gap_colrow_coord[1][1] << ")"
+			        << std::endl;
           }//end of plane loop
           //masker.maskTrack( gap, *padc_v, mask_adc_v, -1.0, 1, 1 );
-	  
-	  if ( maxgapsize>10.0 ) {
-	    LARCV_DEBUG() << "  fail charge check: maxgapsize=" << maxgapsize << " > 10.0 " << std::endl;
-	    pass_charge_check = false;
-	  }
 	  
           std::chrono::steady_clock::time_point end_masker = std::chrono::steady_clock::now();                    
 
@@ -338,16 +339,22 @@ namespace reco {
           }
           LARCV_DEBUG() << ssout.str() << std::endl;
 
-	  bool vplane_check = _checkForMissingVplane( frac_v, plane_gap_dir[1], 0.5 );
-	  if ( vplane_check )
-	    LARCV_DEBUG() << "  v-plane check allows connect to pass" << std::endl;
-          
-          if ( nplane_w_charge!=(int)mask_adc_v.size() && !vplane_check ) {
-	    LARCV_DEBUG() << "  fail charge check: nplane_wcharge="	<< nplane_w_charge << std::endl;
+	        bool vplane_check = _checkForMissingVplane( frac_v, plane_gap_dir[1], 0.5 );
+	        if ( vplane_check )
+	          LARCV_DEBUG() << "  v-plane check allows connect to pass" << std::endl;
+        
+          if ( nplane_w_charge<((int)mask_adc_v.size()-1) && !vplane_check ) {
+	          LARCV_DEBUG() << "  fail charge check: nplane_wcharge="	<< nplane_w_charge << std::endl;
             pass_charge_check = false;
             nfail_charge_check++;
           }
-	  
+
+          if ( nplane_w_charge<=2 && maxgapsize>_max_twoplane_charge_gap ) {
+	          LARCV_DEBUG() << "  fail gap check when only 2 planes pass the charge check : "
+                          << " maxgapsize=" << maxgapsize << " > " << _max_twoplane_charge_gap << std::endl;
+	          pass_charge_check = false;
+	        }
+	    
           std::chrono::steady_clock::time_point end_check = std::chrono::steady_clock::now();
           LARCV_DEBUG() << "  TrackClusterBuilder:: total-check-time="
                         << std::chrono::duration_cast<std::chrono::microseconds>(end_check - start_check).count()
@@ -366,11 +373,11 @@ namespace reco {
         }
 
         if ( !pass_charge_check || !pass_badch_check ) {
-	  LARCV_DEBUG() << "  no connect: fail charge check" << std::endl;	  
+	        LARCV_DEBUG() << "  no connect: fail charge check" << std::endl;	  
           continue;	  
-	}
+	      }
 
-	LARCV_DEBUG() << "  make connection!" << std::endl;
+	      LARCV_DEBUG() << "  make connection!" << std::endl;
 	
         // i->j
         Connection_t con_ij;
@@ -1372,6 +1379,33 @@ namespace reco {
 
     // otherwise the segment fails
     return false;
+  }
+
+  /**
+   * @brief Get list of indices of the segment container that are part of the track proposal
+   * 
+   * Useful for tracking which input clusters have been used.
+   * 
+   */
+  std::vector<int> TrackClusterBuilder::getProposalSegmentContainerIndices( int iproposal )
+  {
+    std::vector<int> segment_index_v;
+    std::set<int> segment_used;
+
+    if ( iproposal<0 || iproposal>=(int)_track_proposal_v.size() )
+      return segment_index_v;
+
+    auto& node_v = _track_proposal_v.at(iproposal);
+
+    for ( auto& pnode : node_v ) {
+      int source_index = _segment_v.at( pnode->segidx ).source_index;
+      if ( segment_used.find( source_index )==segment_used.end() ) {
+        segment_index_v.push_back( source_index );
+        segment_used.insert( source_index );
+      }
+    }
+
+    return segment_index_v;
   }
   
 }

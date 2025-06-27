@@ -36,14 +36,20 @@ namespace prongcnn {
         int& nplanes_above )
     {
 
-        
+        std::vector< std::vector<float> > hitpos_v;
+        hitpos_v.reserve(hitcluster.size());
+        for (auto const& hit : hitcluster ) {
+            std::vector<float> hitpos = {hit[0], hit[1], hit[2]};
+            hitpos_v.push_back(hitpos);
+        }
 
         std::vector< std::vector<larpid::data::CropPixData_t> > prong_vv
-            = larpid::interface::make_prongCNN_input_sparse_images( iolcv, hitcluster, 
+            = larpid::interface::make_prongCNN_input_sparse_images( iolcv, hitpos_v, 
                 cropPt, preserve_shower_pixels );
 
+
 /*
-        size_t nplanes = adc_v.size(); 
+        size_t nplanes = 3;
         bool thresholdPassInOne = false;
         bool thresholdPassInAll = true;
         nplanes_above = 0;
@@ -68,7 +74,7 @@ namespace prongcnn {
         }
         catch (std::exception& e) {
             network_run = false;
-            //LARCV_WARNING() << "Error running larpid: " << e.what() << std::endl;
+            LARCV_ERROR() << "Error running larpid: " << e.what() << std::endl;
         }
 
         if ( !network_run ) {
@@ -76,7 +82,7 @@ namespace prongcnn {
         }
 
 
-        // LARCV_INFO() << "Successfuly ran LArPID! Model outputs:" << std::endl;
+        LARCV_INFO() << "Successfuly ran LArPID! Model outputs:" << std::endl;
         // LARCV_INFO() << "    PID: " << output.pid << std::endl;
         // LARCV_INFO() << "    Production process: " << output.process << std::endl;
         // LARCV_INFO() << "    completeness: " << output.completeness << std::endl;

@@ -47,8 +47,9 @@ namespace reco {
 
     TrackClusterBuilder()
       : larcv::larcv_base("TrackClusterBuilder"),
-	_max_node_endpt_dist(100.0),
-	_one_track_per_startpoint(true)
+	    _max_node_endpt_dist(100.0),
+	    _one_track_per_startpoint(true),
+      _max_twoplane_charge_gap(50.0)
         {};
     virtual ~TrackClusterBuilder() {};
 
@@ -109,6 +110,7 @@ namespace reco {
       int idx;                                 ///< index of the segment
       bool inpath;                             ///< flag indicating segment is currently part of a path
       bool visited;                            ///< flag indicating segment has been visited at least once
+      int source_index;                        ///< index in the container the cluster came from
 
       Segment_t()
       : len(0),
@@ -166,6 +168,8 @@ namespace reco {
     // -----------
     float _max_node_endpt_dist;  ///< maximum distance two cluster ends can be connected by an edge
     bool _one_track_per_startpoint; ///< if flag is true, reduce many possible paths down to one
+    float _max_oneplane_charge_gap;  ///< max distance for missing charge if on one plane
+    float _max_twoplane_charge_gap;  ///< max distance for missing charge if on two planes
 
   public:
     
@@ -203,6 +207,10 @@ namespace reco {
                             
     // tools to save details for debug/visualization
     void saveConnections( larlite::storage_manager& ioll, std::string tree_name="tcb_connections" );
+
+    size_t numberProposals() { return _track_proposal_v.size(); };
+
+    std::vector<int> getProposalSegmentContainerIndices( int iproposal );
     
   protected:
 

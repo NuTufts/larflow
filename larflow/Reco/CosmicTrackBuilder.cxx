@@ -19,8 +19,8 @@ namespace reco {
       _using_default_cluster(true)
   {
     _cluster_tree_v.clear();
-    _cluster_tree_v.push_back( "trackprojsplit_full" );
-    producer_keypoint = "keypointcosmic";      
+    producer_keypoint = "keypoint_cosmic_start";
+    _max_node_endpt_dist = 200.0; 
   }
   
   /**
@@ -77,6 +77,7 @@ namespace reco {
     larlite::event_larflow3dhit* ev_keypoint
       = (larlite::event_larflow3dhit*)ioll.get_data(larlite::data::kLArFlow3DHit, producer_keypoint );
 
+    LARCV_INFO() << "Number of keypoints to seed track-builder: " << ev_keypoint->size() << std::endl;
 
     for (size_t ikp=0; ikp<ev_keypoint->size(); ikp++) {
       auto const& kp = ev_keypoint->at(ikp);
@@ -88,9 +89,9 @@ namespace reco {
     _buildTracksFromSegments();
     
     larlite::event_track* evout_track
-      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
+      = (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "fittedcosmictrack");
     larlite::event_larflowcluster* evout_trackcluster
-      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
+      = (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "fittedcosmictrack");
 
     fillLarliteTrackContainerWithFittedTrack( *evout_track, *evout_trackcluster, adc_v );
 

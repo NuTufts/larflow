@@ -30,6 +30,8 @@ PUBLIC
   LArCVCoreBase
   LArCVCoreDataFormat
   larlite_DataFormat
+  LArPID_Data
+  LArPID_Model
   LArPID_Interface
   ${TORCH_LIBRARIES}
   ${ROOT_LIBRARIES}

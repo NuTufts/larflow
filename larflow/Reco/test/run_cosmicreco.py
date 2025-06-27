@@ -61,6 +61,8 @@ print("[OUTPUT-ANA]: ",output_ana_filename)
 recoman = larflow.reco.CosmicParticleReconstruction()
 recoman.set_verbosity(args.loglevel)
 recoman.logger().default_level(args.loglevel)
+recoman.make_reco_output_file()
+
 iolcv.set_verbosity(args.loglevel)
 io.set_verbosity(args.loglevel)
 
@@ -151,6 +153,8 @@ for ientry in range( args.start_entry, end_entry ):
     
 
 print("Event Loop finished")
+recoman.write_output_file()
+
 #del kpsrecoman
 sys.stdout.flush()
 
