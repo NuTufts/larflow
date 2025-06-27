@@ -76,6 +76,8 @@ io.set_data_to_read( "mcshower", "mcreco" )
 io.set_data_to_read( "mctruth",  "generator" )
 io.set_data_to_read( "opflash",  "simpleFlashBeam" )
 io.set_data_to_read( "opflash",  "simpleFlashCosmic" )
+io.set_data_to_read( larlite.data.kCRTTrack, "crttrack" )
+io.set_data_to_read( larlite.data.kCRTHit,   "crthitcorr" )
 
 iolcv.add_in_file(   args.input_dlmerged )
 iolcv.specify_data_read( "image2d", "wire" );

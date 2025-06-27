@@ -118,10 +118,13 @@ namespace reco {
     ioll.set_data_to_write( larlite::data::kLArFlow3DHit,   "keypoint_all" );   /// all track start and end keypoints
     ioll.set_data_to_write( larlite::data::kLArFlow3DHit,   "keypointcosmic" ); /// cosmic keypoints
     ioll.set_data_to_write( larlite::data::kCRTTrack,       "crttrack");
+    ioll.set_data_to_write( larlite::data::kCRTHit,         "crthitcorr");
     ioll.set_data_to_write( larlite::data::kLArFlowCluster, "trackprojsplit_offtrigger" );
     ioll.set_data_to_write( larlite::data::kPCAxis,         "trackprojsplit_offtrigger" );
     ioll.set_data_to_write( larlite::data::kTrack,          "cosmictrack");
     ioll.set_data_to_write( larlite::data::kLArFlowCluster, "cosmictrack");
+    ioll.set_data_to_write( larlite::data::kOpFlash,        "simpleFlashCosmic");
+    ioll.set_data_to_write( larlite::data::kOpFlash,        "simpleFlashBeam");
 
     // Stages
 
