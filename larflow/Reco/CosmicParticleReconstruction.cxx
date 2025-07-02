@@ -82,9 +82,9 @@ namespace reco {
     _ana_tree->Branch( "kpc_track_start_v",  &_event_kpc_track_start_v );
     _ana_tree->Branch( "kpc_track_end_v",    &_event_kpc_track_end_v );
 
-    if ( _save_flashmatch_tree ) {
-      _flashmatch_tree;
-    }
+    // if ( _save_flashmatch_tree ) {
+    //   _flashmatch_tree;
+    // }
 
   }
 
