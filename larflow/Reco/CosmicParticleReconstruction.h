@@ -8,6 +8,10 @@
 #include "TTree.h"
 
 #include "larlite/DataFormat/storage_manager.h"
+#include "larlite/DataFormat/track.h"
+#include "larlite/DataFormat/opflash.h"
+#include "larlite/DataFormat/crttrack.h"
+#include "larlite/DataFormat/crthit.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 
@@ -46,6 +50,7 @@ namespace reco {
     void recoKeypoints( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void buildTrackFragments( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
     void buildCosmicTracks( larcv::IOManager& iolcv, larlite::storage_manager& ioll );
+    void fillFlashMatchData( larlite::storage_manager& ioll );
 
     std::string _flash_producer;
     std::string _wireimg_producer;

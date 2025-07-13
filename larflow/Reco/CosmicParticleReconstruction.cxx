@@ -86,7 +86,19 @@ namespace reco {
 
     
     if ( _save_flashmatchdata_tree ) {
-      // TODO: create flashmatchdata_tree and setup branches
+      // Create flashmatchdata_tree and setup branches
+      _flashmatchdata_tree = new TTree("FlashMatchData", "Cosmic tracks, optical flashes, and CRT information for flash matching");
+      
+      // Event info branches
+      _flashmatchdata_tree->Branch("run", &_ana_run, "run/I");
+      _flashmatchdata_tree->Branch("subrun", &_ana_subrun, "subrun/I");
+      _flashmatchdata_tree->Branch("event", &_ana_event, "event/I");
+      
+      // Data container branches
+      _flashmatchdata_tree->Branch("track_v", &_flashmatchdata_track_v);
+      _flashmatchdata_tree->Branch("opflash_v", &_flashmatchdata_opflash_v);
+      _flashmatchdata_tree->Branch("crttrack_v", &_flashmatchdata_crttrack_v);
+      _flashmatchdata_tree->Branch("crthit_v", &_flashmatchdata_crthit_v);
     }
 
   }
@@ -165,7 +177,7 @@ namespace reco {
       _ana_tree->Fill(); 
 
     if ( _save_flashmatchdata_tree ) {
-      // TO DO: pass flashes, reconstructed cosmic tracks, and CRT information into flashmatchdata_tree containers
+      fillFlashMatchData( ioll );
     }
   }
   
@@ -469,6 +481,73 @@ namespace reco {
     // _cosmic_proton_finder.set_verbosity( logger().level() );    
     // _cosmic_proton_finder.process( iolcv, ioll );
     
+  }
+
+  /**
+   * @brief Fill flash match data tree with cosmic tracks, optical flashes, and CRT information
+   *
+   * This method collects reconstructed cosmic tracks, optical flashes (both cosmic and beam),
+   * CRT tracks, and CRT hits from the larlite storage manager and stores them in the
+   * flashmatchdata_tree for downstream flash matching analysis.
+   *
+   * @param[in] ioll larlite storage_manager containing event data
+   */
+  void CosmicParticleReconstruction::fillFlashMatchData( larlite::storage_manager& ioll )
+  {
+    // Clear the containers first
+    _flashmatchdata_track_v.clear();
+    _flashmatchdata_opflash_v.clear();
+    _flashmatchdata_crttrack_v.clear();
+    _flashmatchdata_crthit_v.clear();
+    
+    // Fill cosmic tracks
+    larlite::event_track* ev_cosmic_tracks = 
+      (larlite::event_track*)ioll.get_data(larlite::data::kTrack, "cosmictrack");
+    if (ev_cosmic_tracks) {
+      for (const auto& track : *ev_cosmic_tracks) {
+        _flashmatchdata_track_v.push_back(track);
+      }
+    }
+    
+    // Fill optical flashes (both cosmic and beam)
+    larlite::event_opflash* ev_cosmic_flashes = 
+      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash, "simpleFlashCosmic");
+    if (ev_cosmic_flashes) {
+      for (const auto& flash : *ev_cosmic_flashes) {
+        _flashmatchdata_opflash_v.push_back(flash);
+      }
+    }
+    
+    larlite::event_opflash* ev_beam_flashes = 
+      (larlite::event_opflash*)ioll.get_data(larlite::data::kOpFlash, "simpleFlashBeam");
+    if (ev_beam_flashes) {
+      for (const auto& flash : *ev_beam_flashes) {
+        _flashmatchdata_opflash_v.push_back(flash);
+      }
+    }
+    
+    // Fill CRT tracks
+    larlite::event_crttrack* ev_crt_tracks = 
+      (larlite::event_crttrack*)ioll.get_data(larlite::data::kCRTTrack, "crttrack");
+    if (ev_crt_tracks) {
+      for (const auto& crttrack : *ev_crt_tracks) {
+        _flashmatchdata_crttrack_v.push_back(crttrack);
+      }
+    }
+    
+    // Fill CRT hits
+    larlite::event_crthit* ev_crt_hits = 
+      (larlite::event_crthit*)ioll.get_data(larlite::data::kCRTHit, "crthitcorr");
+    if (ev_crt_hits) {
+      for (const auto& crthit : *ev_crt_hits) {
+        _flashmatchdata_crthit_v.push_back(crthit);
+      }
+    }
+    
+    // Fill the tree
+    if (_flashmatchdata_tree) {
+      _flashmatchdata_tree->Fill();
+    }
   }
 
 }
