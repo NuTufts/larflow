@@ -23,7 +23,9 @@ namespace reco {
   CosmicParticleReconstruction::CosmicParticleReconstruction()
     : larcv::larcv_base("CosmicParticleReconstruction"),
     _ana_file(nullptr),
-    _ana_tree(nullptr)
+    _ana_tree(nullptr),
+    _save_flashmatchdata_tree(true),
+    _flashmatchdata_tree(nullptr)
   {
     set_default_param_values();
   }
@@ -82,9 +84,10 @@ namespace reco {
     _ana_tree->Branch( "kpc_track_start_v",  &_event_kpc_track_start_v );
     _ana_tree->Branch( "kpc_track_end_v",    &_event_kpc_track_end_v );
 
-    // if ( _save_flashmatch_tree ) {
-    //   _flashmatch_tree;
-    // }
+    
+    if ( _save_flashmatchdata_tree ) {
+      // TODO: create flashmatchdata_tree and setup branches
+    }
 
   }
 
@@ -159,7 +162,11 @@ namespace reco {
     _ana_event  = ev_larmatch->event_id();
 
     if ( _ana_tree )
-      _ana_tree->Fill();
+      _ana_tree->Fill(); 
+
+    if ( _save_flashmatchdata_tree ) {
+      // TO DO: pass flashes, reconstructed cosmic tracks, and CRT information into flashmatchdata_tree containers
+    }
   }
   
   /**
