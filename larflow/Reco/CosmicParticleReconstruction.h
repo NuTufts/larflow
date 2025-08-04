@@ -12,6 +12,7 @@
 #include "larlite/DataFormat/opflash.h"
 #include "larlite/DataFormat/crttrack.h"
 #include "larlite/DataFormat/crthit.h"
+#include "larlite/DataFormat/larflowcluster.h"
 #include "larcv/core/Base/larcv_base.h"
 #include "larcv/core/DataFormat/IOManager.h"
 
@@ -74,10 +75,12 @@ namespace reco {
 
     bool _save_flashmatchdata_tree; ///< save additional TTree containing information for flash-match data preparation
     TTree* _flashmatchdata_tree;    ///< TTree storing a list of cosmic tracks, optical flashes, and CRT informationtr
-    std::vector< larlite::track >    _flashmatchdata_track_v;    ///< list of tracks to fill in an event
-    std::vector< larlite::opflash >  _flashmatchdata_opflash_v;  ///< list of optical flashes in an event
-    std::vector< larlite::crttrack > _flashmatchdata_crttrack_v; ///< list of crt tracks in an event
-    std::vector< larlite::crthit >   _flashmatchdata_crthit_v;   ///< list of crt hits in an event
+    std::vector< larlite::track >         _flashmatchdata_track_v;      ///< list of tracks to fill in an event
+    //std::vector< larlite::larflowcluster> _flashmatchdata_track_hits_v; ///< list of hits associated to each track
+    std::vector< larlite::opflash >       _flashmatchdata_opflash_v;    ///< list of optical flashes in an event
+    std::vector< larlite::crttrack >      _flashmatchdata_crttrack_v;   ///< list of crt tracks in an event
+    std::vector< larlite::crthit >        _flashmatchdata_crthit_v;     ///< list of crt hits in an event
+    std::vector< std::vector< std::vector<float> > >  _flashmatchdata_track_hits_v; ///< list of hits associated to each track
 
 
   };

@@ -27,6 +27,7 @@ namespace reco {
     _save_flashmatchdata_tree(true),
     _flashmatchdata_tree(nullptr)
   {
+    clear();
     set_default_param_values();
   }
 
@@ -50,6 +51,11 @@ namespace reco {
   void CosmicParticleReconstruction::clear()
   {
     _cosmic_candidates_v.clear();
+    _flashmatchdata_track_v.clear();
+    _flashmatchdata_track_hits_v.clear();
+    _flashmatchdata_opflash_v.clear();
+    _flashmatchdata_crttrack_v.clear();
+    _flashmatchdata_crthit_v.clear();   
   }
 
   /**
@@ -99,6 +105,7 @@ namespace reco {
       _flashmatchdata_tree->Branch("opflash_v", &_flashmatchdata_opflash_v);
       _flashmatchdata_tree->Branch("crttrack_v", &_flashmatchdata_crttrack_v);
       _flashmatchdata_tree->Branch("crthit_v", &_flashmatchdata_crthit_v);
+      _flashmatchdata_tree->Branch("trackhits_vv", &_flashmatchdata_track_hits_v);
     }
 
   }
@@ -496,6 +503,7 @@ namespace reco {
   {
     // Clear the containers first
     _flashmatchdata_track_v.clear();
+    _flashmatchdata_track_hits_v.clear();
     _flashmatchdata_opflash_v.clear();
     _flashmatchdata_crttrack_v.clear();
     _flashmatchdata_crthit_v.clear();
@@ -506,6 +514,30 @@ namespace reco {
     if (ev_cosmic_tracks) {
       for (const auto& track : *ev_cosmic_tracks) {
         _flashmatchdata_track_v.push_back(track);
+      }
+    }
+
+    // Fill the hits associated to each cosmic tracks
+    larlite::event_larflowcluster* ev_cosmic_trackhits = 
+      (larlite::event_larflowcluster*)ioll.get_data(larlite::data::kLArFlowCluster, "cosmictrack");
+    if (ev_cosmic_trackhits) {
+      for (const auto& trackhits : *ev_cosmic_trackhits) {
+
+        std::vector< std::vector<float> > trackhits_v;
+        
+        for (const auto& hit : trackhits ) {
+          std::vector<float> hitinfo(7,0);
+          hitinfo[0] = hit[0]; // x
+          hitinfo[1] = hit[1]; // y
+          hitinfo[2] = hit[2]; // z
+          hitinfo[3] = hit.tick; // image tick
+          hitinfo[4] = hit.targetwire[0]; // U-wire
+          hitinfo[5] = hit.targetwire[1]; // V-wire
+          hitinfo[6] = hit.targetwire[2]; // Y-wire
+          trackhits_v.push_back( hitinfo );
+        }
+
+        _flashmatchdata_track_hits_v.push_back(trackhits_v);
       }
     }
     
