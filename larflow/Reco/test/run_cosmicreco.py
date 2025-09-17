@@ -102,6 +102,8 @@ iolcv.set_out_file( args.output.replace(".root","_larcv.root") )
 io.open()
 iolcv.initialize()
 
+print("DONE: IO initialization")
+
 lcv_nentries = iolcv.get_n_entries()
 ll_nentries  = io.get_entries()
 if lcv_nentries<ll_nentries:

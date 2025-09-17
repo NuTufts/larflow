@@ -16,6 +16,7 @@
 #include "KeypointReco.h"
 #include "ProjectionDefectSplitter.h"
 #include "CosmicTrackBuilder.h"
+#include "TruthThrumuImageMaker.h"
 
 namespace larflow {
 namespace reco {
@@ -153,6 +154,21 @@ namespace reco {
     ioll.set_data_to_write( larlite::data::kOpFlash,        "simpleFlashBeam");
 
     // Stages
+
+    // Check if thrumu image exists
+    larcv::EventImage2D* ev_thrumu
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "thrumu" );
+    if ( ev_thrumu->Image2DArray().size()==0 ) {
+      LARCV_NORMAL() << "Missing thrumu images in input." << std::endl;
+      // check for ancestor image - if exists, then we have simulation truth labels
+      larcv::EventImage2D* ev_ancestor
+        = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "ancestor" );
+      if (ev_ancestor->Image2DArray().size()>0 ) {
+        LARCV_NORMAL() << " have ancestor images. make thrumu using origin labels." << std::endl;
+        larflow::reco::TruthThrumuImageMaker thrumu_maker;
+        thrumu_maker.process( iolcv, ioll );
+      }
+    }
 
     // PrepSpacepoints: isolate out-of-time spacepoints using the out-of-time tagger using 
     // passing spacepoints are stored in the larlite storage_manager with the treename 'cosmicreco'

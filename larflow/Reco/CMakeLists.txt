@@ -59,6 +59,7 @@ set( HEADERS
   KPSRecoManager.h
   NuVertexFlashPrediction.h
   SinkhornFlashDivergence.h
+  TruthThrumuImageMaker.h
 
   # Cosmic Reco Modules
   CosmicParticleCandidate.h
@@ -124,6 +125,7 @@ add_library( ${LIBNAME} SHARED
   KPSRecoManager.cxx
   NuVertexFlashPrediction.cxx
   SinkhornFlashDivergence.cxx
+  TruthThrumuImageMaker.cxx
 
   # Cosmic Reco modules
   CosmicParticleCandidate.cxx
