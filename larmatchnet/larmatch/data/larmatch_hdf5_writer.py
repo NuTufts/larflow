@@ -4,7 +4,7 @@ class LArMatchHDF5Writer:
 
     ModuleList = ['preptriplets','kpana','ssnet','kpflow','truthfixer']
 
-    def __init__(self, treename_for_adc_image="wire", use_triplet_skip_limit=False ):
+    def __init__(self, treename_for_adc_image="wire", use_triplet_skip_limit=False, use_tickbackward=True ):
         
         # import bindings for ROOT-based c++ classes and functions
         # ROOT analysis framework
@@ -58,7 +58,7 @@ class LArMatchHDF5Writer:
         # truth label corrections
         self.truthfixer = larflow.prep.TripletTruthFixer()    
 
-        self.tick_backward = True
+        self.tick_backward = use_tickbackward
         self.entry_data = []
 
 
@@ -249,7 +249,8 @@ class LArMatchHDF5Writer:
         else:
             iolcv = larcv.IOManager( larcv.IOManager.kREAD, "larcv", larcv.IOManager.kTickForward )
         iolcv.add_in_file( input_larcv )
-        iolcv.reverse_all_products()
+        if self.tick_backward:
+            iolcv.reverse_all_products()
         iolcv.initialize()
 
         nentries_larcv = iolcv.get_n_entries()

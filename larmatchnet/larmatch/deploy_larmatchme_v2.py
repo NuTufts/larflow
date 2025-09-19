@@ -134,7 +134,10 @@ outll.open()
 
 # we use the LArMatchHDFWriter class to help us convert larcv/larlite data into numpy arrays
 from larmatch.data.larmatch_hdf5_writer import LArMatchHDF5Writer
-lmwriter = LArMatchHDF5Writer( use_triplet_skip_limit=args.use_skip_limit )
+lmwriter_use_tickbackward = True
+if args.tickforwards:
+    lmwriter_use_tickbackward = False
+lmwriter = LArMatchHDF5Writer( use_triplet_skip_limit=args.use_skip_limit, use_tickbackward=lmwriter_use_tickbackward )
 num_max_spacepoints = 10000000
 process_truth_labels = False
 
