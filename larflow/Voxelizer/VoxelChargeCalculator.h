@@ -2,7 +2,6 @@
 #define __LARFLOW_VOXELIZER_VOXELCHARGECALCULATOR_H__
 
 #include <vector>
-#include <array>
 
 #include "larcv/core/Base/larcv_base.h"
 #include "larlite/DataFormat/larflowcluster.h"
@@ -40,17 +39,17 @@ public:
 
 
     struct ClusterInfo_t {
-        std::vector< std::array<float,3> > hitpos_v;   // (x,y,z) position in the detector
-        std::vector< std::array<float,4> > hitcoord_v; // (tick,u,v,y) projected image position
+        std::vector< std::vector<float> > hitpos_v;   // (x,y,z) position in the detector
+        std::vector< std::vector<float> > hitcoord_v; // (tick,u,v,y) projected image position
     };
 
 
     struct VoxelChargeInfo_t {
         float t0_assumed;
         int num_outside_tpc;
-        std::vector< std::array<int,3> >   voxel_indices_vv;
-        std::vector< std::array<float,3> > voxel_centers_vv;
-        std::vector< std::array<float,3> > voxel_avepos_vv;
+        std::vector< std::vector<int> >   voxel_indices_vv;
+        std::vector< std::vector<float> > voxel_centers_vv;
+        std::vector< std::vector<float> > voxel_avepos_vv;
         std::vector< std::vector<float> >  voxel_planecharge_vv;
         VoxelChargeInfo_t()
         : t0_assumed(0.0),
@@ -58,12 +57,14 @@ public:
         {};
     };
 
+    const VoxelChargeInfo_t& get_voxel_charge_info();
+
 protected:
 
     larutil::SpaceChargeMicroBooNE*      _sce;             ///< Space Charge Utility: For correcting the space charge effect
     larflow::voxelizer::VoxelizeTriplets _voxelizer;       ///< helps us assign 3d position (x,y,z) to a voxel grid
     std::vector< ClusterInfo_t >         _cluster_info_v;  ///< stores 3d positions and pixel positions for particle clusters
-    std::vector< larcv::Image2D* >       _images_v;        ///< pointers to wire plane images we extract charge from
+    std::vector< const larcv::Image2D* >       _images_v;        ///< pointers to wire plane images we extract charge from
     std::vector< VoxelChargeInfo_t>      _voxel_charges_v; ///< container for results
 
     // struct to keep track of how many hits project down into a wireplane pixel

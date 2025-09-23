@@ -48,8 +48,8 @@ namespace voxelizer {
 
             auto const& lfhit = cluster_hits.at(ihit);
 
-            std::array<float,3> pos      = { lfhit[0], lfhit[1], lfhit[2] };
-            std::array<float,4> hitcoord = { (float)lfhit.tick, (float)lfhit.targetwire[0], (float)lfhit.targetwire[1], (float)lfhit.targetwire[2] };
+            std::vector<float> pos      = { lfhit[0], lfhit[1], lfhit[2] };
+            std::vector<float> hitcoord = { (float)lfhit.tick, (float)lfhit.targetwire[0], (float)lfhit.targetwire[1], (float)lfhit.targetwire[2] };
 
             trackinfo.hitpos_v.push_back( pos );
             trackinfo.hitcoord_v.push_back( hitcoord );
@@ -70,13 +70,20 @@ namespace voxelizer {
         for ( size_t ihit=0; ihit<nhits; ihit++ ) {
             auto const& hit = hitpos_v.at(ihit);
             auto const& imgcoord = imgcoord_v.at(ihit);
-            std::array<float,3> xpos = { hit[0], hit[1], hit[2] };
-            std::array<float,4> ximgcoord = { imgcoord[0], imgcoord[1], imgcoord[2], imgcoord[3] };
+            std::vector<float> xpos = { hit[0], hit[1], hit[2] };
+            std::vector<float> ximgcoord = { imgcoord[0], imgcoord[1], imgcoord[2], imgcoord[3] };
             trackinfo.hitpos_v.push_back( xpos );
             trackinfo.hitcoord_v.push_back( ximgcoord );
         }
 
         _cluster_info_v.emplace_back( std::move(trackinfo) );
+    }
+
+    void VoxelChargeCalculator::set_images( const std::vector< larcv::Image2D >& img_v ) {
+        for (size_t iimg=0; iimg<img_v.size(); iimg++) {
+            const larcv::Image2D& img = img_v.at(iimg);
+            _images_v.push_back( &img );
+        }
     }
 
     void VoxelChargeCalculator::calculate_voxel_charge( float t0 )
@@ -88,6 +95,7 @@ namespace voxelizer {
         // and get the charge sum of the voxels
 
         VoxelChargeInfo_t voxelinfo;
+        voxelinfo.t0_assumed = t0;
 
         // clear the output containers
         voxelinfo.voxel_planecharge_vv.clear();
@@ -100,11 +108,11 @@ namespace voxelizer {
             int hitindex;
         };
         std::map< vindex_t, std::vector<clusterhit_t> > voxelindex_to_hitindex;
-        std::map< vindex_t, std::array<float,3> > voxelindex_to_avepos;
+        std::map< vindex_t, std::vector<float> >        voxelindex_to_avepos;
 
         const float x_t0_offset = t0*larutil::LArProperties::GetME()->DriftVelocity();
 
-        int num_outside_voxels = 0;
+        int num_outside_voxels_or_tpc = 0;
 
         for (int icluster=0; (int)_cluster_info_v.size(); icluster++ ) {
 
@@ -112,7 +120,7 @@ namespace voxelizer {
 
             for (size_t hitidx=0; hitidx<cluster.hitpos_v.size(); hitidx++) {
 
-                std::array<float,3> hit = cluster.hitpos_v.at(hitidx);
+                std::vector<float> hit = cluster.hitpos_v.at(hitidx);
                 hit[0] -= x_t0_offset; //already removed x offset
 
                 // correct for the space charge effect
@@ -129,16 +137,20 @@ namespace voxelizer {
                         voxelindex[i] = ivoxel_v[i];
                 }
                 catch (...) {
-                    num_outside_voxels++;
+                    num_outside_voxels_or_tpc++;
                     continue;
                 }
+
+                // also track if point inside voxel grid, but outside the tpc
+                if ( hit[0]<0.0 || hit[0]>256.0 )
+                    num_outside_voxels_or_tpc++;
 
                 // find the voxel in our maps
                 auto it_voxel_hitlist = voxelindex_to_hitindex.find( voxelindex );
                 if ( it_voxel_hitlist==voxelindex_to_hitindex.end() ) {
                     // voxel not yet registered, create containers
                     voxelindex_to_hitindex[voxelindex] = std::vector<clusterhit_t>();
-                    voxelindex_to_avepos[voxelindex]   = std::array<float,3>{0.0,0.0,0.0};
+                    voxelindex_to_avepos[voxelindex]   = std::vector<float>(3,0);
                     it_voxel_hitlist = voxelindex_to_hitindex.find( voxelindex );
                 }
 
@@ -152,11 +164,12 @@ namespace voxelizer {
                 voxelindex_to_avepos[voxelindex][1] += fhit_sce[1];
                 voxelindex_to_avepos[voxelindex][2] += fhit_sce[2];
             }//end of loop over cluster hits
-        }//end of loop over cluster
+        }//end of loop over clusters
+        voxelinfo.num_outside_tpc = num_outside_voxels_or_tpc;
 
         LARCV_INFO() << "Made Occupied Voxel list and associated 3D points to the voxels" << std::endl;
         LARCV_INFO() << "  nvoxels: " << voxelindex_to_hitindex.size() << std::endl;
-        LARCV_INFO() << "  hits outside voxelized volume: " << num_outside_voxels << std::endl;
+        LARCV_INFO() << "  hits outside voxelized volume: " << num_outside_voxels_or_tpc << std::endl;
 
         // finished hit-to-voxel assignment
         // now need to sum up position and charge values for each voxel.
@@ -262,21 +275,19 @@ namespace voxelizer {
 
         for (auto it_voxel=voxelindex_to_hitindex.begin(); it_voxel!=voxelindex_to_hitindex.end();it_voxel++ ) {
 
-            std::array<float,3> ave_pos = {0.0, 0.0, 0.0};
-            std::vector<float>  fave_pos(3,0.0);
+            std::vector<float> ave_pos(3,0.0);
 
             ave_pos = voxelindex_to_avepos[it_voxel->first];
             for (int i=0; i<3; i++) {
                 ave_pos[i] /= float(it_voxel->second.size());
-                fave_pos[i] = ave_pos[i];
             }
 
             voxelinfo.voxel_avepos_vv.push_back( ave_pos );
             voxelinfo.voxel_planecharge_vv.push_back( voxelindex_to_chargevalues[it_voxel->first] );
 
-            std::vector<int> voxel_axis_indices_v = _voxelizer.get_voxel_indices( fave_pos );
-            std::array<int,3>   voxel_axis_indices = { 0, 0, 0};
-            std::array<float,3> centerpos = {0.0, 0.0, 0.0};
+            std::vector<int> voxel_axis_indices_v = _voxelizer.get_voxel_indices( ave_pos );
+            std::vector<int>   voxel_axis_indices(3,0);
+            std::vector<float> centerpos(3,0.0);
             for (int i=0; i<3; i++) {
                 voxel_axis_indices[i] = voxel_axis_indices_v[i];
                 centerpos[i] = (float(voxel_axis_indices[i])+0.5)*dimlen[i] + origin[i];
@@ -287,6 +298,16 @@ namespace voxelizer {
 
         _voxel_charges_v.emplace_back( std::move(voxelinfo) );
        
+    }
+
+    const VoxelChargeCalculator::VoxelChargeInfo_t& VoxelChargeCalculator::get_voxel_charge_info() 
+    {
+
+        if ( _voxel_charges_v.size()==0 ) {
+            throw std::runtime_error("VoxelChargeCalculator::get_voxel_charge_info - Results have not been created.");
+        }
+
+        return _voxel_charges_v.at(0);
     }
 
 }
