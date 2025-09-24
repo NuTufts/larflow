@@ -44,12 +44,18 @@ namespace voxelizer {
 
         size_t nhits = cluster_hits.size();
 
+        LARCV_INFO() << "Add cluster with " << nhits << " hits" << std::endl;
         for ( size_t ihit=0; ihit<nhits; ihit++ ) {
 
             auto const& lfhit = cluster_hits.at(ihit);
 
             std::vector<float> pos      = { lfhit[0], lfhit[1], lfhit[2] };
             std::vector<float> hitcoord = { (float)lfhit.tick, (float)lfhit.targetwire[0], (float)lfhit.targetwire[1], (float)lfhit.targetwire[2] };
+
+            std::cout << "adding hit: pos=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
+                << "tick=" << hitcoord[0]
+                << " imgcoord=(" << hitcoord[1] << "," << hitcoord[2] << "," << hitcoord[3] << ")"
+                << std::endl;
 
             trackinfo.hitpos_v.push_back( pos );
             trackinfo.hitcoord_v.push_back( hitcoord );
@@ -80,6 +86,8 @@ namespace voxelizer {
     }
 
     void VoxelChargeCalculator::set_images( const std::vector< larcv::Image2D >& img_v ) {
+
+        _images_v.clear();
         for (size_t iimg=0; iimg<img_v.size(); iimg++) {
             const larcv::Image2D& img = img_v.at(iimg);
             _images_v.push_back( &img );
@@ -114,7 +122,7 @@ namespace voxelizer {
 
         int num_outside_voxels_or_tpc = 0;
 
-        for (int icluster=0; (int)_cluster_info_v.size(); icluster++ ) {
+        for (int icluster=0; (int)icluster<_cluster_info_v.size(); icluster++ ) {
 
             auto const& cluster = _cluster_info_v.at(icluster);
 
@@ -180,6 +188,7 @@ namespace voxelizer {
 
         // For each plane, calculate the charge values assigned to the voxel
         int nplanes = _images_v.size();
+        LARCV_INFO() << "Calculate voxel charge values for each of the " << nplanes << " Wire planes" << std::endl;
         std::map<vindex_t,std::vector<float> > voxelindex_to_chargevalues;
 
         for (int plane=0; plane<nplanes; plane++) {
@@ -208,6 +217,24 @@ namespace voxelizer {
                     int row = meta.row( imgpos[0] ); // tick to row
                     int col = imgpos[plane+1];
                     std::pair<int,int> pix(row,col);
+
+                    std::cout << "voxel[" << it_voxel->first[0] << "," << it_voxel->first[1] << "," << it_voxel->first[2] << "]"
+                                << " nhits=" << hitindex_list.size()
+                                << " plane[" << plane << "] "
+                                << " pixel[" << row << "," << col << "]"
+                                << " clusteridx[" << clusteridx << "]"
+                                << " cluster-hitidx[" << hitidx << "/" << cluster.hitcoord_v.size() << "]"
+                                << " tick=" << imgpos[0]
+                                << std::endl;
+
+                    if ( row<0 || row>(int)meta.rows() ) {
+                        std::cout << " ** BAD ROW COORDINATE" << std::endl;
+                        continue; // bad pixel coordinate
+                    }
+                    if ( col<0 || col>(int)meta.cols() ) {
+                        std::cout << " ** BAD COL COORDINATE" << std::endl;
+                        continue; // bad pixel coordinate
+                    }
 
                     auto it_pixel = pix_to_index.find( pix );
                     if ( it_pixel==pix_to_index.end() ) {
