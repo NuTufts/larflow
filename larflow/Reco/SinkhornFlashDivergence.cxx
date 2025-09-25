@@ -91,7 +91,7 @@ namespace reco {
 
   SinkhornFlashDivergence::SinkhornFlashDivergence()
     : larcv::larcv_base("SinkhornFlashDivergence"),
-      _geometry_version(kV12),
+      _geometry_version(kV4),
       _initialized(false),
       _last_iterations(0),
       _dist_scale(1000.0), // 1000 cm, the length (and largest direction) of the microbone detector
