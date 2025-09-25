@@ -52,7 +52,7 @@ namespace voxelizer {
             std::vector<float> pos      = { lfhit[0], lfhit[1], lfhit[2] };
             std::vector<float> hitcoord = { (float)lfhit.tick, (float)lfhit.targetwire[0], (float)lfhit.targetwire[1], (float)lfhit.targetwire[2] };
 
-            std::cout << "adding hit: pos=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
+            LARCV_DEBUG() << "adding hit: pos=(" << pos[0] << "," << pos[1] << "," << pos[2] << ") "
                 << "tick=" << hitcoord[0]
                 << " imgcoord=(" << hitcoord[1] << "," << hitcoord[2] << "," << hitcoord[3] << ")"
                 << std::endl;
@@ -214,25 +214,27 @@ namespace voxelizer {
                     int hitidx     = clusterhitidx.hitindex;
                     auto const& cluster = _cluster_info_v.at(clusteridx);
                     auto const& imgpos  = cluster.hitcoord_v.at(hitidx);
+                    auto const& hitpos  = cluster.hitpos_v.at(hitidx);
                     int row = meta.row( imgpos[0] ); // tick to row
                     int col = imgpos[plane+1];
                     std::pair<int,int> pix(row,col);
 
-                    std::cout << "voxel[" << it_voxel->first[0] << "," << it_voxel->first[1] << "," << it_voxel->first[2] << "]"
+                    LARCV_DEBUG() << "voxel[" << it_voxel->first[0] << "," << it_voxel->first[1] << "," << it_voxel->first[2] << "]"
                                 << " nhits=" << hitindex_list.size()
                                 << " plane[" << plane << "] "
                                 << " pixel[" << row << "," << col << "]"
                                 << " clusteridx[" << clusteridx << "]"
                                 << " cluster-hitidx[" << hitidx << "/" << cluster.hitcoord_v.size() << "]"
                                 << " tick=" << imgpos[0]
+                                << " hit=(" << hitpos[0] << "," << hitpos[1] << "," << hitpos[2] << ")"
                                 << std::endl;
 
                     if ( row<0 || row>(int)meta.rows() ) {
-                        std::cout << " ** BAD ROW COORDINATE" << std::endl;
+                        LARCV_WARNING() << " ** BAD ROW COORDINATE" << std::endl;
                         continue; // bad pixel coordinate
                     }
                     if ( col<0 || col>(int)meta.cols() ) {
-                        std::cout << " ** BAD COL COORDINATE" << std::endl;
+                        LARCV_WARNING() << " ** BAD COL COORDINATE" << std::endl;
                         continue; // bad pixel coordinate
                     }
 
