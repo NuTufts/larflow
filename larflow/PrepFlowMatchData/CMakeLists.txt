@@ -12,6 +12,8 @@ set( HEADERS
   FlowMatchHitMaker.h
   PrepSSNetTriplet.h
   TripletTruthFixer.h
+  TripletLabels_t.h
+  SimChTripletLabelMaker.h
   )
 
 add_library( ${LIBNAME} SHARED
@@ -23,6 +25,8 @@ add_library( ${LIBNAME} SHARED
   FlowMatchHitMaker.cxx  
   PrepSSNetTriplet.cxx
   TripletTruthFixer.cxx
+  TripletLabels_t.cxx
+  SimChTripletLabelMaker.cxx
   )
 
 # create a property to hold our headers

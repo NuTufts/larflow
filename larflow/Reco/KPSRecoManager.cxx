@@ -418,6 +418,7 @@ namespace reco {
     _kpreco_nu.set_keypoint_type( (int)larflow::kNuVertex );
     _kpreco_nu.set_lfhit_score_index( 17 ); // (v2 larmatch-minkowski network neutrino-score index in hit)
     _kpreco_nu.process( ioll );
+    LARCV_INFO() << "Number of Nu keypoints: " << _kpreco_nu.output_pt_v.size() << std::endl;
       
     // neutrino interaction track: we have track starts and ends
     std::vector< larflow::reco::KeypointReco* > _kpreco_track_v
@@ -474,7 +475,8 @@ namespace reco {
     _kpreco_deltas.process( ioll );
 
 
-    
+    LARCV_DEBUG() << "Finished creating reco vertex candidates." << std::endl;
+
     // filter out keypoints by in-time and cosmic
     larlite::event_larflow3dhit* ev_kpintime = (larlite::event_larflow3dhit*)ioll.get_data( larlite::data::kLArFlow3DHit, "keypoint" );
     larlite::event_pcaxis* ev_kp_pca = (larlite::event_pcaxis*)ioll.get_data( larlite::data::kPCAxis, "keypoint" );    
@@ -498,6 +500,8 @@ namespace reco {
     for ( auto& pkpreco : kpreco_v ) {
       // loop over reco keypoints
       for ( auto const& kpc : pkpreco->output_pt_v ) {
+
+        LARCV_INFO() << "Reco Keypoint type[" << kpc._cluster_type << "] score=" << kpc.max_score << std::endl;
 	      // cut on max value keypoint score
 	      if ( kpc.max_score < 0.5 ) // 0.7 too strong?
 	        continue;
@@ -508,7 +512,9 @@ namespace reco {
 	      for (int p=0; p<3; p++) {
 	        thrumu_pixsum[p] = _pt_image_projection.getPixelSumAroundProjPoint( kpc.max_pt_v, ev_image2d_v->as_vector().at(p), 2, 10.0 );
 	        thrumu_pixsum_allplanes += thrumu_pixsum[p];
+          LARCV_INFO() << "  thrumu pixel sum plane[" << p << "]: " << thrumu_pixsum[p] << std::endl;
 	      }
+        LARCV_INFO() << "  thrumu pixel sum all planes: " << thrumu_pixsum_allplanes << std::endl;
       
 	      /// make larflow3dhit version and add thrumu projection info.
 	      larlite::larflow3dhit kphit = kpc.as_larflow_hit();
@@ -516,17 +522,19 @@ namespace reco {
 	      for (int p=0; p<3; p++)
 	        kphit.push_back( thrumu_pixsum[p] );
       
-	      if ( thrumu_pixsum_allplanes < 50.0 ) {
+	      if ( kpc._cluster_type==0 || kpc._cluster_type==3 || thrumu_pixsum_allplanes < 50.0 ) {
 	        // then ok to pass on as potential nu candidate
 	        ev_kpintime->push_back( kphit );
 	        ev_kp_pca->push_back( kpc.get_pcaxis( intime_cluster_index ) );
 	        intime_cluster_index++;
+          LARCV_INFO() << "  assign as intime keypoint" << std::endl;
 	      }
 	      else {
 	        // assign as comics
 	        ev_kpcosmic->push_back( kphit );
 	        ev_kp_pca_cosmic->push_back( kpc.get_pcaxis( cosmic_cluster_index ) );
 	        cosmic_cluster_index++;
+          LARCV_INFO() << "  assign as out-of-time (cosmic) keypoint" << std::endl;
 	      }
       }
     }
