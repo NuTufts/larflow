@@ -4,13 +4,13 @@ set(MODULE_NAME HDF5utils )
 set( LIBNAME LArFlow_${MODULE_NAME} )
 
 # Find HDF5: we'll need this for this module
-find_package(HDF5 REQUIRED COMPONENTS C CXX HL)
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
 
 # Debug: Print HDF5 information
 message(STATUS "HDF5 found: ${HDF5_FOUND}")
 message(STATUS "HDF5 include dirs: ${HDF5_INCLUDE_DIRS}")
 message(STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
-message(STATUS "HDF5 HL libraries: ${HDF5_HL_LIBRARIES}")
+#message(STATUS "HDF5 HL libraries: ${HDF5_HL_LIBRARIES}")
 message(STATUS "HDF5 definitions: ${HDF5_DEFINITIONS}")
 
 # Source files

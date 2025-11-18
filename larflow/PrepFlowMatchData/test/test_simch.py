@@ -26,3 +26,5 @@ iolcv.read_entry(0)
 print(simchmaker)
 
 simchmaker.process( ioll, iolcv )
+
+simchmaker.export_as_hdf("out_test.h5")

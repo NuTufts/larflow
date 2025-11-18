@@ -26,6 +26,8 @@ public:
   void process( larlite::storage_manager& ioll, 
                 larcv::IOManager& iolcv );
 
+  void export_as_hdf(std::string hdf_outfile);
+
 
   std::vector<TripletLabels_t> _triplets_v;
   std::map< std::array<int,4>, unsigned long > _imgcoord_to_tripindex;

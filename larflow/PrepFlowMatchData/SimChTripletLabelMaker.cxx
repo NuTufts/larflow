@@ -8,6 +8,8 @@
 
 #include "larcv/core/DataFormat/EventImage2D.h"
 
+#include <highfive/H5Easy.hpp>
+
 #include "ublarcvapp/MCTools/MCPixelPGraph.h"
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 
@@ -144,7 +146,7 @@ namespace prep {
                     trip.pos[0] = pos[0];
                     trip.pos[1] = pos[1];
                     trip.pos[2] = pos[2];
-                    trip.pos_reco[0] = (tick-3200)*0.5/driftv;
+                    trip.pos_reco[0] = (tick-3200)*0.5*driftv;
                     trip.pos_reco[1] = pos_sce[1];
                     trip.pos_reco[2] = pos_sce[2];
                     _imgcoord_to_tripindex[imgindex] = trip.index;
@@ -171,6 +173,102 @@ namespace prep {
     LARCV_INFO() << "  IDEs with no nearby-wire: " << ide_w_badwire << std::endl;
     LARCV_INFO() << "  IDEs used: " << num_ide_used << std::endl; 
 
+
+  }
+
+  void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )
+  {
+
+    HighFive::File file(hdf_outfile, HighFive::File::Overwrite);
+
+    file.createGroup("/triplet_data");
+
+    // export different arrays for export
+    int ntriplets = _triplets_v.size();
+
+    std::vector<float> pos_x(ntriplets,0);
+    std::vector<float> pos_y(ntriplets,0);
+    std::vector<float> pos_z(ntriplets,0);
+
+    std::vector<float> pos_x_reco(ntriplets,0);
+    std::vector<float> pos_y_reco(ntriplets,0);
+    std::vector<float> pos_z_reco(ntriplets,0);
+
+    std::vector<float> edep(ntriplets,0);
+    std::vector<long>  trackid(ntriplets,0);
+    std::vector<int>   pid(ntriplets,0);
+    std::vector<int>   aid(ntriplets,0);
+    std::vector<int>   origin(ntriplets,0);
+    std::vector<int>   uwire(ntriplets,0);
+    std::vector<int>   vwire(ntriplets,0);
+    std::vector<int>   ywire(ntriplets,0);
+    std::vector<int>   tick(ntriplets,0);
+    std::vector<int>   row(ntriplets,0);
+
+    for (auto const& triplet : _triplets_v ) {
+        long idx = triplet.index;
+
+        pos_x[idx] = triplet.pos[0];
+        pos_y[idx] = triplet.pos[1];
+        pos_z[idx] = triplet.pos[2];
+
+        pos_x_reco[idx] = triplet.pos_reco[0];
+        pos_y_reco[idx] = triplet.pos_reco[1];
+        pos_z_reco[idx] = triplet.pos_reco[2];
+
+        edep[idx]    = triplet.edep;
+
+        for ( auto& tid : triplet.trackids ) {
+            trackid[idx] = tid;
+            if (trackid[idx]!=-1)
+                break;
+        }
+
+        for ( auto& xpid : triplet.pids ) {
+            pid[idx]     = xpid;
+            if (pid[idx]!=-1)
+                break;
+        }
+
+        for ( auto& xaid : triplet.aids ) {
+            aid[idx]     = xaid;
+            if (aid[idx]!=-1)
+                break;
+        }
+
+        for ( auto& xorigin : triplet.origin ) {
+            origin[idx]  = xorigin;
+            if (origin[idx]!=-1)
+                break;
+        }
+
+        uwire[idx]   = triplet.imgcoord[0];
+        vwire[idx]   = triplet.imgcoord[1];
+        ywire[idx]   = triplet.imgcoord[2];
+        tick[idx]    = triplet.imgcoord[4];
+        row[idx]     = triplet.imgcoord[3];
+    }
+
+    H5Easy::dump( file, "/triplet_data/pos_x", pos_x);
+    H5Easy::dump( file, "/triplet_data/pos_y", pos_y);
+    H5Easy::dump( file, "/triplet_data/pos_z", pos_z);
+
+    H5Easy::dump( file, "/triplet_data/pos_x_reco", pos_x_reco);
+    H5Easy::dump( file, "/triplet_data/pos_y_reco", pos_y_reco);
+    H5Easy::dump( file, "/triplet_data/pos_z_reco", pos_z_reco);
+
+    H5Easy::dump( file, "/triplet_data/edep",    edep);
+    H5Easy::dump( file, "/triplet_data/trackid", trackid);
+    H5Easy::dump( file, "/triplet_data/pid",     pid);
+    H5Easy::dump( file, "/triplet_data/aid",     aid);
+    H5Easy::dump( file, "/triplet_data/origin",  origin);
+    H5Easy::dump( file, "/triplet_data/uwire",   uwire);
+    H5Easy::dump( file, "/triplet_data/vwire",   vwire);
+    H5Easy::dump( file, "/triplet_data/ywire",   ywire);
+    H5Easy::dump( file, "/triplet_data/tick",    tick);
+    H5Easy::dump( file, "/triplet_data/row",     row);
+
+    file.flush();
 
   }
 

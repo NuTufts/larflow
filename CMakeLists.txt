@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(larflow VERSION 0.1)
 
-#set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
 
 #---Install location by default is in the build directory
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -150,6 +150,39 @@ if ( Torch_FOUND )
   message( STATUS "looking for larpid cmake files at: ${larpid_DIR}")
   find_package( larpid )
   message( STATUS "Status for finding larpid: ${larpid_FOUND}" )
+endif()
+
+#---HDF5 (for machine learning data output)
+find_package(HDF5 COMPONENTS C CXX QUIET)
+if(HDF5_FOUND)
+    message(STATUS "Found HDF5: ${HDF5_VERSION}")
+    add_compile_definitions(HAVE_HDF5)
+else()
+    message(STATUS "HDF5 not found, HDF5 output features will be disabled")
+endif()
+
+#---HighFive (header-only HDF5 C++ interface)
+if(HDF5_FOUND)
+    # Try to find HighFive as an installed package first
+    find_package(HighFive QUIET)
+    if(NOT HighFive_FOUND)
+        # If not found, check if it exists as a submodule or in a known location
+        if(EXISTS "$ENV{UBDL_BASEDIR}/extern/highfive/include")
+            set(HIGHFIVE_INCLUDE_DIR "$ENV{UBDL_BASEDIR}/extern/highfive/include")
+            message(STATUS "Found HighFive headers at: ${HIGHFIVE_INCLUDE_DIR}")
+            set(HighFive_FOUND TRUE)
+        else()
+            message(STATUS "HighFive not found. To use HDF5 features, please:")
+            message(STATUS "  1. Install HighFive: https://github.com/highfive-devs/highfive/tree/main ")
+            message(STATUS "  2. Or add as submodule: git submodule add https://github.com/highfive-devs/highfive/tree/main extern/highfive")
+        endif()
+    else()
+        message(STATUS "Found HighFive package")
+    endif()
+    
+    if(HighFive_FOUND)
+        add_compile_definitions(HAVE_HIGHFIVE)
+    endif()
 endif()
   
 ## Setup
