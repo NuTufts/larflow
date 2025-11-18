@@ -13,18 +13,19 @@ class TripletLabels_t {
 public:
 
   TripletLabels_t()
-  : index(-1),edep(0.0)
+  : index(-1),hasmatch(0),edep({0.0,0.0,0.0})
   {};
 
   ~TripletLabels_t() {};
 
   long index;
+  int hasmatch;
 
   std::array<int,5>   imgcoord; // (u,v,y,row,tick)
   std::array<float,3> pos;
   std::array<float,3> pos_reco;
 
-  double edep;
+  std::array<double,3> edep;
   std::array<float,3> pixval;
 
   std::set<long> trackids;

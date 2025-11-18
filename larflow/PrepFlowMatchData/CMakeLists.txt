@@ -13,6 +13,7 @@ set( HEADERS
   PrepSSNetTriplet.h
   TripletTruthFixer.h
   TripletLabels_t.h
+  EventTriplets_t.h
   SimChTripletLabelMaker.h
   )
 
@@ -26,6 +27,7 @@ add_library( ${LIBNAME} SHARED
   PrepSSNetTriplet.cxx
   TripletTruthFixer.cxx
   TripletLabels_t.cxx
+  EventTriplets_t.cxx
   SimChTripletLabelMaker.cxx
   )
 
