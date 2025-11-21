@@ -15,6 +15,8 @@ set( HEADERS
   TripletLabels_t.h
   EventTriplets_t.h
   SimChTripletLabelMaker.h
+  MCKeypoint.h
+  MCKeypointMaker.h
   )
 
 add_library( ${LIBNAME} SHARED
@@ -29,6 +31,8 @@ add_library( ${LIBNAME} SHARED
   TripletLabels_t.cxx
   EventTriplets_t.cxx
   SimChTripletLabelMaker.cxx
+  MCKeypoint.cxx
+  MCKeypointMaker.cxx
   )
 
 # create a property to hold our headers

@@ -35,6 +35,8 @@
 #pragma link C++ class larflow::prep::PrepSSNetTriplet+;
 #pragma link C++ class larflow::prep::TripletLabels_t+;
 #pragma link C++ class larflow::prep::SimChTripletLabelMaker+;
+#pragma link C++ class larflow::prep::MCKeypoint+;
+#pragma link C++ class larflow::prep::MCKeypointMaker+;
 
 /* //#pragma link C++ class std::vector< larflow::prep::FlowDir_t >+; */
 /* //#pragma link C++ struct larflow::prep::FlowTriples::PixData_t+; */
