@@ -185,20 +185,26 @@ namespace prep {
       = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
     LARCV_NORMAL() << "[Non-muon track start Results] numfound=" << nonmuon_track_kpd.size() << std::endl;
     for ( auto const& kpd : nonmuon_track_kpd ) {
-      LARCV_DEBUG() << "  " << kpd.str() << std::endl;
+      std::stringstream ss( kpd.str() );
+      std::string strline;
+      while ( std::getline(ss, strline, '\n') )
+        LARCV_DEBUG() << strline << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
-    // // add points for shower starts
-    // std::vector<MCKeypoint> shower_kpd
-    //   = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
-    // LARCV_NORMAL() << "[Shower Endpoint Results] numfound=" << shower_kpd.size() << std::endl;
-    // int ishr=0; 
-    // for ( auto const& kpd : shower_kpd ) {
-    //   LARCV_INFO() << "  [" << ishr << "] " << kpd.str() << std::endl;
-    //   ishr++;
-    //   _kpd_v.emplace_back( std::move(kpd) );
-    // }
+    // add points for shower starts
+    std::vector<MCKeypoint> shower_kpd
+      = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
+    LARCV_NORMAL() << "[Shower Endpoint Results] numfound=" << shower_kpd.size() << std::endl;
+    int ishr=0; 
+    for ( auto const& kpd : shower_kpd ) {
+      std::stringstream ss( kpd.str() );
+      std::string strline;
+      while ( std::getline(ss, strline, '\n') )
+        LARCV_DEBUG() << strline << std::endl;
+      ishr++;
+      _kpd_v.emplace_back( std::move(kpd) );
+    }
 
     // // we change the kptype to neutrino vertex for those on it
     // //LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
@@ -346,145 +352,148 @@ namespace prep {
     return kpd_v;
   }
 
-  // /**
-  //  * make list of end-points for shower-like particles
-  //  *
-  //  * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
-  //  *                 true particle information into graph, while also associating
-  //  *                 to each truth particle, the pixels in the image (if any).
-  //  *                 We get a list of showers using this graph, and only consider
-  //  *                 those who have at least 10 visible pixels in one of the planes.
-  //  * @param[in] adc_v Vector of wire charge image, one for each plane
-  //  * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
-  //  *                       information of shower-like particles in the event
-  //  * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
-  //  *                 3D trajectory information into the observed trajectory due to
-  //  *                 space charge effects
-  //  * @return Vector of MCKeypoint instances, one for each ground truth shower start
-  //  * 
-  //  */  
-  // std::vector<MCKeypoint>
-  // MCKeypointMaker::getShowerStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
-  //                                    const std::vector<larcv::Image2D>& adc_v,
-  //                                    const larlite::event_mcshower& mcshower_v,
-  //                                    larutil::SpaceChargeMicroBooNE* psce )
-  // {
+  /**
+   * make list of end-points for shower-like particles
+   *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any).
+   *                 We get a list of showers using this graph, and only consider
+   *                 those who have at least 10 visible pixels in one of the planes.
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
+   *                       information of shower-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of MCKeypoint instances, one for each ground truth shower start
+   * 
+   */  
+  std::vector<MCKeypoint>
+  MCKeypointMaker::getShowerStarts( ublarcvapp::mctools::MCParticleGraph& mcpg,
+                                     const std::vector<larcv::Image2D>& adc_v,
+                                     const larlite::event_mcshower& mcshower_v,
+                                     larutil::SpaceChargeMicroBooNE* psce )
+  {
 
-  //   LARCV_DEBUG() << "start" << std::endl;
+    LARCV_DEBUG() << "start" << std::endl;
     
-  //   // output vector of keypoint data
-  //   std::vector<MCKeypoint> kpd_v;
+    // output vector of keypoint data
+    std::vector<MCKeypoint> kpd_v;
 
-  //   // loop over nodes, look for electron/gamma pixels
-  //   for ( auto& pnode : mcpg.node_v ) {
+    // loop over nodes, look for electron/gamma pixels
+    for ( auto& pnode : mcpg.node_v ) {
 
-  //     if ( abs(pnode.pid)!=11
-  //          && abs(pnode.pid)!=22 )
-  //       continue;
+      if ( abs(pnode.pid)!=11
+           && abs(pnode.pid)!=22 )
+        continue;
 
 
-  //     int max_plane_pixels = 0;
-  //     for (auto const& pix_v : pnode.pix_vv ) {
-  //       if ( max_plane_pixels<pix_v.size() )
-  //         max_plane_pixels = pix_v.size();
-  //     }
+      // int max_plane_pixels = 0;
+      // for (auto const& pix_v : pnode.pix_vv ) {
+      //   if ( max_plane_pixels<pix_v.size() )
+      //     max_plane_pixels = pix_v.size();
+      // }
 
-  //     if ( max_plane_pixels<20 )
-  //       continue;
+      // if ( max_plane_pixels<20 )
+      //   continue;
 
-  //     auto const& shower = mcshower_v.at( pnode.vidx );
-  //     LARCV_DEBUG() << "found shower start: "
-	// 	    << "tid=" << pnode.tid << ","
-	// 	    << "mtid=" << pnode.mtid << ","
-	// 	    << "aid=" << pnode.aid << ") "
-	// 	    << "process: " << shower.Process()
-	// 	    << std::endl;
-  //     std::string process = shower.Process();
+      auto const& shower = mcshower_v.at( pnode.vidx );
+      LARCV_DEBUG() << "found shower start: "
+		    << "tid=" << pnode.tid << ","
+		    << "mtid=" << pnode.mtid << ","
+		    << "aid=" << pnode.aid << ") "
+		    << "process: " << shower.Process()
+		    << std::endl;
+      std::string process = shower.Process();
       
-  //     // start: pnode.start; //should be in apparent position already
-  //     MCKeypoint kpd;
-  //     kpd.crossingtype = 2;
-  //     kpd.trackid = pnode.tid;
-  //     kpd.pid     = pnode.pid;
-  //     kpd.vid     = pnode.vidx;
-  //     kpd.origin  = pnode.origin;
-  //     kpd.is_shower = 1;
-  //     ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
-  //     ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+      // start: pnode.start; //should be in apparent position already
+      MCKeypoint kpd;
+      //kpd.crossingtype = 2;
+      kpd.trackid = pnode.tid;
+      kpd.pid     = pnode.pid;
+      //kpd.vid     = pnode.vidx;
+      kpd.origin  = pnode.origin;
+      kpd.is_shower = 1;
+      ublarcvapp::mctools::MCPGNode* mothernode   = mcpg.findTrackID( pnode.mtid );
+      ublarcvapp::mctools::MCPGNode* ancestornode = mcpg.findTrackID( pnode.aid );
 	
-  //     // priveledge showers from muons
-  //     if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
-  //       // mother is a muon or ancestor is a muon
-  //       if ( process=="Decay" || process=="muMinusCaptureAtRest")
-  //         kpd.kptype = larflow::kShowerMichel;
-  //       else
-  //         kpd.kptype = larflow::kShowerDelta;
-  //     }
-  //     else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" || process=="eBrem" || process=="muBrem") {
-  //       kpd.kptype = larflow::kShowerDelta;
-  //     }
-  //     else {
-  //       // everything else
-  //       kpd.kptype = larflow::kShowerStart;
-  //     }
-  //     // }
-  //     // else {
-  //     // 	std::string msg = "MCKeypointMaker::getShowerStarts - unrecognized process! "+process;
-  //     // 	throw std::runtime_error(msg);
-  //     // }
+      // priveledge showers from muons
+      if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
+        // mother is a muon or ancestor is a muon
+        if ( process=="Decay" || process=="muMinusCaptureAtRest")
+          kpd.kptype = larflow::prep::MCKeypoint::kMichel;
+        else
+          kpd.kptype = larflow::prep::MCKeypoint::kDelta;
+      }
+      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" || process=="eBrem" || process=="muBrem") {
+        kpd.kptype = larflow::prep::MCKeypoint::kDelta;
+      }
+      else {
+        // everything else
+        kpd.kptype = larflow::prep::MCKeypoint::kShowerStart;
+      }
+      // }
+      // else {
+      // 	std::string msg = "MCKeypointMaker::getShowerStarts - unrecognized process! "+process;
+      // 	throw std::runtime_error(msg);
+      // }
 
-  //     std::vector< float > pixsum_v = mcpg.getTruePhotonTrunkPlanePixelSums( pnode.tid );
-  //     auto const& pointlist = mcpg.getTruePhotonTrunk3DPoints( pnode );
-  //     std::sort( pixsum_v.begin(), pixsum_v.end() );
-  //     float ave_toptwo = (pixsum_v[1]+pixsum_v[2])/2.0*0.0162;
+      // std::vector< float > pixsum_v = mcpg.getTruePhotonTrunkPlanePixelSums( pnode.tid );
+      // auto const& pointlist = mcpg.getTruePhotonTrunk3DPoints( pnode );
+      // std::sort( pixsum_v.begin(), pixsum_v.end() );
+      // float ave_toptwo = (pixsum_v[1]+pixsum_v[2])/2.0*0.0162;
       
-  //     std::vector<float> start_reco(4,0.0);
-  //     if ( abs(pnode.pid)==11) {
-  //       start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3] );
-  //     }
-  //     else {
-  //       start_reco = pnode.first_edep_pos;
-  //     }
+      std::vector<float> start_reco(4,0.0);
+      if ( abs(pnode.pid)==11) {
+        start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3] );
+      }
+      else {
+        start_reco = pnode.first_tpc_pos;
+      }
 
 
-  //     kpd.keypt.resize(3,0);
-  //     for (int i=0; i<3; i++)
-  //       kpd.keypt[i]   = start_reco[i];
-  //     LARCV_DEBUG() << "  shower startpt=(" << kpd.keypt[0] << "," << kpd.keypt[1] << "," << kpd.keypt[2] << ")" << std::endl;
+      kpd.keypt_appear.resize(3,0);
+      for (int i=0; i<3; i++)
+        kpd.keypt_appear[i]   = start_reco[i];
+      LARCV_DEBUG() << "  shower startpt=(" << kpd.keypt_appear[0] << "," << kpd.keypt_appear[1] << "," << kpd.keypt_appear[2] << ")" << std::endl;
 
-  //     std::vector<double> dpos(3,0);
-  //     for (int i=0; i<3; i++ ) dpos[i] = start_reco[i];
+      std::vector<double> dpos(3,0);
+      for (int i=0; i<3; i++ ) dpos[i] = start_reco[i];
 
-  //     kpd.imgcoord.resize(4,0.0);
-  //     try {
-  //       for (int p=0; p<3; p++)
-  //         kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( dpos, p );
-  //     }
-  //     catch (...) {
-  //     	LARCV_DEBUG() << "  shower start could not find a proper nearest wire" << std::endl;
-  //       continue;
-  //     }
-  //     float tick = pnode.imgpos4[3];
-  //     if ( tick>adc_v[0].meta().min_y() && tick<adc_v[0].meta().max_y() ) {
-  //       kpd.imgcoord[0] = adc_v[0].meta().row( tick ); // wants row?
-  //     }
-  //     else {
-	//       LARCV_DEBUG() << "  shower start has tick outside of image bounds" << std::endl;
-  //       continue;
-  //     }
+      kpd.imgcoord.resize(4,0.0);
+      try {
+        for (int p=0; p<3; p++)
+          kpd.imgcoord[p] = (int)larutil::Geometry::GetME()->NearestWire( dpos, p );
+      }
+      catch (...) {
+      	LARCV_DEBUG() << "  shower start could not find a proper nearest wire" << std::endl;
+        continue;
+      }
 
+      float tick = start_reco[3];
 
-  //     if ( ave_toptwo < 15.0 ) {
-  //       LARCV_DEBUG() << "  shower has too little energy deposited in the trunk (when ave. top two planes): " << ave_toptwo << " < 15.0 MeV" << std::endl;
-  //       continue;
-  //     }
+      if ( tick>adc_v[0].meta().min_y() && tick<adc_v[0].meta().max_y() ) {
+        kpd.imgcoord[3] = adc_v[0].meta().row( tick ); // wants row?
+      }
+      else {
+	      LARCV_DEBUG() << "  shower start has tick outside of image bounds" << std::endl;
+        continue;
+      }
+      kpd.tick = tick;
+      kpd.row  = kpd.imgcoord[3];
+
+      // if ( ave_toptwo < 15.0 ) {
+      //   LARCV_DEBUG() << "  shower has too little energy deposited in the trunk (when ave. top two planes): " << ave_toptwo << " < 15.0 MeV" << std::endl;
+      //   continue;
+      // }
       
-  //     kpd_v.emplace_back( std::move(kpd) );
+      kpd_v.emplace_back( std::move(kpd) );
 
-  //   }//end of node loop
+    }//end of node loop
     
-  //   return kpd_v;
-  // }
+    return kpd_v;
+  }
 
     /**
    * make list of end-points for non0-muon track-like particles
