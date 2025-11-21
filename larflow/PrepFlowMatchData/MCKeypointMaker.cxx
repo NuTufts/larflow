@@ -24,6 +24,8 @@
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
 
+#include <highfive/H5Easy.hpp>
+
 namespace larflow {
 namespace prep {
 
@@ -126,7 +128,7 @@ namespace prep {
     // refine the points to sit on the nearest true spacepoint that matches its trackid
     //_move_floating_keypoints( match_proposals );
     
-    _clear_output();
+    //_clear_output();
     //_copy_to_vectors();
     
   }
@@ -164,7 +166,6 @@ namespace prep {
     }
 
     // build key-points container
-    _kpd_v.clear();
     _clear_output();
 
     // build crossing points for muon track primaries
@@ -210,7 +211,7 @@ namespace prep {
     //filter_duplicates();
 
     // copy positions of keypoints into flat vector for storage
-    _clear_output();
+    //_clear_output();
     //_copy_to_vectors();
     // for ( auto const& kpd : _kpd_v ) {
     //   if ( kpd.kptype>=0 && kpd.kptype<6 ) {
@@ -1334,6 +1335,42 @@ namespace prep {
         throw std::runtime_error("unrecognized keypoint type");
       }          
     }
+  }
+
+  void MCKeypointMaker::export_as_hdf( std::string hdf_outfile )
+  {
+    LARCV_INFO() << "export to " << hdf_outfile << std::endl;
+
+    HighFive::File file(hdf_outfile, HighFive::File::Overwrite);
+
+    file.createGroup("/mckeypoints");
+
+    // export different arrays for export
+    int nkeypoints = _kpd_v.size();
+
+    std::vector< std::vector<float> > pos_appear(nkeypoints);
+    std::vector< std::vector<int> >   imgcoord(nkeypoints);
+    std::vector< int > kptype(nkeypoints);
+    std::vector< int > kppid(nkeypoints);
+    std::vector< int > kptrackid(nkeypoints);
+
+    int ikp=0;
+    for ( auto const& kpd : _kpd_v ) {
+      pos_appear[ikp] = kpd.keypt_appear;
+      imgcoord[ikp]   = kpd.imgcoord;
+      kptype[ikp]     = kpd.kptype;
+      kppid[ikp]      = kpd.pid;
+      kptrackid[ikp]  = kpd.trackid;
+      ikp++;
+    }
+
+    H5Easy::dump( file, "/mckeypoints/pos",      pos_appear);
+    H5Easy::dump( file, "/mckeypoints/imgcoord", imgcoord);
+    H5Easy::dump( file, "/mckeypoints/kptype",   kptype);
+    H5Easy::dump( file, "/mckeypoints/pid",      kppid);
+    H5Easy::dump( file, "/mckeypoints/trackid",  kptrackid);
+
+    file.flush();
   }
   
 }

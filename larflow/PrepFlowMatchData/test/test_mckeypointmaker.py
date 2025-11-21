@@ -34,4 +34,4 @@ print(mckpmaker)
 mckpmaker.process( iolcv, ioll )
 mckpmaker.printKeypoints()
 
-#mckpmaker.export_as_hdf("out_test.h5")
+mckpmaker.export_as_hdf("out_test_kpmaker.h5")

@@ -135,6 +135,8 @@ namespace prep {
     const std::vector<MCKeypoint>& getMCKeypoint() const { return _kpd_v; };
 
     void printKeypoints() const;
+
+    void export_as_hdf( std::string outfile );
             
   public:
 
