@@ -177,17 +177,17 @@ namespace prep {
       std::stringstream ss( kpd.str() );
       std::string strline;
       while ( std::getline(ss, strline, '\n') )
-        LARCV_INFO() << strline << std::endl;
+        LARCV_DEBUG() << strline << std::endl;
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
-    // std::vector<MCKeypoint> nonmuon_track_kpd 
-    //   = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
-    // LARCV_NORMAL() << "[Non-muon track start Results] numfound=" << nonmuon_track_kpd.size() << std::endl;
-    // for ( auto const& kpd : nonmuon_track_kpd ) {
-    //   LARCV_NORMAL() << "  " << kpd.str() << std::endl;
-    //   _kpd_v.emplace_back( std::move(kpd) );
-    // }
+    std::vector<MCKeypoint> nonmuon_track_kpd 
+      = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
+    LARCV_NORMAL() << "[Non-muon track start Results] numfound=" << nonmuon_track_kpd.size() << std::endl;
+    for ( auto const& kpd : nonmuon_track_kpd ) {
+      LARCV_DEBUG() << "  " << kpd.str() << std::endl;
+      _kpd_v.emplace_back( std::move(kpd) );
+    }
 
     // // add points for shower starts
     // std::vector<MCKeypoint> shower_kpd
@@ -256,15 +256,20 @@ namespace prep {
     bool verbose = false;
     
     // get list of primaries
-    std::vector<ublarcvapp::mctools::MCPGNode*> primaries
-      = mcpg.getPrimaryParticles(false);
+    // std::vector<ublarcvapp::mctools::MCPGNode*> primaries
+    //   = mcpg.getPrimaryParticles(false);
+    std::vector<ublarcvapp::mctools::MCPGNode*> muons;
+    for ( auto& node : mcpg.node_v ) {
+      if ( abs(node.pid)==13 )
+        muons.push_back( &node );
+    }
 
     auto const& meta0 = adc_v.front().meta();
 
     // output vector of keypoint data
     std::vector<MCKeypoint> kpd_v;
 
-    for ( auto const& pnode : primaries ) {
+    for ( auto const& pnode : muons ) {
 
       if ( abs(pnode->pid)!=13 )
         continue;
@@ -481,196 +486,214 @@ namespace prep {
   //   return kpd_v;
   // }
 
-  //   /**
-  //  * make list of end-points for non0-muon track-like particles
-  //  *
-  //  * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
-  //  *                 true particle information into graph, while also associating
-  //  *                 to each truth particle, the pixels in the image (if any).
-  //  *                 We get a list of showers using this graph, and only consider
-  //  *                 those who have at least 10 visible pixels in one of the planes.
-  //  * @param[in] adc_v Vector of wire charge image, one for each plane
-  //  * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
-  //  *                       information of shower-like particles in the event
-  //  * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
-  //  *                 3D trajectory information into the observed trajectory due to
-  //  *                 space charge effects
-  //  * @return Vector of MCKeypoint instances, one for each ground truth shower start
-  //  * 
-  //  */  
-  // std::vector<MCKeypoint>
-  // MCKeypointMaker::getNonMuonTrackStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
-  //                                    const std::vector<larcv::Image2D>& adc_v,
-  //                                    const larlite::event_mctrack& mctrack_v,
-  //                                    larutil::SpaceChargeMicroBooNE* psce )
-  // {
+    /**
+   * make list of end-points for non0-muon track-like particles
+   *
+   * @param[in] mcpg Instance of MCPixelPGraph, which organizes information 
+   *                 true particle information into graph, while also associating
+   *                 to each truth particle, the pixels in the image (if any).
+   *                 We get a list of showers using this graph, and only consider
+   *                 those who have at least 10 visible pixels in one of the planes.
+   * @param[in] adc_v Vector of wire charge image, one for each plane
+   * @param[in] mcshower_v Event container (vector) of mcshower objects, containing truth
+   *                       information of shower-like particles in the event
+   * @param[in] psce Pointer to SpaceChargeMicroBooNE class. For converting true
+   *                 3D trajectory information into the observed trajectory due to
+   *                 space charge effects
+   * @return Vector of MCKeypoint instances, one for each ground truth shower start
+   * 
+   */  
+  std::vector<MCKeypoint>
+  MCKeypointMaker::getNonMuonTrackStarts( ublarcvapp::mctools::MCParticleGraph& mcpg,
+                                     const std::vector<larcv::Image2D>& adc_v,
+                                     const larlite::event_mctrack& mctrack_v,
+                                     larutil::SpaceChargeMicroBooNE* psce )
+  {
 
-  //   LARCV_DEBUG() << "start" << std::endl;\
-  //   std::vector<MCKeypoint> output;
+    LARCV_DEBUG() << "start" << std::endl;
+    std::vector<MCKeypoint> output;
     
-  //   Double_t tpc_bounds[3][2] = { {0,255.0},
-  //                                 {-116.5,116.5},
-  //                                 {0.5,1035.5}}; // so dumb that this is hard-coded.
-  //   // we have to space-charge correct, so we bump a little inside
+    Double_t tpc_bounds[3][2] = { {0,255.0},
+                                  {-116.5,116.5},
+                                  {0.5,1035.5}}; // so dumb that this is hard-coded.
+    // we have to space-charge correct, so we bump a little inside
 
-  //   // output vector of keypoint data
-  //   std::vector<MCKeypoint> kpd_v;
+    // output vector of keypoint data
+    std::vector<MCKeypoint> kpd_v;
 
-  //   // loop over nodes, look for electron/gamma pixels
-  //   for ( auto& pnode : mcpg.node_v ) {
+    auto const& meta0 = adc_v.front().meta();
 
-  //     if (pnode.type!=0)
-  //       continue; // we are querying only nodes generated from the mctrack container
+    // loop over nodes, look for electron/gamma pixels
+    for ( auto& pnode : mcpg.node_v ) {
 
-  //     if ( abs(pnode.pid)==11 || abs(pnode.pid)==22 || pnode.pid==2112 ) {
-  //       // no showers and no neutrons
-  //       continue;
-  //     }
-  //     if ( abs(pnode.pid)==13 ) {
-  //       // no muons
-  //       continue;
-  //     }
-  //     if (pnode.origin==-1)
-  //       continue;
+      if (pnode.type!=0)
+        continue; // we are querying only nodes generated from the mctrack container
 
-  //     auto const& track = mctrack_v.at( pnode.vidx );
-  //     LARCV_INFO() << "  found non-muon track: "
-	// 	    << "tid=" << pnode.tid << ","
-	// 	    << "mtid=" << pnode.mtid << ","
-	// 	    << "aid=" << pnode.aid << ") "
-	// 	    << "process: " << track.Process()
-	// 	    << std::endl;
-  //     std::string process = track.Process();
+      if ( abs(pnode.pid)==11 || abs(pnode.pid)==22 || pnode.pid==2112 ) {
+        // no showers and no neutrons
+        continue;
+      }
+      if ( abs(pnode.pid)==13 ) {
+        // no muons
+        continue;
+      }
+      if (pnode.origin==-1)
+        continue;
 
-  //     if ( track.size()==0 ) {
-  //       // there are no steps inside the cryostat by this particle. skip it
-  //       continue;
-  //     }
+      auto const& track = mctrack_v.at( pnode.vidx );
+      // LARCV_INFO() << "  found non-muon track: "
+		  //   << "tid=" << pnode.tid << ","
+		  //   << "mtid=" << pnode.mtid << ","
+		  //   << "aid=" << pnode.aid << ") "
+		  //   << "process: " << track.Process()
+		  //   << std::endl;
+      std::string process = track.Process();
 
-  //     // we ignore low energy stuff we really cannot reconstruct
-  //     // we need to verify what is inside and outside the detector...
-  //     // probably should push this back into the mcpg ... along with pion work by Andy
-  //     bool inside_det = false;
-  //     float total_len = 0.;
-  //     float total_len_indet = 0.;
-  //     std::vector<float> pos_start_tpc(4,0);
-  //     std::vector<float> pos_end_tpc(4,0);
-  //     for (int istep=0; istep<(int)track.size()-1; istep++) {
-  //       const TLorentzVector lpt1 = track.at(istep).Position();
-  //       const TLorentzVector lpt2 = track.at(istep+1).Position();
-  //       TVector3 pt1 = lpt1.Vect();
-  //       TVector3 pt2 = lpt2.Vect();
-  //       TVector3 dstep = pt2-pt1;
+      if ( track.size()==0 ) {
+        // there are no steps inside the cryostat by this particle. skip it
+        continue;
+      }
 
-  //       bool in_tpc1=false;
-  //       for (int i=0; i<3; i++) {
-  //         if ( tpc_bounds[i][0]<=pt1[i] && pt1[i]<=tpc_bounds[i][1]){
-  //           in_tpc1 = true;
-  //         }
-  //       }
+      // we ignore low energy stuff we really cannot reconstruct
+      // we need to verify what is inside and outside the detector...
+      // probably should push this back into the mcpg ... along with pion work by Andy
+      bool inside_det = false;
+      float total_len = 0.;
+      float total_len_indet = 0.;
+      std::vector<float> pos_start_tpc(4,0);
+      std::vector<float> pos_end_tpc(4,0);
+      for (int istep=0; istep<(int)track.size()-1; istep++) {
+        const TLorentzVector lpt1 = track.at(istep).Position();
+        const TLorentzVector lpt2 = track.at(istep+1).Position();
+        TVector3 pt1 = lpt1.Vect();
+        TVector3 pt2 = lpt2.Vect();
+        TVector3 dstep = pt2-pt1;
 
-  //       bool in_tpc2=false;
-  //       for (int i=0; i<3; i++) {
-  //         if ( tpc_bounds[i][0]<=pt2[i] && pt2[i]<=tpc_bounds[i][1]){
-  //           in_tpc2 = true;
-  //         }
-  //       }
+        bool in_tpc1=false;
+        for (int i=0; i<3; i++) {
+          if ( tpc_bounds[i][0]<=pt1[i] && pt1[i]<=tpc_bounds[i][1]){
+            in_tpc1 = true;
+          }
+        }
 
-  //       if (!inside_det) {
-  //         if ( in_tpc1 ) {
-  //           pos_start_tpc = std::vector<float>{ (float)lpt1.X(), (float)lpt1.Y(), (float)lpt1.Z(), (float)(lpt1.T()*1.0e-3) };
-  //         }
-  //         else if (in_tpc2) {
-  //           pos_start_tpc = std::vector<float>{ (float)lpt2.X(), (float)lpt2.Y(), (float)lpt2.Z(), (float)(lpt2.T()*1.0e-3) };
-  //         }
-  //         // we do we determine the crossing pt midstep?
-  //         // we could ... not worry for now ... assume geant4 steps are small enough that we can tolerate imprecision
-  //         inside_det = true;
-  //       }
-  //       else if ( inside_det ) {
-  //         if ( in_tpc1 )
-  //           pos_end_tpc = std::vector<float>{ (float)lpt1.X(), (float)lpt1.Y(), (float)lpt1.Z(), (float)(lpt1.T()*1.0e-3) };
-  //         if ( in_tpc2 )
-  //           pos_end_tpc = std::vector<float>{ (float)lpt2.X(), (float)lpt2.Y(), (float)lpt2.Z(), (float)(lpt2.T()*1.0e-3) };
-  //       }
+        bool in_tpc2=false;
+        for (int i=0; i<3; i++) {
+          if ( tpc_bounds[i][0]<=pt2[i] && pt2[i]<=tpc_bounds[i][1]){
+            in_tpc2 = true;
+          }
+        }
 
-  //       if (inside_det)
-  //         total_len += dstep.Mag();
-  //     }
+        if (!inside_det) {
+          if ( in_tpc1 ) {
+            pos_start_tpc = std::vector<float>{ (float)lpt1.X(), (float)lpt1.Y(), (float)lpt1.Z(), (float)(lpt1.T()*1.0e-3) };
+          }
+          else if (in_tpc2) {
+            pos_start_tpc = std::vector<float>{ (float)lpt2.X(), (float)lpt2.Y(), (float)lpt2.Z(), (float)(lpt2.T()*1.0e-3) };
+          }
+          // we do we determine the crossing pt midstep?
+          // we could ... not worry for now ... assume geant4 steps are small enough that we can tolerate imprecision
+          inside_det = true;
+        }
+        else if ( inside_det ) {
+          if ( in_tpc1 )
+            pos_end_tpc = std::vector<float>{ (float)lpt1.X(), (float)lpt1.Y(), (float)lpt1.Z(), (float)(lpt1.T()*1.0e-3) };
+          if ( in_tpc2 )
+            pos_end_tpc = std::vector<float>{ (float)lpt2.X(), (float)lpt2.Y(), (float)lpt2.Z(), (float)(lpt2.T()*1.0e-3) };
+        }
 
-  //     bool above_threshold = true;
-  //     if ( total_len < 3.0 ) {
-  //       // we anticipate using a scoring sigma of 5 cm
-  //       // also, 3 cm is about 10 pixels in microboone. at that point, we should be able to identify it as a prong
-  //       above_threshold = false;
-  //     }
+        if (inside_det)
+          total_len += dstep.Mag();
+      }
 
-  //     // also check how much visible energy it has made in the image
-  //     int nplanes = 0;
-  //     for (int p=0; p<pnode.pix_vv.size(); p++) {
-  //       if ( pnode.pix_vv.at(p).size()/2>=10 ) {
-  //         nplanes++;
-  //       }
-  //     }
-  //     if (nplanes==0) {
-  //       above_threshold = false;
-  //     }
+      bool above_threshold = true;
+      if ( total_len < 3.0 ) {
+        // we anticipate using a scoring sigma of 5 cm
+        // also, 3 cm is about 10 pixels in microboone. at that point, we should be able to identify it as a prong
+        above_threshold = false;
+      }
 
-  //     if ( !above_threshold ) {
-  //       LARCV_INFO() << "track visible energy deposition is below threshold. skip." << std::endl;
-  //     }
+      // also check how much visible energy it has made in the image
+      // int nplanes = 0;
+      // for (int p=0; p<pnode.pix_vv.size(); p++) {
+      //   if ( pnode.pix_vv.at(p).size()/2>=10 ) {
+      //     nplanes++;
+      //   }
+      // }
+      // if (nplanes==0) {
+      //   above_threshold = false;
+      // }
+
+      if ( !above_threshold ) {
+        LARCV_INFO() << "track visible energy deposition is below threshold. skip." << std::endl;
+      }
       
-  //     // track start
-  //     MCKeypoint kpd_start;
-  //     kpd_start.crossingtype = 0;
-  //     kpd_start.trackid = pnode.tid;
-  //     kpd_start.pid     = pnode.pid;
-  //     kpd_start.vid     = pnode.vidx;
-  //     kpd_start.origin  = pnode.origin;
-  //     kpd_start.is_shower = 0;
-  //     kpd_start.kptype = larflow::kTrackStart;
-  //     std::vector<float> pos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pos_start_tpc[0],
-  //                                                                                                pos_start_tpc[1],
-  //                                                                                                pos_start_tpc[2],                                                                                                  
-  //                                                                                                pos_start_tpc[3]*1.0e-3 );
-  //     kpd_start.keypt = std::vector<float>{ (float)pos[0], (float)pos[1], (float)pos[2] };                                                                                       
+      // track start
+      MCKeypoint kpd_start;
+      //kpd_start.crossingtype = 0;
+      kpd_start.trackid = pnode.tid;
+      kpd_start.pid     = pnode.pid;
+      //kpd_start.vid     = pnode.vidx;
+      kpd_start.origin  = pnode.origin;
+      kpd_start.is_shower = 0;
+      kpd_start.kptype = larflow::prep::MCKeypoint::kTrackStart;
+      std::vector<float> pos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pos_start_tpc[0],
+                                                                                                 pos_start_tpc[1],
+                                                                                                 pos_start_tpc[2],                                                                                                  
+                                                                                                 pos_start_tpc[3]*1.0e-3 );
+      kpd_start.keypt_appear = std::vector<float>{ (float)pos[0], (float)pos[1], (float)pos[2] };                                                                                       
 
-  //     kpd_start.imgcoord = 
-  //           ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
-  //                                                                                      4050.0, true, 0.3, 0.1,
-  //                                                                                      kpd_start.keypt, psce, false );
-  //     // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
-  //     // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
-      
-  //     // track end 
-  //     MCKeypoint kpd_end;
-  //     kpd_end.crossingtype = 1;
-  //     kpd_end.trackid = pnode.tid;
-  //     kpd_end.pid     = pnode.pid;
-  //     kpd_end.vid     = pnode.vidx;
-  //     kpd_end.origin  = pnode.origin;
-  //     kpd_end.is_shower = 0;
-  //     kpd_end.kptype = larflow::kTrackEnd;
-  //     // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
-  //     // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
-  //     std::vector<float> fendpos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pos_end_tpc[0],
-  //                                                                                                pos_end_tpc[1],
-  //                                                                                                pos_end_tpc[2],                                                                                                  
-  //                                                                                                pos_end_tpc[3]*1.0e-3 );
-  //     kpd_end.keypt = std::vector<float>{ (float)fendpos[0], (float)fendpos[1], (float)fendpos[2] };
-  //     kpd_end.imgcoord = 
-  //           ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
-  //                                                                                      4050.0, false, 0.3, 0.1,
-  //                                                                                      kpd_end.keypt, psce, false );
-  //     if ( kpd_start.keypt.size()>=3 )
-  //       output.emplace_back( std::move(kpd_start) );
-  //     if ( kpd_end.keypt.size()>=3 )
-  //       output.emplace_back( std::move(kpd_end) );
+      std::vector<int> imgcoord = 
+            ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
+                                                                                       4050.0, true, 0.3, 0.1,
+                                                                                       kpd_start.keypt_appear, psce, false );
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+      std::cout << "(start) imgcoord.size()=" << imgcoord.size() << std::endl;
+      if ( imgcoord.size()>=4 ) {
+        kpd_start.imgcoord.resize(4,0);
+        for (int i=0; i<3; i++)
+          kpd_start.imgcoord[i] = imgcoord[1+i];
+        kpd_start.row  = imgcoord[0];
+        kpd_start.tick = meta0.pos_y( kpd_start.row );
+        kpd_start.imgcoord[3] = kpd_start.row;
+        output.emplace_back( std::move(kpd_start) );
+      }
 
-  //   }//end of node loop
+      // track end 
+      MCKeypoint kpd_end;
+      //kpd_end.crossingtype = 1;
+      kpd_end.trackid = pnode.tid;
+      kpd_end.pid     = pnode.pid;
+      //kpd_end.vid     = pnode.vidx;
+      kpd_end.origin  = pnode.origin;
+      kpd_end.is_shower = 0;
+      kpd_end.kptype = larflow::prep::MCKeypoint::kTrackEnd;
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
+      // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
+      std::vector<float> fendpos = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pos_end_tpc[0],
+                                                                                                 pos_end_tpc[1],
+                                                                                                 pos_end_tpc[2],                                                                                                  
+                                                                                                 pos_end_tpc[3]*1.0e-3 );
+      kpd_end.keypt_appear = std::vector<float>{ (float)fendpos[0], (float)fendpos[1], (float)fendpos[2] };
+      imgcoord = 
+        ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
+                                                                                       4050.0, false, 0.3, 0.1,
+                                                                                       kpd_end.keypt_appear, psce, false );
+      std::cout << "(end) imgcoord.size()=" << imgcoord.size() << std::endl;
+      if (imgcoord.size()>=4) {
+        kpd_end.imgcoord.resize(4,0);
+        for (int i=0; i<3; i++)
+          kpd_end.imgcoord[i] = imgcoord[1+i];
+        kpd_end.row  = imgcoord[0];
+        kpd_end.tick = meta0.pos_y( kpd_end.row );
+        kpd_end.imgcoord[3] = kpd_end.row;
+        output.emplace_back( std::move(kpd_end) );
+      }
+
+    }//end of node loop
     
-  //   return output;
-  // }
+    return output;
+  }
   
   // /**
   //  * loop through existing keypoints and change type to neutrino
@@ -1079,6 +1102,9 @@ namespace prep {
     for ( size_t i=0; i<_kpd_v.size(); i++ ) {
       auto const& kpd = _kpd_v[i];
       std::cout << "  [" << i << "] "
+                << "type=" << kpd.kptype << " "
+                << "trackid=" << kpd.trackid << " "
+                << "pid=" << kpd.pid << " "
                 << "(" << kpd.keypt_appear[0] << "," << kpd.keypt_appear[1] << "," << kpd.keypt_appear[2] << ")"
                 << std::endl;
     }

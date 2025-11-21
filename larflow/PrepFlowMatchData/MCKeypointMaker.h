@@ -103,11 +103,11 @@ namespace prep {
     //                    const larlite::event_mcshower& mcshower_v,
     //                    larutil::SpaceChargeMicroBooNE* psce );
 
-    // std::vector<MCKeypoint>
-    //   getNonMuonTrackStarts( ublarcvapp::mctools::MCPixelPGraph& mcpg,
-    //                           const std::vector<larcv::Image2D>& adc_v,
-    //                           const larlite::event_mctrack& mctrack_v,
-    //                           larutil::SpaceChargeMicroBooNE* psce );
+    std::vector<MCKeypoint>
+      getNonMuonTrackStarts( ublarcvapp::mctools::MCParticleGraph& mcpg,
+                              const std::vector<larcv::Image2D>& adc_v,
+                              const larlite::event_mctrack& mctrack_v,
+                              larutil::SpaceChargeMicroBooNE* psce );
 
     // void _label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
     //                           const std::vector<larcv::Image2D>& adc_v,
