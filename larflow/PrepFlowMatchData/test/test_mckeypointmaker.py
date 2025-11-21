@@ -3,7 +3,7 @@ import os,sys
 from larlite import larlite
 from larcv import larcv
 from larflow import larflow
-
+from ublarcvapp import ublarcvapp
 
 dlmerged_input = "/mnt/ddrive/data/ub_on_tufts/corsika_bnb_nu_pi0/dlmerged_coriska_bnb_nu_pi0_fileno000001.root"
 
@@ -11,6 +11,9 @@ ENTRY=0
 
 #simchmaker = larflow.prep.SimChTripletLabelMaker()
 #simchmaker.set_verbosity(1)
+
+mcpg = ublarcvapp.mctools.MCParticleGraph()
+mcpg.cluster_nu_particles(True)
 
 mckpmaker = larflow.prep.MCKeypointMaker()
 mckpmaker.set_verbosity(1)
@@ -29,9 +32,14 @@ iolcv.initialize()
 ioll.go_to(ENTRY)
 iolcv.read_entry(ENTRY)
 
+mcpg.buildgraph(ioll)
+
 print(mckpmaker)
 
 mckpmaker.process( iolcv, ioll )
 mckpmaker.printKeypoints()
+
+#mcpg.printGraph(0,False)
+#mcpg.printAllNodeInfo()
 
 mckpmaker.export_as_hdf("out_test_kpmaker.h5")

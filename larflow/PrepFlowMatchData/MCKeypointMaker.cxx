@@ -17,12 +17,14 @@
 #include "larlite/DataFormat/mcshower.h"
 #include "larlite/DataFormat/mctruth.h"
 
-//#include "larflow/RecoUtils/cluster_functions.h"
-
 #include "ublarcvapp/MCTools/MCPGNode.h"
 #include "ublarcvapp/MCTools/MCParticleGraph.h"
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 #include "ublarcvapp/MCTools/crossingPointsAnaMethods.h"
+#include "ublarcvapp/MCTools/MCPixelLabelMaker.h"
+#include "ublarcvapp/MCTools/EventMCPixelLabels.h"
+
+#include "larflow/RecoUtils/cluster_functions.h"
 
 #include <highfive/H5Easy.hpp>
 
@@ -35,7 +37,10 @@ namespace prep {
    */
   MCKeypointMaker::MCKeypointMaker()
     : larcv::larcv_base("MCKeypointMaker"),
-    _adc_image_treename("wire")
+    _adc_image_treename("wire"),
+    _mcpg(nullptr),
+    _ioll(nullptr),
+    _iolcv(nullptr)
   {
     _nclose = 0;
     _nfar   = 0;
@@ -117,7 +122,10 @@ namespace prep {
 
     _run    = iolcv.event_id().run();
     _subrun = iolcv.event_id().subrun();
-    _event  = iolcv.event_id().event();    
+    _event  = iolcv.event_id().event();   
+
+    // create an internal instance of mcpg
+    _mcpg = new ublarcvapp::mctools::MCParticleGraph; 
     
     process( ev_adc->Image2DArray(),
              badch_v,
@@ -125,11 +133,18 @@ namespace prep {
              *ev_mcshower,
              *ev_mctruth );
 
+    ublarcvapp::mctools::MCPixelLabelMaker mcpixmaker;
+    mcpixmaker.process( ioll, iolcv, "wiremc");
+    _adjust_photon_keypoints( 5.0, 0.5, *_mcpg, mcpixmaker._pixels_v);
+
     // refine the points to sit on the nearest true spacepoint that matches its trackid
     //_move_floating_keypoints( match_proposals );
     
     //_clear_output();
     //_copy_to_vectors();
+
+    delete _mcpg;
+    _mcpg = nullptr;
     
   }
 
@@ -149,8 +164,16 @@ namespace prep {
     larutil::SpaceChargeMicroBooNE sce;
 
     // make particle graph
-    LARCV_DEBUG() << "build graph" << std::endl;    
-    ublarcvapp::mctools::MCParticleGraph mcpg;
+    LARCV_DEBUG() << "build graph" << std::endl; 
+    bool local_mcpg = false;
+    if ( _mcpg!=nullptr ) {
+      _mcpg->clear();
+    }
+    else {
+      local_mcpg = true;
+      _mcpg = new ublarcvapp::mctools::MCParticleGraph;
+    }
+    ublarcvapp::mctools::MCParticleGraph& mcpg = *_mcpg;
     mcpg.cluster_nu_particles(true);
     //mcpg.set_verbosity( larcv::msg::kDEBUG );
     try {
@@ -206,6 +229,7 @@ namespace prep {
       _kpd_v.emplace_back( std::move(kpd) );
     }
 
+
     // // we change the kptype to neutrino vertex for those on it
     // //LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
     // int npre_nukp = (int)_kpd_v.size();
@@ -231,6 +255,11 @@ namespace prep {
     //     throw std::runtime_error("unrecognized keypoint type");
     //   }          
     // }
+
+    if ( local_mcpg ) {
+      delete _mcpg;
+      _mcpg = nullptr;
+    }
     
   }
 
@@ -446,16 +475,21 @@ namespace prep {
       
       std::vector<float> start_reco(4,0.0);
       if ( abs(pnode.pid)==11) {
-        start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3] );
+        start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3]);
       }
       else {
+        // bool applied = true;
+        // std::vector<double> pos_sce = psce->ApplySpaceChargeEffect(  pnode.first_tpc_pos[0],  pnode.first_tpc_pos[1],  pnode.first_tpc_pos[2], applied );
+        // for (int i=0; i<3; i++)
+        //   start_reco[i] = pos_sce[i];
+        // start_reco[3] = pnode.first_tpc_pos[3];
         start_reco = pnode.first_tpc_pos;
       }
 
 
       kpd.keypt_appear.resize(3,0);
       for (int i=0; i<3; i++)
-        kpd.keypt_appear[i]   = start_reco[i];
+        kpd.keypt_appear[i] = start_reco[i];
       LARCV_DEBUG() << "  shower startpt=(" << kpd.keypt_appear[0] << "," << kpd.keypt_appear[1] << "," << kpd.keypt_appear[2] << ")" << std::endl;
 
       std::vector<double> dpos(3,0);
@@ -657,7 +691,7 @@ namespace prep {
                                                                                        kpd_start.keypt_appear, psce, false );
       // ublarcvapp::mctools::MCPixelPGraph::Node_t* mothernode = mcpg.findTrackID( pnode.mtid );
       // ublarcvapp::mctools::MCPixelPGraph::Node_t* ancestornode = mcpg.findTrackID( pnode.aid );
-      std::cout << "(start) imgcoord.size()=" << imgcoord.size() << std::endl;
+      //std::cout << "(start) imgcoord.size()=" << imgcoord.size() << std::endl;
       if ( imgcoord.size()>=4 ) {
         kpd_start.imgcoord.resize(4,0);
         for (int i=0; i<3; i++)
@@ -688,7 +722,7 @@ namespace prep {
         ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
                                                                                        4050.0, false, 0.3, 0.1,
                                                                                        kpd_end.keypt_appear, psce, false );
-      std::cout << "(end) imgcoord.size()=" << imgcoord.size() << std::endl;
+      //std::cout << "(end) imgcoord.size()=" << imgcoord.size() << std::endl;
       if (imgcoord.size()>=4) {
         kpd_end.imgcoord.resize(4,0);
         for (int i=0; i<3; i++)
@@ -1122,55 +1156,6 @@ namespace prep {
   }
 
   // /**
-  //  * 
-  //  * dump out th2d of scores, for visualization and debugging
-  //  *
-  //  * @param[in] ikpclass   KeyPoint_t type
-  //  * @param[in] sigma      Width of score Gaussian in cm
-  //  * @param[in] histname   Stem of name to use for TH2D
-  //  * @param[in] tripmaker  Instance of PrepMatchTriplet with prepared triplets
-  //  * @param[in] adc_v      vector of Image2D images, for meta
-  //  * @return  vector of TH2D, one for each 
-  //  * 
-  //  */
-  // std::vector<TH2D> MCKeypointMaker::makeScoreImage( const int ikpclass, const float sigma,
-  //                                                     const std::string histname,
-  //                                                     const larflow::prep::PrepMatchTriplets& tripmaker,
-  //                                                     const std::vector<larcv::Image2D>& adc_v ) const
-  // {
-
-  //   std::vector<TH2D> hist_v;
-  //   for ( size_t p=0; p<adc_v.size(); p++ ) {
-  //     std::stringstream ss;
-  //     ss << histname << "_p" << (int)p;
-  //     TH2D hist( ss.str().c_str(), ss.str().c_str(),
-  //                adc_v[p].meta().cols(), adc_v[p].meta().min_x(), adc_v[p].meta().max_x(),
-  //                adc_v[p].meta().rows(), adc_v[p].meta().min_y(), adc_v[p].meta().max_y() );
-
-  //     for (size_t ipt=0; ipt<tripmaker._triplet_v.size(); ipt++) {
-  //       int r = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].row;
-  //       int c = tripmaker._sparseimg_vv[p][ tripmaker._triplet_v[ipt][p] ].col;
-
-  //       auto const& label_v = _match_proposal_labels_v[ikpclass][ipt];
-        
-  //       if ( label_v[0]==0.0 && hist.GetBinContent(c+1,r+1)<0.01 ) {
-  //         hist.SetBinContent( c+1, r+1, 0.01 );
-  //       }
-  //       else if (label_v[0]>0.0) {
-  //         float dist = 0.;
-  //         for (int i=0; i<3; i++) dist += label_v[1+i]*label_v[1+i];
-  //         float score = exp( -0.5*dist/(sigma*sigma) );
-  //         if ( hist.GetBinContent(c+1,r+1)<score )
-  //           hist.SetBinContent( c+1, r+1, score );
-  //       }
-  //     }
-  //     hist_v.emplace_back( std::move(hist) );
-  //   }
-    
-  //   return hist_v;
-  // }
-
-  // /**
   //  *
   //  * @brief move keypoints such that all are within some distance from a reconstructable spacepoint
   //  *
@@ -1345,6 +1330,182 @@ namespace prep {
   //   }// End of loop over keypoint list
     
   // }
+
+  void MCKeypointMaker::_adjust_photon_keypoints( 
+    float edep_cluster_threshold,
+    float edep_point_threshold,
+    ublarcvapp::mctools::MCParticleGraph& mcpg,
+    ublarcvapp::mctools::EventMCPixelLabels& pixel3d)
+  {
+
+    // to make sane shower keypoints, we use the 3D true energy deposit
+    // information stored in the EventMCPixelLabels.
+    //
+    // (1) use the mcpg to find photon trackids
+    // (2) we cluster edep positions for each photon using dbscan
+    // (3) we use the true momenta to provide a rough time-axis
+    // (4) we find the most upstream point within an above threshold clusters 
+
+    std::vector<long> shower_trackids;
+    std::vector< std::vector<float> > shower_momenta_dir;
+    std::vector< std::vector<float> > shower_start;
+
+    for ( auto& node : mcpg.node_v ) {
+      if ( abs(node.pid)==11 || node.pid==22 ) {
+        
+        if (node.first_edep_pos[0]==0
+            && node.first_edep_pos[1]==0
+            && node.first_edep_pos[2]==0){
+          continue;
+        }
+
+        float pnorm = 0.;
+        for (int i=1; i<4; i++) {
+          pnorm += node.mom4[i]*node.mom4[i];
+        }
+        pnorm = sqrt(pnorm);
+        if ( pnorm>0 ) {
+          std::vector<float> showerdir(3,0);
+          for (int i=0; i<3; i++) {
+            showerdir[i] = node.mom4[1+i]/pnorm;
+
+          }
+
+          // only save shower info if we get a momentum
+          shower_trackids.push_back( node.tid );
+          shower_momenta_dir.push_back( showerdir );
+          shower_start.push_back( node.first_edep_pos );
+        }
+      }
+    }
+
+    LARCV_INFO() << "nummber of shower keypoints to adjust: " << shower_trackids.size() << std::endl;
+
+    // after collecting showers, for each:
+    //  1) collect cluster
+    //  2) find new keypoint
+    for (size_t ishower=0; ishower<shower_trackids.size(); ishower++) {
+      long showerid = shower_trackids.at(ishower);
+
+      // do we have a keypoint for this trackid
+      long kpd_index = -1;
+      for (size_t ikp=0; ikp<_kpd_v.size(); ikp++ ) {
+        if ( _kpd_v.at(ikp).trackid==showerid ) {
+          kpd_index = (long)ikp;
+          break;
+        }
+      }
+
+      if (kpd_index<0) {
+        LARCV_INFO() << " shower[" << showerid << "] no matching keypoint" << std::endl;
+        continue;
+      }
+      LARCV_INFO() << " shower[" << showerid << "] matching keypoint" << std::endl;
+
+      // have a keypoint we want to adjust
+      auto& kpd = _kpd_v.at(kpd_index);
+
+      std::vector<float> showerdir = shower_momenta_dir.at(ishower);
+      std::vector<float> showerpos = shower_start.at(ishower);
+
+      std::vector< std::vector<float> > points_v;
+      std::vector< std::vector<float> > edep_vv;
+      for ( auto const& pix3d : pixel3d._triplets_v ) {
+        auto it_id = pix3d.trackids.find( showerid );
+        if ( it_id!=pix3d.trackids.end() ) {
+          std::vector<float> pos(3,0);
+          std::vector<float> edep_v(3,0);
+          int nedep_above_threshold = 0;
+          for (int i=0; i<3; i++) {
+            pos[i] = pix3d.pos_reco[i];
+            edep_v[i] = pix3d.edep[i];
+            if ( edep_v[i]>edep_point_threshold )
+              nedep_above_threshold++;
+          }
+          if ( nedep_above_threshold>0 ) {
+            points_v.push_back( pos );
+            edep_vv.push_back( edep_v );
+          }
+        }
+      }
+
+      // now we cluster these points using dbscan
+      float maxdist = 3.0;
+      float minsize = 4;
+      int maxkd = 10;
+      std::vector< larflow::recoutils::cluster_t > cluster_v;
+      larflow::recoutils::cluster_sdbscan_spacepoints( points_v, cluster_v, maxdist, minsize, maxkd);
+      int nclusters = cluster_v.size(); // skip the last cluster which are noise points
+      
+      std::vector<float> most_upstream_pt(3,0);
+      std::vector<float> most_upstream_edep(3,0);
+      float min_s = 1e9;
+      bool found_qualifying_pt = false;
+
+      LARCV_INFO() << " shower[" << showerid << "] "
+        << " num points=" << points_v.size() 
+        << " num clusters=" << nclusters
+        << std::endl;
+      
+      for ( int icluster=0; icluster<nclusters; icluster++ ){
+        std::vector<float> edep_planesum(3,0.0);
+        auto const& cluster = cluster_v.at(icluster);
+        for (int ihit=0; ihit<(int)cluster.hitidx_v.size(); ihit++) {
+          auto hitidx = cluster.hitidx_v.at(ihit);
+          auto const& hitedep = edep_vv.at(hitidx);
+          for (int i=0; i<3; i++) {
+            edep_planesum[i] += hitedep[i];
+          }
+        }
+        int nabove_threshold_planes = 0;
+        if ( cluster.hitidx_v.size()>0 ) {
+          for (int i=0; i<3; i++) {
+            if ( edep_planesum[i]>edep_cluster_threshold) {
+              nabove_threshold_planes++;
+            }
+          }
+        }
+
+        LARCV_INFO() << "   cluster edep: " 
+          <<  edep_planesum[0] << ", "
+          <<  edep_planesum[1] << ", "
+          <<  edep_planesum[2] << " MeV"
+          << " nabove=" << nabove_threshold_planes
+          << std::endl;
+
+        if ( nabove_threshold_planes>=2 ) {
+          // qualifying cluster, get most upstream position
+          for ( auto& testpt : cluster.points_v ) {
+            float s = larflow::recoutils::pointRayProjection3f( showerpos, showerdir, testpt );
+            if ( s < min_s ) {
+              min_s = s;
+              most_upstream_pt = testpt;
+              found_qualifying_pt = true;
+              most_upstream_edep = edep_planesum;
+            }
+          }
+        }
+
+      }
+
+      if ( found_qualifying_pt ) {
+        LARCV_NORMAL() << "Adjust shower keypoint" << std::endl;
+        LARCV_NORMAL() << "  from: (" << kpd.keypt_appear[0] << ", " 
+          << kpd.keypt_appear[1] << ", "
+          << kpd.keypt_appear[2] << ")" << std::endl;
+        LARCV_NORMAL() << "  to: (" << most_upstream_pt[0] << ", "
+          << most_upstream_pt[1] << ", "
+          << most_upstream_pt[2] << ")"
+          << std::endl;
+        LARCV_NORMAL() << "  edep: " << most_upstream_edep[0] << ", "
+          << most_upstream_edep[1] << ", "
+          << most_upstream_edep[2] << " MeV"
+          << std::endl;
+        kpd.keypt_appear = most_upstream_pt;
+      }
+
+    }//end of loop over shower ids
+  }
 
   void MCKeypointMaker::_clear_output()
   {

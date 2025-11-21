@@ -31,6 +31,7 @@ namespace larutil {
 namespace ublarcvapp {
 namespace mctools {
   class MCParticleGraph;
+  class EventMCPixelLabels;
 }
 }
 
@@ -115,10 +116,20 @@ namespace prep {
     //                           std::vector<MCKeypoint>& kpdata_v  );
     // void _move_floating_keypoints(  const larflow::prep::PrepMatchTriplets& match_proposals );
 
+    void _adjust_photon_keypoints( 
+      float edep_cluster_threshold,
+      float edep_point_threshold,
+      ublarcvapp::mctools::MCParticleGraph& mcpg,
+      ublarcvapp::mctools::EventMCPixelLabels& pixel3d);
+
     void _clear_output();
     void _copy_to_vectors();
     
     //void filter_duplicates();
+
+    ublarcvapp::mctools::MCParticleGraph* _mcpg;
+    larlite::storage_manager* _ioll;
+    larcv::IOManager* _iolcv;
 
   public:
 

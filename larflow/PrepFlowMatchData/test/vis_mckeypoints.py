@@ -27,6 +27,21 @@ marker_size=1.0
 colorby_options  = ['edep','trackid']
 pos_mode_options = ['true','reco']
 
+kptype_color = {
+    0:"rgba(255,0,0,1.0)",   # track start
+    1:"rgba(0,0,255,1.0)",   # track end
+    2:"rgba(255,0,125,1.0)", # shower start
+    3:"rgba(125,0,255,1.0)", # michel start
+    4:"rgba(0,125,255,1.0)", # delta start
+}
+kptype_name = {
+    0:"TrackStart",
+    1:"TrackEnd",
+    2:"Shower",
+    3:"Michel",
+    4:"Delta"
+}
+
 if args.colorby not in colorby_options:
     print("Color Mode option given is invalid. Options: ",colorby_options)
     sys.exit(0)
@@ -80,7 +95,6 @@ for col in kpcols:
 detdata = DetectorOutline()
 customdata = np.concatenate( [data['pid'],data['trackid'],data['aid'],data['edep']],axis=1 )
 print("customdata: ",customdata.shape)
-
 hovertemplate = """
 <b>x</b>: %{x:.1f}<br>
 <b>y</b>: %{y:.1f}<br>
@@ -89,6 +103,19 @@ hovertemplate = """
 <b>TID</b>:  %{customdata[1]:d}<br>
 <b>AID</b>:  %{customdata[2]:d}<br>
 <b>edep</b>: %{customdata[3]:.3f}, %{customdata[4]:.3f} , %{customdata[5]:.3f}  MeV<br>
+"""
+
+kpcustom = np.concatenate( (kpdata['pid'].reshape(-1,1), 
+    kpdata['trackid'].reshape(-1,1), 
+    kpdata['imgcoord']), 
+    axis=1)
+kphovertext = """
+<b>x</b>: %{x:.1f}<br>
+<b>y</b>: %{y:.1f}<br>
+<b>z</b>: %{z:.1f}<br>
+<b>PID</b>: %{customdata[0]:d}<br>
+<b>TID</b>: %{customdata[1]:d}<br>
+<b>IMG</b>: %{customdata[2]:d}, %{customdata[3]:d} , %{customdata[4]:d}<br>
 """
 
 if pos_var=='reco':
@@ -159,14 +186,17 @@ kptypes = np.unique(kpdata['kptype'])
 for ikptype in kptypes:
     kptype_mask = kpdata['kptype']==ikptype
     kptype_pos  = kpdata['pos'][kptype_mask[:],:]
+    kptype_custom = kpcustom[kptype_mask[:],:]
     kp_plot = {
         "type":"scatter3d",
         "x":kptype_pos[:,0],
         "y":kptype_pos[:,1],
         "z":kptype_pos[:,2],    
         "mode":"markers",
-        "name":f"KP[{ikptype}]",
-        "marker":{"color":'rgb(255,255,255,1.0)',"opacity":1.0,"size":3.0},
+        "name":kptype_name[ikptype],
+        "hovertemplate":kphovertext,
+        "customdata":kptype_custom,
+        "marker":{"color":kptype_color[ikptype],"opacity":1.0,"size":3.0},
     }
     simch_plots.append( kp_plot )
 
