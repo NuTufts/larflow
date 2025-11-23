@@ -17,26 +17,49 @@
 namespace larflow {
 namespace prep {
 
+  SimChTripletLabelMaker::SimChTripletLabelMaker()
+  : larcv::larcv_base("SimChTripletLabelMaker"),
+    _psce(nullptr),
+    _hdf_file(nullptr)
+  {
+
+    // utility for moving real position to apparent position
+    _psce = new larutil::SpaceChargeMicroBooNE(larutil::SpaceChargeMicroBooNE::kMCC9_Forward);
+
+  };
+
+  SimChTripletLabelMaker::~SimChTripletLabelMaker()
+  {
+    if ( _hdf_file )
+      close_hdf_file();
+
+    delete _psce;
+    _psce = nullptr;
+  }
+
   void SimChTripletLabelMaker::process( 
     larlite::storage_manager& ioll, 
     larcv::IOManager& iolcv )
   {
     
-    // moving real position to apparent position
-    larutil::SpaceChargeMicroBooNE* psce = 
-      new larutil::SpaceChargeMicroBooNE(larutil::SpaceChargeMicroBooNE::kMCC9_Forward);
-
+    // clear algorithms and containers
     _mcpgraph.clear();
+    _mcpixelmaker.clear();
+    _tripletmaker.clear();
+    _mckpmaker.clear();
+    _ev_reco_triplets.clear();
+    _final_keypoint_list.clear();
+
     _mcpgraph.buildgraph(ioll);
 
-    _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, psce );
+    _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, _psce );
 
     make_reco_triplets(iolcv);
 
     label_reco_triplets( _mcpixelmaker._pixels_v, _ev_reco_triplets );
 
     _mckpmaker.set_mcparticle_graph( &_mcpgraph );
-    _mckpmaker.set_spacecharge_instance( psce );
+    _mckpmaker.set_spacecharge_instance( _psce );
     _mckpmaker.setADCimageTreeName( "wiremc" );
     _mckpmaker.clear();
     _mckpmaker.process( iolcv, ioll );
@@ -44,6 +67,8 @@ namespace prep {
     adjust_keypoints( _mckpmaker.getMCKeypoint(), 
       _ev_reco_triplets,
       _mcpgraph );
+
+    make_keypoint_labels( 3.0, 0.01 );
 
   }
 
@@ -406,6 +431,47 @@ namespace prep {
 
   }
 
+  /**
+   * @brief make keypoint scores for each triplet point
+   */
+  void SimChTripletLabelMaker::make_keypoint_labels( 
+    float kp_sigma, 
+    float score_threshold ) 
+  {
+
+    const int nkptypes = larflow::prep::MCKeypoint::kNumKPTypes;
+
+    for (auto& triplet : _ev_reco_triplets._triplets_v ) {
+      std::vector< float > min_dist_to_kptype( nkptypes, 1e9 );
+      // find closest distance to keypoint of each type
+      for (auto& kp : _mckpmaker.getMCKeypoint() ) {
+        float dist = 0;
+        for (int i=0; i<3; i++){
+          float dx = kp.keypt_appear[i]-triplet.pos_reco[i];
+          dist += dx*dx;
+        }
+        dist = sqrt(dist);
+        int kptype = (int)kp.kptype;
+        if ( dist < min_dist_to_kptype[kptype] ) {
+          min_dist_to_kptype[kptype] = dist;
+        }
+      }//end of keypt loops
+
+      std::vector< float > kp_scores( nkptypes, 0.0 );
+      for (int i=0; i<nkptypes; i++) {
+        float sig_dist = min_dist_to_kptype[i]/kp_sigma;
+        float score = exp( -0.5*sig_dist*sig_dist );
+        if ( score < score_threshold )
+          score = 0.;
+        kp_scores[i] = score;
+      }
+
+      triplet.kpdist   = min_dist_to_kptype;
+      triplet.kpscores = kp_scores;
+    }
+
+  }
+
   void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )
   {
 
@@ -413,7 +479,14 @@ namespace prep {
 
     HighFive::File file(hdf_outfile, HighFive::File::Overwrite);
 
-    file.createGroup("/triplet_data");
+    save_entry_to_hdf( file, "" );
+
+  }
+
+  void SimChTripletLabelMaker::save_entry_to_hdf( 
+    HighFive::File& file,
+    std::string groupname_prefix )
+  {
 
     // export different arrays for export
     ublarcvapp::mctools::EventMCPixelLabels& pixel3d = _mcpixelmaker._pixels_v;
@@ -484,24 +557,31 @@ namespace prep {
         row[idx]     = triplet.imgcoord[3];
     }
 
-    H5Easy::dump( file, "/triplet_truth/pos_x", pos_x);
-    H5Easy::dump( file, "/triplet_truth/pos_y", pos_y);
-    H5Easy::dump( file, "/triplet_truth/pos_z", pos_z);
+    std::string truetriplet_groupname = "/triplet_truth";
+    if ( groupname_prefix!="" ) {
+      truetriplet_groupname = groupname_prefix+truetriplet_groupname;
+    }
+    LARCV_INFO() << "create group: " << truetriplet_groupname << std::endl;
+    file.createGroup(truetriplet_groupname);
 
-    H5Easy::dump( file, "/triplet_truth/pos_x_reco", pos_x_reco);
-    H5Easy::dump( file, "/triplet_truth/pos_y_reco", pos_y_reco);
-    H5Easy::dump( file, "/triplet_truth/pos_z_reco", pos_z_reco);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_x", pos_x);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_y", pos_y);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_z", pos_z);
 
-    H5Easy::dump( file, "/triplet_truth/edep",    edep);
-    H5Easy::dump( file, "/triplet_truth/trackid", trackid);
-    H5Easy::dump( file, "/triplet_truth/pid",     pid);
-    H5Easy::dump( file, "/triplet_truth/aid",     aid);
-    H5Easy::dump( file, "/triplet_truth/origin",  origin);
-    H5Easy::dump( file, "/triplet_truth/uwire",   uwire);
-    H5Easy::dump( file, "/triplet_truth/vwire",   vwire);
-    H5Easy::dump( file, "/triplet_truth/ywire",   ywire);
-    H5Easy::dump( file, "/triplet_truth/tick",    tick);
-    H5Easy::dump( file, "/triplet_truth/row",     row);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_x_reco", pos_x_reco);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_y_reco", pos_y_reco);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_z_reco", pos_z_reco);
+
+    H5Easy::dump( file, truetriplet_groupname+"/edep",    edep);
+    H5Easy::dump( file, truetriplet_groupname+"/trackid", trackid);
+    H5Easy::dump( file, truetriplet_groupname+"/pid",     pid);
+    H5Easy::dump( file, truetriplet_groupname+"/aid",     aid);
+    H5Easy::dump( file, truetriplet_groupname+"/origin",  origin);
+    H5Easy::dump( file, truetriplet_groupname+"/uwire",   uwire);
+    H5Easy::dump( file, truetriplet_groupname+"/vwire",   vwire);
+    H5Easy::dump( file, truetriplet_groupname+"/ywire",   ywire);
+    H5Easy::dump( file, truetriplet_groupname+"/tick",    tick);
+    H5Easy::dump( file, truetriplet_groupname+"/row",     row);
 
     size_t n_reco_triplets = _ev_reco_triplets._triplets_v.size();
     std::vector<float> reco_pos_x(n_reco_triplets,0);
@@ -517,6 +597,8 @@ namespace prep {
     std::vector<int>   reco_pid(n_reco_triplets,0);
     std::vector<int>   reco_aid(n_reco_triplets,0);
     std::vector<int>   reco_origin(n_reco_triplets,0);
+
+    std::vector< std::vector<float> > reco_kpscores(n_reco_triplets);
 
     for (size_t idx=0; idx<n_reco_triplets; idx++) {
         auto const& tripinfo = _ev_reco_triplets._triplets_v.at(idx);
@@ -553,28 +635,37 @@ namespace prep {
         reco_ywire[idx] = tripinfo.imgcoord[2];
         reco_tick[idx]  = tripinfo.imgcoord[4];
         reco_hasmatch[idx] = tripinfo.hasmatch;
+
+        reco_kpscores[idx] = tripinfo.kpscores;
     }
+
+    std::string recotriplet_groupname = "/triplet_data";
+    if ( groupname_prefix!="" ) {
+      recotriplet_groupname = groupname_prefix+recotriplet_groupname;
+    }
+    LARCV_INFO() << "create group: " << recotriplet_groupname << std::endl;
+    file.createGroup(recotriplet_groupname);
     
-    H5Easy::dump( file, "/triplet_data/pos_x", reco_pos_x );
-    H5Easy::dump( file, "/triplet_data/pos_y", reco_pos_y );
-    H5Easy::dump( file, "/triplet_data/pos_z", reco_pos_z );
-    H5Easy::dump( file, "/triplet_data/uwire", reco_uwire );
-    H5Easy::dump( file, "/triplet_data/vwire", reco_vwire );
-    H5Easy::dump( file, "/triplet_data/ywire", reco_ywire );
-    H5Easy::dump( file, "/triplet_data/tick",  reco_tick  );
-    H5Easy::dump( file, "/triplet_data/hasmatch", reco_hasmatch  );
-    H5Easy::dump( file, "/triplet_data/trackid", reco_trackid);
-    H5Easy::dump( file, "/triplet_data/pid",     reco_pid);
-    H5Easy::dump( file, "/triplet_data/aid",     reco_aid);
-    H5Easy::dump( file, "/triplet_data/origin",  reco_origin);
-
+    H5Easy::dump( file, recotriplet_groupname+"/pos_x",    reco_pos_x );
+    H5Easy::dump( file, recotriplet_groupname+"/pos_y",    reco_pos_y );
+    H5Easy::dump( file, recotriplet_groupname+"/pos_z",    reco_pos_z );
+    H5Easy::dump( file, recotriplet_groupname+"/uwire",    reco_uwire );
+    H5Easy::dump( file, recotriplet_groupname+"/vwire",    reco_vwire );
+    H5Easy::dump( file, recotriplet_groupname+"/ywire",    reco_ywire );
+    H5Easy::dump( file, recotriplet_groupname+"/tick",     reco_tick  );
+    H5Easy::dump( file, recotriplet_groupname+"/pid",      reco_pid);
+    H5Easy::dump( file, recotriplet_groupname+"/aid",      reco_aid);
+    H5Easy::dump( file, recotriplet_groupname+"/origin",   reco_origin);
+    H5Easy::dump( file, recotriplet_groupname+"/trackid",  reco_trackid);
+    H5Easy::dump( file, recotriplet_groupname+"/hasmatch", reco_hasmatch  );
+    H5Easy::dump( file, recotriplet_groupname+"/kpscores", reco_kpscores );
+    
     //_mckpmaker.save_entry_to_hdf(file,"");
-
-    std::string group_prefix_name = "";
     std::string kp_groupname = "/mckeypoints";
-    if ( group_prefix_name!="" ) {
-      kp_groupname = group_prefix_name + "/mckeypoints";
+    if ( groupname_prefix!="" ) {
+      kp_groupname = groupname_prefix + "/mckeypoints";
     }
+    LARCV_INFO() << "create groupname: " << kp_groupname << std::endl;
     file.createGroup(kp_groupname);
 
     // export different arrays for export
@@ -605,6 +696,51 @@ namespace prep {
     file.flush();
 
   }
+
+  /**
+   * @brief Save current data to class member HDF file
+   */
+  void SimChTripletLabelMaker::save_entry( std::string groupname_prefix )
+  {
+    if ( _hdf_file==nullptr ) {
+      std::stringstream errmsg;
+      errmsg << "Saving entry without first creating HDF file." << std::endl;
+      errmsg << "Call open_hdf_file( std::string ) first." << std::endl;
+      throw std::runtime_error( errmsg.str() );
+    }
+
+    LARCV_INFO() << "Save to hdf file. group prefix=" << groupname_prefix << std::endl;
+    
+    LARCV_INFO() << "create group: " << groupname_prefix << std::endl;
+    _hdf_file->createGroup(groupname_prefix);
+    
+    save_entry_to_hdf( *_hdf_file, groupname_prefix );
+
+  }
+
+  /**
+   * @brief Create class member HDF file to save entries
+   */
+  void SimChTripletLabelMaker::open_hdf_file( std::string hdf_outfile )
+  {
+    LARCV_INFO() << "output file = " << hdf_outfile << std::endl;
+    _hdf_file = new HighFive::File( hdf_outfile, HighFive::File::Overwrite);
+  }
+
+  /**
+   * @brief Create class member HDF file to save entries
+   */
+ void SimChTripletLabelMaker::close_hdf_file()
+  {
+    if ( _hdf_file ) {
+      LARCV_INFO() << "Flush and close file." << std::endl;
+      _hdf_file->flush();
+      delete _hdf_file;
+      _hdf_file = nullptr;
+    }
+    return;
+  }
+
 
 
 }

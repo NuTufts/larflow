@@ -16,6 +16,10 @@
 #include "MCKeypointMaker.h"
 #include "EventTriplets_t.h"
 
+namespace HighFive {
+  class File;
+}
+
 namespace larflow {
 namespace prep {
 
@@ -23,16 +27,24 @@ class SimChTripletLabelMaker : public larcv::larcv_base {
 
 public:
 
-  SimChTripletLabelMaker()
-  : larcv::larcv_base("SimChTripletLabelMaker")
-  {};
+  SimChTripletLabelMaker();
 
-  virtual ~SimChTripletLabelMaker() {};
+  ~SimChTripletLabelMaker();
 
   void process( larlite::storage_manager& ioll, 
                 larcv::IOManager& iolcv );
 
   void export_as_hdf(std::string hdf_outfile);
+
+  void open_hdf_file(std::string hdf_outfile );
+
+  void close_hdf_file();
+
+  void save_entry_to_hdf( 
+    HighFive::File& file, 
+    std::string groupname_prefix );
+
+  void save_entry( std::string groupname_prefix );
 
   void make_truthlabels_fromsimch(
       larlite::storage_manager& ioll, 
@@ -55,6 +67,11 @@ public:
     larflow::prep::EventTriplets_t& labeled_reco_triplets,
     ublarcvapp::mctools::MCParticleGraph& mcpg );
 
+  void make_keypoint_labels(
+    float kp_sigma, 
+    float score_threshold );
+ 
+
   // algorithms
   ublarcvapp::mctools::MCParticleGraph   _mcpgraph;     ///< organizes true particle information into graph form    
   ublarcvapp::mctools::MCPixelLabelMaker _mcpixelmaker; ///< makes pixel3d objects from simch 
@@ -64,6 +81,9 @@ public:
   larflow::prep::EventTriplets_t          _ev_reco_triplets;
 
   std::vector< larflow::prep::MCKeypoint > _final_keypoint_list;
+
+  larutil::SpaceChargeMicroBooNE* _psce;
+  HighFive::File* _hdf_file;
 
 };
 

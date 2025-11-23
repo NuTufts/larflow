@@ -11,6 +11,7 @@ from dash.exceptions import PreventUpdate
 parser = argparse.ArgumentParser("Visualize HDF5 output from MCPixelLabels")
 parser.add_argument("-ipt", "--input-points",required=True,type=str,help="Input HDF5 file.")
 parser.add_argument("-ikp", "--input-keypoints",required=True,type=str,help="Input HDF5 file.")
+parser.add_argument("-e",   "--entry",    required=True, type=int, help="Entry")
 parser.add_argument("-c",   "--colorby",  default='trackid', help="Color mode. Option: [instance,ancestor,edep]")
 parser.add_argument("-p",   "--pos-mode", default="reco",type=str,help="Position mode. Option: [true,reco]")
 parser.add_argument("-d",   "--use-data", action='store_true', default=False, help="If given, plot the data spacepoints")
@@ -25,8 +26,15 @@ fh5_kp = h5py.File(args.input_keypoints,'r')
 opacity=0.8
 marker_size=1.0
 
-colorby_options  = ['edep','trackid','hasmatch']
+colorby_options  = ['edep','trackid','hasmatch','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']
 pos_mode_options = ['true','reco']
+kpindex = {
+    'kptrackstart':0,
+    'kptrackend':1,
+    'kpshower':2,
+    'kpmichel':3,
+    'kpdelta':4
+}
 
 kptype_color = {
     0:"rgba(255,0,0,1.0)",   # track start
@@ -51,6 +59,7 @@ if args.pos_mode not in pos_mode_options:
     print("Position Mode option invalid. Options: ",pos_mode_options)
     sys.exit(0)
 
+entry_groupname = f"entry_{args.entry}"
 #colorby = 'edep'
 #colorby = 'trackid'
 #colorby = 'hasmatch'
@@ -63,11 +72,11 @@ pos_var = args.pos_mode
 NMAX_RECO_PTS=-1
 
 if not args.use_data:
-    triplet_truth = fh5['triplet_truth']
+    triplet_truth = fh5[f"{entry_groupname}/triplet_truth"]
 else:
-    triplet_truth = fh5['triplet_data']
+    triplet_truth = fh5[f"{entry_groupname}/triplet_data"]
     pos_var='true'
-mckeypoints   = fh5_kp['mckeypoints']
+mckeypoints   = fh5_kp[f"{entry_groupname}/mckeypoints"]
 
 columns = ['pos_x','pos_y','pos_z',
     'pos_x_reco','pos_y_reco','pos_z_reco',
@@ -82,7 +91,7 @@ columns = ['pos_x','pos_y','pos_z',
     'tick',
     'row']
 if args.use_data:
-    columns += ['hasmatch']
+    columns += ['hasmatch','kpscores']
 
 data = {}
 for col in columns:
@@ -188,6 +197,21 @@ elif colorby=='hasmatch':
         "marker":{"color":source['hasmatch'][:,0],"opacity":opacity,"size":marker_size,'colorscale':'Viridis'},
     }
     simch_plots.append( simch_plot )
+elif colorby in ['kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']:
+    kpidx   = kpindex[colorby]
+    kpscore = source['kpscores'][:,kpidx]
+    simch_plot = {
+        "type":"scatter3d",
+        "x":source[pos_var_x][:,0],
+        "y":source[pos_var_y][:,0],
+        "z":source[pos_var_z][:,0],    
+        "mode":"markers",
+        "name":f"recopts",
+        "hovertemplate":hovertemplate,
+        "customdata":customdata,
+        "marker":{"color":kpscore,"opacity":opacity,"size":marker_size,'colorscale':'Viridis'},
+    }
+    simch_plots.append( simch_plot )    
 else:
     print("unknown color option: ",colorby)
     sys.exit(0)

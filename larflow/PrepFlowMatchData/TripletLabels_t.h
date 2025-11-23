@@ -33,6 +33,11 @@ public:
   std::set<int> pids;
   std::set<int> origin;
 
+  std::vector<float> kpdist;     ///< distance to closest keypoint
+  std::vector<float> kpscores;   ///< keypoint score to predict based on kp distance
+
+  std::vector<int>   ssnetlabel; ///< ssnet class label
+
 
 };
 
