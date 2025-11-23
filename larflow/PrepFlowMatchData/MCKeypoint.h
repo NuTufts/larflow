@@ -21,14 +21,14 @@ namespace prep {
   public:
 
 
-    enum KPType_t { kTrackStart=0, kTrackEnd, kShowerStart, kMichel, kDelta, kNumKPTypes, kUnitialized };
+    enum KPType_t { kNuVertex=0, kTrackStart, kTrackEnd, kShowerStart, kMichel, kDelta, kNumKPTypes, kUnitialized };
     
     std::vector<float> keypt_true;   ///< 3D position of keypoint in cm
     std::vector<float> keypt_appear; ///< 3D position of keypoint as it appears in the wire data
 
     int tick;
     int row;
-    std::vector<int> imgcoord; ///< (U col, V col, Y col)
+    std::vector<int> imgcoord; ///< (U col, V col, Y col, row)
     
     int trackid;               ///< ID of track or shower by which this keypoint data was made
     int pid;                   ///< particle ID of track or shower making keypoint

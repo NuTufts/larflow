@@ -278,6 +278,12 @@ namespace prep {
       //   4. pick the nearest pt within a qualifying cluster
       std::vector<float> kppos = mckp.keypt_appear;
 
+      // we just pass nu keypoints
+      if ( mckp.kptype==larflow::prep::MCKeypoint::kNuVertex ) {
+        _final_keypoint_list.push_back( mckp );
+        continue;
+      }
+
       std::vector< std::vector<float> > points_v;
       std::vector< std::vector<float> > edep_vv;
       for ( auto& ptriplet : _true_triplets_v ) {

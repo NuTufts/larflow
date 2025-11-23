@@ -259,9 +259,27 @@ namespace prep {
     // // we change the kptype to neutrino vertex for those on it
     // //LARCV_NORMAL() << "Do Neutrino Keypoint Labeling" << std::endl;
     // int npre_nukp = (int)_kpd_v.size();
-    // _label_nu_keypoints( mctruth_v, adc_v, &sce, _kpd_v );
-    // int npost_nukp = (int)_kpd_v.size();
-    // LARCV_NORMAL() << "[Nu keypoint results] numfound=" << npost_nukp-npre_nukp << std::endl;
+    std::vector< MCKeypoint > nu_kp_v = label_nu_keypoints( mctruth_v, adc_v, _psce );
+    LARCV_NORMAL() << "[Nu keypoint results] numfound=" << nu_kp_v.size() << std::endl;
+    int inu=0; 
+    for ( auto const& kpd : nu_kp_v ) {
+
+      if (   kpd.keypt_appear[0]>=tpc_bounds[0][0]
+          && kpd.keypt_appear[0]<=tpc_bounds[0][1]
+          && kpd.keypt_appear[1]>=tpc_bounds[1][0]
+          && kpd.keypt_appear[1]<=tpc_bounds[1][1] 
+          && kpd.keypt_appear[2]>=tpc_bounds[2][0]
+          && kpd.keypt_appear[2]<=tpc_bounds[2][1] )
+      {
+        // only keep keypoints inside the TPC
+        std::stringstream ss( kpd.str() );
+        std::string strline;
+        while ( std::getline(ss, strline, '\n') )
+          LARCV_DEBUG() << strline << std::endl;
+        inu++;
+        _kpd_v.emplace_back( std::move(kpd) );
+      }
+    }
 
     // filter duplicates
     //filter_duplicates();
@@ -766,76 +784,88 @@ namespace prep {
     return output;
   }
   
-  // /**
-  //  * loop through existing keypoints and change type to neutrino
-  //  * if close to neutrino vertex.
-  //  *
-  //  * @param[in]     mctruth_v Truth information about the neutrino interaction.
-  //  * @param[in]     img_v     Wire Images, just for the meta
-  //  * @param[in]     psce      Pointer to space-charge microboone instance
-  //  * @param[out]    kpdata_v  Keypoint elements to potentially change
-  //  *
-  //  */
-  // void MCKeypointMaker::_label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
-  //                                             const std::vector<larcv::Image2D>& img_v,
-  //                                             larutil::SpaceChargeMicroBooNE* psce,
-  //                                             std::vector<MCKeypoint>& kpdata_v  )
-  // {
+  /**
+   * loop through existing keypoints and change type to neutrino
+   * if close to neutrino vertex.
+   *
+   * @param[in]  mctruth_v Truth information about the neutrino interaction.
+   * @param[in]  img_v     Wire Images, just for the meta
+   * @param[in]  psce      Pointer to space-charge microboone instance
+   * @return     kpdata_v  Keypoint elements to potentially change
+   *
+   */
+  std::vector<larflow::prep::MCKeypoint>
+  MCKeypointMaker::label_nu_keypoints( const larlite::event_mctruth& mctruth_v,
+                                       const std::vector<larcv::Image2D>& img_v,
+                                       larutil::SpaceChargeMicroBooNE* psce )
+  {
 
-  //   // loop over all interactions
-  //   int inu = -1;
-  //   for ( auto const& mct : mctruth_v ) {
-  //     inu++;
-  //     auto const& nu = mct.GetNeutrino();
+    // loop over all interactions
+    int inu = -1;
 
-  //     auto const& nutraj = nu.Nu().Trajectory();
+    auto const& meta0 = img_v.front().meta();
 
-  //     if (nutraj.size()>0) {
+    std::vector<larflow::prep::MCKeypoint> kpnu_v;
+
+    for ( auto const& mct : mctruth_v ) {
+      inu++;
+      auto const& nu = mct.GetNeutrino();
+
+      auto const& nutraj = nu.Nu().Trajectory();
+
+      if (nutraj.size()>0) {
       
-  //       // get the space-charge corrected neutrino vertex
-  //       std::vector<double> nupos(3,0);
-  //       for (int i=0; i<3; i++ )
-  //         nupos[i] = nutraj.front().Position()[i];
+        // get the space-charge corrected neutrino vertex
+        std::vector<double> nupos(3,0);
+        std::vector<double> nupos_sce(3,0);
+        for (int i=0; i<3; i++ )
+          nupos[i] = nutraj.front().Position()[i];
 
-  //       std::vector<double> offsets = psce->GetPosOffsets( nupos[0], nupos[1], nupos[2] );
-  //       nupos[0] = nupos[0] - offsets[0] + 0.7;
-  //       nupos[1] += offsets[1];
-  //       nupos[2] += offsets[2];
+        bool applied_sce = false;
+        nupos_sce = psce->ApplySpaceChargeEffect( nupos[0], nupos[1], nupos[2], applied_sce );
 
-  //       // make a neutrino keypoint
-  //       MCKeypoint kpd;
-  //       kpd.crossingtype = 0;
-  //       kpd.trackid = 0;
-  //       kpd.pid     = 12;
-  //       kpd.vid     = inu;
-  //       kpd.is_shower = 0;
-  //       kpd.origin  = 1;
-  //       kpd.kptype  = larflow::kNuVertex;
-  //       kpd.keypt.resize(3,0);
-  //       for (int i=0; i<3; i++) kpd.keypt[i] = nupos[i];
-  //       kpd.imgcoord.resize(4,0);
+        // make a neutrino keypoint
+        MCKeypoint kpd;
+        //kpd.crossingtype = 0;
+        kpd.trackid = 0;
+        kpd.pid     = nu.Nu().PdgCode();
+        //kpd.vid     = inu;
+        kpd.is_shower = 0;
+        kpd.origin  = 1;
+        kpd.kptype  = larflow::prep::MCKeypoint::kNuVertex;
+        kpd.keypt_true.resize(3,0);
+        kpd.keypt_appear.resize(3,0);
+        for (int i=0; i<3; i++) {
+          kpd.keypt_true[i]   = nupos[i];
+          kpd.keypt_appear[i] = nupos_sce[i];
+        }
+        kpd.imgcoord.resize(4,0);
 
-  //       try {
-  //         for (int p=0; p<3; p++)
-  //           kpd.imgcoord[1+p] = (int)larutil::Geometry::GetME()->NearestWire( nupos, p );
-  //       }
-  //       catch (...) {
-  //         continue;
-  //       }
-  //       float tick = 3200 + nupos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
-  //       if ( tick>img_v[0].meta().min_y() && tick<img_v[0].meta().max_y() ) {
-  //         kpd.imgcoord[0] = img_v[0].meta().row( tick );
-  //       }
-  //       else {
-  //         continue;
-  //       }
+        try {
+          for (int p=0; p<3; p++)
+            kpd.imgcoord[p] = (int)larutil::Geometry::GetME()->NearestWire( nupos_sce, p );
+        }
+        catch (...) {
+          continue;
+        }
+        float tick = 3200 + nupos[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
+        if ( tick>meta0.min_y() && tick<meta0.max_y() ) {
+          kpd.imgcoord[3] = img_v[0].meta().row( tick );
+          kpd.tick = tick;
+          kpd.row  = kpd.imgcoord[3];
+        }
+        else {
+          continue;
+        }
 
-  //       kpdata_v.push_back( kpd );
+        kpnu_v.push_back( kpd );
         
-  //     }//end of if neutrino truth object has trajectory point for vertex
-  //   }//end of loop over mctruth elements
+      }//end of if neutrino truth object has trajectory point for vertex
+    }//end of loop over mctruth elements
+
+    return kpnu_v;
     
-  // }
+  }
 
   // /** 
   //  * filter out duplicates

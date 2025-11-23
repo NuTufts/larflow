@@ -26,29 +26,32 @@ fh5_kp = h5py.File(args.input_keypoints,'r')
 opacity=0.8
 marker_size=1.0
 
-colorby_options  = ['edep','trackid','hasmatch','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']
+colorby_options  = ['edep','trackid','hasmatch','kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']
 pos_mode_options = ['true','reco']
 kpindex = {
-    'kptrackstart':0,
-    'kptrackend':1,
-    'kpshower':2,
-    'kpmichel':3,
-    'kpdelta':4
+    'kpnu':0,
+    'kptrackstart':1,
+    'kptrackend':2,
+    'kpshower':3,
+    'kpmichel':4,
+    'kpdelta':5
 }
 
 kptype_color = {
-    0:"rgba(255,0,0,1.0)",   # track start
-    1:"rgba(0,0,255,1.0)",   # track end
-    2:"rgba(255,0,125,1.0)", # shower start
-    3:"rgba(125,0,255,1.0)", # michel start
-    4:"rgba(0,125,255,1.0)", # delta start
+    0:"rgba(255,153,51,1.0)", # nu
+    1:"rgba(255,0,0,1.0)",   # track start
+    2:"rgba(0,0,255,1.0)",   # track end
+    3:"rgba(255,0,125,1.0)", # shower start
+    4:"rgba(125,0,255,1.0)", # michel start
+    5:"rgba(0,125,255,1.0)", # delta start
 }
 kptype_name = {
-    0:"TrackStart",
-    1:"TrackEnd",
-    2:"Shower",
-    3:"Michel",
-    4:"Delta"
+    0:'Nu',
+    1:"TrackStart",
+    2:"TrackEnd",
+    3:"Shower",
+    4:"Michel",
+    5:"Delta"
 }
 
 if args.colorby not in colorby_options:
@@ -197,7 +200,7 @@ elif colorby=='hasmatch':
         "marker":{"color":source['hasmatch'][:,0],"opacity":opacity,"size":marker_size,'colorscale':'Viridis'},
     }
     simch_plots.append( simch_plot )
-elif colorby in ['kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']:
+elif colorby in ['kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']:
     kpidx   = kpindex[colorby]
     kpscore = source['kpscores'][:,kpidx]
     simch_plot = {
@@ -223,6 +226,11 @@ for ikptype in kptypes:
     kptype_mask = kpdata['kptype']==ikptype
     kptype_pos  = kpdata['pos'][kptype_mask[:],:]
     kptype_custom = kpcustom[kptype_mask[:],:]
+
+    msize = 3.0
+    if ikptype==0:
+        msize = 6.0
+
     kp_plot = {
         "type":"scatter3d",
         "x":kptype_pos[:,0],
@@ -232,7 +240,7 @@ for ikptype in kptypes:
         "name":kptype_name[ikptype],
         "hovertemplate":kphovertext,
         "customdata":kptype_custom,
-        "marker":{"color":kptype_color[ikptype],"opacity":1.0,"size":3.0},
+        "marker":{"color":kptype_color[ikptype],"opacity":1.0,"size":msize},
     }
     simch_plots.append( kp_plot )
 
