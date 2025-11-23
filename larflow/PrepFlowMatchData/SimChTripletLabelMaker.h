@@ -50,6 +50,11 @@ public:
       ublarcvapp::mctools::MCPixelLabels& truth_trip, 
       TripletLabels_t& reco_trip );
 
+  void adjust_keypoints( 
+    const std::vector< larflow::prep::MCKeypoint >& mckeypoints,
+    larflow::prep::EventTriplets_t& labeled_reco_triplets,
+    ublarcvapp::mctools::MCParticleGraph& mcpg );
+
   // algorithms
   ublarcvapp::mctools::MCParticleGraph   _mcpgraph;     ///< organizes true particle information into graph form    
   ublarcvapp::mctools::MCPixelLabelMaker _mcpixelmaker; ///< makes pixel3d objects from simch 
@@ -57,6 +62,8 @@ public:
   larflow::prep::MCKeypointMaker         _mckpmaker;    ///< makes keypoint
 
   larflow::prep::EventTriplets_t          _ev_reco_triplets;
+
+  std::vector< larflow::prep::MCKeypoint > _final_keypoint_list;
 
 };
 

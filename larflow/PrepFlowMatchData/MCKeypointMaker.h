@@ -198,6 +198,10 @@ namespace prep {
     int _nfar;      ///< number of space point proposals further than some radius of a true keypoint
     // void writeHists();
     
+  protected:
+
+    double tpc_bounds[3][2];
+
   private:
     
     //static bool _setup_numpy; ///< flag to indicate if import_numpy() has been called

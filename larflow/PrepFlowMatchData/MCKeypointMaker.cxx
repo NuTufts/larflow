@@ -53,7 +53,15 @@ namespace prep {
       _kppos_v[i].clear();
       _kp_pdg_trackid_v[i].clear();      
     }
-      
+
+    // so dumb that this is hard-coded.
+    tpc_bounds[0][0] = 0.0;
+    tpc_bounds[0][1] = 255.0;
+    tpc_bounds[1][0] = -116.5;
+    tpc_bounds[1][1] =  116.5;
+    tpc_bounds[2][0] = 0.5;
+    tpc_bounds[2][1] = 1035.5;
+
   }
 
   /**
@@ -232,12 +240,19 @@ namespace prep {
     LARCV_NORMAL() << "[Shower Endpoint Results] numfound=" << shower_kpd.size() << std::endl;
     int ishr=0; 
     for ( auto const& kpd : shower_kpd ) {
-      std::stringstream ss( kpd.str() );
-      std::string strline;
-      while ( std::getline(ss, strline, '\n') )
-        LARCV_DEBUG() << strline << std::endl;
-      ishr++;
-      _kpd_v.emplace_back( std::move(kpd) );
+
+      if (   kpd.keypt_appear[1]>=tpc_bounds[1][0]
+          && kpd.keypt_appear[1]<=tpc_bounds[1][1]
+          && kpd.keypt_appear[2]>=tpc_bounds[2][0]
+          && kpd.keypt_appear[2]<=tpc_bounds[2][1] ) {
+        // only keep keypoints inside the TPC
+        std::stringstream ss( kpd.str() );
+        std::string strline;
+        while ( std::getline(ss, strline, '\n') )
+          LARCV_DEBUG() << strline << std::endl;
+        ishr++;
+        _kpd_v.emplace_back( std::move(kpd) );
+      }
     }
 
 
@@ -572,9 +587,6 @@ namespace prep {
     LARCV_DEBUG() << "start" << std::endl;
     std::vector<MCKeypoint> output;
     
-    Double_t tpc_bounds[3][2] = { {0,255.0},
-                                  {-116.5,116.5},
-                                  {0.5,1035.5}}; // so dumb that this is hard-coded.
     // we have to space-charge correct, so we bump a little inside
 
     // output vector of keypoint data

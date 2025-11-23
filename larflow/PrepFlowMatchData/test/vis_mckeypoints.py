@@ -25,7 +25,7 @@ fh5_kp = h5py.File(args.input_keypoints,'r')
 opacity=0.8
 marker_size=1.0
 
-colorby_options  = ['edep','trackid']
+colorby_options  = ['edep','trackid','hasmatch']
 pos_mode_options = ['true','reco']
 
 kptype_color = {
@@ -81,6 +81,8 @@ columns = ['pos_x','pos_y','pos_z',
     'ywire',
     'tick',
     'row']
+if args.use_data:
+    columns += ['hasmatch']
 
 data = {}
 for col in columns:
@@ -149,7 +151,7 @@ if colorby=='edep':
         "name":f"edep",
         "hovertemplate":hovertemplate,
         "customdata":customdata,
-        "marker":{"color":source['edep'][:,0],"opacity":opacity,"size":marker_size,'colorscale':'Viridis','cmin':0.0,'cmax':5.0}
+        "marker":{"color":source['edep'][:,2],"opacity":opacity,"size":marker_size,'colorscale':'Viridis','cmin':0.0,'cmax':5.0}
     }
     simch_plots.append(simch_plot)
 elif colorby=='trackid':
@@ -173,18 +175,19 @@ elif colorby=='trackid':
             "marker":{"color":scolor,"opacity":opacity,"size":marker_size}
         }
         simch_plots.append(simch_plot)
-# elif colorby=='hasmatch':
-#     simch_plot = {
-#         "type":"scatter3d",
-#         "x":source['pos_x'][:,0],
-#         "y":source['pos_y'][:,0],
-#         "z":source['pos_z'][:,0],    
-#         "mode":"markers",
-#         "name":f"recopts",
-#         "marker":{"color":source['hasmatch'][:,0],"opacity":opacity,"size":marker_size,'colorscale':'Viridis'},
-#         #"marker":{"color":"rgba(220,220,220,1)","opacity":opacity,"size":marker_size}
-#     }
-#     simch_plots.append( simch_plot )
+elif colorby=='hasmatch':
+    simch_plot = {
+        "type":"scatter3d",
+        "x":source[pos_var_x][:,0],
+        "y":source[pos_var_y][:,0],
+        "z":source[pos_var_z][:,0],    
+        "mode":"markers",
+        "name":f"recopts",
+        "hovertemplate":hovertemplate,
+        "customdata":customdata,
+        "marker":{"color":source['hasmatch'][:,0],"opacity":opacity,"size":marker_size,'colorscale':'Viridis'},
+    }
+    simch_plots.append( simch_plot )
 else:
     print("unknown color option: ",colorby)
     sys.exit(0)

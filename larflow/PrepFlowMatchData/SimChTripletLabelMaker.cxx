@@ -12,6 +12,7 @@
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/RecoUtils/cluster_functions.h" 
 
 namespace larflow {
 namespace prep {
@@ -39,6 +40,10 @@ namespace prep {
     _mckpmaker.setADCimageTreeName( "wiremc" );
     _mckpmaker.clear();
     _mckpmaker.process( iolcv, ioll );
+
+    adjust_keypoints( _mckpmaker.getMCKeypoint(), 
+      _ev_reco_triplets,
+      _mcpgraph );
 
   }
 
@@ -215,6 +220,192 @@ namespace prep {
 
   }
 
+  /**
+   * @brief move keypoints to near-by reconstructable spacepoints
+   * 
+   * This is to prevent keypoint labels pointing into empty space.
+   * 
+   */
+  void SimChTripletLabelMaker::adjust_keypoints( 
+    const std::vector< larflow::prep::MCKeypoint >& mckeypoints,
+    larflow::prep::EventTriplets_t& labeled_reco_triplets,
+    ublarcvapp::mctools::MCParticleGraph& mcpg )
+  {
+
+    float edep_point_threshold   = 0.01;
+    float edep_cluster_threshold = 1.0;
+    _final_keypoint_list.clear();
+
+    // narrow the list of triplets to ones with truth-matches
+    std::vector< TripletLabels_t* > _true_triplets_v;
+    _true_triplets_v.reserve( labeled_reco_triplets._triplets_v.size() );
+    for ( auto& triplet : labeled_reco_triplets._triplets_v ) {
+        if ( triplet.hasmatch==1 )
+          _true_triplets_v.push_back( &triplet );
+    }
+
+    for ( auto const& mckp : _mckpmaker.getMCKeypoint() ) {
+
+      // for each keypoint
+      //   1. collect true-spacepoints near the keypoint
+      //   2. cluster the spacepoints
+      //   3. use the momentum to define rough time-axis
+      //   4. pick the nearest pt within a qualifying cluster
+      std::vector<float> kppos = mckp.keypt_appear;
+
+      std::vector< std::vector<float> > points_v;
+      std::vector< std::vector<float> > edep_vv;
+      for ( auto& ptriplet : _true_triplets_v ) {
+        auto it_tid = ptriplet->trackids.find( mckp.trackid );
+        if ( it_tid==ptriplet->trackids.end() )
+          continue;
+
+        if ( mckp.kptype==larflow::prep::MCKeypoint::kTrackStart
+          || mckp.kptype==larflow::prep::MCKeypoint::kTrackEnd) {
+
+          // for track particles, limit distance from keypoint
+          float dist = 0;
+          for (int i=0; i<3; i++) {
+            dist += (kppos[i]-ptriplet->pos_reco[i])*(kppos[i]-ptriplet->pos_reco[i]);
+          }
+          dist = sqrt(dist);
+          if (dist>50.0) {
+            continue;
+          }
+        }
+
+        std::vector<float> trip_pos(3,0);
+        std::vector<float> trip_edep(3,0);
+        int nabove_threshold = 0;
+        for (int i=0; i<3; i++) {
+          trip_pos[i]  = ptriplet->pos_reco[i];
+          trip_edep[i] = ptriplet->edep[i];
+          if ( trip_edep[i]>edep_point_threshold)
+            nabove_threshold++;
+        }
+
+        if ( nabove_threshold>=2 ) {
+          points_v.push_back( trip_pos );
+          edep_vv.push_back( trip_edep );
+        }
+      }//end of loop over truth-labeled triplet spacepoints
+
+      // cluster pts
+      if ( points_v.size()==0 )
+        continue;
+
+      // get momentum dir
+      auto pnode = mcpg.findTrackID( mckp.trackid );
+      if ( pnode == nullptr )
+        continue;
+
+      std::vector<float> mom_dir(3,0);
+      std::vector<float> orig_pt(3,0);
+      float pnorm = 0;
+      for (int i=0; i<3; i++) {
+        mom_dir[i] = pnode->mom4[1+i];
+        pnorm += mom_dir[i]*mom_dir[i];
+        if ( mckp.kptype==larflow::prep::MCKeypoint::kTrackEnd ) {
+          // reverse direction for track end
+          mom_dir[i] *= -1.0;
+        }
+      }
+      pnorm = sqrt(pnorm);
+      if ( pnorm>0 ) {
+        for (int i=0; i<3; i++)
+          mom_dir[i] /= pnorm;
+      }
+      else {
+        continue;
+      }
+        
+      // now we cluster these points using dbscan
+      float maxdist = 3.0;
+      float minsize = 4;
+      int maxkd = 10;
+      std::vector< larflow::recoutils::cluster_t > cluster_v;
+      larflow::recoutils::cluster_sdbscan_spacepoints( points_v, cluster_v, maxdist, minsize, maxkd);
+      int nclusters = cluster_v.size(); // skip the last cluster which are noise points
+      
+      std::vector<float> most_upstream_pt(3,0);
+      std::vector<float> most_upstream_edep(3,0);
+      float min_s = 1e9;
+      bool found_qualifying_pt = false;
+
+      LARCV_INFO() << " keypoint[tid=" << pnode->tid << "] "
+        << " num points=" << points_v.size() 
+        << " num clusters=" << nclusters
+        << std::endl;
+      LARCV_INFO() << "    mom4=" << mom_dir[0] << ", "
+                   << mom_dir[1] << ", "
+                   << mom_dir[2]
+                   << std::endl;
+      
+      for ( int icluster=0; icluster<nclusters; icluster++ ){
+        std::vector<float> edep_planesum(3,0.0);
+        auto const& cluster = cluster_v.at(icluster);
+        for (int ihit=0; ihit<(int)cluster.hitidx_v.size(); ihit++) {
+          auto hitidx = cluster.hitidx_v.at(ihit);
+          auto const& hitedep = edep_vv.at(hitidx);
+          for (int i=0; i<3; i++) {
+            edep_planesum[i] += hitedep[i];
+          }
+        }
+        int nabove_threshold_planes = 0;
+        if ( cluster.hitidx_v.size()>0 ) {
+          for (int i=0; i<3; i++) {
+            if ( edep_planesum[i]>edep_cluster_threshold) {
+              nabove_threshold_planes++;
+            }
+          }
+        }
+
+        LARCV_INFO() << "   cluster edep: " 
+          <<  edep_planesum[0] << ", "
+          <<  edep_planesum[1] << ", "
+          <<  edep_planesum[2] << " MeV"
+          << " nabove=" << nabove_threshold_planes
+          << std::endl;
+
+        if ( nabove_threshold_planes>=2 ) {
+          // qualifying cluster, get most upstream position
+          for ( auto& testpt : cluster.points_v ) {
+            float s = larflow::recoutils::pointRayProjection3f( kppos, mom_dir, testpt );
+            if ( s < min_s ) {
+              min_s = s;
+              most_upstream_pt = testpt;
+              found_qualifying_pt = true;
+              most_upstream_edep = edep_planesum;
+            }
+          }
+        }
+
+      }
+
+      // make a copy
+      larflow::prep::MCKeypoint kpd = mckp;
+
+      if ( found_qualifying_pt ) {
+        LARCV_NORMAL() << "Adjust keypoint" << std::endl;
+        LARCV_NORMAL() << "  from: (" << kpd.keypt_appear[0] << ", " 
+          << kpd.keypt_appear[1] << ", "
+          << kpd.keypt_appear[2] << ")" << std::endl;
+        LARCV_NORMAL() << "  to: (" << most_upstream_pt[0] << ", "
+          << most_upstream_pt[1] << ", "
+          << most_upstream_pt[2] << ")"
+          << std::endl;
+        LARCV_NORMAL() << "  edep: " << most_upstream_edep[0] << ", "
+          << most_upstream_edep[1] << ", "
+          << most_upstream_edep[2] << " MeV"
+          << std::endl;
+        kpd.keypt_appear = most_upstream_pt;
+      }
+
+      _final_keypoint_list.emplace_back( std::move(kpd) );
+    }
+
+  }
+
   void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )
   {
 
@@ -377,7 +568,39 @@ namespace prep {
     H5Easy::dump( file, "/triplet_data/aid",     reco_aid);
     H5Easy::dump( file, "/triplet_data/origin",  reco_origin);
 
-    _mckpmaker.save_entry_to_hdf(file,"");
+    //_mckpmaker.save_entry_to_hdf(file,"");
+
+    std::string group_prefix_name = "";
+    std::string kp_groupname = "/mckeypoints";
+    if ( group_prefix_name!="" ) {
+      kp_groupname = group_prefix_name + "/mckeypoints";
+    }
+    file.createGroup(kp_groupname);
+
+    // export different arrays for export
+    int nkeypoints = _final_keypoint_list.size();
+
+    std::vector< std::vector<float> > pos_appear(nkeypoints);
+    std::vector< std::vector<int> >   imgcoord(nkeypoints);
+    std::vector< int > kptype(nkeypoints);
+    std::vector< int > kppid(nkeypoints);
+    std::vector< int > kptrackid(nkeypoints);
+
+    int ikp=0;
+    for ( auto const& kpd : _final_keypoint_list ) {
+      pos_appear[ikp] = kpd.keypt_appear;
+      imgcoord[ikp]   = kpd.imgcoord;
+      kptype[ikp]     = kpd.kptype;
+      kppid[ikp]      = kpd.pid;
+      kptrackid[ikp]  = kpd.trackid;
+      ikp++;
+    }
+
+    H5Easy::dump( file, kp_groupname+"/pos",      pos_appear);
+    H5Easy::dump( file, kp_groupname+"/imgcoord", imgcoord);
+    H5Easy::dump( file, kp_groupname+"/kptype",   kptype);
+    H5Easy::dump( file, kp_groupname+"/pid",      kppid);
+    H5Easy::dump( file, kp_groupname+"/trackid",  kptrackid);
 
     file.flush();
 
