@@ -9,10 +9,11 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 parser = argparse.ArgumentParser("Visualize HDF5 output from MCPixelLabels")
-parser.add_argument("-ipt",   "--input-points",required=True,type=str,help="Input HDF5 file.")
-parser.add_argument("-ikp",   "--input-keypoints",required=True,type=str,help="Input HDF5 file.")
+parser.add_argument("-ipt", "--input-points",required=True,type=str,help="Input HDF5 file.")
+parser.add_argument("-ikp", "--input-keypoints",required=True,type=str,help="Input HDF5 file.")
 parser.add_argument("-c",   "--colorby",  default='trackid', help="Color mode. Option: [instance,ancestor,edep]")
 parser.add_argument("-p",   "--pos-mode", default="reco",type=str,help="Position mode. Option: [true,reco]")
+parser.add_argument("-d",   "--use-data", action='store_true', default=False, help="If given, plot the data spacepoints")
 args = parser.parse_args()
 
 import lardly
@@ -61,7 +62,11 @@ pos_var = args.pos_mode
 #NMAX_RECO_PTS=50000
 NMAX_RECO_PTS=-1
 
-triplet_truth = fh5['triplet_truth']
+if not args.use_data:
+    triplet_truth = fh5['triplet_truth']
+else:
+    triplet_truth = fh5['triplet_data']
+    pos_var='true'
 mckeypoints   = fh5_kp['mckeypoints']
 
 columns = ['pos_x','pos_y','pos_z',
@@ -79,11 +84,15 @@ columns = ['pos_x','pos_y','pos_z',
 
 data = {}
 for col in columns:
+    if col not in triplet_truth:
+        continue
     npts = len(triplet_truth[col])
     data[col] = np.array( triplet_truth[col], dtype=np.float32 )
     if len(data[col].shape)==1:
         data[col] = data[col].reshape((npts,1))
     print(col,": ",data[col].shape)
+if args.use_data:
+    data['edep'] = np.zeros( (data['pos_x'].shape[0],3),dtype=np.float32)
 
 
 kpdata = {}

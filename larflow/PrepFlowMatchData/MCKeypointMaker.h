@@ -35,6 +35,10 @@ namespace mctools {
 }
 }
 
+namespace HighFive {
+  class File;
+}
+
 namespace larflow {
 namespace prep {
   
@@ -83,8 +87,12 @@ namespace prep {
                   const larlite::event_mcshower& mcshower_v,
                   const larlite::event_mctruth&  mctruth_v );
 
+    void set_mcparticle_graph( ublarcvapp::mctools::MCParticleGraph* mcpg ) { _mcpg = mcpg; };
+    void set_spacecharge_instance( larutil::SpaceChargeMicroBooNE* psce )   { _psce = psce; };
+
     //void make_proposal_labels( const larflow::prep::PrepMatchTriplets& match_proposals );
-    
+    void clear();
+
   protected:
 
     std::string _adc_image_treename; ///< name of tree storing charge image2d
@@ -122,12 +130,12 @@ namespace prep {
       ublarcvapp::mctools::MCParticleGraph& mcpg,
       ublarcvapp::mctools::EventMCPixelLabels& pixel3d);
 
-    void _clear_output();
     void _copy_to_vectors();
     
     //void filter_duplicates();
 
     ublarcvapp::mctools::MCParticleGraph* _mcpg;
+    larutil::SpaceChargeMicroBooNE* _psce;
     larlite::storage_manager* _ioll;
     larcv::IOManager* _iolcv;
 
@@ -148,6 +156,7 @@ namespace prep {
     void printKeypoints() const;
 
     void export_as_hdf( std::string outfile );
+    void save_entry_to_hdf( HighFive::File& file, std::string group_prefix_name );
             
   public:
 

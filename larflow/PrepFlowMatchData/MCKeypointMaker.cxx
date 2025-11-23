@@ -39,6 +39,7 @@ namespace prep {
     : larcv::larcv_base("MCKeypointMaker"),
     _adc_image_treename("wire"),
     _mcpg(nullptr),
+    _psce(nullptr),
     _ioll(nullptr),
     _iolcv(nullptr)
   {
@@ -125,7 +126,11 @@ namespace prep {
     _event  = iolcv.event_id().event();   
 
     // create an internal instance of mcpg
-    _mcpg = new ublarcvapp::mctools::MCParticleGraph; 
+    bool local_mcpg = false;
+    if ( _mcpg==nullptr ) {
+      _mcpg = new ublarcvapp::mctools::MCParticleGraph; 
+      local_mcpg = true;
+    }
     
     process( ev_adc->Image2DArray(),
              badch_v,
@@ -143,8 +148,10 @@ namespace prep {
     //_clear_output();
     //_copy_to_vectors();
 
-    delete _mcpg;
-    _mcpg = nullptr;
+    if ( local_mcpg ) {
+      delete _mcpg;
+      _mcpg = nullptr;
+    }
     
   }
 
@@ -161,7 +168,11 @@ namespace prep {
     LARCV_DEBUG() << "start" << std::endl;
     
     // allocate space charge class
-    larutil::SpaceChargeMicroBooNE sce;
+    bool local_sce = false;
+    if ( _psce==nullptr ) {
+      _psce = new larutil::SpaceChargeMicroBooNE;
+      local_sce = true;
+    }
 
     // make particle graph
     LARCV_DEBUG() << "build graph" << std::endl; 
@@ -189,11 +200,11 @@ namespace prep {
     }
 
     // build key-points container
-    _clear_output();
+    clear();
 
     // build crossing points for muon track primaries
     std::vector<MCKeypoint> track_kpd
-      = getMuonEndpoints( mcpg, adc_v, mctrack_v, &sce );
+      = getMuonEndpoints( mcpg, adc_v, mctrack_v, _psce );
 
     LARCV_NORMAL() << "[Muon Track Endpoint Results] numfound=" << track_kpd.size() << std::endl;
     for ( auto const& kpd : track_kpd ) {
@@ -205,7 +216,7 @@ namespace prep {
     }
 
     std::vector<MCKeypoint> nonmuon_track_kpd 
-      = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, &sce );
+      = getNonMuonTrackStarts (mcpg, adc_v, mctrack_v, _psce );
     LARCV_NORMAL() << "[Non-muon track start Results] numfound=" << nonmuon_track_kpd.size() << std::endl;
     for ( auto const& kpd : nonmuon_track_kpd ) {
       std::stringstream ss( kpd.str() );
@@ -217,7 +228,7 @@ namespace prep {
 
     // add points for shower starts
     std::vector<MCKeypoint> shower_kpd
-      = getShowerStarts( mcpg, adc_v, mcshower_v, &sce );
+      = getShowerStarts( mcpg, adc_v, mcshower_v, _psce );
     LARCV_NORMAL() << "[Shower Endpoint Results] numfound=" << shower_kpd.size() << std::endl;
     int ishr=0; 
     for ( auto const& kpd : shower_kpd ) {
@@ -259,6 +270,11 @@ namespace prep {
     if ( local_mcpg ) {
       delete _mcpg;
       _mcpg = nullptr;
+    }
+
+    if ( local_sce ) {
+      delete _psce;
+      _psce = nullptr;
     }
     
   }
@@ -1507,7 +1523,7 @@ namespace prep {
     }//end of loop over shower ids
   }
 
-  void MCKeypointMaker::_clear_output()
+  void MCKeypointMaker::clear()
   {
     _kpd_v.clear();
     for (int i=0; i<6; i++) {
@@ -1539,7 +1555,21 @@ namespace prep {
 
     HighFive::File file(hdf_outfile, HighFive::File::Overwrite);
 
-    file.createGroup("/mckeypoints");
+    std::string group_prefix_name="";
+    save_entry_to_hdf( file, group_prefix_name );
+
+  }
+
+  void MCKeypointMaker::save_entry_to_hdf( 
+    HighFive::File& file,
+    std::string group_prefix_name )
+  {
+
+    std::string groupname = "/mckeypoints";
+    if ( group_prefix_name!="" ) {
+      groupname = group_prefix_name + "/mckeypoints";
+    }
+    file.createGroup(groupname);
 
     // export different arrays for export
     int nkeypoints = _kpd_v.size();
@@ -1560,11 +1590,11 @@ namespace prep {
       ikp++;
     }
 
-    H5Easy::dump( file, "/mckeypoints/pos",      pos_appear);
-    H5Easy::dump( file, "/mckeypoints/imgcoord", imgcoord);
-    H5Easy::dump( file, "/mckeypoints/kptype",   kptype);
-    H5Easy::dump( file, "/mckeypoints/pid",      kppid);
-    H5Easy::dump( file, "/mckeypoints/trackid",  kptrackid);
+    H5Easy::dump( file, groupname+"/pos",      pos_appear);
+    H5Easy::dump( file, groupname+"/imgcoord", imgcoord);
+    H5Easy::dump( file, groupname+"/kptype",   kptype);
+    H5Easy::dump( file, groupname+"/pid",      kppid);
+    H5Easy::dump( file, groupname+"/trackid",  kptrackid);
 
     file.flush();
   }

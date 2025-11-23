@@ -6,11 +6,14 @@
 #include "larlite/DataFormat/storage_manager.h"
 #include "larlite/LArUtil/SpaceChargeMicroBooNE.h"
 
-#include "ublarcvapp/MCTools/MCPixelPGraph.h"
+#include "ublarcvapp/MCTools/MCParticleGraph.h"
+#include "ublarcvapp/MCTools/MCPixelLabelMaker.h"
 
 #include <array>
 #include <map>
 
+#include "PrepMatchTriplets.h"
+#include "MCKeypointMaker.h"
 #include "EventTriplets_t.h"
 
 namespace larflow {
@@ -39,14 +42,21 @@ public:
 
   void make_reco_triplets(larcv::IOManager& iolcv);
 
-  void label_reco_triplets();
+  void label_reco_triplets( 
+    ublarcvapp::mctools::EventMCPixelLabels& pixel3d,
+    larflow::prep::EventTriplets_t& triplets );
 
   void transfer_truth_to_reco( 
-      TripletLabels_t& truth_trip, 
+      ublarcvapp::mctools::MCPixelLabels& truth_trip, 
       TripletLabels_t& reco_trip );
 
-  EventTriplets_t _ev_triplets;
-  EventTriplets_t _ev_reco_triplets;
+  // algorithms
+  ublarcvapp::mctools::MCParticleGraph   _mcpgraph;     ///< organizes true particle information into graph form    
+  ublarcvapp::mctools::MCPixelLabelMaker _mcpixelmaker; ///< makes pixel3d objects from simch 
+  larflow::prep::PrepMatchTriplets       _tripletmaker; ///< makes pixel3d objects from wireplane images
+  larflow::prep::MCKeypointMaker         _mckpmaker;    ///< makes keypoint
+
+  larflow::prep::EventTriplets_t          _ev_reco_triplets;
 
 };
 

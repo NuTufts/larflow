@@ -25,14 +25,20 @@ namespace prep {
     larutil::SpaceChargeMicroBooNE* psce = 
       new larutil::SpaceChargeMicroBooNE(larutil::SpaceChargeMicroBooNE::kMCC9_Forward);
 
-    ublarcvapp::mctools::MCPixelPGraph mcpg;
-    mcpg.buildgraphonly(ioll);
+    _mcpgraph.clear();
+    _mcpgraph.buildgraph(ioll);
 
-    make_truthlabels_fromsimch(ioll,iolcv,mcpg,psce);
+    _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, psce );
 
     make_reco_triplets(iolcv);
 
-    label_reco_triplets();
+    label_reco_triplets( _mcpixelmaker._pixels_v, _ev_reco_triplets );
+
+    _mckpmaker.set_mcparticle_graph( &_mcpgraph );
+    _mckpmaker.set_spacecharge_instance( psce );
+    _mckpmaker.setADCimageTreeName( "wiremc" );
+    _mckpmaker.clear();
+    _mckpmaker.process( iolcv, ioll );
 
   }
 
@@ -103,6 +109,8 @@ namespace prep {
         _ev_reco_triplets._imgcoord_to_tripindex[imgcoord] = trip.index;
         _ev_reco_triplets._triplets_v.push_back( trip );
 
+        
+
     }
 
     LARCV_INFO() << "Made triplets from image. Num image triplets:" 
@@ -111,199 +119,10 @@ namespace prep {
 
   }
 
-
-  void SimChTripletLabelMaker::make_truthlabels_fromsimch(
-      larlite::storage_manager& ioll, 
-      larcv::IOManager& iolcv,
-      ublarcvapp::mctools::MCPixelPGraph& mcpg,
-      larutil::SpaceChargeMicroBooNE* psce )
-  {
-
-    LARCV_INFO() << "start" << std::endl;
-
-    // utility to go from simulated electronics TDC to 
-    // ticks (tdcs after readout trigger)
-    const larutil::TimeService* timeservice = larutil::TimeService::GetME();
-
-    // geometry
-    const larutil::Geometry* geom = larutil::Geometry::GetME();
-
-
-    // drift velocity
-    float driftv = larutil::LArProperties::GetME()->DriftVelocity();
-
-    // get the simch product we need
-    larlite::event_simch* ev_simch = 
-      (larlite::event_simch*)ioll.get_data(larlite::data::kSimChannel,"largeant");
-
-    // get images
-    larcv::EventImage2D* ev_img = 
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wiremc");
-
-    auto const& img_v = ev_img->as_vector();
-    int nplanes = (int)img_v.size();
-
-    auto const& meta0 = img_v.at(0).meta();
-
-    // Clear the triplet info container
-    _ev_triplets.clear();
-
-    // loop over simch information, making TripletLabels_t
-    size_t nsimch = ev_simch->size();
-    size_t ide_w_no_t0 = 0;
-    size_t ide_outofimg = 0;
-    size_t ide_w_badwire = 0;
-    size_t num_ide_used = 0;
-
-    for (size_t isimch=0; isimch<nsimch; isimch++) {
-        auto& simch = ev_simch->at(isimch);
-        auto chid = simch.Channel();
-
-        larlite::geo::WireID wireid = geom->ChannelToWireID(chid);
-        int plane = wireid.Plane;
-
-        //std::cout << "(" << isimch << ") chid=" << chid << " plane=" << plane << std::endl;
-
-        auto& idcmap = simch.TDCIDEMap();
-        for ( auto it=idcmap.begin(); it!=idcmap.end(); it++ ) {
-            long tdc = it->first;
-            int tick = int(timeservice->TPCTDC2Tick(tdc));
-            size_t nide = it->second.size();
-            for (auto& ide : it->second ) {
-
-                std::vector<double> pos = { ide.x, ide.y, ide.z };
-                long tid = ide.trackID;
-                long xtid = (tid>=0) ? tid : -tid;
-                double edep = ide.energy;
-
-                // get wire coordinates for these positions
-                std::vector<int> wire_v(nplanes,0);
-                bool bad_wire = false;
-                for (int iplane=0; iplane<nplanes; iplane++) {
-                    try {
-                        UInt_t wireid = geom->NearestWire( pos, iplane );
-                        wire_v[iplane] = wireid;
-                    }
-                    catch (...){
-                        bad_wire = true;
-                    }
-                }
-                if ( bad_wire ) {
-                    ide_w_badwire++;
-                    continue;
-                }
-
-                // replace low-energy shower trackid label with mother of the shower
-                long mtid = mcpg.getShowerMotherID( tid );
-                if (mtid>0) {
-                    xtid = mtid;
-                }
-
-                auto pnode_t = mcpg.findTrackID( xtid );
-                if ( pnode_t==nullptr ) {
-                    // don't have an alternative for this right now
-                    ide_w_no_t0++;
-                    continue;
-                }
-
-                long aid = mcpg.getAncestorID( xtid );
-                int pid  = pnode_t->pid;
-                int origin = pnode_t->origin;
-
-                double t0 = pnode_t->start.at(3);
-
-                bool applied = false;
-                std::vector<double> pos_sce = psce->ApplySpaceChargeEffect( pos[0], pos[1], pos[2], applied );
-
-                // get (u,v,y,tick)
-                std::vector<float> imgpos = 
-                    ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_imagepos( pos[0],
-                        pos[1],
-                        pos[2],
-                        t0,
-                        true );
-
-                float tick = imgpos[3];
-                if ( tick<(float)meta0.min_y() || tick>=(float)meta0.max_y() ) {
-                    ide_outofimg++;
-                    continue;
-                }
-
-                int row = meta0.row( imgpos[3] );
-
-                std::array<int,4> imgindex = { 
-                    (int)imgpos[0], 
-                    (int)imgpos[1], 
-                    (int)imgpos[2], 
-                    row };
-
-                auto it_index = _ev_triplets._imgcoord_to_tripindex.find( imgindex );
-                if ( it_index==_ev_triplets._imgcoord_to_tripindex.end() ) {
-                    TripletLabels_t trip;
-                    trip.index = (long)_ev_triplets._triplets_v.size();
-                    for (int i=0; i<3; i++)
-                        trip.edep[i] = 0.0;
-                    trip.imgcoord[0] = imgindex[0];
-                    trip.imgcoord[1] = imgindex[1];
-                    trip.imgcoord[2] = imgindex[2];
-                    trip.imgcoord[3] = (int)tick;
-                    trip.imgcoord[4] = row;
-                    trip.pos[0] = pos[0];
-                    trip.pos[1] = pos[1];
-                    trip.pos[2] = pos[2];
-                    trip.pos_reco[0] = (tick-3200)*0.5*driftv;
-                    trip.pos_reco[1] = pos_sce[1];
-                    trip.pos_reco[2] = pos_sce[2];
-
-                    // make index map
-                    _ev_triplets._imgcoord_to_tripindex[imgindex] = trip.index;
-
-                    // we also index stuff
-                    for (int iu=-1; iu<=1; iu++) {
-                    for (int iv=-1; iv<=1; iv++) {
-                    for (int iy=-1; iy<=1; iy++) {
-                    for (int ir=-1; ir<=1; ir++) {
-                        std::array<int,4> modindex = imgindex;
-                        modindex[0] += iu;
-                        modindex[1] += iv;
-                        modindex[2] += iy;
-                        modindex[3] += ir;
-                        auto it_mod = _ev_triplets._imgcoord_to_tripindex.find( modindex );
-                        if ( it_mod==_ev_triplets._imgcoord_to_tripindex.end()) {
-                            _ev_triplets._imgcoord_to_tripindex[modindex] = trip.index;
-                        }
-                    }
-                    }
-                    }
-                    }
-
-                    _ev_triplets._triplets_v.emplace_back( std::move(trip) );     
-                    it_index = _ev_triplets._imgcoord_to_tripindex.find( imgindex );
-                }
-
-                auto& tripinfo = _ev_triplets._triplets_v.at(it_index->second);
-                tripinfo.edep[plane] += edep;
-                tripinfo.trackids.insert(xtid);
-                tripinfo.aids.insert(aid);
-                tripinfo.pids.insert(pid);
-                tripinfo.origin.insert(origin);
-                num_ide_used++;
-
-            }
-
-        }
-    }
-
-    LARCV_INFO() << "Number of Triplets Created: " << _ev_triplets._triplets_v.size() << std::endl;
-    LARCV_INFO() << "  IDEs with no track ID match and t0: " << ide_w_no_t0 << std::endl;
-    LARCV_INFO() << "  IDEs out-of-image: " << ide_outofimg << std::endl;
-    LARCV_INFO() << "  IDEs with no nearby-wire: " << ide_w_badwire << std::endl;
-    LARCV_INFO() << "  IDEs used: " << num_ide_used << std::endl; 
-
-
-  }
-
-  void SimChTripletLabelMaker::label_reco_triplets()
+  void SimChTripletLabelMaker::label_reco_triplets(
+      ublarcvapp::mctools::EventMCPixelLabels& truth_triplets,
+      larflow::prep::EventTriplets_t& reco_triplets
+  )
   {
     // we have two methods to label points
     // (1) matching the imgcoord index
@@ -313,24 +132,24 @@ namespace prep {
 
     size_t num_reco_labeled = 0;
 
-    for ( auto it=_ev_reco_triplets._imgcoord_to_tripindex.begin(); 
-          it!=_ev_reco_triplets._imgcoord_to_tripindex.end(); it++ ) 
+    for ( auto it=reco_triplets._imgcoord_to_tripindex.begin(); 
+          it!=reco_triplets._imgcoord_to_tripindex.end(); it++ ) 
     {
 
         auto& index = it->first;
 
         // look for index in the truth triplets
 
-        auto it_truth = _ev_triplets._imgcoord_to_tripindex.find( index );
+        auto it_truth = truth_triplets._imgcoord_to_tripindex.find( index );
 
-        if ( it_truth == _ev_triplets._imgcoord_to_tripindex.end() )
+        if ( it_truth == truth_triplets._imgcoord_to_tripindex.end() )
           continue;
 
         //std::cout << "reco_index=" << it->second << "  truth_index=" << it_truth->second << std::endl;
 
         // found match: transfer info
-        auto& truth_trip = _ev_triplets._triplets_v.at( it_truth->second );
-        auto& reco_trip  = _ev_reco_triplets._triplets_v.at( it->second );
+        auto& truth_trip = truth_triplets._triplets_v.at( it_truth->second );
+        auto& reco_trip  = reco_triplets._triplets_v.at( it->second );
         transfer_truth_to_reco( truth_trip, reco_trip );
         num_reco_labeled++;
 
@@ -339,7 +158,7 @@ namespace prep {
     LARCV_INFO() << "Number of reco triplets label-matched with simch: " << num_reco_labeled << std::endl;
 
 
-    // match by distance ...
+    // match by distance ... (too slow)
     // size_t num_matched_by_dist = 0;
     // for ( auto& reco_trip : _ev_reco_triplets._triplets_v ) {
 
@@ -380,7 +199,7 @@ namespace prep {
   }
 
   void SimChTripletLabelMaker::transfer_truth_to_reco( 
-      TripletLabels_t& truth_trip, 
+      ublarcvapp::mctools::MCPixelLabels& truth_trip, 
       TripletLabels_t& reco_trip )
   {
 
@@ -406,7 +225,8 @@ namespace prep {
     file.createGroup("/triplet_data");
 
     // export different arrays for export
-    int ntriplets = _ev_triplets._triplets_v.size();
+    ublarcvapp::mctools::EventMCPixelLabels& pixel3d = _mcpixelmaker._pixels_v;
+    int ntriplets = pixel3d._triplets_v.size();
 
     std::vector<float> pos_x(ntriplets,0);
     std::vector<float> pos_y(ntriplets,0);
@@ -427,7 +247,7 @@ namespace prep {
     std::vector<int>   tick(ntriplets,0);
     std::vector<int>   row(ntriplets,0);
 
-    for (auto const& triplet : _ev_triplets._triplets_v ) {
+    for (auto const& triplet : pixel3d._triplets_v ) {
         long idx = triplet.index;
 
         pos_x[idx] = triplet.pos[0];
@@ -556,6 +376,8 @@ namespace prep {
     H5Easy::dump( file, "/triplet_data/pid",     reco_pid);
     H5Easy::dump( file, "/triplet_data/aid",     reco_aid);
     H5Easy::dump( file, "/triplet_data/origin",  reco_origin);
+
+    _mckpmaker.save_entry_to_hdf(file,"");
 
     file.flush();
 

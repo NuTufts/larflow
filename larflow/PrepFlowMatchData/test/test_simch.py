@@ -5,7 +5,10 @@ from larcv import larcv
 from larflow import larflow
 
 
-dlmerged_input = "/mnt/ddrive/data/ub_on_tufts/corsika_bnb_inue/dlmerged_coriska_bnb_nue_fileno000010.root"
+#dlmerged_input = "/mnt/ddrive/data/ub_on_tufts/corsika_bnb_inue/dlmerged_coriska_bnb_nue_fileno000010.root"
+dlmerged_input = "/mnt/ddrive/data/ub_on_tufts/corsika_bnb_nu_pi0/dlmerged_coriska_bnb_nu_pi0_fileno000001.root"
+
+ENTRY=0
 
 simchmaker = larflow.prep.SimChTripletLabelMaker()
 simchmaker.set_verbosity(1)
@@ -20,8 +23,8 @@ iolcv.add_in_file( dlmerged_input )
 iolcv.set_verbosity(2)
 iolcv.initialize()
 
-ioll.go_to(0)
-iolcv.read_entry(0)
+ioll.go_to(ENTRY)
+iolcv.read_entry(ENTRY)
 
 print(simchmaker)
 
