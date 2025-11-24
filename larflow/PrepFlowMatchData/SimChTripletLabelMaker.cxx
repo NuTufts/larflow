@@ -918,14 +918,19 @@ namespace prep {
     file.createGroup(img_group_name);
 
     auto& imgpixels_vv = _tripletmaker._sparseimg_vv;
-    // std::vector< std::vector< std::vector<int> >  > pixcoords_vv;
-    // std::vector< std::vector<float> > pixvals_vv;
+
     for (size_t iplane=0; iplane<imgpixels_vv.size(); iplane++ ) {
 
       std::stringstream ss_plane_group;
       ss_plane_group << img_group_name << "/plane" << iplane;
       LARCV_INFO() << "create group: " << ss_plane_group.str() << std::endl;
       file.createGroup( ss_plane_group.str() );
+
+      auto& meta = _tripletmaker._imgmeta_v.at(iplane);
+
+      std::vector<int>   dims    = { (int)meta.cols(), (int)meta.rows() };
+      std::vector<float> origin  = { (float)meta.min_x(), (float)meta.min_y() };
+      std::vector<float> pixsize = { (float)meta.pixel_width(), (float)meta.pixel_height() };
 
       auto& imgpixels_v = imgpixels_vv.at(iplane);
       std::vector< std::vector<int> > pixcoords_v;
@@ -939,8 +944,12 @@ namespace prep {
       }
       
       LARCV_INFO() << "save coord and feat to group: " << ss_plane_group.str() << std::endl;
-      H5Easy::dump( file, ss_plane_group.str()+"/coord", pixcoords_v );
-      H5Easy::dump( file, ss_plane_group.str()+"/feat",  pixfeat_v );
+      H5Easy::dump( file, ss_plane_group.str()+"/coord",   pixcoords_v );
+      H5Easy::dump( file, ss_plane_group.str()+"/feat",    pixfeat_v );
+      // ImageMeta information
+      H5Easy::dump( file, ss_plane_group.str()+"/dims",    dims );
+      H5Easy::dump( file, ss_plane_group.str()+"/origin",  origin );
+      H5Easy::dump( file, ss_plane_group.str()+"/pixsize", pixsize );
     }
 
     LARCV_INFO() << "save triplet to: " << img_group_name + "/triplet_imgpix_index" << std::endl;
