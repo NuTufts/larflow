@@ -664,7 +664,10 @@ namespace prep {
 
     HighFive::File file(hdf_outfile, HighFive::File::Overwrite);
 
+    save_entry_sparseimg( file, "" );
     save_entry_to_hdf( file, "" );
+
+    file.flush();
 
   }
 
@@ -891,7 +894,57 @@ namespace prep {
     H5Easy::dump( file, kp_groupname+"/pid",      kppid);
     H5Easy::dump( file, kp_groupname+"/trackid",  kptrackid);
 
-    file.flush();
+  }
+
+  /**
+   * @brief Save current entry's image2d and triplet image maps
+   */
+  void SimChTripletLabelMaker::save_entry_sparseimg( HighFive::File& file, std::string groupname_prefix )
+  {
+    if ( _hdf_file==nullptr ) {
+      std::stringstream errmsg;
+      errmsg << "Saving entry without first creating HDF file." << std::endl;
+      errmsg << "Call open_hdf_file( std::string ) first." << std::endl;
+      throw std::runtime_error( errmsg.str() );
+    }
+
+    LARCV_INFO() << "Save to image info to hdf file. group prefix=" << groupname_prefix << std::endl;
+    
+    std::string img_group_name = "/image_data";
+    if ( groupname_prefix!="" ) {
+      img_group_name = groupname_prefix + "/image_data";
+    }
+    LARCV_INFO() << "create group: " << img_group_name << std::endl;
+    file.createGroup(img_group_name);
+
+    auto& imgpixels_vv = _tripletmaker._sparseimg_vv;
+    // std::vector< std::vector< std::vector<int> >  > pixcoords_vv;
+    // std::vector< std::vector<float> > pixvals_vv;
+    for (size_t iplane=0; iplane<imgpixels_vv.size(); iplane++ ) {
+
+      std::stringstream ss_plane_group;
+      ss_plane_group << img_group_name << "/plane" << iplane;
+      LARCV_INFO() << "create group: " << ss_plane_group.str() << std::endl;
+      file.createGroup( ss_plane_group.str() );
+
+      auto& imgpixels_v = imgpixels_vv.at(iplane);
+      std::vector< std::vector<int> > pixcoords_v;
+      std::vector< float > pixfeat_v;
+      pixcoords_v.reserve( imgpixels_v.size() );
+      pixfeat_v.reserve( imgpixels_v.size() );
+      for ( auto& pixdata : imgpixels_v ) {
+        std::vector<int> pixcoord = { pixdata.col, pixdata.row  };
+        pixcoords_v.push_back( pixcoord );
+        pixfeat_v.push_back( pixdata.val );
+      }
+      
+      LARCV_INFO() << "save coord and feat to group: " << ss_plane_group.str() << std::endl;
+      H5Easy::dump( file, ss_plane_group.str()+"/coord", pixcoords_v );
+      H5Easy::dump( file, ss_plane_group.str()+"/feat",  pixfeat_v );
+    }
+
+    LARCV_INFO() << "save triplet to: " << img_group_name + "/triplet_imgpix_index" << std::endl;
+    H5Easy::dump( file, img_group_name + "/triplet_imgpix_index", _tripletmaker._triplet_v );
 
   }
 
@@ -912,7 +965,10 @@ namespace prep {
     LARCV_INFO() << "create group: " << groupname_prefix << std::endl;
     _hdf_file->createGroup(groupname_prefix);
     
+    save_entry_sparseimg( *_hdf_file, groupname_prefix );
     save_entry_to_hdf( *_hdf_file, groupname_prefix );
+
+    _hdf_file->flush();
 
   }
 

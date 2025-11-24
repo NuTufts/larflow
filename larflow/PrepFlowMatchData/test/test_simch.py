@@ -30,7 +30,7 @@ for ientry in range(start_entry,end_entry+1):
   ioll.go_to(ientry)
   iolcv.read_entry(ientry)
 
-  hdf_entry_prefix = f"entry_{ientry}"
+  hdf_entry_prefix = f"/entry_{ientry}"
   simchmaker.process( ioll, iolcv )
   simchmaker.save_entry( hdf_entry_prefix )
 

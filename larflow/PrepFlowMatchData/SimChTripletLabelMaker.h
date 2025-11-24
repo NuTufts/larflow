@@ -44,6 +44,8 @@ public:
     HighFive::File& file, 
     std::string groupname_prefix );
 
+  void save_entry_sparseimg( HighFive::File& file, std::string groupname_prefix );
+
   void save_entry( std::string groupname_prefix );
 
   void make_truthlabels_fromsimch(
