@@ -70,6 +70,8 @@ namespace prep {
 
     make_keypoint_labels( 3.0, 0.01 );
 
+    make_ssnet_labels( _mcpgraph );
+
   }
 
   void SimChTripletLabelMaker::make_reco_triplets( 
@@ -478,6 +480,183 @@ namespace prep {
 
   }
 
+  void SimChTripletLabelMaker::make_ssnet_labels(
+    ublarcvapp::mctools::MCParticleGraph& mcpg )
+  {
+    // we reduce a map to labeled triplets only
+    std::map< std::array<int,4>, unsigned long > matchedtripletmap;
+
+    for( auto it=_ev_reco_triplets._imgcoord_to_tripindex.begin();
+        it!=_ev_reco_triplets._imgcoord_to_tripindex.end();
+        it++ ) {
+      
+      auto& triplet  = _ev_reco_triplets._triplets_v.at( it->second );
+      if ( triplet.hasmatch==1 ) {
+        matchedtripletmap[ it->first ] = it->second;
+      }
+
+    }
+
+    std::map<int,unsigned long> class_counts;
+
+    for ( auto it=_ev_reco_triplets._imgcoord_to_tripindex.begin();
+      it!=_ev_reco_triplets._imgcoord_to_tripindex.end();
+      it++ ) {
+
+      auto& triplet  = _ev_reco_triplets._triplets_v.at( it->second );
+      if ( triplet.hasmatch==0 ) {
+        triplet.ssnetlabel = 0; // label as background
+      }
+      else {
+        // we set the pid by the most energetic trackid
+        float maxKE = 0.0;
+        int pid_maxKE = 0;
+        for (auto& tid : triplet.trackids ) {
+          auto pnode = mcpg.findTrackID( tid );
+          if ( pnode!=nullptr ) {
+            float E = pnode->mom4[0];
+            float pnorm = 0;
+            for (int i=0; i<3; i++) {
+              pnorm += pnode->mom4[i+1]*pnode->mom4[i+1];
+            }
+            float m = sqrt( E*E - pnorm );
+            float KE = E-m;
+            if ( KE>=maxKE ) {
+              maxKE = KE;
+              pid_maxKE = pnode->pid;
+            }
+          }
+        }
+        triplet.ssnetlabel = get_ssnet_class_label( pid_maxKE );
+      }
+      
+      // add to class counts for weight calculation
+      auto it_count=class_counts.find( triplet.ssnetlabel );
+      if ( it_count==class_counts.end() ) {
+        class_counts[ triplet.ssnetlabel ] = 0;
+        it_count = class_counts.find( triplet.ssnetlabel );
+      }
+      it_count->second += 1;
+    }
+
+    LARCV_INFO() << "Class Counts" << std::endl;
+    for (int i=0; i<7; i++)
+      LARCV_INFO() << "  ssnet[" << i << "] " << class_counts[i] << std::endl;
+
+    // finished labels and counts
+    // now we assign boundary flag and class weights
+    unsigned long total = 0;
+    for ( auto it_cc=class_counts.begin(); it_cc!=class_counts.end(); it_cc++)
+    {
+      if ( it_cc->first!=0 ) {
+        total += it_cc->second;
+      }
+    }
+    float ftotal = (float)total;
+
+    for ( auto it=_ev_reco_triplets._imgcoord_to_tripindex.begin();
+      it!=_ev_reco_triplets._imgcoord_to_tripindex.end();
+      it++ ) {
+
+      auto& triplet  = _ev_reco_triplets._triplets_v.at( it->second );
+      if ( triplet.ssnetlabel==0 )
+        continue;
+
+      // store count weight
+      if ( total>0 ) {
+        float fcount = class_counts[ triplet.ssnetlabel ];
+        if ( fcount>0.0 ) {
+          triplet.ssnet_classcount_weight = 1.0/fcount;
+        }
+        else {
+          triplet.ssnet_classcount_weight = 0.;
+        }
+      }
+
+      int num_diff_pid = 0;
+
+      for (int du=-1; du<=1; du++) {
+      for (int dv=-1; dv<=1; dv++) {
+      for (int dy=-1; dy<=1; dy++) {
+      for (int dr=-1; dr<=1; dr++) {
+
+        if ( du==0 && dv==0 && dy==0 && dr==0)
+          continue;
+
+        std::array<int,4> modindex = it->first;
+        modindex[0] += du;
+        modindex[1] += dv;
+        modindex[2] += dy;
+        modindex[3] += dr;
+
+        auto it_neighbor = matchedtripletmap.find( modindex );
+        if ( it_neighbor==matchedtripletmap.end() ) {
+          continue;
+        }
+
+        auto& neighbor = _ev_reco_triplets._triplets_v.at( it_neighbor->second );
+        if ( neighbor.ssnetlabel!=triplet.ssnetlabel ) {
+          num_diff_pid++;
+        }
+
+      }
+      }
+      }
+      }
+
+      triplet.ssnetboundary = num_diff_pid;
+
+    }
+
+  }
+
+  /**
+   * @brief return class index for different particle types
+   * 
+   * The labels we define:
+   * @verbatim embed:rst:leading-asterisk
+   *  * [0]: background (larcv::kROIUnknown)
+   *  * [1]: electron (larcv::kROIEminus)
+   *  * [2]: gamma (larcv::kROIGamma)
+   *  * [3]: muon (larcv::kROIMuminus)
+   *  * [4]: proton (larcv::kROIProton)
+   *  * [5]: pion (larcv::kROIPiminus)
+   *  * [6]: other (the rest of the labels)
+   */
+  int SimChTripletLabelMaker::get_ssnet_class_label( int pid ) 
+  {
+    int ssnet_label = 0;
+    switch( pid ) {
+    case 11:
+    case -11:
+      ssnet_label = 1;
+      break;
+    case 22:
+      ssnet_label = 2;
+      break;
+    case 13:
+    case -13:
+      ssnet_label = 3;
+      break;
+    case 2212:
+    case 2112:
+      // note: edep labeled as neutrons are protons
+      // created by neutron interactions
+      ssnet_label = 4;
+      break;
+    case 211:
+    case -211:
+    case 321:
+    case -321:
+      ssnet_label = 5;
+      break;
+    default:
+      ssnet_label = 6;
+      break;
+    };
+    return ssnet_label;
+  }
+
   void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )
   {
 
@@ -606,43 +785,53 @@ namespace prep {
 
     std::vector< std::vector<float> > reco_kpscores(n_reco_triplets);
 
+    std::vector<int>   reco_ssnet_label(n_reco_triplets,0);
+    std::vector<int>   reco_ssnet_boundary(n_reco_triplets,0);
+    std::vector<float> reco_ssnet_weight(n_reco_triplets,0);
+
     for (size_t idx=0; idx<n_reco_triplets; idx++) {
-        auto const& tripinfo = _ev_reco_triplets._triplets_v.at(idx);
 
-        for ( auto& tid : tripinfo.trackids ) {
-            reco_trackid[idx] = tid;
-            if (reco_trackid[idx]!=-1)
-                break;
-        }
+      auto const& tripinfo = _ev_reco_triplets._triplets_v.at(idx);
 
-        for ( auto& xpid : tripinfo.pids ) {
-            reco_pid[idx]     = xpid;
-            if (reco_pid[idx]!=-1)
-                break;
-        }
+      for ( auto& tid : tripinfo.trackids ) {
+          reco_trackid[idx] = tid;
+          if (reco_trackid[idx]!=-1)
+              break;
+      }
 
-        for ( auto& xaid : tripinfo.aids ) {
-            reco_aid[idx]     = xaid;
-            if (reco_aid[idx]!=-1)
-                break;
-        }
+      for ( auto& xpid : tripinfo.pids ) {
+          reco_pid[idx]     = xpid;
+          if (reco_pid[idx]!=-1)
+              break;
+      }
 
-        for ( auto& xorigin : tripinfo.origin ) {
-            reco_origin[idx]  = xorigin;
-            if (reco_origin[idx]!=-1)
-                break;
-        }
+      for ( auto& xaid : tripinfo.aids ) {
+          reco_aid[idx]     = xaid;
+          if (reco_aid[idx]!=-1)
+              break;
+      }
 
-        reco_pos_x[idx] = tripinfo.pos_reco[0];
-        reco_pos_y[idx] = tripinfo.pos_reco[1];
-        reco_pos_z[idx] = tripinfo.pos_reco[2];
-        reco_uwire[idx] = tripinfo.imgcoord[0];
-        reco_vwire[idx] = tripinfo.imgcoord[1];
-        reco_ywire[idx] = tripinfo.imgcoord[2];
-        reco_tick[idx]  = tripinfo.imgcoord[4];
-        reco_hasmatch[idx] = tripinfo.hasmatch;
+      for ( auto& xorigin : tripinfo.origin ) {
+          reco_origin[idx]  = xorigin;
+          if (reco_origin[idx]!=-1)
+              break;
+      }
 
-        reco_kpscores[idx] = tripinfo.kpscores;
+      reco_pos_x[idx] = tripinfo.pos_reco[0];
+      reco_pos_y[idx] = tripinfo.pos_reco[1];
+      reco_pos_z[idx] = tripinfo.pos_reco[2];
+      reco_uwire[idx] = tripinfo.imgcoord[0];
+      reco_vwire[idx] = tripinfo.imgcoord[1];
+      reco_ywire[idx] = tripinfo.imgcoord[2];
+      reco_tick[idx]  = tripinfo.imgcoord[4];
+      reco_hasmatch[idx] = tripinfo.hasmatch;
+
+      reco_kpscores[idx] = tripinfo.kpscores;
+
+      reco_ssnet_label[idx]    = tripinfo.ssnetlabel;
+      reco_ssnet_boundary[idx] = tripinfo.ssnetboundary;
+      reco_ssnet_weight[idx]   = tripinfo.ssnet_classcount_weight;
+
     }
 
     std::string recotriplet_groupname = "/triplet_data";
@@ -665,7 +854,10 @@ namespace prep {
     H5Easy::dump( file, recotriplet_groupname+"/trackid",  reco_trackid);
     H5Easy::dump( file, recotriplet_groupname+"/hasmatch", reco_hasmatch  );
     H5Easy::dump( file, recotriplet_groupname+"/kpscores", reco_kpscores );
-    
+    H5Easy::dump( file, recotriplet_groupname+"/ssnet_label",    reco_ssnet_label );
+    H5Easy::dump( file, recotriplet_groupname+"/ssnet_boundary", reco_ssnet_boundary );
+    H5Easy::dump( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
+
     //_mckpmaker.save_entry_to_hdf(file,"");
     std::string kp_groupname = "/mckeypoints";
     if ( groupname_prefix!="" ) {

@@ -70,6 +70,10 @@ public:
   void make_keypoint_labels(
     float kp_sigma, 
     float score_threshold );
+
+  void make_ssnet_labels( ublarcvapp::mctools::MCParticleGraph& mcpg );
+
+  int get_ssnet_class_label( int pid );
  
 
   // algorithms

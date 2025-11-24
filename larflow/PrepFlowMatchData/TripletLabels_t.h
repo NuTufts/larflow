@@ -13,7 +13,13 @@ class TripletLabels_t {
 public:
 
   TripletLabels_t()
-  : index(-1),hasmatch(0),edep({0.0,0.0,0.0})
+  : index(-1),
+  hasmatch(0),
+  edep({0.0,0.0,0.0}),
+  pixval({0,0,0}),
+  ssnetlabel(0),
+  ssnetboundary(0),
+  ssnet_classcount_weight(0.0)
   {};
 
   ~TripletLabels_t() {};
@@ -35,8 +41,11 @@ public:
 
   std::vector<float> kpdist;     ///< distance to closest keypoint
   std::vector<float> kpscores;   ///< keypoint score to predict based on kp distance
+  std::vector<float> kpweight;   ///< for each kptype, we balance near-kp vs. non-kp
 
-  std::vector<int>   ssnetlabel; ///< ssnet class label
+  int ssnetlabel;     ///< ssnet class label
+  int ssnetboundary;  ///< number of neighbors with a different class label
+  float ssnet_classcount_weight; ///< class weight
 
 
 };

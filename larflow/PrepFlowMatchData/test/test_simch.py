@@ -9,7 +9,7 @@ from larflow import larflow
 dlmerged_input = "/mnt/ddrive/data/ub_on_tufts/corsika_bnb_nu_pi0/dlmerged_coriska_bnb_nu_pi0_fileno000001.root"
 
 start_entry = 0
-end_entry = 1
+end_entry = 0
 
 simchmaker = larflow.prep.SimChTripletLabelMaker()
 simchmaker.set_verbosity(1)

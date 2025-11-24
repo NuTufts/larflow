@@ -26,7 +26,10 @@ fh5_kp = h5py.File(args.input_keypoints,'r')
 opacity=0.8
 marker_size=1.0
 
-colorby_options  = ['edep','trackid','hasmatch','kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta']
+colorby_options  = ['edep','trackid','hasmatch',
+  'kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta',
+  'ssnet-label', 'ssnet-boundary', 'ssnet-weight']
+
 pos_mode_options = ['true','reco']
 kpindex = {
     'kpnu':0,
@@ -52,6 +55,16 @@ kptype_name = {
     3:"Shower",
     4:"Michel",
     5:"Delta"
+}
+
+ssnet_class_colors = {
+    0:'rgba(50,50,50,1.0)',  # background
+    1:'rgba(255,0,0,1.0)',   # electron
+    2:'rgba(200,125,0.0,1)', # photon
+    3:'rgba(0,0,255,1)',     # muon
+    4:'rgba(0,125,255,1)',   # proton
+    5:'rgba(125,0,255,1)',   # pion/kaon
+    6:'rgba(125,125,0,1)',   # other
 }
 
 if args.colorby not in colorby_options:
@@ -94,7 +107,7 @@ columns = ['pos_x','pos_y','pos_z',
     'tick',
     'row']
 if args.use_data:
-    columns += ['hasmatch','kpscores']
+    columns += ['hasmatch','kpscores','ssnet_label','ssnet_boundary','ssnet_weight']
 
 data = {}
 for col in columns:
@@ -214,7 +227,57 @@ elif colorby in ['kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdel
         "customdata":customdata,
         "marker":{"color":kpscore,"opacity":opacity,"size":marker_size,'colorscale':'Viridis'},
     }
-    simch_plots.append( simch_plot )    
+    simch_plots.append( simch_plot )
+elif colorby == 'ssnet-label':
+    for iclass in range(7):
+        ssnet_labels = source['ssnet_label'][:,0]
+        ssnet_mask = ssnet_labels==iclass
+        xcolor = ssnet_class_colors[iclass]
+        simch_plot = {
+            "type":"scatter3d",
+            "x":source[pos_var_x][ssnet_mask[:],0],
+            "y":source[pos_var_y][ssnet_mask[:],0],
+            "z":source[pos_var_z][ssnet_mask[:],0],
+            "mode":"markers",
+            "name":f"ssnet[{iclass}]",
+            "hovertemplate":hovertemplate,
+            "customdata":customdata[ssnet_mask[:],:],
+            "marker":{"color":xcolor,"opacity":opacity,"size":marker_size}
+        }
+        simch_plots.append(simch_plot)
+elif colorby == 'ssnet-boundary':
+    hasmatch = source["hasmatch"][:,0]==1
+    ssnet_boundary = source['ssnet_boundary'][hasmatch[:],0]
+    nboundary_max = np.max( ssnet_boundary )
+    print("NUM SSNET BOUNDARY MAX: ",nboundary_max)
+    fnboundary = ssnet_boundary.astype( np.float32 )/nboundary_max
+    simch_plot = {
+        "type":"scatter3d",
+        "x":source[pos_var_x][hasmatch[:],0],
+        "y":source[pos_var_y][hasmatch[:],0],
+        "z":source[pos_var_z][hasmatch[:],0],
+        "mode":"markers",
+        "name":f"nboundary",
+        "hovertemplate":hovertemplate,
+        "customdata":customdata,
+        "marker":{"color":fnboundary,"opacity":opacity,"size":marker_size,'colorscale':'Viridis'}
+    }
+    simch_plots.append(simch_plot)
+elif colorby == 'ssnet-weight':
+    hasmatch = source["hasmatch"][:,0]==1
+    ssnet_weight = source['ssnet_weight'][hasmatch[:],0]
+    simch_plot = {
+        "type":"scatter3d",
+        "x":source[pos_var_x][hasmatch[:],0],
+        "y":source[pos_var_y][hasmatch[:],0],
+        "z":source[pos_var_z][hasmatch[:],0],
+        "mode":"markers",
+        "name":f"ssweight",
+        "hovertemplate":hovertemplate,
+        "customdata":customdata,
+        "marker":{"color":ssnet_weight,"opacity":opacity,"size":marker_size,'colorscale':'Viridis'}
+    }
+    simch_plots.append(simch_plot)
 else:
     print("unknown color option: ",colorby)
     sys.exit(0)
