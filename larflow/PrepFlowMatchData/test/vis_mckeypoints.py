@@ -94,8 +94,9 @@ else:
     pos_var='true'
 mckeypoints   = fh5_kp[f"{entry_groupname}/mckeypoints"]
 
-columns = ['pos_x','pos_y','pos_z',
-    'pos_x_reco','pos_y_reco','pos_z_reco',
+# triplet_data columns
+columns = ['pos',
+    'pos_reco',
     'edep',
     'trackid',
     'pid',
@@ -119,7 +120,7 @@ for col in columns:
         data[col] = data[col].reshape((npts,1))
     print(col,": ",data[col].shape)
 if args.use_data:
-    data['edep'] = np.zeros( (data['pos_x'].shape[0],3),dtype=np.float32)
+    data['edep'] = np.zeros( (data['pos'].shape[0],3),dtype=np.float32)
 
 
 kpdata = {}
@@ -155,13 +156,9 @@ kphovertext = """
 """
 
 if pos_var=='reco':
-    pos_var_x = 'pos_x_reco'
-    pos_var_y = 'pos_y_reco'
-    pos_var_z = 'pos_z_reco'
+    pos_var = 'pos_reco'
 else:
-    pos_var_x = 'pos_x'
-    pos_var_y = 'pos_y'
-    pos_var_z = 'pos_z'
+    pos_var = 'pos'
 
 source = data
 
@@ -169,9 +166,9 @@ simch_plots = []
 if colorby=='edep':
     simch_plot = {
         "type":"scatter3d",
-        "x":source[pos_var_x][:,0],
-        "y":source[pos_var_y][:,0],
-        "z":source[pos_var_z][:,0],
+        "x":source[pos_var][:,0],
+        "y":source[pos_var][:,1],
+        "z":source[pos_var][:,2],
         "mode":"markers",
         "name":f"edep",
         "hovertemplate":hovertemplate,
@@ -190,9 +187,9 @@ elif colorby=='trackid':
         scolor=f'rgba({xcolor[0]},{xcolor[1]},{xcolor[2]},1)'
         simch_plot = {
             "type":"scatter3d",
-            "x":source[pos_var_x][mask[:],0],
-            "y":source[pos_var_y][mask[:],0],
-            "z":source[pos_var_z][mask[:],0],
+            "x":source[pos_var][mask[:],0],
+            "y":source[pos_var][mask[:],1],
+            "z":source[pos_var][mask[:],2],
             "mode":"markers",
             "name":f"tid[{tid}]",
             "hovertemplate":hovertemplate,
@@ -203,9 +200,9 @@ elif colorby=='trackid':
 elif colorby=='hasmatch':
     simch_plot = {
         "type":"scatter3d",
-        "x":source[pos_var_x][:,0],
-        "y":source[pos_var_y][:,0],
-        "z":source[pos_var_z][:,0],    
+        "x":source[pos_var][:,0],
+        "y":source[pos_var][:,1],
+        "z":source[pos_var][:,2],    
         "mode":"markers",
         "name":f"recopts",
         "hovertemplate":hovertemplate,
@@ -218,9 +215,9 @@ elif colorby in ['kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdel
     kpscore = source['kpscores'][:,kpidx]
     simch_plot = {
         "type":"scatter3d",
-        "x":source[pos_var_x][:,0],
-        "y":source[pos_var_y][:,0],
-        "z":source[pos_var_z][:,0],    
+        "x":source[pos_var][:,0],
+        "y":source[pos_var][:,1],
+        "z":source[pos_var][:,2],    
         "mode":"markers",
         "name":f"recopts",
         "hovertemplate":hovertemplate,
@@ -235,9 +232,9 @@ elif colorby == 'ssnet-label':
         xcolor = ssnet_class_colors[iclass]
         simch_plot = {
             "type":"scatter3d",
-            "x":source[pos_var_x][ssnet_mask[:],0],
-            "y":source[pos_var_y][ssnet_mask[:],0],
-            "z":source[pos_var_z][ssnet_mask[:],0],
+            "x":source[pos_var][ssnet_mask[:],0],
+            "y":source[pos_var][ssnet_mask[:],1],
+            "z":source[pos_var][ssnet_mask[:],2],
             "mode":"markers",
             "name":f"ssnet[{iclass}]",
             "hovertemplate":hovertemplate,
@@ -253,9 +250,9 @@ elif colorby == 'ssnet-boundary':
     fnboundary = ssnet_boundary.astype( np.float32 )/nboundary_max
     simch_plot = {
         "type":"scatter3d",
-        "x":source[pos_var_x][hasmatch[:],0],
-        "y":source[pos_var_y][hasmatch[:],0],
-        "z":source[pos_var_z][hasmatch[:],0],
+        "x":source[pos_var][hasmatch[:],0],
+        "y":source[pos_var][hasmatch[:],1],
+        "z":source[pos_var][hasmatch[:],2],
         "mode":"markers",
         "name":f"nboundary",
         "hovertemplate":hovertemplate,
@@ -268,9 +265,9 @@ elif colorby == 'ssnet-weight':
     ssnet_weight = source['ssnet_weight'][hasmatch[:],0]
     simch_plot = {
         "type":"scatter3d",
-        "x":source[pos_var_x][hasmatch[:],0],
-        "y":source[pos_var_y][hasmatch[:],0],
-        "z":source[pos_var_z][hasmatch[:],0],
+        "x":source[pos_var][hasmatch[:],0],
+        "y":source[pos_var][hasmatch[:],1],
+        "z":source[pos_var][hasmatch[:],2],
         "mode":"markers",
         "name":f"ssweight",
         "hovertemplate":hovertemplate,

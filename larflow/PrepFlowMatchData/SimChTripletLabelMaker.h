@@ -40,14 +40,18 @@ public:
 
   void close_hdf_file();
 
+  void save_entry( std::string groupname_prefix );
+
   void save_entry_to_hdf( 
     HighFive::File& file, 
     std::string groupname_prefix );
 
   void save_entry_sparseimg( HighFive::File& file, std::string groupname_prefix );
 
-  void save_entry( std::string groupname_prefix );
-
+  void save_entry_truetriplets( 
+    HighFive::File& file, 
+    std::string groupname_prefix );
+  
   void make_truthlabels_fromsimch(
       larlite::storage_manager& ioll, 
       larcv::IOManager& iolcv,

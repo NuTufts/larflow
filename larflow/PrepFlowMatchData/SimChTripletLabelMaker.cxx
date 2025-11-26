@@ -660,10 +660,33 @@ namespace prep {
   void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )
   {
 
+// """
+//         "matchtriplet",
+//         "match_weight",
+//         "spacepoints",
+//         #"positive_indices",                                                                                                                                                                  
+//         "ssnet_label",
+//         "ssnet_top_weight",
+//         "ssnet_class_weight",
+//         "kplabel",
+//         "kplabel_weight",
+//         #"kpshift",                                                                                                                                                                           
+//         "paf_label",
+//         "paf_weight",
+//         #"origin_label",                                                                                                                                                                      
+//         "keypoint_truth_kptype_pdg_trackid",
+//         "keypoint_truth_pos",
+//         "wireimage_plane0",
+//         "wireimage_plane1",
+//         "wireimage_plane2"]
+
+// """
+
     LARCV_INFO() << "export to " << hdf_outfile << std::endl;
 
     HighFive::File file(hdf_outfile, HighFive::File::Overwrite);
 
+    save_entry_truetriplets( file, "" );
     save_entry_sparseimg( file, "" );
     save_entry_to_hdf( file, "" );
 
@@ -676,105 +699,8 @@ namespace prep {
     std::string groupname_prefix )
   {
 
-    // export different arrays for export
-    ublarcvapp::mctools::EventMCPixelLabels& pixel3d = _mcpixelmaker._pixels_v;
-    int ntriplets = pixel3d._triplets_v.size();
-
-    std::vector<float> pos_x(ntriplets,0);
-    std::vector<float> pos_y(ntriplets,0);
-    std::vector<float> pos_z(ntriplets,0);
-
-    std::vector<float> pos_x_reco(ntriplets,0);
-    std::vector<float> pos_y_reco(ntriplets,0);
-    std::vector<float> pos_z_reco(ntriplets,0);
-
-    std::vector< std::array<double,3> > edep(ntriplets);
-    std::vector<long>  trackid(ntriplets,0);
-    std::vector<int>   pid(ntriplets,0);
-    std::vector<int>   aid(ntriplets,0);
-    std::vector<int>   origin(ntriplets,0);
-    std::vector<int>   uwire(ntriplets,0);
-    std::vector<int>   vwire(ntriplets,0);
-    std::vector<int>   ywire(ntriplets,0);
-    std::vector<int>   tick(ntriplets,0);
-    std::vector<int>   row(ntriplets,0);
-
-    for (auto const& triplet : pixel3d._triplets_v ) {
-        long idx = triplet.index;
-
-        pos_x[idx] = triplet.pos[0];
-        pos_y[idx] = triplet.pos[1];
-        pos_z[idx] = triplet.pos[2];
-
-        pos_x_reco[idx] = triplet.pos_reco[0];
-        pos_y_reco[idx] = triplet.pos_reco[1];
-        pos_z_reco[idx] = triplet.pos_reco[2];
-
-        edep[idx] = std::array<double,3>{0,0,0};
-        for (int i=0; i<3; i++)
-          edep[idx][i] = triplet.edep[i];
-
-        for ( auto& tid : triplet.trackids ) {
-            trackid[idx] = tid;
-            if (trackid[idx]!=-1)
-                break;
-        }
-
-        for ( auto& xpid : triplet.pids ) {
-            pid[idx]     = xpid;
-            if (pid[idx]!=-1)
-                break;
-        }
-
-        for ( auto& xaid : triplet.aids ) {
-            aid[idx]     = xaid;
-            if (aid[idx]!=-1)
-                break;
-        }
-
-        for ( auto& xorigin : triplet.origin ) {
-            origin[idx]  = xorigin;
-            if (origin[idx]!=-1)
-                break;
-        }
-
-        uwire[idx]   = triplet.imgcoord[0];
-        vwire[idx]   = triplet.imgcoord[1];
-        ywire[idx]   = triplet.imgcoord[2];
-        tick[idx]    = triplet.imgcoord[4];
-        row[idx]     = triplet.imgcoord[3];
-    }
-
-    std::string truetriplet_groupname = "/triplet_truth";
-    if ( groupname_prefix!="" ) {
-      truetriplet_groupname = groupname_prefix+truetriplet_groupname;
-    }
-    LARCV_INFO() << "create group: " << truetriplet_groupname << std::endl;
-    file.createGroup(truetriplet_groupname);
-
-    H5Easy::dump( file, truetriplet_groupname+"/pos_x", pos_x);
-    H5Easy::dump( file, truetriplet_groupname+"/pos_y", pos_y);
-    H5Easy::dump( file, truetriplet_groupname+"/pos_z", pos_z);
-
-    H5Easy::dump( file, truetriplet_groupname+"/pos_x_reco", pos_x_reco);
-    H5Easy::dump( file, truetriplet_groupname+"/pos_y_reco", pos_y_reco);
-    H5Easy::dump( file, truetriplet_groupname+"/pos_z_reco", pos_z_reco);
-
-    H5Easy::dump( file, truetriplet_groupname+"/edep",    edep);
-    H5Easy::dump( file, truetriplet_groupname+"/trackid", trackid);
-    H5Easy::dump( file, truetriplet_groupname+"/pid",     pid);
-    H5Easy::dump( file, truetriplet_groupname+"/aid",     aid);
-    H5Easy::dump( file, truetriplet_groupname+"/origin",  origin);
-    H5Easy::dump( file, truetriplet_groupname+"/uwire",   uwire);
-    H5Easy::dump( file, truetriplet_groupname+"/vwire",   vwire);
-    H5Easy::dump( file, truetriplet_groupname+"/ywire",   ywire);
-    H5Easy::dump( file, truetriplet_groupname+"/tick",    tick);
-    H5Easy::dump( file, truetriplet_groupname+"/row",     row);
-
     size_t n_reco_triplets = _ev_reco_triplets._triplets_v.size();
-    std::vector<float> reco_pos_x(n_reco_triplets,0);
-    std::vector<float> reco_pos_y(n_reco_triplets,0);
-    std::vector<float> reco_pos_z(n_reco_triplets,0);
+    std::vector< std::vector<float> > reco_pos(n_reco_triplets);
     std::vector<int>   reco_uwire(n_reco_triplets,0);
     std::vector<int>   reco_vwire(n_reco_triplets,0);
     std::vector<int>   reco_ywire(n_reco_triplets,0);
@@ -820,9 +746,13 @@ namespace prep {
               break;
       }
 
-      reco_pos_x[idx] = tripinfo.pos_reco[0];
-      reco_pos_y[idx] = tripinfo.pos_reco[1];
-      reco_pos_z[idx] = tripinfo.pos_reco[2];
+      std::vector<float> rpos = {
+        tripinfo.pos_reco[0],
+        tripinfo.pos_reco[1],
+        tripinfo.pos_reco[2]
+      };
+
+      reco_pos[idx]   = rpos;
       reco_uwire[idx] = tripinfo.imgcoord[0];
       reco_vwire[idx] = tripinfo.imgcoord[1];
       reco_ywire[idx] = tripinfo.imgcoord[2];
@@ -844,9 +774,7 @@ namespace prep {
     LARCV_INFO() << "create group: " << recotriplet_groupname << std::endl;
     file.createGroup(recotriplet_groupname);
     
-    H5Easy::dump( file, recotriplet_groupname+"/pos_x",    reco_pos_x );
-    H5Easy::dump( file, recotriplet_groupname+"/pos_y",    reco_pos_y );
-    H5Easy::dump( file, recotriplet_groupname+"/pos_z",    reco_pos_z );
+    H5Easy::dump( file, recotriplet_groupname+"/pos",      reco_pos );
     H5Easy::dump( file, recotriplet_groupname+"/uwire",    reco_uwire );
     H5Easy::dump( file, recotriplet_groupname+"/vwire",    reco_vwire );
     H5Easy::dump( file, recotriplet_groupname+"/ywire",    reco_ywire );
@@ -893,6 +821,113 @@ namespace prep {
     H5Easy::dump( file, kp_groupname+"/kptype",   kptype);
     H5Easy::dump( file, kp_groupname+"/pid",      kppid);
     H5Easy::dump( file, kp_groupname+"/trackid",  kptrackid);
+
+  }
+
+  /**
+   * @brief Save current entry's image2d and triplet image maps
+   */
+  void SimChTripletLabelMaker::save_entry_truetriplets( 
+    HighFive::File& file, std::string groupname_prefix )
+  {
+    if ( _hdf_file==nullptr ) {
+      std::stringstream errmsg;
+      errmsg << "Saving entry without first creating HDF file." << std::endl;
+      errmsg << "Call open_hdf_file( std::string ) first." << std::endl;
+      throw std::runtime_error( errmsg.str() );
+    }
+
+    std::string truetriplet_groupname = "/triplet_truth";
+    if ( groupname_prefix!="" ) {
+      truetriplet_groupname = groupname_prefix+truetriplet_groupname;
+    }
+    LARCV_INFO() << "create group: " << truetriplet_groupname << std::endl;
+    file.createGroup(truetriplet_groupname);
+
+
+    // export different arrays for export
+    ublarcvapp::mctools::EventMCPixelLabels& pixel3d = _mcpixelmaker._pixels_v;
+    int ntriplets = pixel3d._triplets_v.size();
+
+    std::vector< std::vector<float> > pos_true_v(ntriplets);
+    std::vector< std::vector<float> > pos_reco_v(ntriplets);
+
+    std::vector< std::array<double,3> > edep(ntriplets);
+    std::vector<long>  trackid(ntriplets,0);
+    std::vector<int>   pid(ntriplets,0);
+    std::vector<int>   aid(ntriplets,0);
+    std::vector<int>   origin(ntriplets,0);
+    std::vector<int>   uwire(ntriplets,0);
+    std::vector<int>   vwire(ntriplets,0);
+    std::vector<int>   ywire(ntriplets,0);
+    std::vector<int>   tick(ntriplets,0);
+    std::vector<int>   row(ntriplets,0);
+
+    for (auto const& triplet : pixel3d._triplets_v ) {
+        long idx = triplet.index;
+
+        std::vector<float> pos_true = {
+          triplet.pos[0],
+          triplet.pos[1],
+          triplet.pos[2]
+        };
+        pos_true_v[idx] = pos_true;
+
+        std::vector<float> pos_reco = {
+          triplet.pos_reco[0],
+          triplet.pos_reco[1],
+          triplet.pos_reco[2] 
+        };
+        pos_reco_v[idx] = pos_reco;
+
+        edep[idx] = std::array<double,3>{0,0,0};
+        for (int i=0; i<3; i++)
+          edep[idx][i] = triplet.edep[i];
+
+        for ( auto& tid : triplet.trackids ) {
+            trackid[idx] = tid;
+            if (trackid[idx]!=-1)
+                break;
+        }
+
+        for ( auto& xpid : triplet.pids ) {
+            pid[idx]     = xpid;
+            if (pid[idx]!=-1)
+                break;
+        }
+
+        for ( auto& xaid : triplet.aids ) {
+            aid[idx]     = xaid;
+            if (aid[idx]!=-1)
+                break;
+        }
+
+        for ( auto& xorigin : triplet.origin ) {
+            origin[idx]  = xorigin;
+            if (origin[idx]!=-1)
+                break;
+        }
+
+        uwire[idx]   = triplet.imgcoord[0];
+        vwire[idx]   = triplet.imgcoord[1];
+        ywire[idx]   = triplet.imgcoord[2];
+        tick[idx]    = triplet.imgcoord[4];
+        row[idx]     = triplet.imgcoord[3];
+    }
+
+    H5Easy::dump( file, truetriplet_groupname+"/pos",      pos_true_v);
+    H5Easy::dump( file, truetriplet_groupname+"/pos_reco", pos_reco_v);
+
+    H5Easy::dump( file, truetriplet_groupname+"/edep",    edep);
+    H5Easy::dump( file, truetriplet_groupname+"/trackid", trackid);
+    H5Easy::dump( file, truetriplet_groupname+"/pid",     pid);
+    H5Easy::dump( file, truetriplet_groupname+"/aid",     aid);
+    H5Easy::dump( file, truetriplet_groupname+"/origin",  origin);
+    H5Easy::dump( file, truetriplet_groupname+"/uwire",   uwire);
+    H5Easy::dump( file, truetriplet_groupname+"/vwire",   vwire);
+    H5Easy::dump( file, truetriplet_groupname+"/ywire",   ywire);
+    H5Easy::dump( file, truetriplet_groupname+"/tick",    tick);
+    H5Easy::dump( file, truetriplet_groupname+"/row",     row);
 
   }
 
@@ -974,6 +1009,7 @@ namespace prep {
     LARCV_INFO() << "create group: " << groupname_prefix << std::endl;
     _hdf_file->createGroup(groupname_prefix);
     
+    save_entry_truetriplets( *_hdf_file, groupname_prefix );
     save_entry_sparseimg( *_hdf_file, groupname_prefix );
     save_entry_to_hdf( *_hdf_file, groupname_prefix );
 
