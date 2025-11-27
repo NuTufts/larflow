@@ -24,7 +24,7 @@ fh5    = h5py.File(args.input_points, 'r')
 fh5_kp = h5py.File(args.input_keypoints,'r')
 
 opacity=0.8
-marker_size=1.0
+marker_size=2.0
 
 colorby_options  = ['edep','trackid','hasmatch',
   'kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdelta',
@@ -80,9 +80,7 @@ entry_groupname = f"entry_{args.entry}"
 #colorby = 'trackid'
 #colorby = 'hasmatch'
 colorby = args.colorby
-pos_var = args.pos_mode
-#pos_var='true'
-#pos_var='reco'
+pos_var_opt = args.pos_mode
 
 #NMAX_RECO_PTS=50000
 NMAX_RECO_PTS=-1
@@ -91,7 +89,7 @@ if not args.use_data:
     triplet_truth = fh5[f"{entry_groupname}/triplet_truth"]
 else:
     triplet_truth = fh5[f"{entry_groupname}/triplet_data"]
-    pos_var='true'
+    pos_var_opt='true'
 mckeypoints   = fh5_kp[f"{entry_groupname}/mckeypoints"]
 
 # triplet_data columns
@@ -110,6 +108,7 @@ columns = ['pos',
 if args.use_data:
     columns += ['hasmatch','kpscores','ssnet_label','ssnet_boundary','ssnet_weight']
 
+
 data = {}
 for col in columns:
     if col not in triplet_truth:
@@ -119,9 +118,6 @@ for col in columns:
     if len(data[col].shape)==1:
         data[col] = data[col].reshape((npts,1))
     print(col,": ",data[col].shape)
-if args.use_data:
-    data['edep'] = np.zeros( (data['pos'].shape[0],3),dtype=np.float32)
-
 
 kpdata = {}
 kpcols = ['pos','kptype','pid','trackid','imgcoord']
@@ -155,7 +151,7 @@ kphovertext = """
 <b>IMG</b>: %{customdata[2]:d}, %{customdata[3]:d} , %{customdata[4]:d}<br>
 """
 
-if pos_var=='reco':
+if pos_var_opt=='reco':
     pos_var = 'pos_reco'
 else:
     pos_var = 'pos'

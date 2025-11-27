@@ -80,10 +80,10 @@ namespace prep {
 
     LARCV_INFO() << "start" << std::endl;
     _ev_reco_triplets.clear();
+    _tripletmaker.clear();
 
     // make reco triplets
-    larflow::prep::PrepMatchTriplets reco_triplet_maker;
-    reco_triplet_maker.process( iolcv, "wiremc", "wiremc", 10.0, true );
+    _tripletmaker.process( iolcv, "wiremc", "wiremc", 10.0, true );
 
     // copy over triplets
     larcv::EventImage2D* ev_img = 
@@ -93,7 +93,7 @@ namespace prep {
     int nplanes = (int)img_v.size();
     auto const& meta0 = img_v.at(0).meta();
 
-    for (size_t itrip=0; itrip<reco_triplet_maker._triplet_v.size(); itrip++ ) {
+    for (size_t itrip=0; itrip<_tripletmaker._triplet_v.size(); itrip++ ) {
 
         TripletLabels_t trip;
 
@@ -101,7 +101,7 @@ namespace prep {
 
         int row = -1;
         for (int ip=0; ip<nplanes; ip++) {
-            auto const& imgpix = reco_triplet_maker._sparseimg_vv.at(ip).at( reco_triplet_maker._triplet_v[itrip][ip] );
+            auto const& imgpix = _tripletmaker._sparseimg_vv.at(ip).at( _tripletmaker._triplet_v[itrip][ip] );
             trip.imgcoord[ip] = imgpix.col;
             if ( ip==0 )
                 row = imgpix.row;
@@ -130,9 +130,9 @@ namespace prep {
         trip.pos[0] = 0.0;
         trip.pos[1] = 0.0;
         trip.pos[2] = 0.0;
-        trip.pos_reco[0] = reco_triplet_maker._pos_v[itrip][0];
-        trip.pos_reco[1] = reco_triplet_maker._pos_v[itrip][1];
-        trip.pos_reco[2] = reco_triplet_maker._pos_v[itrip][2];  
+        trip.pos_reco[0] = _tripletmaker._pos_v[itrip][0];
+        trip.pos_reco[1] = _tripletmaker._pos_v[itrip][1];
+        trip.pos_reco[2] = _tripletmaker._pos_v[itrip][2];  
 
         trip.edep = std::array<double,3>{0.0,0.0,0.0};
         for (int ip=0; ip<nplanes; ip++)
@@ -365,11 +365,11 @@ namespace prep {
       float min_s = 1e9;
       bool found_qualifying_pt = false;
 
-      LARCV_INFO() << " keypoint[tid=" << pnode->tid << "] "
+      LARCV_DEBUG() << " keypoint[tid=" << pnode->tid << "] "
         << " num points=" << points_v.size() 
         << " num clusters=" << nclusters
         << std::endl;
-      LARCV_INFO() << "    mom4=" << mom_dir[0] << ", "
+      LARCV_DEBUG() << "    mom4=" << mom_dir[0] << ", "
                    << mom_dir[1] << ", "
                    << mom_dir[2]
                    << std::endl;
@@ -393,7 +393,7 @@ namespace prep {
           }
         }
 
-        LARCV_INFO() << "   cluster edep: " 
+        LARCV_DEBUG() << "   cluster edep: " 
           <<  edep_planesum[0] << ", "
           <<  edep_planesum[1] << ", "
           <<  edep_planesum[2] << " MeV"
@@ -419,15 +419,15 @@ namespace prep {
       larflow::prep::MCKeypoint kpd = mckp;
 
       if ( found_qualifying_pt ) {
-        LARCV_NORMAL() << "Adjust keypoint" << std::endl;
-        LARCV_NORMAL() << "  from: (" << kpd.keypt_appear[0] << ", " 
+        LARCV_DEBUG() << "Adjust keypoint" << std::endl;
+        LARCV_DEBUG() << "  from: (" << kpd.keypt_appear[0] << ", " 
           << kpd.keypt_appear[1] << ", "
           << kpd.keypt_appear[2] << ")" << std::endl;
-        LARCV_NORMAL() << "  to: (" << most_upstream_pt[0] << ", "
+        LARCV_DEBUG() << "  to: (" << most_upstream_pt[0] << ", "
           << most_upstream_pt[1] << ", "
           << most_upstream_pt[2] << ")"
           << std::endl;
-        LARCV_NORMAL() << "  edep: " << most_upstream_edep[0] << ", "
+        LARCV_DEBUG() << "  edep: " << most_upstream_edep[0] << ", "
           << most_upstream_edep[1] << ", "
           << most_upstream_edep[2] << " MeV"
           << std::endl;
@@ -701,6 +701,7 @@ namespace prep {
 
     size_t n_reco_triplets = _ev_reco_triplets._triplets_v.size();
     std::vector< std::vector<float> > reco_pos(n_reco_triplets);
+    std::vector< std::vector<float> > reco_edep(n_reco_triplets);
     std::vector<int>   reco_uwire(n_reco_triplets,0);
     std::vector<int>   reco_vwire(n_reco_triplets,0);
     std::vector<int>   reco_ywire(n_reco_triplets,0);
@@ -752,7 +753,14 @@ namespace prep {
         tripinfo.pos_reco[2]
       };
 
+      std::vector<float> edep = {
+        (float)tripinfo.edep[0],
+        (float)tripinfo.edep[1],
+        (float)tripinfo.edep[2]
+      };
+
       reco_pos[idx]   = rpos;
+      reco_edep[idx]  = edep;
       reco_uwire[idx] = tripinfo.imgcoord[0];
       reco_vwire[idx] = tripinfo.imgcoord[1];
       reco_ywire[idx] = tripinfo.imgcoord[2];
@@ -775,6 +783,7 @@ namespace prep {
     file.createGroup(recotriplet_groupname);
     
     H5Easy::dump( file, recotriplet_groupname+"/pos",      reco_pos );
+    H5Easy::dump( file, recotriplet_groupname+"/edep",     reco_edep );
     H5Easy::dump( file, recotriplet_groupname+"/uwire",    reco_uwire );
     H5Easy::dump( file, recotriplet_groupname+"/vwire",    reco_vwire );
     H5Easy::dump( file, recotriplet_groupname+"/ywire",    reco_ywire );
@@ -953,6 +962,8 @@ namespace prep {
     file.createGroup(img_group_name);
 
     auto& imgpixels_vv = _tripletmaker._sparseimg_vv;
+
+    LARCV_INFO() << "Number of Sparse Images: " << imgpixels_vv.size() << std::endl;
 
     for (size_t iplane=0; iplane<imgpixels_vv.size(); iplane++ ) {
 

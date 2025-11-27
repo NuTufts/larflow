@@ -382,6 +382,9 @@ namespace prep {
             ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( mctrk, adc_v.front().meta(),
                                                                                        4050.0, true, 0.3, 0.1,
                                                                                        kpd.keypt_appear, psce, verbose );
+          if ( imgcoord.size()!=4 )
+            continue;
+            
           kpd.imgcoord.resize(4,0);
           for (int i=0;i<3;i++)
             kpd.imgcoord[i] = imgcoord[i+1];
