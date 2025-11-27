@@ -27,7 +27,7 @@ class LArMatchSimChHDF5Dataset(Dataset):
         "edep",
         "trackid",
         "ssnet_label",
-        "ssnet_class_weight",
+        #"ssnet_class_weight",
         "ssnet_top_weight",
         "kplabel",
         "keypoint_truth_kptype",
@@ -201,10 +201,11 @@ class LArMatchSimChHDF5Dataset(Dataset):
             #rebatchdata['larmatch_weight']  = batchdata['match_weight']
             rebatchdata['ssnet_truth']      = batchdata['ssnet_label']-1   # shift labels so ghost label=0 to -1
             rebatchdata['ssnet_truth'][ rebatchdata['ssnet_truth']>5 ] = 0 # clamp to stay within 5 classes
-            rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight'] 
+            #rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight'] 
             # apply topological weight
-            mask_top_weight = batchdata['ssnet_top_weight']>0
-            rebatchdata['ssnet_weight'][mask_top_weight[:]] += np.log( batchdata['ssnet_top_weight'][mask_top_weight[:]] )
+            #mask_top_weight = batchdata['ssnet_top_weight']>0
+            #rebatchdata['ssnet_weight'][mask_top_weight[:]] += np.log( batchdata['ssnet_top_weight'][mask_top_weight[:]] )
+            rebatchdata['ssnet_nboundary'] = batchdata['ssnet_top_weight']
 
             rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
             #rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )
