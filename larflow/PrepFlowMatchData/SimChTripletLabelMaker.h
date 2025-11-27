@@ -94,6 +94,8 @@ public:
 
   larutil::SpaceChargeMicroBooNE* _psce;
   HighFive::File* _hdf_file;
+  bool _save_weights_to_hdf;
+  bool _save_truth_triplet_info;
 
 };
 

@@ -20,7 +20,9 @@ namespace prep {
   SimChTripletLabelMaker::SimChTripletLabelMaker()
   : larcv::larcv_base("SimChTripletLabelMaker"),
     _psce(nullptr),
-    _hdf_file(nullptr)
+    _hdf_file(nullptr),
+    _save_weights_to_hdf(false),
+    _save_truth_triplet_info(false)
   {
 
     // utility for moving real position to apparent position
@@ -796,7 +798,8 @@ namespace prep {
     H5Easy::dump( file, recotriplet_groupname+"/kpscores", reco_kpscores );
     H5Easy::dump( file, recotriplet_groupname+"/ssnet_label",    reco_ssnet_label );
     H5Easy::dump( file, recotriplet_groupname+"/ssnet_boundary", reco_ssnet_boundary );
-    H5Easy::dump( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
+    if ( _save_weights_to_hdf )
+      H5Easy::dump( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
 
     //_mckpmaker.save_entry_to_hdf(file,"");
     std::string kp_groupname = "/mckeypoints";
@@ -1020,9 +1023,10 @@ namespace prep {
     LARCV_INFO() << "create group: " << groupname_prefix << std::endl;
     _hdf_file->createGroup(groupname_prefix);
     
-    save_entry_truetriplets( *_hdf_file, groupname_prefix );
     save_entry_sparseimg( *_hdf_file, groupname_prefix );
     save_entry_to_hdf( *_hdf_file, groupname_prefix );
+    if ( _save_truth_triplet_info )
+      save_entry_truetriplets( *_hdf_file, groupname_prefix );
 
     _hdf_file->flush();
 
