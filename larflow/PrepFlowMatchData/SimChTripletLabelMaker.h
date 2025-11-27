@@ -80,7 +80,15 @@ public:
   void make_ssnet_labels( ublarcvapp::mctools::MCParticleGraph& mcpg );
 
   int get_ssnet_class_label( int pid );
- 
+
+  /// Helper function to write compressed HDF5 datasets
+  template<typename T>
+  void dump_compressed( HighFive::File& file,
+                        const std::string& dataset_path,
+                        const T& data,
+                        int compression_level = 6,
+                        size_t chunk_size = 10000 );
+
 
   // algorithms
   ublarcvapp::mctools::MCParticleGraph   _mcpgraph;     ///< organizes true particle information into graph form    

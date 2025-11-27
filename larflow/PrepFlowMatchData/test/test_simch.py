@@ -9,11 +9,12 @@ from larflow import larflow
 dlmerged_input = "/mnt/ddrive/data/ub_on_tufts/corsika_bnb_nu_pi0/dlmerged_coriska_bnb_nu_pi0_fileno000001.root"
 
 start_entry = 0
-end_entry = 0
+end_entry = 4
 
 simchmaker = larflow.prep.SimChTripletLabelMaker()
 simchmaker.set_verbosity(1)
-simchmaker.open_hdf_file( "out_test.h5" )
+simchmaker._save_truth_triplet_info = True
+simchmaker.open_hdf_file( "out_test_wcompression_wtruetriplets.h5" )
 
 ioll = larlite.storage_manager( larlite.storage_manager.kREAD )
 ioll.add_in_filename( dlmerged_input )

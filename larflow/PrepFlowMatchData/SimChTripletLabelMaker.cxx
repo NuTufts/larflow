@@ -8,6 +8,9 @@
 #include "larcv/core/DataFormat/EventImage2D.h"
 
 #include <highfive/H5Easy.hpp>
+#include <highfive/H5File.hpp>
+#include <highfive/H5DataSet.hpp>
+#include <highfive/H5DataSpace.hpp>
 
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 
@@ -16,6 +19,64 @@
 
 namespace larflow {
 namespace prep {
+
+  /**
+   * @brief Helper function to write compressed HDF5 datasets
+   *
+   * @tparam T Data type (e.g., std::vector<int>, std::vector<std::vector<float>>)
+   * @param file HDF5 file reference
+   * @param dataset_path Full path to dataset in HDF5 file
+   * @param data Data to write
+   * @param compression_level Deflate compression level 0-9 (default: 6)
+   * @param chunk_size Number of elements per chunk (default: 10000)
+   */
+  template<typename T>
+  void SimChTripletLabelMaker::dump_compressed(
+    HighFive::File& file,
+    const std::string& dataset_path,
+    const T& data,
+    int compression_level,
+    size_t chunk_size )
+  {
+    try {
+      // Create dataset properties with compression
+      HighFive::DataSetCreateProps props;
+      props.add(HighFive::Deflate(compression_level));
+
+      // Determine chunk dimensions based on data structure
+      auto dataspace = HighFive::DataSpace::From(data);
+      std::vector<size_t> dims = dataspace.getDimensions();
+
+      // HighFive::Chunking requires std::vector<hsize_t>
+      std::vector<hsize_t> chunk_dims;
+
+      if (dims.size() == 1) {
+        // 1D data: chunk along the single dimension
+        chunk_dims = {static_cast<hsize_t>(std::min(chunk_size, dims[0]))};
+      } else if (dims.size() == 2) {
+        // 2D data: chunk rows, keep all columns
+        chunk_dims = {static_cast<hsize_t>(std::min(chunk_size, dims[0])),
+                      static_cast<hsize_t>(dims[1])};
+      } else {
+        // Higher dimensions: chunk first dimension
+        for (auto d : dims) {
+          chunk_dims.push_back(static_cast<hsize_t>(d));
+        }
+        chunk_dims[0] = static_cast<hsize_t>(std::min(chunk_size, dims[0]));
+      }
+
+      props.add(HighFive::Chunking(chunk_dims));
+
+      // Create dataset and write data in one call
+      // HighFive infers type and dataspace from data, uses our props for chunking/compression
+      file.createDataSet(dataset_path, data, props);
+
+    } catch (const HighFive::Exception& e) {
+      LARCV_CRITICAL() << "Failed to write compressed dataset '"
+                       << dataset_path << "': " << e.what() << std::endl;
+      throw;
+    }
+  }
 
   SimChTripletLabelMaker::SimChTripletLabelMaker()
   : larcv::larcv_base("SimChTripletLabelMaker"),
@@ -783,23 +844,24 @@ namespace prep {
     }
     LARCV_INFO() << "create group: " << recotriplet_groupname << std::endl;
     file.createGroup(recotriplet_groupname);
-    
-    H5Easy::dump( file, recotriplet_groupname+"/pos",      reco_pos );
-    H5Easy::dump( file, recotriplet_groupname+"/edep",     reco_edep );
-    H5Easy::dump( file, recotriplet_groupname+"/uwire",    reco_uwire );
-    H5Easy::dump( file, recotriplet_groupname+"/vwire",    reco_vwire );
-    H5Easy::dump( file, recotriplet_groupname+"/ywire",    reco_ywire );
-    H5Easy::dump( file, recotriplet_groupname+"/tick",     reco_tick  );
-    H5Easy::dump( file, recotriplet_groupname+"/pid",      reco_pid);
-    H5Easy::dump( file, recotriplet_groupname+"/aid",      reco_aid);
-    H5Easy::dump( file, recotriplet_groupname+"/origin",   reco_origin);
-    H5Easy::dump( file, recotriplet_groupname+"/trackid",  reco_trackid);
-    H5Easy::dump( file, recotriplet_groupname+"/hasmatch", reco_hasmatch  );
-    H5Easy::dump( file, recotriplet_groupname+"/kpscores", reco_kpscores );
-    H5Easy::dump( file, recotriplet_groupname+"/ssnet_label",    reco_ssnet_label );
-    H5Easy::dump( file, recotriplet_groupname+"/ssnet_boundary", reco_ssnet_boundary );
+
+    // Write datasets with compression (level 6, chunk size 10000)
+    dump_compressed( file, recotriplet_groupname+"/pos",      reco_pos );
+    dump_compressed( file, recotriplet_groupname+"/edep",     reco_edep );
+    dump_compressed( file, recotriplet_groupname+"/uwire",    reco_uwire );
+    dump_compressed( file, recotriplet_groupname+"/vwire",    reco_vwire );
+    dump_compressed( file, recotriplet_groupname+"/ywire",    reco_ywire );
+    dump_compressed( file, recotriplet_groupname+"/tick",     reco_tick  );
+    dump_compressed( file, recotriplet_groupname+"/pid",      reco_pid);
+    dump_compressed( file, recotriplet_groupname+"/aid",      reco_aid);
+    dump_compressed( file, recotriplet_groupname+"/origin",   reco_origin);
+    dump_compressed( file, recotriplet_groupname+"/trackid",  reco_trackid);
+    dump_compressed( file, recotriplet_groupname+"/hasmatch", reco_hasmatch  );
+    dump_compressed( file, recotriplet_groupname+"/kpscores", reco_kpscores );
+    dump_compressed( file, recotriplet_groupname+"/ssnet_label",    reco_ssnet_label );
+    dump_compressed( file, recotriplet_groupname+"/ssnet_boundary", reco_ssnet_boundary );
     if ( _save_weights_to_hdf )
-      H5Easy::dump( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
+      dump_compressed( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
 
     //_mckpmaker.save_entry_to_hdf(file,"");
     std::string kp_groupname = "/mckeypoints";
@@ -828,11 +890,11 @@ namespace prep {
       ikp++;
     }
 
-    H5Easy::dump( file, kp_groupname+"/pos",      pos_appear);
-    H5Easy::dump( file, kp_groupname+"/imgcoord", imgcoord);
-    H5Easy::dump( file, kp_groupname+"/kptype",   kptype);
-    H5Easy::dump( file, kp_groupname+"/pid",      kppid);
-    H5Easy::dump( file, kp_groupname+"/trackid",  kptrackid);
+    dump_compressed( file, kp_groupname+"/pos",      pos_appear);
+    dump_compressed( file, kp_groupname+"/imgcoord", imgcoord);
+    dump_compressed( file, kp_groupname+"/kptype",   kptype);
+    dump_compressed( file, kp_groupname+"/pid",      kppid);
+    dump_compressed( file, kp_groupname+"/trackid",  kptrackid);
 
   }
 
@@ -927,19 +989,19 @@ namespace prep {
         row[idx]     = triplet.imgcoord[3];
     }
 
-    H5Easy::dump( file, truetriplet_groupname+"/pos",      pos_true_v);
-    H5Easy::dump( file, truetriplet_groupname+"/pos_reco", pos_reco_v);
+    dump_compressed( file, truetriplet_groupname+"/pos",      pos_true_v);
+    dump_compressed( file, truetriplet_groupname+"/pos_reco", pos_reco_v);
 
-    H5Easy::dump( file, truetriplet_groupname+"/edep",    edep);
-    H5Easy::dump( file, truetriplet_groupname+"/trackid", trackid);
-    H5Easy::dump( file, truetriplet_groupname+"/pid",     pid);
-    H5Easy::dump( file, truetriplet_groupname+"/aid",     aid);
-    H5Easy::dump( file, truetriplet_groupname+"/origin",  origin);
-    H5Easy::dump( file, truetriplet_groupname+"/uwire",   uwire);
-    H5Easy::dump( file, truetriplet_groupname+"/vwire",   vwire);
-    H5Easy::dump( file, truetriplet_groupname+"/ywire",   ywire);
-    H5Easy::dump( file, truetriplet_groupname+"/tick",    tick);
-    H5Easy::dump( file, truetriplet_groupname+"/row",     row);
+    dump_compressed( file, truetriplet_groupname+"/edep",    edep);
+    dump_compressed( file, truetriplet_groupname+"/trackid", trackid);
+    dump_compressed( file, truetriplet_groupname+"/pid",     pid);
+    dump_compressed( file, truetriplet_groupname+"/aid",     aid);
+    dump_compressed( file, truetriplet_groupname+"/origin",  origin);
+    dump_compressed( file, truetriplet_groupname+"/uwire",   uwire);
+    dump_compressed( file, truetriplet_groupname+"/vwire",   vwire);
+    dump_compressed( file, truetriplet_groupname+"/ywire",   ywire);
+    dump_compressed( file, truetriplet_groupname+"/tick",    tick);
+    dump_compressed( file, truetriplet_groupname+"/row",     row);
 
   }
 
@@ -993,16 +1055,17 @@ namespace prep {
       }
       
       LARCV_INFO() << "save coord and feat to group: " << ss_plane_group.str() << std::endl;
-      H5Easy::dump( file, ss_plane_group.str()+"/coord",   pixcoords_v );
-      H5Easy::dump( file, ss_plane_group.str()+"/feat",    pixfeat_v );
-      // ImageMeta information
-      H5Easy::dump( file, ss_plane_group.str()+"/dims",    dims );
-      H5Easy::dump( file, ss_plane_group.str()+"/origin",  origin );
-      H5Easy::dump( file, ss_plane_group.str()+"/pixsize", pixsize );
+      // Use higher compression for image data (often largest datasets)
+      dump_compressed( file, ss_plane_group.str()+"/coord",   pixcoords_v, 7 );
+      dump_compressed( file, ss_plane_group.str()+"/feat",    pixfeat_v, 7 );
+      // ImageMeta information (small, use default compression)
+      dump_compressed( file, ss_plane_group.str()+"/dims",    dims );
+      dump_compressed( file, ss_plane_group.str()+"/origin",  origin );
+      dump_compressed( file, ss_plane_group.str()+"/pixsize", pixsize );
     }
 
     LARCV_INFO() << "save triplet to: " << img_group_name + "/triplet_imgpix_index" << std::endl;
-    H5Easy::dump( file, img_group_name + "/triplet_imgpix_index", _tripletmaker._triplet_v );
+    dump_compressed( file, img_group_name + "/triplet_imgpix_index", _tripletmaker._triplet_v );
 
   }
 
