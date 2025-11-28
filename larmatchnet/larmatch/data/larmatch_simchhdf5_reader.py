@@ -37,7 +37,8 @@ class LArMatchSimChHDF5Dataset(Dataset):
         "wireimage_plane1_coord",
         "wireimage_plane1_feat",
         "wireimage_plane2_coord",
-        "wireimage_plane2_feat"]
+        "wireimage_plane2_feat",
+        "origin"]
 
     COLUMNS_TO_HDF5_NAME = {
         "matchtriplet":"/image_data/triplet_imgpix_index", # (N,3) a list of indices for each plane, mapping 3d point to pixel in 2D sparse image
@@ -48,6 +49,7 @@ class LArMatchSimChHDF5Dataset(Dataset):
         "ssnet_top_weight":"/triplet_data/ssnet_boundary", # (N) number of neighbor spacepoints with a different, non-background ssnet class label
         "ssnet_class_weight":"/triplet_data/ssnet_weight", # (N) 1/(num points with class label present in event)
         "kplabel":"/triplet_data/kpscores", # (N,6) keypoint scores based on proximity to keypoint
+        "origin":"/triplet_data/origin",  # (N) label if bg=0, nu=1, cosmic=2
         "keypoint_truth_kptype":"/mckeypoints/kptype", # (Nkp) 
         "keypoint_truth_pid":"/mckeypoints/pid",    # (Nkp)
         "wireimage_plane0_coord":"/image_data/plane0/coord", # (NU,2)
@@ -140,13 +142,13 @@ class LArMatchSimChHDF5Dataset(Dataset):
 
             # you can find the definition of the sparse image in PrepMatchTriplets::make_sparse_image
             # the coordinates are put into a (N,2) tensors
-            # coord[:,0]: "row" in ME.SparseTensor this is the X-coordinate
-            # coord[:,1]: "col" in ME.SparseTensor this is the Y-coordinate
+            # coord[:,0]: "col" or wire direction in ME.SparseTensor this is the X-coordinate
+            # coord[:,1]: "row" or time dimension in ME.SparseTensor this is the Y-coordinate
             # the index in matchtriplet refers to the first dim of the coordinate tensor, i.e. the row
             rebatchdata['query_coord_%d'%(p)] = np.zeros( (npts,3), dtype=np.float32 )
             rebatchdata['query_coord_%d'%(p)][:,0] = 0 # batch coordinate
-            rebatchdata['query_coord_%d'%(p)][:,1] = rebatchdata['coord_%d'%(p)][trips[:,p],0] # row/x
-            rebatchdata['query_coord_%d'%(p)][:,2] = rebatchdata['coord_%d'%(p)][trips[:,p],1] # col/y
+            rebatchdata['query_coord_%d'%(p)][:,1] = rebatchdata['coord_%d'%(p)][trips[:,p],0] # column/wire/x
+            rebatchdata['query_coord_%d'%(p)][:,2] = rebatchdata['coord_%d'%(p)][trips[:,p],1] # row/tick/y
         return rebatchdata
 
 
@@ -172,62 +174,31 @@ class LArMatchSimChHDF5Dataset(Dataset):
                     print(hf[x].keys())
                     raise ValueError(f"Could not load column={hdf_name}")
 
-        # here we have a chance to modify the data
-        # do we subsample to limit the number of spacepoints?
-        # do we crop around the neutrino vertex or crop within some box
-        # do we mask out the ghost and cosmic spacepoints?
-        npts = entry_data['matchtriplet'].shape[0]
-        # old random sampler
-        # if self.max_num_spacepoints<npts and self.apply_max_filter:
-        #     filter_ratio = 0.9*self.max_num_spacepoints/float(npts)
-        #     xfilter = np.random.random( npts )<filter_ratio
-        #     #print("reduce num spacepoints: ",npts," --> ",int(xfilter.sum()))
-        #     # reduce the number of spacepoints we evaluate
-        #     name_v = ['matchtriplet','match_weight','spacepoints',
-        #               'ssnet_label','ssnet_class_weight','ssnet_top_weight',
-        #               'kplabel','kplabel_weight',
-        #               'paf_label','paf_weight']
-        #     for name in name_v:
-        #         entry_data[name] = entry_data[name][xfilter]
+        entry_data['npts'] = entry_data['matchtriplet'].shape[0]
+        entry_data['larmatch_truth']   = entry_data['matchtriplet'][:,3] # get ghost (0) vs. true (1) label
+        entry_data['ssnet_label'][ entry_data['ssnet_label']>5 ] = 0     # remove labels for class-index=5 (other)
+        entry_data['ssnet_label'] += -1 # shift labels, so bg is now -1
 
-        # relabeling name
-        if self.COLLATE_FOR_TRAINING:
-            batchdata = entry_data
-            rebatchdata = {}
-            npts = batchdata['matchtriplet'].shape[0]
-            trips = batchdata['matchtriplet']
-            rebatchdata['matchtriplet_v']   = batchdata['matchtriplet']
-            rebatchdata['larmatch_truth']   = batchdata['matchtriplet'][:,3]
-            #rebatchdata['larmatch_weight']  = batchdata['match_weight']
-            rebatchdata['ssnet_truth']      = batchdata['ssnet_label']-1   # shift labels so ghost label=0 to -1
-            rebatchdata['ssnet_truth'][ rebatchdata['ssnet_truth']>5 ] = 0 # clamp to stay within 5 classes
-            #rebatchdata['ssnet_weight']     = batchdata['ssnet_class_weight'] 
-            # apply topological weight
-            #mask_top_weight = batchdata['ssnet_top_weight']>0
-            #rebatchdata['ssnet_weight'][mask_top_weight[:]] += np.log( batchdata['ssnet_top_weight'][mask_top_weight[:]] )
-            rebatchdata['ssnet_nboundary'] = batchdata['ssnet_top_weight']
+        inputdata = LArMatchSimChHDF5Dataset.prepare_triplet_and_image_arrays_for_network( entry_data, triplet_key="matchtriplet" )
+        for p in range(3):
+            entry_data['coord_%d'%(p)]       = inputdata['coord_%d'%(p)]
+            entry_data['feat_%d'%(p)]        = inputdata['feat_%d'%(p)]
+            entry_data['query_coord_%d'%(p)] = inputdata['query_coord_%d'%(p)]
 
-            rebatchdata['keypoint_truth']   = np.transpose( batchdata['kplabel'], (1,0) )
-            #rebatchdata['keypoint_weight']  = np.transpose( batchdata['kplabel_weight'], (1,0) )
-            #rebatchdata['positive_indices'] = batchdata['positive_indices']
-            #rebatchdata['paf_label']        = np.expand_dims( np.transpose( batchdata['paf_label'],  (1,0) ), 0 )
-            #rebatchdata['paf_weight']       = batchdata['paf_weight']
-            rebatchdata['spacepoints']        = batchdata['spacepoints']
-            #rebatchdata['keypoint_truth_pos'] = batchdata['keypoint_truth_pos']
-            #rebatchdata['keypoint_truth_kptype_pdg_trackid'] = batchdata['keypoint_truth_kptype_pdg_trackid']
-
-            inputdata = LArMatchSimChHDF5Dataset.prepare_triplet_and_image_arrays_for_network( batchdata, triplet_key="matchtriplet" )
-            for p in range(3):
-                rebatchdata['coord_%d'%(p)]       = inputdata['coord_%d'%(p)]
-                rebatchdata['feat_%d'%(p)]        = inputdata['feat_%d'%(p)]
-                rebatchdata['query_coord_%d'%(p)] = inputdata['query_coord_%d'%(p)]
-            
-            entry_data = rebatchdata
-
-        # apply class-balancing sampler and reweighting 
-        #entry_data = samplers.larmatch_example_balancer( entry_data, 
-        #    max_nspacepoints_returned=self.max_num_spacepoints*0.9,
-        #    exclude_ghosts=True )
+        uniqueids = np.unique(entry_data['trackid'])
+        #print("num unique ids: ",len(uniqueids))
+        #print(uniqueids)
+        instanceid_to_trackidmap = [0]
+        nonzero_relabel = 1
+        for tid in uniqueids:
+            mask = entry_data['trackid']==tid
+            if tid!=0:
+                entry_data['trackid'][mask[:]] = nonzero_relabel
+                nonzero_relabel += 1
+                instanceid_to_trackidmap.append( tid )
+        relabeled_ids = np.unique( entry_data['trackid'] )
+        #print("relabeled instance ids: ",relabeled_ids)
+        entry_data['instance2trackid'] = np.array( instanceid_to_trackidmap, dtype=np.int64 )
 
         # add index of entry
         entry_data["idx"] = idx        
