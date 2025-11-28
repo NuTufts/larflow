@@ -1,0 +1,170 @@
+# MAE Training Configuration
+# Configuration for Masked Auto-Encoder pretraining on spacepoints
+
+# ============================================================
+# TRAINING PARAMETERS
+# ============================================================
+RESUME_FROM_CHECKPOINT: false
+CHECKPOINT_FILE: ""
+RUN_NAME: "mae-spacepoint-v1"
+
+# Training iterations
+NUM_EPOCHS: 100
+NUM_ITERATIONS: 100000
+START_ITER: 0
+BATCH_SIZE: 4
+DEVICE: "cuda"
+
+# Logging
+LOGGER: "wandb"  # "wandb", "tensorboard", or "none"
+LOG_INTERVAL: 100
+VALID_INTERVAL: 1000
+CHECKPOINT_INTERVAL: 5000
+SEED: 42
+
+# ============================================================
+# OPTIMIZER PARAMETERS
+# ============================================================
+OPTIMIZER: "adamw"
+LEARNING_RATE: 1.0e-4
+WEIGHT_DECAY: 0.05
+BACKBONE_LR_SCALE: 0.1  # Backbone learns slower than transformer
+CLIP_GRAD_NORM: 1.0
+
+# Learning rate scheduler
+SCHEDULER: "cosine_warmup"
+WARMUP_EPOCHS: 5
+MIN_LR: 1.0e-6
+
+# ============================================================
+# MODEL ARCHITECTURE
+# ============================================================
+# Backbone (image encoder)
+BACKBONE_CHECKPOINT: ""  # Path to pretrained LArMatch checkpoint
+FREEZE_BACKBONE: false
+STEM_NFEATURES: 16
+NORM_LAYER: "batchnorm"  # "batchnorm" or "instancenorm"
+
+# Transformer encoder
+D_MODEL: 256
+ENCODER_LAYERS: 6
+ENCODER_HEADS: 8
+ATTENTION_TYPE: "standard"  # "standard" or "linear"
+DROPOUT: 0.1
+
+# MAE decoder
+DECODER_LAYERS: 2
+DECODER_HEADS: 4
+DECODER_DIM: 128
+OUTPUT_DIM: 3  # 3 planes
+
+# Position encoding
+POS_ENCODING_TYPE: "sinusoidal"  # "sinusoidal" or "learnable_fourier"
+MAX_SPATIAL_EXTENT: 1000.0  # Max coordinate value in cm
+
+# Auxiliary heads
+USE_AUXILIARY_HEADS: true
+NUM_SSNET_CLASSES: 5
+NUM_KEYPOINT_TYPES: 6
+
+# EMA teacher for co-distillation
+USE_EMA_TEACHER: false
+EMA_DECAY: 0.999
+CONTRASTIVE_DIM: 128
+
+# ============================================================
+# MAE MASKING
+# ============================================================
+MASK_RATIO: 0.75
+MASKING_STRATEGY: "random"  # "random", "spatial", "particle", "ghost_aware"
+
+# Spatial masking options
+SPATIAL_BLOCK_SIZE: 50.0
+
+# Particle-aware masking options
+MASK_ENTIRE_PARTICLES: false
+MIN_PARTICLE_FRACTION: 0.3
+
+# Ghost-aware masking options
+MASK_ONLY_TRUE: false
+GHOST_MASK_RATIO: 0.5
+
+# Curriculum masking options
+INITIAL_MASK_RATIO: 0.5
+FINAL_MASK_RATIO: 0.85
+MASK_WARMUP_STEPS: 10000
+
+# ============================================================
+# DATA SAMPLING
+# ============================================================
+MAX_SPACEPOINTS: 50000  # Maximum spacepoints per event
+SAMPLER_TYPE: "importance"  # "random", "importance", "stratified", "particle", "spatial"
+
+# Importance sampler options
+TRUE_WEIGHT: 5.0
+BOUNDARY_WEIGHT: 2.0
+KEYPOINT_WEIGHT: 3.0
+MIN_TRUE_FRACTION: 0.3
+
+# Stratified sampler options
+TARGET_GHOST_RATIO: 2.0
+
+# Particle sampler options
+POINTS_PER_PARTICLE: 100
+MAX_PARTICLES: 200
+
+# Spatial grid sampler options
+GRID_SIZE: [10, 10, 10]
+
+# ============================================================
+# LOSS WEIGHTS
+# ============================================================
+USE_LEARNABLE_WEIGHTS: false
+
+RECONSTRUCTION_WEIGHT: 1.0
+RECONSTRUCTION_TYPE: "mse"  # "mse", "l1", "smooth_l1"
+
+CONTRASTIVE_WEIGHT: 0.1
+CONTRASTIVE_TYPE: "supervised"  # "supervised", "particle_pooling", "ntxent"
+
+GHOST_WEIGHT: 0.5
+SSNET_WEIGHT: 0.5
+KEYPOINT_WEIGHT: 0.3
+DISTILLATION_WEIGHT: 0.1
+
+# ============================================================
+# DATASET PARAMETERS
+# ============================================================
+# Training data
+TRAIN_DATASET_INPUT_TXTFILE: ""  # Path to training file list or cache
+TRAIN_DATASET_LOAD_FROM_CACHE: true
+NUM_TRAIN_WORKERS: 4
+
+# Validation data
+VALID_DATASET_INPUT_TXTFILE: ""  # Path to validation file list or cache
+VALID_DATASET_LOAD_FROM_CACHE: true
+NUM_VALID_WORKERS: 2
+NUM_VALID_BATCHES: 10
+
+# ============================================================
+# ADVANCED OPTIONS
+# ============================================================
+# Mixed precision training
+USE_AMP: true
+AMP_DTYPE: "float16"  # "float16" or "bfloat16"
+
+# Gradient accumulation
+GRADIENT_ACCUMULATION_STEPS: 1
+
+# Distributed training
+USE_DISTRIBUTED: false
+WORLD_SIZE: 1
+LOCAL_RANK: 0
+
+# Profiling
+RUN_PROFILER: false
+PROFILE_STEPS: 10
+
+# Debug options
+VERBOSE: false
+DEBUG_NAN: false
