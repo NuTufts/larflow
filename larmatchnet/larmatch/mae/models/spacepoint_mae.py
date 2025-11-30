@@ -52,12 +52,12 @@ class SpacepointMAE(nn.Module):
     def __init__(
         self,
         backbone_config: dict = None,
-        d_model: int = 256,
+        d_model: int = 240, # must be a multiple of 6
         encoder_layers: int = 6,
         encoder_heads: int = 8,
         decoder_layers: int = 2,
         decoder_heads: int = 4,
-        decoder_dim: int = 128,
+        decoder_dim: int = 132,
         output_dim: int = 3,
         mask_ratio: float = 0.75,
         dropout: float = 0.1,

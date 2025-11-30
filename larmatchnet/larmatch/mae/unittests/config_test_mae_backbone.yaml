@@ -1,0 +1,28 @@
+# MAE Training Configuration
+# Configuration for Masked Auto-Encoder pretraining on spacepoints
+
+# ============================================================
+# MODEL ARCHITECTURE
+# ============================================================
+# Backbone (image encoder)
+BACKBONE_CHECKPOINT: "larmatch_ubprod_ckpt78k_slimmed.pt"  # Path to pretrained LArMatch checkpoint
+FREEZE_BACKBONE: false
+STEM_NFEATURES: 16
+NORM_LAYER: "instancenorm"  # "batchnorm" or "instancenorm"
+
+# Transformer encoder
+D_MODEL: 256
+ENCODER_LAYERS: 6
+ENCODER_HEADS: 8
+ATTENTION_TYPE: "standard"  # "standard" or "linear"
+DROPOUT: 0.1
+
+# MAE decoder
+DECODER_LAYERS: 2
+DECODER_HEADS: 4
+DECODER_DIM: 128
+OUTPUT_DIM: 3  # 3 planes
+
+# Position encoding
+POS_ENCODING_TYPE: "sinusoidal"  # "sinusoidal" or "learnable_fourier"
+MAX_SPATIAL_EXTENT: 1000.0  # Max coordinate value in cm

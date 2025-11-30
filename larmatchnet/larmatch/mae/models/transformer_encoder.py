@@ -26,7 +26,7 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, n_heads, dropout=0.0, use_flash_attention=True):
         super().__init__()
 
-        assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
+        assert d_model % n_heads == 0, f"d_model (given {d_model}) must be divisible by n_heads (given {n_heads})"
 
         self.d_model = d_model
         self.n_heads = n_heads
