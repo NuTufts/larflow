@@ -75,7 +75,7 @@ CONTRASTIVE_DIM: 128
 # ============================================================
 # MAE MASKING
 # ============================================================
-MASK_RATIO: 0.75
+MASK_RATIO: 0.01
 MASKING_STRATEGY: "spatial"  # "random", "spatial", "particle", "ghost_aware"
 
 # Spatial masking options
@@ -97,8 +97,9 @@ MASK_WARMUP_STEPS: 10000
 # ============================================================
 # DATA SAMPLING
 # ============================================================
-MAX_SPACEPOINTS: 1000  # Maximum spacepoints per event
-SAMPLER_TYPE: "importance"  # "random", "importance", "stratified", "particle", "spatial"
+MAX_SPACEPOINTS: 10000  # Maximum spacepoints per event
+#MAX_SPACEPOINTS: 1000000 # for inference
+SAMPLER_TYPE: "spatial_box"  # "random", "importance", "stratified", "particle", "spatial", "spatial_box"
 
 # Importance sampler options
 TRUE_WEIGHT: 5.0
@@ -115,6 +116,18 @@ MAX_PARTICLES: 200
 
 # Spatial grid sampler options
 GRID_SIZE: [10, 10, 10]
+
+# Spatial box options
+BOX_MIN: [0.0, -117.0, 0.0]
+BOX_MAX: [256.0, 117.0, 1036.0]
+DETECTOR_ORIGIN: [-45.0,-117.0,0.0]
+DETECTOR_EXTENT: [550.0,234,1050]
+BOX_FALLBACK_TO_RANDOM: true
+BOX_PADDING: 0.0
+RANDOM_BOX_MODE: true
+BOX_SIZE: [256.0,234.0,256.0]
+MIN_POINTS_IN_BOX: 500
+MAX_RESAMPLE_ATTEMPTS: 100
 
 # ============================================================
 # LOSS WEIGHTS

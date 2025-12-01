@@ -417,6 +417,425 @@ class SpatialGridSampler(BaseSampler):
         return self._apply_indices(data, indices)
 
 
+class SpatialBoxSampler(BaseSampler):
+    """
+    Sample all spacepoints within a defined spatial box.
+
+    This sampler selects all points that fall within a 3D box region,
+    useful for processing large events in spatial chunks during inference.
+
+    The sampling box is defined relative to a detector/data coordinate system
+    with a specified origin and overall extent.
+
+    Supports two modes:
+    1. Fixed box mode: box_min and box_max define a fixed sampling region
+    2. Random box mode: box_size defines dimensions, box is randomly placed
+       within the detector volume on each call
+    """
+
+    def __init__(self,
+                 max_points: int = 50000,
+                 box_min: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+                 box_max: Tuple[float, float, float] = (100.0, 100.0, 100.0),
+                 detector_origin: Tuple[float, float, float] = (0.0, -117.0, 0.0),
+                 detector_extent: Tuple[float, float, float] = (256.0, 234.0, 1036.0),
+                 padding: float = 0.0,
+                 fallback_to_random: bool = True,
+                 random_box_mode: bool = False,
+                 box_size: Optional[Tuple[float, float, float]] = None,
+                 min_points: int = 0,
+                 max_resample_attempts: int = 100):
+        """
+        Args:
+            max_points: Maximum number of points to return (if box contains more)
+            box_min: Minimum corner of sampling box in cm (x, y, z) - used in fixed mode
+            box_max: Maximum corner of sampling box in cm (x, y, z) - used in fixed mode
+            detector_origin: Origin of detector coordinate system (x, y, z) in cm
+            detector_extent: Size of detector in each dimension (x, y, z) in cm
+            padding: Extra padding around the box in cm (extends the box)
+            fallback_to_random: If True, randomly sample if box contains > max_points
+            random_box_mode: If True, randomly place box within detector on each call
+            box_size: Size of the box (x, y, z) in cm - required for random_box_mode
+            min_points: Minimum number of points required in box (random_box_mode only).
+                        If box contains fewer points, resample box position.
+            max_resample_attempts: Maximum attempts to find a box with min_points (default: 100)
+        """
+        super().__init__(max_points)
+        self.box_min = np.array(box_min, dtype=np.float32)
+        self.box_max = np.array(box_max, dtype=np.float32)
+        self.detector_origin = np.array(detector_origin, dtype=np.float32)
+        self.detector_extent = np.array(detector_extent, dtype=np.float32)
+        self.padding = padding
+        self.fallback_to_random = fallback_to_random
+        self.random_box_mode = random_box_mode
+        self.min_points = min_points
+        self.max_resample_attempts = max_resample_attempts
+
+        # For random box mode
+        if box_size is not None:
+            self.box_size = np.array(box_size, dtype=np.float32)
+        else:
+            # Default: derive from box_min/box_max
+            self.box_size = self.box_max - self.box_min
+
+        # Store the last randomly generated box for visualization/debugging
+        self.last_random_box_min = None
+        self.last_random_box_max = None
+
+        # Track resampling statistics
+        self.last_resample_attempts = 0
+
+    def set_box(self, box_min: Tuple[float, float, float],
+                box_max: Tuple[float, float, float]):
+        """
+        Update the sampling box position.
+
+        Args:
+            box_min: New minimum corner (x, y, z)
+            box_max: New maximum corner (x, y, z)
+        """
+        self.box_min = np.array(box_min, dtype=np.float32)
+        self.box_max = np.array(box_max, dtype=np.float32)
+        self.box_size = self.box_max - self.box_min
+
+    def set_box_size(self, box_size: Tuple[float, float, float]):
+        """
+        Set the box size for random box mode.
+
+        Args:
+            box_size: Size of box (x, y, z) in cm
+        """
+        self.box_size = np.array(box_size, dtype=np.float32)
+
+    def generate_random_box(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Generate a random box position within the detector volume.
+
+        The box is constrained to fit entirely within the detector bounds.
+
+        Returns:
+            Tuple of (box_min, box_max) arrays
+        """
+        # Compute the valid range for the box minimum corner
+        # The box must fit within [detector_origin, detector_origin + detector_extent]
+        detector_max = self.detector_origin + self.detector_extent
+
+        # Valid range for box_min: [detector_origin, detector_max - box_size]
+        valid_min = self.detector_origin.copy()
+        valid_max = detector_max - self.box_size
+
+        # Ensure valid_max >= valid_min (box fits in detector)
+        if np.any(valid_max < valid_min):
+            # Box is larger than detector in some dimension - clamp to detector
+            valid_max = np.maximum(valid_max, valid_min)
+
+        # Generate random position for box minimum corner
+        random_box_min = np.random.uniform(valid_min, valid_max).astype(np.float32)
+        random_box_max = random_box_min + self.box_size
+
+        # Clamp to detector bounds (safety check)
+        random_box_min = np.maximum(random_box_min, self.detector_origin)
+        random_box_max = np.minimum(random_box_max, detector_max)
+
+        # Store for visualization/debugging
+        self.last_random_box_min = random_box_min.copy()
+        self.last_random_box_max = random_box_max.copy()
+
+        return random_box_min, random_box_max
+
+    def get_last_box(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get the last box used (either fixed or randomly generated).
+
+        Returns:
+            Tuple of (box_min, box_max) arrays
+        """
+        if self.random_box_mode and self.last_random_box_min is not None:
+            return self.last_random_box_min, self.last_random_box_max
+        return self.box_min, self.box_max
+
+    def set_box_from_grid(self, grid_index: Tuple[int, int, int],
+                          grid_divisions: Tuple[int, int, int]):
+        """
+        Set the sampling box based on a grid index.
+
+        Divides the detector into a grid and sets the box to the specified cell.
+
+        Args:
+            grid_index: (ix, iy, iz) index of the grid cell
+            grid_divisions: (nx, ny, nz) number of divisions in each dimension
+        """
+        cell_size = self.detector_extent / np.array(grid_divisions, dtype=np.float32)
+
+        self.box_min = self.detector_origin + np.array(grid_index, dtype=np.float32) * cell_size
+        self.box_max = self.box_min + cell_size
+
+    def get_box_bounds(self, use_current: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get the current box bounds with padding applied.
+
+        In random_box_mode, this generates a new random box unless use_current=True.
+
+        Args:
+            use_current: If True, use the last generated box instead of generating new
+
+        Returns:
+            Tuple of (box_min, box_max) with padding
+        """
+        if self.random_box_mode:
+            if use_current and self.last_random_box_min is not None:
+                box_min, box_max = self.last_random_box_min, self.last_random_box_max
+            else:
+                box_min, box_max = self.generate_random_box()
+        else:
+            box_min, box_max = self.box_min, self.box_max
+
+        padded_min = box_min - self.padding
+        padded_max = box_max + self.padding
+        return padded_min, padded_max
+
+    def __call__(self, data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        """
+        Sample all spacepoints within the defined box.
+
+        In random_box_mode, a new random box position is generated each call.
+        If min_points > 0, will resample until finding a box with enough points.
+
+        Args:
+            data: Dictionary containing spacepoint data arrays
+
+        Returns:
+            Dictionary with sampled data (only points in box)
+        """
+        n_points = data['npts']
+
+        if 'spacepoints' not in data:
+            raise ValueError("SpatialBoxSampler requires 'spacepoints' in data")
+
+        positions = data['spacepoints']
+
+        # Reset resample counter
+        self.last_resample_attempts = 0
+
+        # In random box mode with min_points, we may need to resample
+        if self.random_box_mode and self.min_points > 0:
+            indices = self._sample_with_min_points(positions)
+        else:
+            # Standard sampling (no resampling)
+            box_min, box_max = self.get_box_bounds(use_current=False)
+            inside_mask = np.all(
+                (positions >= box_min) & (positions <= box_max),
+                axis=1
+            )
+            indices = np.where(inside_mask)[0]
+
+        # Handle case where box contains too many points
+        if len(indices) > self.max_points:
+            if self.fallback_to_random:
+                # Randomly sample from points in box
+                indices = np.random.choice(indices, size=self.max_points, replace=False)
+                indices = np.sort(indices)
+            else:
+                # Just truncate (maintain spatial ordering)
+                indices = indices[:self.max_points]
+
+        return self._apply_indices(data, indices)
+
+    def _sample_with_min_points(self, positions: np.ndarray) -> np.ndarray:
+        """
+        Sample a random box that contains at least min_points.
+
+        Resamples box position up to max_resample_attempts times.
+        If no valid box is found, returns the best box found (most points).
+
+        Args:
+            positions: Array of spacepoint positions (N, 3)
+
+        Returns:
+            Indices of points inside the selected box
+        """
+        best_indices = None
+        best_count = 0
+
+        for attempt in range(self.max_resample_attempts):
+            self.last_resample_attempts = attempt + 1
+
+            # Generate new random box
+            box_min, box_max = self.get_box_bounds(use_current=False)
+
+            # Find points inside
+            inside_mask = np.all(
+                (positions >= box_min) & (positions <= box_max),
+                axis=1
+            )
+            indices = np.where(inside_mask)[0]
+            n_inside = len(indices)
+
+            # Track best result
+            if n_inside > best_count:
+                best_count = n_inside
+                best_indices = indices
+                # Also save the best box coordinates
+                best_box_min = self.last_random_box_min.copy()
+                best_box_max = self.last_random_box_max.copy()
+
+            # Check if we have enough points
+            if n_inside >= self.min_points:
+                return indices
+
+        # If we didn't find a box with min_points, use the best one found
+        # Restore the best box coordinates
+        if best_indices is not None:
+            self.last_random_box_min = best_box_min
+            self.last_random_box_max = best_box_max
+
+        return best_indices if best_indices is not None else np.array([], dtype=np.int64)
+
+    def count_points_in_box(self, positions: np.ndarray) -> int:
+        """
+        Count how many points are in the current box.
+
+        Args:
+            positions: Array of spacepoint positions (N, 3)
+
+        Returns:
+            Number of points inside the box
+        """
+        box_min, box_max = self.get_box_bounds()
+        inside_mask = np.all(
+            (positions >= box_min) & (positions <= box_max),
+            axis=1
+        )
+        return inside_mask.sum()
+
+    @staticmethod
+    def compute_grid_divisions(detector_extent: Tuple[float, float, float],
+                               target_points_per_cell: int,
+                               total_points: int) -> Tuple[int, int, int]:
+        """
+        Compute optimal grid divisions based on point density.
+
+        Args:
+            detector_extent: Size of detector (x, y, z) in cm
+            target_points_per_cell: Target number of points per grid cell
+            total_points: Total number of points in detector
+
+        Returns:
+            Tuple of (nx, ny, nz) grid divisions
+        """
+        # Estimate point density
+        volume = np.prod(detector_extent)
+        density = total_points / volume
+
+        # Target cell volume
+        target_cell_volume = target_points_per_cell / density
+
+        # Compute cell size (assuming cubic cells)
+        cell_size = target_cell_volume ** (1/3)
+
+        # Compute divisions
+        divisions = np.maximum(1, np.round(detector_extent / cell_size)).astype(int)
+
+        return tuple(divisions)
+
+
+class SpatialBoxIterator:
+    """
+    Iterator that yields SpatialBoxSampler configurations for processing
+    an entire detector volume in spatial chunks.
+
+    Useful for inference when you need to process all spacepoints but
+    can only handle a limited number at a time.
+    """
+
+    def __init__(self,
+                 detector_origin: Tuple[float, float, float] = (0.0, -117.0, 0.0),
+                 detector_extent: Tuple[float, float, float] = (256.0, 234.0, 1036.0),
+                 grid_divisions: Tuple[int, int, int] = (4, 4, 16),
+                 padding: float = 5.0,
+                 max_points_per_box: int = 50000):
+        """
+        Args:
+            detector_origin: Origin of detector (x, y, z) in cm
+            detector_extent: Size of detector (x, y, z) in cm
+            grid_divisions: Number of divisions in each dimension (nx, ny, nz)
+            padding: Overlap padding between boxes in cm
+            max_points_per_box: Maximum points per box
+        """
+        self.detector_origin = np.array(detector_origin, dtype=np.float32)
+        self.detector_extent = np.array(detector_extent, dtype=np.float32)
+        self.grid_divisions = grid_divisions
+        self.padding = padding
+        self.max_points_per_box = max_points_per_box
+
+        # Compute cell size
+        self.cell_size = self.detector_extent / np.array(grid_divisions, dtype=np.float32)
+
+        # Total number of cells
+        self.n_cells = np.prod(grid_divisions)
+
+    def __len__(self):
+        return self.n_cells
+
+    def __iter__(self):
+        """Iterate over all grid cells."""
+        for ix in range(self.grid_divisions[0]):
+            for iy in range(self.grid_divisions[1]):
+                for iz in range(self.grid_divisions[2]):
+                    yield self.get_sampler_for_cell(ix, iy, iz)
+
+    def get_sampler_for_cell(self, ix: int, iy: int, iz: int) -> SpatialBoxSampler:
+        """
+        Get a SpatialBoxSampler configured for a specific grid cell.
+
+        Args:
+            ix, iy, iz: Grid cell indices
+
+        Returns:
+            Configured SpatialBoxSampler
+        """
+        box_min = self.detector_origin + np.array([ix, iy, iz], dtype=np.float32) * self.cell_size
+        box_max = box_min + self.cell_size
+
+        return SpatialBoxSampler(
+            max_points=self.max_points_per_box,
+            box_min=tuple(box_min),
+            box_max=tuple(box_max),
+            detector_origin=tuple(self.detector_origin),
+            detector_extent=tuple(self.detector_extent),
+            padding=self.padding,
+            fallback_to_random=True
+        )
+
+    def get_cell_index(self, linear_index: int) -> Tuple[int, int, int]:
+        """
+        Convert linear index to grid cell index.
+
+        Args:
+            linear_index: Linear cell index
+
+        Returns:
+            Tuple of (ix, iy, iz)
+        """
+        iz = linear_index % self.grid_divisions[2]
+        iy = (linear_index // self.grid_divisions[2]) % self.grid_divisions[1]
+        ix = linear_index // (self.grid_divisions[1] * self.grid_divisions[2])
+        return (ix, iy, iz)
+
+    def get_sampler_by_index(self, linear_index: int) -> SpatialBoxSampler:
+        """
+        Get sampler for a cell by linear index.
+
+        Args:
+            linear_index: Linear cell index (0 to n_cells-1)
+
+        Returns:
+            Configured SpatialBoxSampler
+        """
+        ix, iy, iz = self.get_cell_index(linear_index)
+        return self.get_sampler_for_cell(ix, iy, iz)
+
+
 def create_sampler(config: dict) -> BaseSampler:
     """
     Factory function to create sampler from config.
@@ -459,6 +878,27 @@ def create_sampler(config: dict) -> BaseSampler:
         return SpatialGridSampler(
             max_points=max_points,
             grid_size=tuple(config.get('GRID_SIZE', [10, 10, 10]))
+        )
+
+    elif sampler_type == 'spatial_box':
+        # Check for random box mode
+        random_box_mode = config.get('RANDOM_BOX_MODE', False)
+        box_size = config.get('BOX_SIZE', None)
+        if box_size is not None:
+            box_size = tuple(box_size)
+
+        return SpatialBoxSampler(
+            max_points=max_points,
+            box_min=tuple(config.get('BOX_MIN', [0.0, -117.0, 0.0])),
+            box_max=tuple(config.get('BOX_MAX', [256.0, 117.0, 1036.0])),
+            detector_origin=tuple(config.get('DETECTOR_ORIGIN', [0.0, -117.0, 0.0])),
+            detector_extent=tuple(config.get('DETECTOR_EXTENT', [256.0, 234.0, 1036.0])),
+            padding=config.get('BOX_PADDING', 0.0),
+            fallback_to_random=config.get('BOX_FALLBACK_TO_RANDOM', True),
+            random_box_mode=random_box_mode,
+            box_size=box_size,
+            min_points=config.get('MIN_POINTS_IN_BOX', 0),
+            max_resample_attempts=config.get('MAX_RESAMPLE_ATTEMPTS', 100)
         )
 
     else:
