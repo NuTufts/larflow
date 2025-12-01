@@ -75,7 +75,7 @@ CONTRASTIVE_DIM: 128
 # ============================================================
 # MAE MASKING
 # ============================================================
-MASK_RATIO: 0.01
+MASK_RATIO: 0.75
 MASKING_STRATEGY: "spatial"  # "random", "spatial", "particle", "ghost_aware"
 
 # Spatial masking options

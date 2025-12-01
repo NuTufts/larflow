@@ -871,6 +871,7 @@ def build_plots(sample, mask, config):
             return plots
 
         is_true = tensor_to_numpy(sample['is_true'])
+        print("is_true.sum=",is_true.sum()," shape=",is_true.shape)
 
         # True points (visible)
         true_visible = is_true & visible_idx
@@ -887,7 +888,7 @@ def build_plots(sample, mask, config):
             "customdata": customdata[true_visible],
             "marker": {
                 "color": 'rgba(0,255,0,1)',
-                "opacity": opacity,
+                "opacity": opacity*0.5,
                 "size": marker_size
             }
         })
@@ -903,8 +904,8 @@ def build_plots(sample, mask, config):
             "customdata": customdata[ghost_visible],
             "marker": {
                 "color": 'rgba(255,0,0,1)',
-                "opacity": opacity,
-                "size": marker_size
+                "opacity": opacity*0.5,
+                "size": marker_size*0.5
             }
         })
 
