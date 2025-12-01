@@ -8,6 +8,8 @@ MAE Data Processing
 
 from .masking import RandomMasking, SpatialMasking, ParticleAwareMasking
 from .spacepoint_sampler import (
+    BaseSampler,
+    SamplerChain,
     RandomSampler,
     ImportanceSampler,
     StratifiedGhostSampler,
@@ -15,6 +17,8 @@ from .spacepoint_sampler import (
     SpatialGridSampler,
     SpatialBoxSampler,
     SpatialBoxIterator,
-    create_sampler
+    create_sampler,
+    create_sampler_from_block,
+    create_sampler_chain
 )
 from .mae_dataset import MAEDataset, MAECollator, create_mae_dataloader, prepare_mae_batch

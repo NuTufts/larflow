@@ -98,36 +98,45 @@ MASK_WARMUP_STEPS: 10000
 # DATA SAMPLING
 # ============================================================
 MAX_SPACEPOINTS: 10000  # Maximum spacepoints per event
-#MAX_SPACEPOINTS: 1000000 # for inference
-SAMPLER_TYPE: "spatial_box"  # "random", "importance", "stratified", "particle", "spatial", "spatial_box"
+SAMPLER_CHAIN:
+  # Stage 1: Spatial box filter
+  - name: "spatial_filter"  # optional, for retrieval
+    type: spatial_box
+    max_points: 100000
+    random_box_mode: true
+    box_size: [256.0, 234.0, 256.0]
+    min_points: 2000
+    detector_origin: [-45.0,-117.0,0.0]
+    detector_extent: [550.0,234,1050]
+    box_fallback_to_random: false
+  # Stage 2: Importance sampling
+  - name: "importance_filter"
+    type: importance
+    max_points: 500000
+    true_weight: 5.0
+    min_true_fraction: 0.3
 
-# Importance sampler options
-TRUE_WEIGHT: 5.0
-BOUNDARY_WEIGHT: 2.0
-KEYPOINT_WEIGHT: 3.0
-MIN_TRUE_FRACTION: 0.3
+# # Stratified sampler options
+# TARGET_GHOST_RATIO: 2.0
 
-# Stratified sampler options
-TARGET_GHOST_RATIO: 2.0
+# # Particle sampler options
+# POINTS_PER_PARTICLE: 100
+# MAX_PARTICLES: 200
 
-# Particle sampler options
-POINTS_PER_PARTICLE: 100
-MAX_PARTICLES: 200
+# # Spatial grid sampler options
+# GRID_SIZE: [10, 10, 10]
 
-# Spatial grid sampler options
-GRID_SIZE: [10, 10, 10]
-
-# Spatial box options
-BOX_MIN: [0.0, -117.0, 0.0]
-BOX_MAX: [256.0, 117.0, 1036.0]
-DETECTOR_ORIGIN: [-45.0,-117.0,0.0]
-DETECTOR_EXTENT: [550.0,234,1050]
-BOX_FALLBACK_TO_RANDOM: true
-BOX_PADDING: 0.0
-RANDOM_BOX_MODE: true
-BOX_SIZE: [256.0,234.0,256.0]
-MIN_POINTS_IN_BOX: 500
-MAX_RESAMPLE_ATTEMPTS: 100
+# # Spatial box options
+# BOX_MIN: [0.0, -117.0, 0.0]
+# BOX_MAX: [256.0, 117.0, 1036.0]
+# DETECTOR_ORIGIN: [-45.0,-117.0,0.0]
+# DETECTOR_EXTENT: [550.0,234,1050]
+# BOX_FALLBACK_TO_RANDOM: true
+# BOX_PADDING: 0.0
+# RANDOM_BOX_MODE: true
+# BOX_SIZE: [256.0,234.0,256.0]
+# MIN_POINTS_IN_BOX: 500
+# MAX_RESAMPLE_ATTEMPTS: 100
 
 # ============================================================
 # LOSS WEIGHTS

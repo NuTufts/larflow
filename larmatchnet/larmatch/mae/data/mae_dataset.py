@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from typing import Dict, List, Optional, Callable
 
 from larmatch.data.larmatch_simchhdf5_reader import LArMatchSimChHDF5Dataset
-from .spacepoint_sampler import create_sampler, BaseSampler
+from .spacepoint_sampler import create_sampler, create_sampler_chain, BaseSampler, SamplerChain
 from .masking import create_masking_strategy, BaseMasking
 
 
@@ -65,7 +65,8 @@ class MAEDataset(Dataset):
 
         # Create sampler and masking from config or use provided
         if config is not None:
-            self.sampler = create_sampler(config) if sampler is None else sampler
+            # Use create_sampler_chain to support both single samplers and chains
+            self.sampler = create_sampler_chain(config) if sampler is None else sampler
             self.masking = create_masking_strategy(config) if masking is None else masking
             self.max_spacepoints = config.get('MAX_SPACEPOINTS', max_spacepoints)
             self.mask_ratio = config.get('MASK_RATIO', mask_ratio)

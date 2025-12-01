@@ -482,6 +482,32 @@ def tensor_to_numpy(tensor):
     return tensor
 
 
+def get_spatial_box_sampler(sampler):
+    """
+    Find the SpatialBoxSampler in a sampler (or sampler chain).
+
+    Args:
+        sampler: A sampler instance (may be SamplerChain or single sampler)
+
+    Returns:
+        SpatialBoxSampler instance or None
+    """
+    if sampler is None:
+        return None
+
+    # Check if it's a SamplerChain
+    if hasattr(sampler, 'samplers'):
+        # It's a chain - search for SpatialBoxSampler
+        for s in sampler.samplers:
+            if s.__class__.__name__ == 'SpatialBoxSampler':
+                return s
+        return None
+    elif sampler.__class__.__name__ == 'SpatialBoxSampler':
+        return sampler
+    else:
+        return None
+
+
 def build_box_traces(config, sampler=None):
     """
     Build traces showing the sampling box outline.
@@ -493,10 +519,13 @@ def build_box_traces(config, sampler=None):
     Returns:
         List of Plotly trace dictionaries for the box edges
     """
+    # Find the spatial box sampler (might be in a chain)
+    box_sampler = get_spatial_box_sampler(sampler)
+
     # Get box coordinates - from sampler if in random mode, otherwise from config
-    if sampler is not None and hasattr(sampler, 'get_last_box'):
+    if box_sampler is not None and hasattr(box_sampler, 'get_last_box'):
         # Get the actual box used (works for both fixed and random mode)
-        box_min, box_max = sampler.get_last_box()
+        box_min, box_max = box_sampler.get_last_box()
         box_min = np.array(box_min)
         box_max = np.array(box_max)
     else:
@@ -1056,8 +1085,19 @@ def main():
     print(f"Entry: {config['ENTRY']}")
     print(f"Color mode: {config['COLORBY']}")
     print(f"Show mask: {config['SHOW_MASK']}")
-    print(f"Sampler: {config['SAMPLER_TYPE']}")
-    print(f"Max points: {config['MAX_SPACEPOINTS']}")
+
+    # Check for sampler chain config
+    sampler_chain_config = config.get('SAMPLER_CHAIN', config.get('sampler_chain', None))
+    if sampler_chain_config is not None:
+        print(f"Sampler chain: {len(sampler_chain_config)} samplers")
+        for i, sc in enumerate(sampler_chain_config):
+            sampler_type = sc.get('type', sc.get('TYPE', 'unknown'))
+            max_pts = sc.get('max_points', sc.get('MAX_POINTS', 'default'))
+            print(f"  [{i+1}] {sampler_type} (max_points={max_pts})")
+    else:
+        print(f"Sampler: {config['SAMPLER_TYPE']}")
+        print(f"Max points: {config['MAX_SPACEPOINTS']}")
+
     print(f"Mask ratio: {config['MASK_RATIO']}")
     print(f"Masking strategy: {config['MASKING_STRATEGY']}")
 
@@ -1123,16 +1163,20 @@ def main():
             print("Warning: lardly not available, skipping detector outline")
 
     # Add sampling box outline if requested
-    if config['SHOW_BOX'] and config['SAMPLER_TYPE'] == 'spatial_box':
+    # Check if there's a spatial_box sampler (either direct or in chain)
+    box_sampler = get_spatial_box_sampler(sampler)
+    has_spatial_box = box_sampler is not None or config['SAMPLER_TYPE'] == 'spatial_box'
+
+    if config['SHOW_BOX'] and has_spatial_box:
         box_traces = build_box_traces(config, sampler)
         traces.extend(box_traces)
         # Print actual box coordinates used (especially useful for random box mode)
-        if sampler is not None and hasattr(sampler, 'get_last_box'):
-            actual_box_min, actual_box_max = sampler.get_last_box()
+        if box_sampler is not None and hasattr(box_sampler, 'get_last_box'):
+            actual_box_min, actual_box_max = box_sampler.get_last_box()
             print(f"Actual box used: [{actual_box_min[0]:.1f},{actual_box_min[1]:.1f},{actual_box_min[2]:.1f}] to [{actual_box_max[0]:.1f},{actual_box_max[1]:.1f},{actual_box_max[2]:.1f}]")
             # Show resample attempts if applicable
-            if hasattr(sampler, 'last_resample_attempts') and sampler.last_resample_attempts > 0:
-                print(f"Resample attempts: {sampler.last_resample_attempts}")
+            if hasattr(box_sampler, 'last_resample_attempts') and box_sampler.last_resample_attempts > 0:
+                print(f"Resample attempts: {box_sampler.last_resample_attempts}")
         print("Added sampling box outline")
 
     traces.extend(plots)

@@ -70,6 +70,79 @@ class BaseSampler:
         return sampled
 
 
+class SamplerChain(BaseSampler):
+    """
+    Chain multiple samplers together.
+
+    Data passes through each sampler in sequence. This allows combining
+    different sampling strategies, e.g., spatial box filtering followed
+    by importance sampling.
+
+    Example:
+        chain = SamplerChain([
+            SpatialBoxSampler(box_min=[0,0,0], box_max=[100,100,100]),
+            ImportanceSampler(max_points=5000)
+        ])
+        sampled_data = chain(data)
+    """
+
+    def __init__(self, samplers: List['BaseSampler']):
+        """
+        Args:
+            samplers: List of sampler instances to chain together
+        """
+        # Use max_points from last sampler in chain
+        if samplers:
+            super().__init__(samplers[-1].max_points)
+        else:
+            super().__init__()
+
+        self.samplers = samplers
+
+    def __call__(self, data: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        """
+        Apply samplers in sequence.
+
+        Args:
+            data: Dictionary containing spacepoint data arrays
+
+        Returns:
+            Dictionary with sampled data after all samplers applied
+        """
+        result = data
+        for sampler in self.samplers:
+            result = sampler(result)
+        return result
+
+    def __len__(self):
+        return len(self.samplers)
+
+    def __getitem__(self, idx):
+        return self.samplers[idx]
+
+    def append(self, sampler: 'BaseSampler'):
+        """Add a sampler to the end of the chain."""
+        self.samplers.append(sampler)
+        self.max_points = sampler.max_points
+
+    def get_sampler_by_name(self, name: str) -> Optional['BaseSampler']:
+        """
+        Get a sampler by its class name or config name.
+
+        Args:
+            name: Name to search for (matches class name or 'name' attribute)
+
+        Returns:
+            Matching sampler or None
+        """
+        for sampler in self.samplers:
+            if sampler.__class__.__name__.lower() == name.lower():
+                return sampler
+            if hasattr(sampler, 'name') and sampler.name == name:
+                return sampler
+        return None
+
+
 class RandomSampler(BaseSampler):
     """
     Random uniform sampling of spacepoints.
@@ -903,3 +976,162 @@ def create_sampler(config: dict) -> BaseSampler:
 
     else:
         raise ValueError(f"Unknown sampler type: {sampler_type}")
+
+
+def create_sampler_from_block(sampler_config: dict) -> BaseSampler:
+    """
+    Create a single sampler from a configuration block.
+
+    This function creates a sampler from a self-contained config block
+    that includes the 'type' field and all sampler-specific parameters.
+
+    Args:
+        sampler_config: Dictionary with sampler configuration including:
+            - type: Sampler type string (required)
+            - max_points: Maximum points (optional, default 50000)
+            - Other sampler-specific parameters
+
+    Returns:
+        Configured sampler instance
+
+    Example config block:
+        {
+            "type": "spatial_box",
+            "max_points": 100000,
+            "random_box_mode": true,
+            "box_size": [100, 100, 200],
+            "min_points": 500
+        }
+    """
+    sampler_type = sampler_config.get('type', sampler_config.get('TYPE', 'importance'))
+    max_points = sampler_config.get('max_points', sampler_config.get('MAX_POINTS', 50000))
+
+    if sampler_type == 'random':
+        return RandomSampler(max_points)
+
+    elif sampler_type == 'importance':
+        return ImportanceSampler(
+            max_points=max_points,
+            true_weight=sampler_config.get('true_weight', sampler_config.get('TRUE_WEIGHT', 5.0)),
+            boundary_weight=sampler_config.get('boundary_weight', sampler_config.get('BOUNDARY_WEIGHT', 2.0)),
+            keypoint_weight=sampler_config.get('keypoint_weight', sampler_config.get('KEYPOINT_WEIGHT', 3.0)),
+            min_true_fraction=sampler_config.get('min_true_fraction', sampler_config.get('MIN_TRUE_FRACTION', 0.3))
+        )
+
+    elif sampler_type == 'stratified':
+        return StratifiedGhostSampler(
+            max_points=max_points,
+            target_ghost_ratio=sampler_config.get('target_ghost_ratio', sampler_config.get('TARGET_GHOST_RATIO', 2.0))
+        )
+
+    elif sampler_type == 'particle':
+        return ParticleLevelSampler(
+            max_points=max_points,
+            points_per_particle=sampler_config.get('points_per_particle', sampler_config.get('POINTS_PER_PARTICLE', 100)),
+            max_particles=sampler_config.get('max_particles', sampler_config.get('MAX_PARTICLES', 200))
+        )
+
+    elif sampler_type == 'spatial':
+        grid_size = sampler_config.get('grid_size', sampler_config.get('GRID_SIZE', [10, 10, 10]))
+        return SpatialGridSampler(
+            max_points=max_points,
+            grid_size=tuple(grid_size)
+        )
+
+    elif sampler_type == 'spatial_box':
+        # Handle both lowercase and uppercase config keys
+        random_box_mode = sampler_config.get('random_box_mode', sampler_config.get('RANDOM_BOX_MODE', False))
+        box_size = sampler_config.get('box_size', sampler_config.get('BOX_SIZE', None))
+        if box_size is not None:
+            box_size = tuple(box_size)
+
+        box_min = sampler_config.get('box_min', sampler_config.get('BOX_MIN', [0.0, -117.0, 0.0]))
+        box_max = sampler_config.get('box_max', sampler_config.get('BOX_MAX', [256.0, 117.0, 1036.0]))
+        detector_origin = sampler_config.get('detector_origin', sampler_config.get('DETECTOR_ORIGIN', [0.0, -117.0, 0.0]))
+        detector_extent = sampler_config.get('detector_extent', sampler_config.get('DETECTOR_EXTENT', [256.0, 234.0, 1036.0]))
+
+        return SpatialBoxSampler(
+            max_points=max_points,
+            box_min=tuple(box_min),
+            box_max=tuple(box_max),
+            detector_origin=tuple(detector_origin),
+            detector_extent=tuple(detector_extent),
+            padding=sampler_config.get('padding', sampler_config.get('BOX_PADDING', 0.0)),
+            fallback_to_random=sampler_config.get('fallback_to_random', sampler_config.get('BOX_FALLBACK_TO_RANDOM', True)),
+            random_box_mode=random_box_mode,
+            box_size=box_size,
+            min_points=sampler_config.get('min_points', sampler_config.get('MIN_POINTS_IN_BOX', 0)),
+            max_resample_attempts=sampler_config.get('max_resample_attempts', sampler_config.get('MAX_RESAMPLE_ATTEMPTS', 100))
+        )
+
+    else:
+        raise ValueError(f"Unknown sampler type in block: {sampler_type}")
+
+
+def create_sampler_chain(config: dict) -> BaseSampler:
+    """
+    Create a sampler or sampler chain from configuration.
+
+    This function handles both single-sampler configs (legacy) and
+    sampler chain configs (new). It returns either a single sampler
+    or a SamplerChain depending on the configuration.
+
+    Config formats supported:
+
+    1. Legacy single sampler (flat config):
+        SAMPLER_TYPE: "importance"
+        MAX_SPACEPOINTS: 5000
+        TRUE_WEIGHT: 5.0
+
+    2. New sampler chain (list of sampler blocks):
+        SAMPLER_CHAIN:
+          - type: spatial_box
+            max_points: 100000
+            random_box_mode: true
+            box_size: [100, 100, 200]
+            min_points: 500
+          - type: importance
+            max_points: 5000
+            true_weight: 5.0
+            min_true_fraction: 0.3
+
+    Args:
+        config: Configuration dictionary
+
+    Returns:
+        BaseSampler instance (either single sampler or SamplerChain)
+    """
+    # Check for new sampler chain format
+    sampler_chain_config = config.get('SAMPLER_CHAIN', config.get('sampler_chain', None))
+
+    if sampler_chain_config is not None:
+        # New format: list of sampler configuration blocks
+        if not isinstance(sampler_chain_config, list):
+            raise ValueError("SAMPLER_CHAIN must be a list of sampler configurations")
+
+        if len(sampler_chain_config) == 0:
+            raise ValueError("SAMPLER_CHAIN cannot be empty")
+
+        # Create each sampler from its config block
+        samplers = []
+        for i, sampler_block in enumerate(sampler_chain_config):
+            if not isinstance(sampler_block, dict):
+                raise ValueError(f"Sampler config at index {i} must be a dictionary")
+
+            sampler = create_sampler_from_block(sampler_block)
+
+            # Optionally assign a name for later retrieval
+            if 'name' in sampler_block:
+                sampler.name = sampler_block['name']
+
+            samplers.append(sampler)
+
+        # If only one sampler, return it directly
+        if len(samplers) == 1:
+            return samplers[0]
+
+        return SamplerChain(samplers)
+
+    else:
+        # Legacy format: use create_sampler
+        return create_sampler(config)
