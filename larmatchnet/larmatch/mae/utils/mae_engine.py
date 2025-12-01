@@ -224,9 +224,26 @@ def compute_metrics(
 
     # Reconstruction metrics
     with torch.no_grad():
-        # MSE on masked positions
-        masked_pred = predictions[mask]
-        masked_target = targets[mask]
+        B = predictions.shape[0]
+        N_pred = predictions.shape[1]
+        N_total = mask.shape[1]
+        N_masked = mask.sum(dim=1).max().item()
+        D = predictions.shape[2]
+
+        # Check if predictions are already for masked positions only
+        if N_pred == N_masked and N_pred != N_total:
+            # Predictions are already for masked positions
+            masked_pred = predictions
+            # Extract masked targets to match
+            masked_target = torch.zeros(B, N_masked, D, device=targets.device, dtype=targets.dtype)
+            for b in range(B):
+                masked_idx = mask[b].nonzero(as_tuple=True)[0]
+                n_masked_b = len(masked_idx)
+                masked_target[b, :n_masked_b] = targets[b, masked_idx]
+        else:
+            # Predictions are full, extract masked positions
+            masked_pred = predictions[mask]
+            masked_target = targets[mask]
 
         mse = ((masked_pred - masked_target) ** 2).mean().item()
         metrics['reconstruction_mse'] = mse
@@ -237,23 +254,49 @@ def compute_metrics(
 
         # Per-plane MSE
         for p in range(min(3, predictions.shape[-1])):
-            plane_mse = ((masked_pred[:, p] - masked_target[:, p]) ** 2).mean().item()
+            if masked_pred.dim() == 3:
+                plane_mse = ((masked_pred[:, :, p] - masked_target[:, :, p]) ** 2).mean().item()
+            else:
+                plane_mse = ((masked_pred[:, p] - masked_target[:, p]) ** 2).mean().item()
             metrics[f'reconstruction_mse_plane{p}'] = plane_mse
 
     # Auxiliary task metrics
+    # Note: auxiliary_outputs are for unmasked tokens only, so we need to extract
+    # the corresponding labels from the full label tensors
     if auxiliary_outputs is not None and labels is not None:
+        unmasked_mask = ~mask  # True for unmasked positions
+        N_unmasked_max = unmasked_mask.sum(dim=1).max().item()
+
         # Ghost classification accuracy
-        if 'ghost_logits' in auxiliary_outputs and 'is_true' in labels:
+        if 'ghost_logits' in auxiliary_outputs and labels.get('is_true') is not None:
             ghost_pred = auxiliary_outputs['ghost_logits'].argmax(dim=-1)
-            ghost_acc = (ghost_pred == labels['is_true'].long()).float().mean().item()
+            is_true_full = labels['is_true']
+
+            # Extract unmasked is_true labels
+            unmasked_is_true = torch.zeros(B, N_unmasked_max, dtype=is_true_full.dtype, device=ghost_pred.device)
+            for b in range(B):
+                unmasked_idx = unmasked_mask[b].nonzero(as_tuple=True)[0]
+                n_unmasked = len(unmasked_idx)
+                unmasked_is_true[b, :n_unmasked] = is_true_full[b, unmasked_idx]
+
+            ghost_acc = (ghost_pred == unmasked_is_true.long()).float().mean().item()
             metrics['ghost_accuracy'] = ghost_acc
 
         # SSNet accuracy
-        if 'ssnet_logits' in auxiliary_outputs and 'ssnet_labels' in labels:
+        if 'ssnet_logits' in auxiliary_outputs and labels.get('ssnet_labels') is not None:
             ssnet_pred = auxiliary_outputs['ssnet_logits'].argmax(dim=-1)
-            valid = labels['ssnet_labels'] >= 0
+            ssnet_labels_full = labels['ssnet_labels']
+
+            # Extract unmasked ssnet labels
+            unmasked_ssnet = torch.zeros(B, N_unmasked_max, dtype=ssnet_labels_full.dtype, device=ssnet_pred.device)
+            for b in range(B):
+                unmasked_idx = unmasked_mask[b].nonzero(as_tuple=True)[0]
+                n_unmasked = len(unmasked_idx)
+                unmasked_ssnet[b, :n_unmasked] = ssnet_labels_full[b, unmasked_idx]
+
+            valid = unmasked_ssnet >= 0
             if valid.sum() > 0:
-                ssnet_acc = (ssnet_pred[valid] == labels['ssnet_labels'][valid]).float().mean().item()
+                ssnet_acc = (ssnet_pred[valid] == unmasked_ssnet[valid]).float().mean().item()
                 metrics['ssnet_accuracy'] = ssnet_acc
 
     return metrics

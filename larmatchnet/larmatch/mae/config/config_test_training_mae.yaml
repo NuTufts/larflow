@@ -9,7 +9,7 @@ CHECKPOINT_FILE: ""
 RUN_NAME: "mae-spacepoint-v1"
 
 # Training iterations
-NUM_EPOCHS: 100
+NUM_EPOCHS: 10000
 NUM_ITERATIONS: 100000
 START_ITER: 0
 BATCH_SIZE: 1
@@ -40,13 +40,13 @@ MIN_LR: 1.0e-6
 # MODEL ARCHITECTURE
 # ============================================================
 # Backbone (image encoder)
-BACKBONE_CHECKPOINT: "/home/twongjirad/working/larbys/gen2/container_u20_env/work/ubdl/larflow/larmatchnet/larmatch/mae/unittests/larmatch_ubprod_ckpt78k_slimmed.pt"  # Path to pretrained LArMatch checkpoint
-FREEZE_BACKBONE: true
+BACKBONE_CHECKPOINT: "./unittests/larmatch_ubprod_ckpt78k_slimmed.pt"  # Path to pretrained LArMatch checkpoint
+FREEZE_BACKBONE: false
 STEM_NFEATURES: 16
 NORM_LAYER: "instancenorm"  # "batchnorm" or "instancenorm"
 
 # Transformer encoder
-D_MODEL: 256
+D_MODEL: 240
 ENCODER_LAYERS: 6
 ENCODER_HEADS: 8
 ATTENTION_TYPE: "standard"  # "standard" or "linear"
@@ -55,12 +55,12 @@ DROPOUT: 0.1
 # MAE decoder
 DECODER_LAYERS: 2
 DECODER_HEADS: 4
-DECODER_DIM: 128
+DECODER_DIM: 132
 OUTPUT_DIM: 3  # 3 planes
 
 # Position encoding
 POS_ENCODING_TYPE: "sinusoidal"  # "sinusoidal" or "learnable_fourier"
-MAX_SPATIAL_EXTENT: 1100.0  # Max coordinate value in cm
+MAX_SPATIAL_EXTENT: 1000.0  # Max coordinate value in cm
 
 # Auxiliary heads
 USE_AUXILIARY_HEADS: true
@@ -97,7 +97,7 @@ MASK_WARMUP_STEPS: 10000
 # ============================================================
 # DATA SAMPLING
 # ============================================================
-MAX_SPACEPOINTS: 50000  # Maximum spacepoints per event
+MAX_SPACEPOINTS: 1000  # Maximum spacepoints per event
 SAMPLER_TYPE: "importance"  # "random", "importance", "stratified", "particle", "spatial"
 
 # Importance sampler options
@@ -136,12 +136,12 @@ DISTILLATION_WEIGHT: 0.1
 # DATASET PARAMETERS
 # ============================================================
 # Training data
-TRAIN_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/gen2/container_u20_env/work/ubdl/larflow/larmatchnet/larmatch/mae/testdata_train.txt"  # Path to training file list or cache
+TRAIN_DATASET_INPUT_TXTFILE: "testdata_train.txt"  # Path to training file list or cache
 TRAIN_DATASET_LOAD_FROM_CACHE: false
 NUM_TRAIN_WORKERS: 2
 
 # Validation data
-VALID_DATASET_INPUT_TXTFILE: "/home/twongjirad/working/larbys/gen2/container_u20_env/work/ubdl/larflow/larmatchnet/larmatch/mae/testdata_valid.txt"  # Path to validation file list or cache
+VALID_DATASET_INPUT_TXTFILE: "testdata_valid.txt"  # Path to validation file list or cache
 VALID_DATASET_LOAD_FROM_CACHE: false
 NUM_VALID_WORKERS: 2
 NUM_VALID_BATCHES: 1
@@ -150,7 +150,7 @@ NUM_VALID_BATCHES: 1
 # ADVANCED OPTIONS
 # ============================================================
 # Mixed precision training
-USE_AMP: true
+USE_AMP: false
 AMP_DTYPE: "float16"  # "float16" or "bfloat16"
 
 # Gradient accumulation
@@ -162,7 +162,7 @@ WORLD_SIZE: 1
 LOCAL_RANK: 0
 
 # Profiling
-RUN_PROFILER: true
+RUN_PROFILER: false
 PROFILE_STEPS: 10
 
 # Debug options

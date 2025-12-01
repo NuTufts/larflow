@@ -163,10 +163,39 @@ class MAELoss(nn.Module):
         if self.use_learnable_weights:
             total_loss = total_loss + self._get_reg(self.log_var_recon)
 
+        # For contrastive and auxiliary losses, we need labels for unmasked positions only
+        # since encoder_features only contains unmasked tokens
+        # mask is True for masked positions, so ~mask gives unmasked positions
+        unmasked_mask = ~mask  # True for unmasked positions
+
+        # Extract labels for unmasked positions
+        if instance_labels is not None:
+            # Flatten and extract unmasked labels
+            B, N_total = mask.shape
+            N_unmasked = encoder_features.shape[1] if encoder_features is not None else unmasked_mask.sum(dim=1).max().item()
+            unmasked_instance_labels = torch.zeros(B, N_unmasked, dtype=instance_labels.dtype, device=device)
+            for b in range(B):
+                unmasked_idx = unmasked_mask[b].nonzero(as_tuple=True)[0]
+                n_unmasked = len(unmasked_idx)
+                unmasked_instance_labels[b, :n_unmasked] = instance_labels[b, unmasked_idx]
+        else:
+            unmasked_instance_labels = None
+
+        if is_true is not None:
+            B, N_total = mask.shape
+            N_unmasked = encoder_features.shape[1] if encoder_features is not None else unmasked_mask.sum(dim=1).max().item()
+            unmasked_is_true = torch.zeros(B, N_unmasked, dtype=is_true.dtype, device=device)
+            for b in range(B):
+                unmasked_idx = unmasked_mask[b].nonzero(as_tuple=True)[0]
+                n_unmasked = len(unmasked_idx)
+                unmasked_is_true[b, :n_unmasked] = is_true[b, unmasked_idx]
+        else:
+            unmasked_is_true = None
+
         # Contrastive loss
-        if encoder_features is not None and instance_labels is not None:
+        if encoder_features is not None and unmasked_instance_labels is not None:
             contrast_loss = self.contrastive_loss(
-                encoder_features, instance_labels, is_true
+                encoder_features, unmasked_instance_labels, unmasked_is_true
             )
             w_contrast = self._get_weight(
                 self.log_var_contrast if self.use_learnable_weights else None,
@@ -180,10 +209,10 @@ class MAELoss(nn.Module):
         # Auxiliary losses
         if auxiliary_outputs is not None:
             # Ghost classification
-            if 'ghost_logits' in auxiliary_outputs and is_true is not None:
+            if 'ghost_logits' in auxiliary_outputs and unmasked_is_true is not None:
                 ghost_loss = self.ghost_loss(
                     auxiliary_outputs['ghost_logits'],
-                    is_true.long()
+                    unmasked_is_true.long()
                 )
                 w_ghost = self._get_weight(
                     self.log_var_ghost if self.use_learnable_weights else None,
@@ -196,9 +225,18 @@ class MAELoss(nn.Module):
 
             # SSNet classification
             if 'ssnet_logits' in auxiliary_outputs and ssnet_labels is not None:
+                # Extract unmasked ssnet labels
+                B, N_total = mask.shape
+                N_unmasked = auxiliary_outputs['ssnet_logits'].shape[1]
+                unmasked_ssnet_labels = torch.zeros(B, N_unmasked, dtype=ssnet_labels.dtype, device=device)
+                for b in range(B):
+                    unmasked_idx = unmasked_mask[b].nonzero(as_tuple=True)[0]
+                    n_unmasked = len(unmasked_idx)
+                    unmasked_ssnet_labels[b, :n_unmasked] = ssnet_labels[b, unmasked_idx]
+
                 ssnet_loss = self.ssnet_loss(
                     auxiliary_outputs['ssnet_logits'],
-                    ssnet_labels
+                    unmasked_ssnet_labels
                 )
                 w_ssnet = self._get_weight(
                     self.log_var_ssnet if self.use_learnable_weights else None,
@@ -211,9 +249,19 @@ class MAELoss(nn.Module):
 
             # Keypoint regression
             if 'keypoint_scores' in auxiliary_outputs and keypoint_targets is not None:
+                # Extract unmasked keypoint targets
+                B, N_total = mask.shape
+                N_unmasked = auxiliary_outputs['keypoint_scores'].shape[1]
+                n_kp_types = keypoint_targets.shape[-1]
+                unmasked_keypoint_targets = torch.zeros(B, N_unmasked, n_kp_types, dtype=keypoint_targets.dtype, device=device)
+                for b in range(B):
+                    unmasked_idx = unmasked_mask[b].nonzero(as_tuple=True)[0]
+                    n_unmasked = len(unmasked_idx)
+                    unmasked_keypoint_targets[b, :n_unmasked] = keypoint_targets[b, unmasked_idx]
+
                 kp_loss = self.keypoint_loss(
                     auxiliary_outputs['keypoint_scores'],
-                    keypoint_targets
+                    unmasked_keypoint_targets
                 )
                 w_kp = self._get_weight(
                     self.log_var_kp if self.use_learnable_weights else None,

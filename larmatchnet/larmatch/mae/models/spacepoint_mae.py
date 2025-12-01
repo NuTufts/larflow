@@ -334,8 +334,16 @@ class SpacepointMAE(nn.Module):
             input_wireplane_sparsetensors, query_v
         )
 
-        # Add batch dimension if needed
-        if spacepoint_features.dim() == 2:
+        # Handle batch dimensions
+        # Note: positions comes from collator with shape (B, N, 3)
+        # spacepoint_features from backbone has shape (total_N, feature_dim)
+        # We need to reshape spacepoint_features to match positions batch structure
+        if spacepoint_features.dim() == 2 and positions.dim() == 3:
+            # Reshape spacepoint_features to (B, N, feature_dim) to match positions
+            B, N, _ = positions.shape
+            spacepoint_features = spacepoint_features.view(B, N, -1)
+        elif spacepoint_features.dim() == 2 and positions.dim() == 2:
+            # Both need batch dimension
             spacepoint_features = spacepoint_features.unsqueeze(0)
             positions = positions.unsqueeze(0)
 
@@ -387,7 +395,11 @@ class SpacepointMAE(nn.Module):
             input_wireplane_sparsetensors, query_v
         )
 
-        if spacepoint_features.dim() == 2:
+        # Handle batch dimensions (same logic as forward method)
+        if spacepoint_features.dim() == 2 and positions.dim() == 3:
+            B, N, _ = positions.shape
+            spacepoint_features = spacepoint_features.view(B, N, -1)
+        elif spacepoint_features.dim() == 2 and positions.dim() == 2:
             spacepoint_features = spacepoint_features.unsqueeze(0)
             positions = positions.unsqueeze(0)
 

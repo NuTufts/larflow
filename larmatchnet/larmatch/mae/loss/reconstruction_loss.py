@@ -59,7 +59,10 @@ class ReconstructionLoss(nn.Module):
         """
         # Normalize targets if requested
         if self.normalize_target:
-            targets = (targets - self.target_mean) / (self.target_std + 1e-6)
+            # Ensure normalization params are on the same device as targets
+            target_mean = self.target_mean.to(targets.device)
+            target_std = self.target_std.to(targets.device)
+            targets = (targets - target_mean) / (target_std + 1e-6)
 
         # Compute base loss
         if self.loss_type == 'mse':
@@ -200,7 +203,8 @@ class MaskedReconstructionLoss(nn.Module):
         Compute reconstruction loss on masked positions only.
 
         Args:
-            predictions: Full predictions, shape (B, N, 3)
+            predictions: Predictions, shape (B, N_masked, 3) if already masked,
+                        or (B, N, 3) if full predictions
             targets: Full targets, shape (B, N, 3)
             mask: Boolean mask, True for masked positions, shape (B, N)
             is_true: True for non-ghost spacepoints, shape (B, N)
@@ -208,29 +212,66 @@ class MaskedReconstructionLoss(nn.Module):
         Returns:
             Scalar loss
         """
-        B, N, D = predictions.shape
+        B = predictions.shape[0]
+        N_total = mask.shape[1]
+        N_pred = predictions.shape[1]
+        D = predictions.shape[2]
 
-        # Get masked positions
-        masked_pred = predictions[mask]  # (N_masked, D)
-        masked_target = targets[mask]  # (N_masked, D)
+        # Check if predictions are already for masked positions only
+        N_masked = mask.sum(dim=1).max().item()
 
-        if masked_pred.numel() == 0:
-            return torch.tensor(0.0, device=predictions.device)
+        if N_pred == N_masked and N_pred != N_total:
+            # Predictions are already for masked positions only (shape: B, N_masked, D)
+            # Extract masked targets to match
+            masked_pred = predictions
+            masked_target = torch.zeros(B, N_masked, D, device=targets.device, dtype=targets.dtype)
+            masked_is_true = None
+            if is_true is not None:
+                masked_is_true = torch.zeros(B, N_masked, device=is_true.device, dtype=is_true.dtype)
 
-        # Compute loss on masked positions
-        loss = self.base_loss(
-            masked_pred.unsqueeze(0),
-            masked_target.unsqueeze(0)
-        )
+            for b in range(B):
+                masked_idx = mask[b].nonzero(as_tuple=True)[0]
+                n_masked_b = len(masked_idx)
+                masked_target[b, :n_masked_b] = targets[b, masked_idx]
+                if is_true is not None:
+                    masked_is_true[b, :n_masked_b] = is_true[b, masked_idx]
 
-        # Weight by true/ghost if provided
-        if is_true is not None:
-            masked_is_true = is_true[mask]
-            # Weight true spacepoints higher
-            weights = torch.ones_like(loss)
-            weights[masked_is_true.unsqueeze(-1).expand_as(weights)] = 2.0
-            loss = (loss * weights).mean()
+            if masked_pred.numel() == 0:
+                return torch.tensor(0.0, device=predictions.device)
+
+            # Compute loss on masked positions
+            loss = self.base_loss(masked_pred, masked_target)
+
+            # Weight by true/ghost if provided
+            if masked_is_true is not None:
+                weights = torch.ones_like(loss)
+                weights[masked_is_true.unsqueeze(-1).expand_as(weights)] = 2.0
+                loss = (loss * weights).mean()
+            else:
+                loss = loss.mean()
+
         else:
-            loss = loss.mean()
+            # Predictions are full, extract masked positions
+            masked_pred = predictions[mask]  # (N_masked_total, D)
+            masked_target = targets[mask]  # (N_masked_total, D)
+
+            if masked_pred.numel() == 0:
+                return torch.tensor(0.0, device=predictions.device)
+
+            # Compute loss on masked positions
+            loss = self.base_loss(
+                masked_pred.unsqueeze(0),
+                masked_target.unsqueeze(0)
+            )
+
+            # Weight by true/ghost if provided
+            if is_true is not None:
+                masked_is_true = is_true[mask]
+                # Weight true spacepoints higher
+                weights = torch.ones_like(loss)
+                weights[masked_is_true.unsqueeze(-1).expand_as(weights)] = 2.0
+                loss = (loss * weights).mean()
+            else:
+                loss = loss.mean()
 
         return loss

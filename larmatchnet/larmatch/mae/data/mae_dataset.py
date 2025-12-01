@@ -46,8 +46,21 @@ class MAEDataset(Dataset):
                 load_from_cachefile=load_from_cachefile
             )
         else:
+
+            if type(file_paths) is str:
+                # assume its a textfile with list of paths
+                with open(file_paths,'r') as filelist:
+                    files = filelist.readlines()
+                    fpaths = []
+                    for f in files:
+                        fpaths.append( f.strip() )
+            elif type(file_paths) is list:
+                fpaths = file_paths
+            else:
+                raise ValueError("invalid type for file_paths parameter. given: ",type(file_paths))
+
             self.base_dataset = LArMatchSimChHDF5Dataset(
-                file_paths=file_paths
+                file_paths=fpaths
             )
 
         # Create sampler and masking from config or use provided

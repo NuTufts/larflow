@@ -378,16 +378,26 @@ def main():
 
     # Create data loaders
     print("Creating data loaders...")
-    train_loader = create_mae_dataloader(
-        load_from_cachefile=config.get('TRAIN_DATASET_INPUT_TXTFILE'),
-        batch_size=config.get('BATCH_SIZE', 4),
-        num_workers=config.get('NUM_TRAIN_WORKERS', 4),
-        shuffle=True,
-        config=config
-    )
+    if config.get('TRAIN_DATASET_LOAD_FROM_CACHE',False):
+      train_loader = create_mae_dataloader(
+          load_from_cachefile=config.get('TRAIN_DATASET_INPUT_TXTFILE'),
+          batch_size=config.get('BATCH_SIZE', 4),
+          num_workers=config.get('NUM_TRAIN_WORKERS', 4),
+          shuffle=True,
+          config=config
+      )
+    else:
+      train_loader = create_mae_dataloader(
+          file_paths=config.get('TRAIN_DATASET_INPUT_TXTFILE'),
+          load_from_cachefile=None,
+          batch_size=config.get('BATCH_SIZE', 4),
+          num_workers=config.get('NUM_TRAIN_WORKERS', 4),
+          shuffle=True,
+          config=config
+      )
 
     valid_loader = None
-    if config.get('VALID_DATASET_INPUT_TXTFILE'):
+    if config.get('TRAIN_DATASET_LOAD_FROM_CACHE',False):
         valid_loader = create_mae_dataloader(
             load_from_cachefile=config.get('VALID_DATASET_INPUT_TXTFILE'),
             batch_size=config.get('BATCH_SIZE', 4),
@@ -395,6 +405,15 @@ def main():
             shuffle=False,
             config=config
         )
+    else:
+        valid_loader = create_mae_dataloader(
+            file_paths=config.get('VALID_DATASET_INPUT_TXTFILE'),
+            load_from_cachefile=None,
+            batch_size=config.get('BATCH_SIZE', 4),
+            num_workers=config.get('NUM_VALID_WORKERS', 2),
+            shuffle=False,
+            config=config
+        )        
 
     # Setup logging
     wandb_run = None

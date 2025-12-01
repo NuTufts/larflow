@@ -12,4 +12,4 @@ from .position_encoding import SinusoidalPositionEncoding3D, LearnableFourierEnc
 from .transformer_encoder import TransformerEncoderBlock, TransformerEncoder
 from .mae_decoder import MAEDecoder
 from .mae_backbone import MAEBackbone
-from .spacepoint_mae import SpacepointMAE
+from .spacepoint_mae import SpacepointMAE,SpacepointMAEForPretraining

@@ -185,6 +185,7 @@ class MAEBackbone(nn.Module):
             Tensor of shape (N, 3*stem_nfeatures) containing spacepoint features
         """
         # Get features at query coordinates for each plane
+        #print(feat_v[0].dtype," ",query_v[0].dtype)
         spacepoint_planefeat_v = [
             feat_v[p].features_at_coordinates(query_v[p])
             for p in range(3)
