@@ -75,7 +75,7 @@ CONTRASTIVE_DIM: 128
 # ============================================================
 # MAE MASKING
 # ============================================================
-MASK_RATIO: 0.75
+MASK_RATIO: 0.50
 MASKING_STRATEGY: "spatial"  # "random", "spatial", "particle", "ghost_aware"
 
 # Spatial masking options
@@ -112,7 +112,7 @@ SAMPLER_CHAIN:
   # Stage 2: Importance sampling
   - name: "importance_filter"
     type: importance
-    max_points: 500000
+    max_points: 1000
     true_weight: 5.0
     min_true_fraction: 0.3
 
