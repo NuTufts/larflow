@@ -105,7 +105,8 @@ namespace prep {
    */
   void MCKeypointMaker::process( 
         larcv::IOManager& iolcv,
-	      larlite::storage_manager& ioll )
+	      larlite::storage_manager& ioll,
+        ublarcvapp::mctools::MCPixelLabelMaker* pmcpixmaker )
   {
     
     auto ev_adc      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,_adc_image_treename);
@@ -146,9 +147,19 @@ namespace prep {
              *ev_mcshower,
              *ev_mctruth );
 
-    ublarcvapp::mctools::MCPixelLabelMaker mcpixmaker;
-    mcpixmaker.process( ioll, iolcv, "wiremc");
-    _adjust_photon_keypoints( 5.0, 0.5, *_mcpg, mcpixmaker._pixels_v);
+    bool local_pmcpixmaker = false;
+    if ( pmcpixmaker==nullptr ) {
+      LARCV_INFO() << "Make own MCPixelLabels for keypoints" << std::endl;
+      pmcpixmaker = new ublarcvapp::mctools::MCPixelLabelMaker;
+      local_pmcpixmaker = true;
+      pmcpixmaker->process( ioll, iolcv, "wiremc");
+    }
+    _adjust_photon_keypoints( 1.0, 5, 0.5, *_mcpg, pmcpixmaker->_pixels_v);
+
+    if ( local_pmcpixmaker ) {
+      delete pmcpixmaker;
+      pmcpixmaker = nullptr;
+    }
 
     // refine the points to sit on the nearest true spacepoint that matches its trackid
     //_move_floating_keypoints( match_proposals );
@@ -1394,6 +1405,7 @@ namespace prep {
 
   void MCKeypointMaker::_adjust_photon_keypoints( 
     float edep_cluster_threshold,
+    int edep_cluster_size_threshold,
     float edep_point_threshold,
     ublarcvapp::mctools::MCParticleGraph& mcpg,
     ublarcvapp::mctools::EventMCPixelLabels& pixel3d)
@@ -1410,6 +1422,7 @@ namespace prep {
     std::vector<long> shower_trackids;
     std::vector< std::vector<float> > shower_momenta_dir;
     std::vector< std::vector<float> > shower_start;
+    std::vector< std::vector<float> > shower_origin_v;
 
     for ( auto& node : mcpg.node_v ) {
       if ( abs(node.pid)==11 || node.pid==22 ) {
@@ -1436,6 +1449,7 @@ namespace prep {
           shower_trackids.push_back( node.tid );
           shower_momenta_dir.push_back( showerdir );
           shower_start.push_back( node.first_edep_pos );
+          shower_origin_v.push_back( node.start );
         }
       }
     }
@@ -1468,17 +1482,19 @@ namespace prep {
 
       std::vector<float> showerdir = shower_momenta_dir.at(ishower);
       std::vector<float> showerpos = shower_start.at(ishower);
+      std::vector<float> shower_origin = shower_origin_v.at(ishower);
 
       std::vector< std::vector<float> > points_v;
       std::vector< std::vector<float> > edep_vv;
       for ( auto const& pix3d : pixel3d._triplets_v ) {
         auto it_id = pix3d.trackids.find( showerid );
         if ( it_id!=pix3d.trackids.end() ) {
+          //std::cout << "[pid=" << showerid << "] pos[0]=" << pix3d.pos[0] << " pos_reco[0]=" << pix3d.pos_reco[0] << std::endl;
           std::vector<float> pos(3,0);
           std::vector<float> edep_v(3,0);
           int nedep_above_threshold = 0;
           for (int i=0; i<3; i++) {
-            pos[i] = pix3d.pos_reco[i];
+            pos[i]    = pix3d.pos_reco[i];
             edep_v[i] = pix3d.edep[i];
             if ( edep_v[i]>edep_point_threshold )
               nedep_above_threshold++;
@@ -1511,6 +1527,7 @@ namespace prep {
       for ( int icluster=0; icluster<nclusters; icluster++ ){
         std::vector<float> edep_planesum(3,0.0);
         auto const& cluster = cluster_v.at(icluster);
+
         for (int ihit=0; ihit<(int)cluster.hitidx_v.size(); ihit++) {
           auto hitidx = cluster.hitidx_v.at(ihit);
           auto const& hitedep = edep_vv.at(hitidx);
@@ -1527,18 +1544,36 @@ namespace prep {
           }
         }
 
-        LARCV_INFO() << "   cluster edep: " 
+        LARCV_INFO() << "[photon id=" << showerid << "] "
+          << "   cluster edep: " 
           <<  edep_planesum[0] << ", "
           <<  edep_planesum[1] << ", "
           <<  edep_planesum[2] << " MeV"
           << " nabove=" << nabove_threshold_planes
+          << " numhits=" << cluster.hitidx_v.size()
           << std::endl;
+
+        if ( cluster.hitidx_v.size()<edep_cluster_size_threshold )
+          continue;
 
         if ( nabove_threshold_planes>=2 ) {
           // qualifying cluster, get most upstream position
           for ( auto& testpt : cluster.points_v ) {
+            std::vector<float> shower_forward(3,0);
+            for (int i=0; i<3; i++)
+              shower_forward[i] = shower_origin[i] + 10.0*showerdir[i];
             float s = larflow::recoutils::pointRayProjection3f( showerpos, showerdir, testpt );
-            if ( s < min_s ) {
+            float s_origin = larflow::recoutils::pointRayProjection3f( shower_origin, showerdir, testpt );
+            float r_origin = larflow::recoutils::pointLineDistance3f( shower_origin, shower_forward, testpt );
+            // std::cout << "  [photon id=" << showerid << "] "
+            //            << "x=" << testpt[0]
+            //           << " test-photon-cluster: s=" << s 
+            //           << " s_origin=" << s_origin 
+            //           << " r_origin=" 
+            //           << r_origin 
+            //           << " ratio=" << r_origin/s_origin
+            //           << std::endl;
+            if ( s < min_s && s_origin>0.0 && r_origin/s_origin<0.5 ) {
               min_s = s;
               most_upstream_pt = testpt;
               found_qualifying_pt = true;

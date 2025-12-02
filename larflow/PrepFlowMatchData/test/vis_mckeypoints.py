@@ -9,19 +9,17 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 parser = argparse.ArgumentParser("Visualize HDF5 output from MCPixelLabels")
-parser.add_argument("-ipt", "--input-points",required=True,type=str,help="Input HDF5 file.")
-parser.add_argument("-ikp", "--input-keypoints",required=True,type=str,help="Input HDF5 file.")
-parser.add_argument("-e",   "--entry",    required=True, type=int, help="Entry")
-parser.add_argument("-c",   "--colorby",  default='trackid', help="Color mode. Option: [instance,ancestor,edep]")
-parser.add_argument("-p",   "--pos-mode", default="reco",type=str,help="Position mode. Option: [true,reco]")
-parser.add_argument("-d",   "--use-data", action='store_true', default=False, help="If given, plot the data spacepoints")
+parser.add_argument("-i", "--input-h5",required=True,type=str,help="Input HDF5 file.")
+parser.add_argument("-e", "--entry",    required=True, type=int, help="Entry")
+parser.add_argument("-c", "--colorby",  default='trackid', help="Color mode. Option: [instance,ancestor,edep]")
+parser.add_argument("-p", "--pos-mode", default="reco",type=str,help="Position mode. Option: [true,reco]")
+parser.add_argument("-d", "--use-data", action='store_true', default=False, help="If given, plot the data spacepoints")
 args = parser.parse_args()
 
 import lardly
 from lardly.detectoroutline import DetectorOutline
 
-fh5    = h5py.File(args.input_points, 'r')
-fh5_kp = h5py.File(args.input_keypoints,'r')
+fh5    = h5py.File(args.input_h5, 'r')
 
 opacity=0.8
 marker_size=2.0
@@ -90,7 +88,7 @@ if not args.use_data:
 else:
     triplet_truth = fh5[f"{entry_groupname}/triplet_data"]
     pos_var_opt='true'
-mckeypoints   = fh5_kp[f"{entry_groupname}/mckeypoints"]
+mckeypoints   = fh5[f"{entry_groupname}/mckeypoints"]
 
 # triplet_data columns
 columns = ['pos',
@@ -106,7 +104,7 @@ columns = ['pos',
     'tick',
     'row']
 if args.use_data:
-    columns += ['hasmatch','kpscores','ssnet_label','ssnet_boundary','ssnet_weight']
+    columns += ['hasmatch','kpscores','ssnet_label','ssnet_boundary','ssnet_weight','pixval']
 
 
 data = {}
@@ -126,17 +124,33 @@ for col in kpcols:
     print(col,": ",kpdata[col].shape)
 
 detdata = DetectorOutline()
-customdata = np.concatenate( [data['pid'],data['trackid'],data['aid'],data['edep']],axis=1 )
+
+if not args.use_data:
+    hovertemplate = """
+    <b>x</b>: %{x:.1f}<br>
+    <b>y</b>: %{y:.1f}<br>
+    <b>z</b>: %{z:.1f}<br>
+    <b>PID</b>:  %{customdata[0]:d}<br>
+    <b>TID</b>:  %{customdata[1]:d}<br>
+    <b>AID</b>:  %{customdata[2]:d}<br>
+    <b>edep</b>: %{customdata[3]:.3f}, %{customdata[4]:.3f} , %{customdata[5]:.3f}  MeV<br>
+    """
+    customdata = np.concatenate( [data['pid'],data['trackid'],data['aid'],data['edep']],axis=1 )
+else:
+    hovertemplate = """
+    <b>x</b>: %{x:.1f}<br>
+    <b>y</b>: %{y:.1f}<br>
+    <b>z</b>: %{z:.1f}<br>
+    <b>PID</b>:  %{customdata[0]:d}<br>
+    <b>TID</b>:  %{customdata[1]:d}<br>
+    <b>AID</b>:  %{customdata[2]:d}<br>
+    <b>edep</b>: %{customdata[3]:.3f}, %{customdata[4]:.3f} , %{customdata[5]:.3f}  MeV<br>
+    <b>pixval</b>: %{customdata[6]:.3f}, %{customdata[7]:.3f} , %{customdata[8]:.3f}  MeV<br>
+    <b>Wires</b>: (%{customdata[9]:d}, %{customdata[10]:d} , %{customdata[11]:d})<br>
+    <b>tick</b>: %{customdata[12]:d}
+    """
+    customdata = np.concatenate( [data['pid'],data['trackid'],data['aid'],data['edep'],data['pixval'],data['uwire'],data['vwire'],data['ywire'],data['tick']],axis=1 )
 print("customdata: ",customdata.shape)
-hovertemplate = """
-<b>x</b>: %{x:.1f}<br>
-<b>y</b>: %{y:.1f}<br>
-<b>z</b>: %{z:.1f}<br>
-<b>PID</b>:  %{customdata[0]:d}<br>
-<b>TID</b>:  %{customdata[1]:d}<br>
-<b>AID</b>:  %{customdata[2]:d}<br>
-<b>edep</b>: %{customdata[3]:.3f}, %{customdata[4]:.3f} , %{customdata[5]:.3f}  MeV<br>
-"""
 
 kpcustom = np.concatenate( (kpdata['pid'].reshape(-1,1), 
     kpdata['trackid'].reshape(-1,1), 
@@ -283,9 +297,9 @@ for ikptype in kptypes:
     kptype_pos  = kpdata['pos'][kptype_mask[:],:]
     kptype_custom = kpcustom[kptype_mask[:],:]
 
-    msize = 3.0
+    msize = 5.0
     if ikptype==0:
-        msize = 6.0
+        msize = 8.0
 
     kp_plot = {
         "type":"scatter3d",

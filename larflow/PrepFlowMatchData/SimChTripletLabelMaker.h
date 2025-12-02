@@ -40,6 +40,8 @@ public:
 
   void close_hdf_file();
 
+  void save_truth_tripletinfo( bool saveit ) { _save_truth_triplet_info=saveit; };
+
   void save_entry( std::string groupname_prefix );
 
   void save_entry_to_hdf( 

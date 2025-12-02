@@ -114,7 +114,6 @@ namespace prep {
     _final_keypoint_list.clear();
 
     _mcpgraph.buildgraph(ioll);
-
     _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, _psce );
 
     make_reco_triplets(iolcv);
@@ -125,7 +124,7 @@ namespace prep {
     _mckpmaker.set_spacecharge_instance( _psce );
     _mckpmaker.setADCimageTreeName( "wiremc" );
     _mckpmaker.clear();
-    _mckpmaker.process( iolcv, ioll );
+    _mckpmaker.process( iolcv, ioll, &_mcpixelmaker );
 
     adjust_keypoints( _mckpmaker.getMCKeypoint(), 
       _ev_reco_triplets,
@@ -397,6 +396,8 @@ namespace prep {
 
       std::vector<float> mom_dir(3,0);
       std::vector<float> orig_pt(3,0);
+      std::vector<float> start_pt = pnode->start;
+
       float pnorm = 0;
       for (int i=0; i<3; i++) {
         mom_dir[i] = pnode->mom4[1+i];
@@ -465,9 +466,14 @@ namespace prep {
 
         if ( nabove_threshold_planes>=2 ) {
           // qualifying cluster, get most upstream position
+          std::vector<float> forwardpt(3,0);
+          for (int i=0; i<3; i++)
+            forwardpt[i] = orig_pt[i] + mom_dir[i]*10.0;
+
           for ( auto& testpt : cluster.points_v ) {
             float s = larflow::recoutils::pointRayProjection3f( kppos, mom_dir, testpt );
-            if ( s < min_s ) {
+            float r = larflow::recoutils::pointLineDistance3f( kppos, forwardpt, testpt );
+            if ( s < min_s && s>0.0 && r/s<0.5) {
               min_s = s;
               most_upstream_pt = testpt;
               found_qualifying_pt = true;
@@ -765,6 +771,7 @@ namespace prep {
     size_t n_reco_triplets = _ev_reco_triplets._triplets_v.size();
     std::vector< std::vector<float> > reco_pos(n_reco_triplets);
     std::vector< std::vector<float> > reco_edep(n_reco_triplets);
+    std::vector< std::vector<float> > reco_pixval(n_reco_triplets);
     std::vector<int>   reco_uwire(n_reco_triplets,0);
     std::vector<int>   reco_vwire(n_reco_triplets,0);
     std::vector<int>   reco_ywire(n_reco_triplets,0);
@@ -822,12 +829,19 @@ namespace prep {
         (float)tripinfo.edep[2]
       };
 
-      reco_pos[idx]   = rpos;
-      reco_edep[idx]  = edep;
-      reco_uwire[idx] = tripinfo.imgcoord[0];
-      reco_vwire[idx] = tripinfo.imgcoord[1];
-      reco_ywire[idx] = tripinfo.imgcoord[2];
-      reco_tick[idx]  = tripinfo.imgcoord[4];
+      std::vector<float> pixval = {
+        (float)tripinfo.pixval[0],
+        (float)tripinfo.pixval[1],
+        (float)tripinfo.pixval[2]
+      };
+
+      reco_pos[idx]    = rpos;
+      reco_edep[idx]   = edep;
+      reco_pixval[idx] = pixval;
+      reco_uwire[idx]  = tripinfo.imgcoord[0];
+      reco_vwire[idx]  = tripinfo.imgcoord[1];
+      reco_ywire[idx]  = tripinfo.imgcoord[2];
+      reco_tick[idx]   = tripinfo.imgcoord[4];
       reco_hasmatch[idx] = tripinfo.hasmatch;
 
       reco_kpscores[idx] = tripinfo.kpscores;
@@ -848,6 +862,7 @@ namespace prep {
     // Write datasets with compression (level 6, chunk size 10000)
     dump_compressed( file, recotriplet_groupname+"/pos",      reco_pos );
     dump_compressed( file, recotriplet_groupname+"/edep",     reco_edep );
+    dump_compressed( file, recotriplet_groupname+"/pixval",   reco_pixval );
     dump_compressed( file, recotriplet_groupname+"/uwire",    reco_uwire );
     dump_compressed( file, recotriplet_groupname+"/vwire",    reco_vwire );
     dump_compressed( file, recotriplet_groupname+"/ywire",    reco_ywire );

@@ -32,6 +32,7 @@ namespace ublarcvapp {
 namespace mctools {
   class MCParticleGraph;
   class EventMCPixelLabels;
+  class MCPixelLabelMaker;
 }
 }
 
@@ -78,7 +79,8 @@ namespace prep {
     virtual ~MCKeypointMaker();
 
     void process( larcv::IOManager& iolcv,
-                  larlite::storage_manager& ioll );
+                  larlite::storage_manager& ioll,
+                  ublarcvapp::mctools::MCPixelLabelMaker* pmcpixmaker=nullptr );
     
     void process( const std::vector<larcv::Image2D>&    adc_v,
                   const std::vector<larcv::Image2D>&    badch_v,
@@ -131,6 +133,7 @@ namespace prep {
 
     void _adjust_photon_keypoints( 
       float edep_cluster_threshold,
+      int edep_cluster_size_threshold,
       float edep_point_threshold,
       ublarcvapp::mctools::MCParticleGraph& mcpg,
       ublarcvapp::mctools::EventMCPixelLabels& pixel3d);
