@@ -609,6 +609,8 @@ namespace prep {
       it_count->second += 1;
     }
 
+    make_low_energy_deposit_labels( 15 );
+
     LARCV_INFO() << "Class Counts" << std::endl;
     for (int i=0; i<7; i++)
       LARCV_INFO() << "  ssnet[" << i << "] " << class_counts[i] << std::endl;
@@ -846,6 +848,65 @@ namespace prep {
       break;
     };
     return ssnet_label;
+  }
+
+  /**
+   * @brief cluster all true shower deposits and assign small clusters with "low energy deposit" label
+   * 
+   */
+  void SimChTripletLabelMaker::make_low_energy_deposit_labels( int npts_threshold )
+  {
+    std::vector< std::vector<float> > true_shower_pts;
+    std::vector< int > reco_triplet_vector_index;
+
+    true_shower_pts.reserve( _ev_reco_triplets._triplets_v.size() );
+    reco_triplet_vector_index.reserve( _ev_reco_triplets._triplets_v.size() );
+
+    int index = 0;
+    for ( auto& reco_triplet : _ev_reco_triplets._triplets_v ) {
+      int has_shower_pid = 0;
+      for ( auto& pdgcode : reco_triplet.pids ) {
+        if ( abs(pdgcode)==11 || abs(pdgcode)==22 ) {
+          has_shower_pid++;
+        }
+      }
+      if ( has_shower_pid>0 ) {
+        std::vector<float> pos(3,0);
+        for (int i=0; i<3; i++)
+          pos[i] = reco_triplet.pos_reco[i];
+        true_shower_pts.push_back( pos );
+        reco_triplet_vector_index.push_back(index);
+      } 
+      index++;
+    }
+
+    float maxdist = 1.0;
+    int minsize = 3;
+    int maxkd = 10;
+    std::vector< larflow::recoutils::cluster_t > cluster_v;
+    larflow::recoutils::cluster_sdbscan_spacepoints( true_shower_pts, cluster_v, maxdist, minsize, maxkd);
+    int nclusters = cluster_v.size(); // skip the last cluster which are noise points
+
+    std::vector<int> above_thresh( reco_triplet_vector_index.size(), 0 );
+
+    for (size_t icluster=0; icluster<cluster_v.size(); icluster++) {
+      auto& cluster = cluster_v.at(icluster);
+      int npts = cluster.points_v.size();
+      if ( npts>=npts_threshold ) {
+        // mark hits which are part of above threshold clusters
+        for (auto& hitidx : cluster.hitidx_v ) {
+          above_thresh.at(hitidx) = 1;
+        }
+      }
+    }
+
+    for ( size_t ihit=0; ihit<reco_triplet_vector_index.size(); ihit++ ) {
+      if ( above_thresh[ihit]==0 ) {
+        int hitidx = reco_triplet_vector_index[ihit];
+        _ev_reco_triplets._triplets_v.at( hitidx ).ssnetlabel = 8; // assign LED Label
+      }
+    }
+
   }
 
   void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )

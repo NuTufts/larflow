@@ -87,6 +87,8 @@ public:
     ublarcvapp::mctools::MCParticleGraph& mcpg,
     larflow::prep::TripletLabels_t& triplet );
 
+  void make_low_energy_deposit_labels( int npts_threshold );
+
   /// Helper function to write compressed HDF5 datasets
   template<typename T>
   void dump_compressed( HighFive::File& file,
