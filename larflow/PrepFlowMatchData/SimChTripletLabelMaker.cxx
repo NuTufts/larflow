@@ -597,6 +597,7 @@ namespace prep {
           }
         }
         triplet.ssnetlabel = get_ssnet_class_label( pid_maxKE );
+        get_refined_shower_class_label( mcpg, triplet );
       }
       
       // add to class counts for weight calculation
@@ -680,6 +681,124 @@ namespace prep {
   }
 
   /**
+   * @brief Refine shower-labeled points based on creation process
+   * 
+   * For initial ssnet labels, 'electron' and 'photon', we refine their
+   * class label into 
+   *  - primary electron from nu interaction or cosmic generation
+   *  - electron from muon decay (Michel electron), so always secondary
+   *  - photon that is primary or from some kind of decay
+   *  - delta ray showers (regardless of electron or photon)
+   *  - "LED": low energy deposits (usually products from brem photons from showers).
+   * 
+   * We can get almost all labels from mcparticlegraph object. 
+   * For low energy deposits, we should probably cluster true spacepoints and for spatially small
+   *   clusters, maybe measured by 1st principal component length, mark them as "LED".
+  */
+  int SimChTripletLabelMaker::get_refined_shower_class_label( 
+    ublarcvapp::mctools::MCParticleGraph& mcpg,
+    larflow::prep::TripletLabels_t& triplet )
+  {
+
+    // in each triplet, which represents the label for a candidate spacepoint,
+    // we may should have one or more trackids associated to it.
+    
+    // first we count number of non-shower and shower pdg codes associated to this triplet
+    int n_shower = 0;
+    int n_nonshower = 0;
+    int n_nonlabels = 0;
+    for ( auto& pdgcode : triplet.pids ) {
+      if ( pdgcode==0 || pdgcode==-1 ) {
+        n_nonlabels++;
+      }
+      else if ( abs(pdgcode)==11 || abs(pdgcode)==22 ) {
+        n_shower++;
+      }
+      else {
+        n_nonshower++;
+      }
+    }
+
+    // if we have one or more non-shower and non-null label, then we do nothing.
+    if (n_nonshower>=1 ) {
+      return triplet.ssnetlabel;
+    }
+
+    // if no shower pdg codes found, also do nothing -- this is not a shower
+    if ( n_shower==0 )
+      return triplet.ssnetlabel;
+
+    // now we try to infer the creation process of this spacepoint using the mcparticlegraph
+    // lets loop over the trackids
+    int current_shower_process_class = -1;
+    // 0: shower
+    // 1: michel
+    // 2: delta
+    for ( auto& trackid : triplet.trackids ) {
+      ublarcvapp::mctools::MCPGNode* node = mcpg.findTrackID( trackid );
+      if ( node==nullptr ) {
+        //LARCV_NORMAL() << "triplet_label=" << triplet.ssnetlabel << " no trackid for " << trackid << std::endl;
+        continue;
+      }
+
+      ublarcvapp::mctools::MCPGNode* mothernode   = mcpg.findTrackID( node->mtid );
+      ublarcvapp::mctools::MCPGNode* ancestornode = mcpg.findTrackID( node->aid );
+      std::string process = node->process;
+
+      // we have a node, determine shower process class for this trackid
+      int shower_process_class = -1;
+      int mother_pdg= -1;
+      int ancestor_pdg = -1;
+      if ( mothernode )
+        mother_pdg = mothernode->pid;
+      if ( ancestornode )
+        ancestor_pdg = ancestornode->pid;
+      
+      //LARCV_NORMAL() << "trackid=" << trackid << "  mother_pdg=" << mother_pdg << " ancestor_pdg=" << ancestor_pdg 
+      //  << " process=" << process << std::endl;
+
+      // look for michel electrons vs. deltas from muons
+      if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
+        // mother is a muon or ancestor is a muon
+        if ( process=="Decay" || process=="muMinusCaptureAtRest")
+          shower_process_class = 1;
+        else
+          shower_process_class = 2;
+      }
+      else if ( process=="muIoni" || process=="muBrems"  || process=="muPairProd" || process=="eBrem" || process=="muBrem") {
+        shower_process_class = 2;
+      }
+      else {
+        // everything else
+        shower_process_class = 0;
+      }
+
+      //LARCV_NORMAL() << "  shower_process_class=" << shower_process_class << std::endl;
+
+      // update with label priority
+      if ( shower_process_class>=0 && (current_shower_process_class==-1 || shower_process_class<current_shower_process_class) ) {
+        current_shower_process_class = shower_process_class;
+      }
+
+    }
+
+    if ( current_shower_process_class==1 ) {
+      // michel electron shower
+      triplet.ssnetlabel = 6;
+    }
+    else if ( current_shower_process_class==2 ) {
+      // delta shower
+      triplet.ssnetlabel = 7;
+    }
+    else if ( current_shower_process_class==-1 ) {
+      // likely a fragment mc backtracker didn't associate
+      triplet.ssnetlabel = 8;
+    }
+      
+    return triplet.ssnetlabel;
+  }
+
+  /**
    * @brief return class index for different particle types
    * 
    * The labels we define:
@@ -690,7 +809,10 @@ namespace prep {
    *  * [3]: muon (larcv::kROIMuminus)
    *  * [4]: proton (larcv::kROIProton)
    *  * [5]: pion (larcv::kROIPiminus)
-   *  * [6]: other (the rest of the labels)
+   *  * [6]: michel electron
+   *  * [7]: delta shower
+   *  * [8]: low energy deposit
+   *  * [9]: other (the rest of the labels)
    */
   int SimChTripletLabelMaker::get_ssnet_class_label( int pid ) 
   {
@@ -698,29 +820,29 @@ namespace prep {
     switch( pid ) {
     case 11:
     case -11:
-      ssnet_label = 1;
+      ssnet_label = 1; // electron shower
       break;
     case 22:
-      ssnet_label = 2;
+      ssnet_label = 2; // photon shower
       break;
     case 13:
     case -13:
-      ssnet_label = 3;
+      ssnet_label = 3; // muon
       break;
     case 2212:
     case 2112:
       // note: edep labeled as neutrons are protons
       // created by neutron interactions
-      ssnet_label = 4;
+      ssnet_label = 4; // proton
       break;
     case 211:
     case -211:
     case 321:
     case -321:
-      ssnet_label = 5;
+      ssnet_label = 5; // pion/meson
       break;
     default:
-      ssnet_label = 6;
+      ssnet_label = 9; // other
       break;
     };
     return ssnet_label;

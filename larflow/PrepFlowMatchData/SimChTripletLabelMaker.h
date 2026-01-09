@@ -83,6 +83,10 @@ public:
 
   int get_ssnet_class_label( int pid );
 
+  int get_refined_shower_class_label( 
+    ublarcvapp::mctools::MCParticleGraph& mcpg,
+    larflow::prep::TripletLabels_t& triplet );
+
   /// Helper function to write compressed HDF5 datasets
   template<typename T>
   void dump_compressed( HighFive::File& file,
