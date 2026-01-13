@@ -124,6 +124,7 @@ namespace prep {
     _mckpmaker.set_spacecharge_instance( _psce );
     _mckpmaker.setADCimageTreeName( "wiremc" );
     _mckpmaker.clear();
+    //_mckpmaker.set_verbosity(larcv::msg::kINFO);
     _mckpmaker.process( iolcv, ioll, &_mcpixelmaker );
 
     adjust_keypoints( _mckpmaker.getMCKeypoint(), 
@@ -704,7 +705,7 @@ namespace prep {
 
     // in each triplet, which represents the label for a candidate spacepoint,
     // we may should have one or more trackids associated to it.
-    
+
     // first we count number of non-shower and shower pdg codes associated to this triplet
     int n_shower = 0;
     int n_nonshower = 0;
@@ -733,6 +734,8 @@ namespace prep {
     // now we try to infer the creation process of this spacepoint using the mcparticlegraph
     // lets loop over the trackids
     int current_shower_process_class = -1;
+    int current_process_pdg = -1;
+
     // 0: shower
     // 1: michel
     // 2: delta
@@ -755,12 +758,15 @@ namespace prep {
         mother_pdg = mothernode->pid;
       if ( ancestornode )
         ancestor_pdg = ancestornode->pid;
-      
-      //LARCV_NORMAL() << "trackid=" << trackid << "  mother_pdg=" << mother_pdg << " ancestor_pdg=" << ancestor_pdg 
-      //  << " process=" << process << std::endl;
 
       // look for michel electrons vs. deltas from muons
-      if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
+      if ( process=="primary" ) {
+        shower_process_class = 0; // primary
+      }
+      else if ( process=="Decay" && node->pid==22 ) {
+        shower_process_class = 0; // primary
+      }
+      else if ( (mothernode && abs(mothernode->pid)==13) || (ancestornode && abs(ancestornode->pid)==13) ) {
         // mother is a muon or ancestor is a muon
         if ( process=="Decay" || process=="muMinusCaptureAtRest")
           shower_process_class = 1;
@@ -772,19 +778,32 @@ namespace prep {
       }
       else {
         // everything else
-        shower_process_class = 0;
+        shower_process_class = -1; // dont do anything
       }
-
-      //LARCV_NORMAL() << "  shower_process_class=" << shower_process_class << std::endl;
 
       // update with label priority
       if ( shower_process_class>=0 && (current_shower_process_class==-1 || shower_process_class<current_shower_process_class) ) {
         current_shower_process_class = shower_process_class;
+        current_process_pdg = node->pid;
       }
+
+      // LARCV_NORMAL() << "trackid=" << trackid << "  mother_pdg=" << mother_pdg << " ancestor_pdg=" << ancestor_pdg 
+      //                 << " process=" << process << std::endl;
+      // LARCV_NORMAL() << "  shower_process_class=" << shower_process_class << " current=" << current_shower_process_class << std::endl;
 
     }
 
-    if ( current_shower_process_class==1 ) {
+
+    //LARCV_NORMAL() << "  final process class=" << current_shower_process_class << std::endl;
+
+    if ( current_shower_process_class==0 ) {
+      // do nothing, accept PID-based label
+      if ( current_process_pdg==22 )
+        triplet.ssnetlabel = 2;
+      else
+        triplet.ssnetlabel = 1;
+    }
+    else if ( current_shower_process_class==1 ) {
       // michel electron shower
       triplet.ssnetlabel = 6;
     }
@@ -795,6 +814,9 @@ namespace prep {
     else if ( current_shower_process_class==-1 ) {
       // likely a fragment mc backtracker didn't associate
       triplet.ssnetlabel = 8;
+    }
+    else {
+      triplet.ssnetlabel = -1;
     }
       
     return triplet.ssnetlabel;

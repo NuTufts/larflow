@@ -95,8 +95,8 @@ entry_groupname = f"entry_{args.entry}"
 colorby = args.colorby
 pos_var_opt = args.pos_mode
 
-#NMAX_RECO_PTS=50000
-NMAX_RECO_PTS=-1
+NMAX_RECO_PTS=100000
+#NMAX_RECO_PTS=-1
 
 if not args.use_data:
     triplet_truth = fh5[f"{entry_groupname}/triplet_truth"]
@@ -254,19 +254,33 @@ elif colorby in ['kpnu','kptrackstart','kptrackend','kpshower','kpmichel','kpdel
     simch_plots.append( simch_plot )
 elif colorby == 'ssnet-label':
     for iclass in range(NSSNET_CLASSES):
+        #if iclass in [0]:
+        #    continue
         ssnet_name = ssnet_class_names[iclass]
         ssnet_labels = source['ssnet_label'][:,0]
         ssnet_mask = ssnet_labels==iclass
         xcolor = ssnet_class_colors[iclass]
+        xpos = source[pos_var][ssnet_mask[:],:]
+        xcustom = customdata[ssnet_mask[:],:]
+
+        if iclass==0 and xpos.shape[0]>NMAX_RECO_PTS:
+            rng = np.random.default_rng()
+            all_shuffled_indices = rng.permutation(xpos.shape[0])
+            select_indices = all_shuffled_indices[:NMAX_RECO_PTS]
+            indices = np.zeros(xpos.shape[0],dtype=np.int64)
+            indices[select_indices] = 1
+            xpos = xpos[indices==1,:]
+            xcustom = xcustom[indices==1,:]
+            
         simch_plot = {
             "type":"scatter3d",
-            "x":source[pos_var][ssnet_mask[:],0],
-            "y":source[pos_var][ssnet_mask[:],1],
-            "z":source[pos_var][ssnet_mask[:],2],
+            "x":xpos[:,0],
+            "y":xpos[:,1],
+            "z":xpos[:,2],
             "mode":"markers",
             "name":f"{ssnet_name}[{iclass}]",
             "hovertemplate":hovertemplate,
-            "customdata":customdata[ssnet_mask[:],:],
+            "customdata":xcustom,
             "marker":{"color":xcolor,"opacity":opacity,"size":marker_size}
         }
         simch_plots.append(simch_plot)
