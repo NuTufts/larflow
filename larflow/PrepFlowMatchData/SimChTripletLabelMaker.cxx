@@ -38,17 +38,29 @@ namespace prep {
     int compression_level,
     size_t chunk_size )
   {
+
+    // HighFive::Chunking requires std::vector<hsize_t>
+    std::vector<hsize_t> chunk_dims;
+    std::vector<size_t> dims;
+
+    // Create dataset properties with compression
+    HighFive::DataSetCreateProps props;
+    props.add(HighFive::Deflate(compression_level));
+
+    // Determine chunk dimensions based on data structure
+    auto dataspace = HighFive::DataSpace::From(data);
+    dims = dataspace.getDimensions();
+
+    // Handle empty data - HDF5 chunk dimensions must be > 0
+    if (dims.empty() || dims[0] == 0) {
+      LARCV_WARNING() << "Skipping empty dataset: " << dataset_path
+                      << " (dims[0]=0)" << std::endl;
+      // Write without compression/chunking for empty datasets
+      file.createDataSet(dataset_path, data);
+      return;
+    }
+
     try {
-      // Create dataset properties with compression
-      HighFive::DataSetCreateProps props;
-      props.add(HighFive::Deflate(compression_level));
-
-      // Determine chunk dimensions based on data structure
-      auto dataspace = HighFive::DataSpace::From(data);
-      std::vector<size_t> dims = dataspace.getDimensions();
-
-      // HighFive::Chunking requires std::vector<hsize_t>
-      std::vector<hsize_t> chunk_dims;
 
       if (dims.size() == 1) {
         // 1D data: chunk along the single dimension
@@ -73,7 +85,10 @@ namespace prep {
 
     } catch (const HighFive::Exception& e) {
       LARCV_CRITICAL() << "Failed to write compressed dataset '"
-                       << dataset_path << "': " << e.what() << std::endl;
+                       << dataset_path << "': " << e.what() << std::endl
+                       << " ndims=" << dims.size()
+                       << std::endl;
+          
       throw;
     }
   }
@@ -1095,6 +1110,7 @@ namespace prep {
     int nkeypoints = _final_keypoint_list.size();
 
     std::vector< std::vector<float> > pos_appear(nkeypoints);
+    std::vector< std::vector<float> > startpos_appear(nkeypoints);
     std::vector< std::vector<int> >   imgcoord(nkeypoints);
     std::vector< int > kptype(nkeypoints);
     std::vector< int > kppid(nkeypoints);
@@ -1107,6 +1123,7 @@ namespace prep {
       kptype[ikp]     = kpd.kptype;
       kppid[ikp]      = kpd.pid;
       kptrackid[ikp]  = kpd.trackid;
+      startpos_appear[ikp] = kpd.startpt_appear;
       ikp++;
     }
 
@@ -1115,6 +1132,7 @@ namespace prep {
     dump_compressed( file, kp_groupname+"/kptype",   kptype);
     dump_compressed( file, kp_groupname+"/pid",      kppid);
     dump_compressed( file, kp_groupname+"/trackid",  kptrackid);
+    dump_compressed( file, kp_groupname+"/startpos", startpos_appear);
 
   }
 

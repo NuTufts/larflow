@@ -186,6 +186,7 @@ namespace prep {
     // //TTree* _label_tree; ///< ROOT TTree for storing labels
     std::vector< std::vector<float> > _kppos_v[6]; ///< container of true keypoint 3D positions in cm, for each of the 6 classes
     std::vector< std::vector<int> >   _kp_pdg_trackid_v[6]; ///< each entry maps (pdg, trackid) for truth meta-data matching
+    std::vector< std::vector<float> > _kp_startpos_v[6]; ///< creation point (with t0-shift + SCE)
     // //< we need to keep a list of primary pixels to limit the neutrino score field    
     // //std::vector< std::set<std::pair<int,int> > >  _primarypixels_v;
     

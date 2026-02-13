@@ -51,7 +51,8 @@ namespace prep {
     for (int i=0; i<6; i++) {
       _match_proposal_labels_v[i].clear();
       _kppos_v[i].clear();
-      _kp_pdg_trackid_v[i].clear();      
+      _kp_pdg_trackid_v[i].clear();  
+      _kp_startpos_v[i].clear();    
     }
 
     // so dumb that this is hard-coded.
@@ -403,6 +404,7 @@ namespace prep {
           kpd.row  = imgcoord[0];
           kpd.tick = meta0.pos_y(imgcoord[0]);
           kpd.keypt_true = pnode->first_tpc_pos;
+          kpd.startpt_appear = kpd.keypt_appear;
 
           if ( kpd.imgcoord.size()>0 ) {
             kpd_v.emplace_back( std::move(kpd) );            
@@ -430,6 +432,7 @@ namespace prep {
           kpd.row  = imgcoord[0];
           kpd.tick = meta0.pos_y(imgcoord[0]);
           kpd.keypt_true = pnode->first_tpc_pos;
+          kpd.startpt_appear = kpd.keypt_appear;
                                                                        
           if ( kpd.imgcoord.size()>0 ) {
             kpd_v.emplace_back( std::move(kpd) );
@@ -537,22 +540,21 @@ namespace prep {
       // float ave_toptwo = (pixsum_v[1]+pixsum_v[2])/2.0*0.0162;
       
       std::vector<float> start_reco(4,0.0);
-      if ( abs(pnode.pid)==11) {
-        start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3]);
-      }
-      else {
-        // bool applied = true;
-        // std::vector<double> pos_sce = psce->ApplySpaceChargeEffect(  pnode.first_tpc_pos[0],  pnode.first_tpc_pos[1],  pnode.first_tpc_pos[2], applied );
-        // for (int i=0; i<3; i++)
-        //   start_reco[i] = pos_sce[i];
-        // start_reco[3] = pnode.first_tpc_pos[3];
+      std::vector<float> creationpt_reco(4,0.0);
+
+      start_reco = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( pnode.start[0], pnode.start[1], pnode.start[2], pnode.start[3]);
+      creationpt_reco = start_reco;
+
+      if ( abs(pnode.pid)==22) {
         start_reco = pnode.first_tpc_pos;
       }
 
-
       kpd.keypt_appear.resize(3,0);
-      for (int i=0; i<3; i++)
-        kpd.keypt_appear[i] = start_reco[i];
+      kpd.startpt_appear.resize(3,0);
+      for (int i=0; i<3; i++) {
+        kpd.keypt_appear[i]   = start_reco[i];
+        kpd.startpt_appear[i] = creationpt_reco[i];
+      }
       LARCV_DEBUG() << "  shower startpt=(" << kpd.keypt_appear[0] << "," << kpd.keypt_appear[1] << "," << kpd.keypt_appear[2] << ")" << std::endl;
 
       std::vector<double> dpos(3,0);
@@ -743,7 +745,8 @@ namespace prep {
                                                                                                  pos_start_tpc[1],
                                                                                                  pos_start_tpc[2],                                                                                                  
                                                                                                  pos_start_tpc[3]*1.0e-3 );
-      kpd_start.keypt_appear = std::vector<float>{ (float)pos[0], (float)pos[1], (float)pos[2] };                                                                                       
+      kpd_start.keypt_appear = std::vector<float>{ (float)pos[0], (float)pos[1], (float)pos[2] };     
+      kpd_start.startpt_appear = kpd_start.keypt_appear;                                                                                  
 
       std::vector<int> imgcoord = 
             ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
@@ -778,6 +781,7 @@ namespace prep {
                                                                                                  pos_end_tpc[2],                                                                                                  
                                                                                                  pos_end_tpc[3]*1.0e-3 );
       kpd_end.keypt_appear = std::vector<float>{ (float)fendpos[0], (float)fendpos[1], (float)fendpos[2] };
+      kpd_end.startpt_appear = kpd_start.keypt_appear;
       imgcoord = 
         ublarcvapp::mctools::CrossingPointsAnaMethods::getFirstStepPosInsideImage( track, adc_v.front().meta(),
                                                                                        4050.0, false, 0.3, 0.1,
@@ -849,9 +853,11 @@ namespace prep {
         kpd.kptype  = larflow::prep::MCKeypoint::kNuVertex;
         kpd.keypt_true.resize(3,0);
         kpd.keypt_appear.resize(3,0);
+        kpd.startpt_appear.resize(3,0);
         for (int i=0; i<3; i++) {
           kpd.keypt_true[i]   = nupos[i];
           kpd.keypt_appear[i] = nupos_sce[i];
+          kpd.startpt_appear[i] = nupos_sce[i];
         }
         kpd.imgcoord.resize(4,0);
 
@@ -1618,6 +1624,7 @@ namespace prep {
     for ( auto const& kpd : _kpd_v ) {
       if ( kpd.kptype>=0 && kpd.kptype<6 ) {
         _kppos_v[ kpd.kptype ].push_back( kpd.keypt_appear );
+        _kp_startpos_v[ kpd.kptype ].push_back( kpd.startpt_appear );
         std::vector<int> pdg_trackid(2);
         pdg_trackid[0] = kpd.pid;
         pdg_trackid[1] = kpd.trackid;
@@ -1655,6 +1662,7 @@ namespace prep {
     int nkeypoints = _kpd_v.size();
 
     std::vector< std::vector<float> > pos_appear(nkeypoints);
+    std::vector< std::vector<float> > start_appear(nkeypoints);
     std::vector< std::vector<int> >   imgcoord(nkeypoints);
     std::vector< int > kptype(nkeypoints);
     std::vector< int > kppid(nkeypoints);
@@ -1662,7 +1670,8 @@ namespace prep {
 
     int ikp=0;
     for ( auto const& kpd : _kpd_v ) {
-      pos_appear[ikp] = kpd.keypt_appear;
+      pos_appear[ikp]   = kpd.keypt_appear;
+      start_appear[ikp] = kpd.startpt_appear;
       imgcoord[ikp]   = kpd.imgcoord;
       kptype[ikp]     = kpd.kptype;
       kppid[ikp]      = kpd.pid;
@@ -1675,6 +1684,7 @@ namespace prep {
     H5Easy::dump( file, groupname+"/kptype",   kptype);
     H5Easy::dump( file, groupname+"/pid",      kppid);
     H5Easy::dump( file, groupname+"/trackid",  kptrackid);
+    H5Easy::dump( file, groupname+"/startpos", start_appear);
 
     file.flush();
   }

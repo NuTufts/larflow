@@ -25,6 +25,7 @@ namespace prep {
     
     std::vector<float> keypt_true;   ///< 3D position of keypoint in cm
     std::vector<float> keypt_appear; ///< 3D position of keypoint as it appears in the wire data
+    std::vector<float> startpt_appear; ///< 3D position of particle start pt. usually the same as keypt_appear except for photons
 
     int tick;
     int row;
@@ -39,6 +40,7 @@ namespace prep {
     MCKeypoint()
     : keypt_true({0,0,0}),
       keypt_appear({0,0,0}),
+      startpt_appear({0,0,0}),
       tick(0),
       row(0),
       imgcoord({0,0,0,0}),
