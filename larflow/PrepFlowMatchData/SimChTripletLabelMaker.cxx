@@ -946,6 +946,177 @@ namespace prep {
 
   }
 
+  /**
+   * @brief Save MC particle tree information to HDF5 file
+   *
+   * Writes the full MCParticleGraph tree structure including true and
+   * SCE-corrected start positions, parentage, and daughter relationships.
+   * This information is used downstream for shower origin prediction.
+   *
+   * @param file HDF5 file reference
+   * @param groupname_prefix Prefix for HDF5 group path (e.g. "entry_0")
+   */
+  void SimChTripletLabelMaker::save_mc_particle_tree(
+    HighFive::File& file,
+    std::string groupname_prefix )
+  {
+
+    std::string mc_groupname = "/mc_particle_tree";
+    if ( groupname_prefix != "" ) {
+      mc_groupname = groupname_prefix + mc_groupname;
+    }
+    LARCV_INFO() << "create group: " << mc_groupname << std::endl;
+    file.createGroup(mc_groupname);
+
+    size_t nnodes = _mcpgraph.node_v.size();
+
+    // Per-particle 1D arrays
+    std::vector<int>   mc_trackid(nnodes, 0);
+    std::vector<int>   mc_pid(nnodes, 0);
+    std::vector<int>   mc_parent_trackid(nnodes, -1);
+    std::vector<int>   mc_origin(nnodes, 0);
+    std::vector<float> mc_energy_mev(nnodes, 0.0f);
+    std::vector<int>   mc_process_code(nnodes, -1);
+
+    // Per-particle 2D arrays (nnodes x 3)
+    std::vector< std::vector<float> > mc_start_pos(nnodes);
+    std::vector< std::vector<float> > mc_start_pos_sce(nnodes);
+
+    // Daughter relationship arrays
+    std::vector<int> mc_num_daughters(nnodes, 0);
+    std::vector<int> mc_daughter_start_indices(nnodes, 0);
+    std::vector<int> mc_daughter_trackids; // flattened
+
+    // Process string to integer mapping
+    // Common Geant4 processes in LArTPC simulation
+    auto map_process = [](const std::string& proc) -> int {
+      if      (proc == "primary")              return 0;
+      else if (proc == "Decay")                return 1;
+      else if (proc == "compt")                return 2;
+      else if (proc == "conv")                 return 3;
+      else if (proc == "phot")                 return 4;
+      else if (proc == "eBrem")                return 5;
+      else if (proc == "eIoni")                return 6;
+      else if (proc == "muIoni")               return 7;
+      else if (proc == "muBrems" || proc == "muBrem") return 8;
+      else if (proc == "muPairProd")           return 9;
+      else if (proc == "hIoni")                return 10;
+      else if (proc == "hadElastic")           return 11;
+      else if (proc == "neutronInelastic")     return 12;
+      else if (proc == "protonInelastic")      return 13;
+      else if (proc == "pi+Inelastic")         return 14;
+      else if (proc == "pi-Inelastic")         return 15;
+      else if (proc == "muMinusCaptureAtRest") return 16;
+      else if (proc == "nCapture")             return 17;
+      else if (proc == "annihil")              return 18;
+      else if (proc == "CoulombScat")          return 19;
+      else if (proc == "photonNuclear")        return 20;
+      else if (proc == "null")                 return -1;
+      else                                     return 99; // other/unknown
+    };
+
+    int daughter_offset = 0;
+    for (size_t inode = 0; inode < nnodes; inode++) {
+      auto const& node = _mcpgraph.node_v[inode];
+
+      mc_trackid[inode]        = node.tid;
+      mc_pid[inode]            = node.pid;
+      mc_parent_trackid[inode] = node.mtid;
+      mc_origin[inode]         = node.origin;
+      mc_energy_mev[inode]     = node.E_MeV;
+      mc_process_code[inode]   = map_process(node.process);
+
+      // True start position (first 3 elements of start vector)
+      std::vector<float> spos(3, 0.0f);
+      if (node.start.size() >= 3) {
+        spos[0] = node.start[0];
+        spos[1] = node.start[1];
+        spos[2] = node.start[2];
+      }
+      mc_start_pos[inode] = spos;
+
+      // SCE-corrected start position
+      std::vector<float> spos_sce(3, 0.0f);
+      if (node.start.size() >= 3 && _psce != nullptr) {
+        double x = (double)node.start[0];
+        double y = (double)node.start[1];
+        double z = (double)node.start[2];
+        std::vector<double> offsets = _psce->GetPosOffsets(x, y, z);
+        spos_sce[0] = (float)(x - offsets[0] + 0.7);
+        spos_sce[1] = (float)(y + offsets[1]);
+        spos_sce[2] = (float)(z + offsets[2]);
+      }
+      mc_start_pos_sce[inode] = spos_sce;
+
+      // Daughter relationships
+      mc_num_daughters[inode] = (int)node.daughter_v.size();
+      mc_daughter_start_indices[inode] = daughter_offset;
+      for (size_t idau = 0; idau < node.daughter_v.size(); idau++) {
+        if (node.daughter_v[idau] != nullptr) {
+          mc_daughter_trackids.push_back(node.daughter_v[idau]->tid);
+        } else if (idau < node.daughter_idx_v.size()) {
+          // Fallback: use daughter_idx_v to look up trackid
+          int didx = node.daughter_idx_v[idau];
+          if (didx >= 0 && didx < (int)_mcpgraph.node_v.size()) {
+            mc_daughter_trackids.push_back(_mcpgraph.node_v[didx].tid);
+          } else {
+            mc_daughter_trackids.push_back(-1);
+          }
+        } else {
+          mc_daughter_trackids.push_back(-1);
+        }
+      }
+      daughter_offset += (int)node.daughter_v.size();
+    }
+
+    // Write per-particle data
+    dump_compressed(file, mc_groupname + "/trackid",             mc_trackid);
+    dump_compressed(file, mc_groupname + "/pid",                 mc_pid);
+    dump_compressed(file, mc_groupname + "/parent_trackid",      mc_parent_trackid);
+    dump_compressed(file, mc_groupname + "/origin",              mc_origin);
+    dump_compressed(file, mc_groupname + "/start_pos",           mc_start_pos);
+    dump_compressed(file, mc_groupname + "/start_pos_sce",       mc_start_pos_sce);
+    dump_compressed(file, mc_groupname + "/energy_mev",          mc_energy_mev);
+    dump_compressed(file, mc_groupname + "/process_code",        mc_process_code);
+
+    // Write daughter relationship data
+    dump_compressed(file, mc_groupname + "/num_daughters",          mc_num_daughters);
+    dump_compressed(file, mc_groupname + "/daughter_start_indices", mc_daughter_start_indices);
+    if (mc_daughter_trackids.size() > 0) {
+      dump_compressed(file, mc_groupname + "/daughter_trackids",   mc_daughter_trackids);
+    } else {
+      // Write empty vector
+      std::vector<int> empty_vec;
+      file.createDataSet(mc_groupname + "/daughter_trackids", empty_vec);
+    }
+
+    // Write neutrino vertex info if available
+    if (_mcpgraph._nu_vertices_v.size() > 0) {
+      std::vector< std::vector<float> > nu_vertices;
+      nu_vertices.reserve(_mcpgraph._nu_vertices_v.size());
+      for (auto const& vtx : _mcpgraph._nu_vertices_v) {
+        std::vector<float> vtx3(3, 0.0f);
+        if (vtx.size() >= 3) {
+          vtx3[0] = vtx[0];
+          vtx3[1] = vtx[1];
+          vtx3[2] = vtx[2];
+        }
+        nu_vertices.push_back(vtx3);
+      }
+      dump_compressed(file, mc_groupname + "/nu_vertices", nu_vertices);
+    } else {
+      // Write empty 2D array placeholder
+      std::vector< std::vector<float> > empty_vtx;
+      file.createDataSet(mc_groupname + "/nu_vertices", empty_vtx);
+    }
+
+    LARCV_INFO() << "Wrote mc_particle_tree: " << nnodes
+                 << " nodes, " << mc_daughter_trackids.size()
+                 << " daughter entries, "
+                 << _mcpgraph._nu_vertices_v.size()
+                 << " neutrino vertices" << std::endl;
+  }
+
   void SimChTripletLabelMaker::export_as_hdf( std::string hdf_outfile )
   {
 
@@ -978,6 +1149,7 @@ namespace prep {
     save_entry_truetriplets( file, "" );
     save_entry_sparseimg( file, "" );
     save_entry_to_hdf( file, "" );
+    save_mc_particle_tree( file, "" );
 
     file.flush();
 
@@ -1326,6 +1498,7 @@ namespace prep {
     
     save_entry_sparseimg( *_hdf_file, groupname_prefix );
     save_entry_to_hdf( *_hdf_file, groupname_prefix );
+    save_mc_particle_tree( *_hdf_file, groupname_prefix );
     if ( _save_truth_triplet_info )
       save_entry_truetriplets( *_hdf_file, groupname_prefix );
 

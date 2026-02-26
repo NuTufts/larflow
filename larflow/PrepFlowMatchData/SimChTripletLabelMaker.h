@@ -50,10 +50,12 @@ public:
 
   void save_entry_sparseimg( HighFive::File& file, std::string groupname_prefix );
 
-  void save_entry_truetriplets( 
-    HighFive::File& file, 
+  void save_entry_truetriplets(
+    HighFive::File& file,
     std::string groupname_prefix );
-  
+
+  void save_mc_particle_tree( HighFive::File& file, std::string groupname_prefix );
+
   void make_truthlabels_fromsimch(
       larlite::storage_manager& ioll, 
       larcv::IOManager& iolcv,
