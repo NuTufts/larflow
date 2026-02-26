@@ -15,6 +15,7 @@
 #include "PrepMatchTriplets.h"
 #include "MCKeypointMaker.h"
 #include "EventTriplets_t.h"
+#include "ShowerFragmentOriginMaker.h"
 
 namespace HighFive {
   class File;
@@ -105,6 +106,7 @@ public:
   ublarcvapp::mctools::MCPixelLabelMaker _mcpixelmaker; ///< makes pixel3d objects from simch 
   larflow::prep::PrepMatchTriplets       _tripletmaker; ///< makes pixel3d objects from wireplane images
   larflow::prep::MCKeypointMaker         _mckpmaker;    ///< makes keypoint
+  larflow::prep::ShowerFragmentOriginMaker _shower_fragment_maker; ///< makes shower fragment training data
 
   larflow::prep::EventTriplets_t          _ev_reco_triplets;
 

@@ -17,6 +17,8 @@ set( HEADERS
   SimChTripletLabelMaker.h
   MCKeypoint.h
   MCKeypointMaker.h
+  ShowerFragmentOrigin.h
+  ShowerFragmentOriginMaker.h
   )
 
 add_library( ${LIBNAME} SHARED
@@ -33,6 +35,8 @@ add_library( ${LIBNAME} SHARED
   SimChTripletLabelMaker.cxx
   MCKeypoint.cxx
   MCKeypointMaker.cxx
+  ShowerFragmentOrigin.cxx
+  ShowerFragmentOriginMaker.cxx
   )
 
 # create a property to hold our headers

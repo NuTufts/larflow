@@ -142,13 +142,21 @@ namespace prep {
     //_mckpmaker.set_verbosity(larcv::msg::kINFO);
     _mckpmaker.process( iolcv, ioll, &_mcpixelmaker );
 
-    adjust_keypoints( _mckpmaker.getMCKeypoint(), 
-      _ev_reco_triplets,
+    adjust_keypoints( 
+      _mckpmaker.getMCKeypoint(),
+      _ev_reco_triplets, 
       _mcpgraph );
 
     make_keypoint_labels( 3.0, 0.01 );
 
     make_ssnet_labels( _mcpgraph );
+
+    _shower_fragment_maker.clear();
+    _shower_fragment_maker.build_shower_fragments(
+      _mckpmaker.getMCKeypoint(),
+      _mcpgraph,
+      _ev_reco_triplets,
+      1.0, 5, 0.5 );
 
   }
 
