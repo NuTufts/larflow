@@ -1510,6 +1510,8 @@ namespace prep {
     if ( _save_truth_triplet_info )
       save_entry_truetriplets( *_hdf_file, groupname_prefix );
 
+    _shower_fragment_maker.save_entry_to_hdf( *_hdf_file, groupname_prefix );
+
     _hdf_file->flush();
 
   }

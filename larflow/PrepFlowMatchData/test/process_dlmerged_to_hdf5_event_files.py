@@ -50,6 +50,8 @@ if end_entry<0 or end_entry>=nentries:
 else:
   end_entry = end_entry+1
 
+run_nentries = 2
+
 # process input file name. we will use it to name the invididual event files
 basefilename = os.path.basename( args.input_dlmerged )
 # remove .root extension if its there
@@ -74,8 +76,8 @@ for ientry in range(start_entry,end_entry):
   simchmaker.save_entry( hdf_entry_prefix )
   simchmaker.close_hdf_file()
 
-  #if True:
-  #  break
+  if ientry+1>=run_nentries:
+    break
 
 
 simchmaker.close_hdf_file()
