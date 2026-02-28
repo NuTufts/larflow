@@ -28,6 +28,19 @@ namespace prep {
 
     _fragment_data.clear();
 
+    // Check if a neutrino vertex keypoint exists (kNuVertex=0).
+    // This indicates that the neutrino interaction vertex is visible in the detector
+    // and can be used to help determine shower origins.
+    bool has_nu_vertex_keypoint = false;
+    for ( auto const& kp : keypoints ) {
+      if ( kp.kptype == MCKeypoint::kNuVertex ) {
+        has_nu_vertex_keypoint = true;
+        break;
+      }
+    }
+    LARCV_INFO() << "Has neutrino vertex keypoint: " << has_nu_vertex_keypoint << std::endl;
+    _fragment_data.nu_vertex_is_visible = (has_nu_vertex_keypoint) ? 1 : 0;
+
     // loop through mcparticlegraph particles, look for showers
     std::vector<long> shower_trackids;
     std::vector<int>  shower_pids;
@@ -311,7 +324,6 @@ namespace prep {
 
           _fragment_data.shower_startpt_v.push_back( most_upstream_pt );
           _fragment_data.shower_originpt_v.push_back( shower_origin );
-          
 
         }
 
@@ -432,7 +444,7 @@ namespace prep {
 
     if ( num_fragments == 0 ) {
       // Write empty datasets so readers don't fail
-      std::vector<int> empty_int;
+      int empty_int = 0;
       std::vector< std::vector<float> > empty_float2d;
       std::vector<long> empty_long;
       H5Easy::dump( file, groupname+"/trackid", empty_int );
@@ -442,6 +454,7 @@ namespace prep {
       H5Easy::dump( file, groupname+"/startpt", empty_float2d );
       H5Easy::dump( file, groupname+"/originpt", empty_float2d );
       H5Easy::dump( file, groupname+"/pret0shiftedoriginpt", empty_float2d );
+      H5Easy::dump( file, groupname+"/nu_vertex_is_visible", empty_int );
       H5Easy::dump( file, groupname+"/pointindices_flat", empty_long );
       H5Easy::dump( file, groupname+"/pointindices_counts", empty_int );
       return;
@@ -455,6 +468,7 @@ namespace prep {
     std::vector< std::vector<float> > startpt_v( num_fragments );
     std::vector< std::vector<float> > originpt_v( num_fragments );
     std::vector< std::vector<float> > pret0shiftedoriginpt_v( num_fragments );
+    int nu_vertex_is_visible = _fragment_data.nu_vertex_is_visible;
     std::vector<int> pointindices_counts( num_fragments );
 
     // Count total points for flat index array
@@ -490,6 +504,7 @@ namespace prep {
     H5Easy::dump( file, groupname+"/startpt", startpt_v );
     H5Easy::dump( file, groupname+"/originpt", originpt_v );
     H5Easy::dump( file, groupname+"/pret0shiftedoriginpt", pret0shiftedoriginpt_v );
+    H5Easy::dump( file, groupname+"/nu_vertex_is_visible", nu_vertex_is_visible );
     H5Easy::dump( file, groupname+"/pointindices_flat", pointindices_flat );
     H5Easy::dump( file, groupname+"/pointindices_counts", pointindices_counts );
 

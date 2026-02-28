@@ -15,6 +15,7 @@ void ShowerFragmentOrigin::clear()
   shower_startpt_v.clear();   
   shower_originpt_v.clear();
   shower_pret0shiftedstart_v.clear();
+  nu_vertex_is_visible = 0;
 
 }
 

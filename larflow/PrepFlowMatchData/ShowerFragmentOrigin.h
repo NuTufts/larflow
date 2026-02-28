@@ -25,6 +25,7 @@ public:
   std::vector< std::vector<float> > shower_startpt_v;  ///< start of fragment
   std::vector< std::vector<float> > shower_originpt_v; ///< origin of fragment
   std::vector< std::vector<float> > shower_pret0shiftedstart_v;  ///< origin of fragment from geant4 truth, no t0-shift applied
+  int nu_vertex_is_visible; ///< 1 if a neutrino vertex keypoint exists (vertex is visible), 0 otherwise
 
   void clear();
 
