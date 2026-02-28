@@ -1,5 +1,7 @@
 #include "ShowerFragmentOriginMaker.h"
 
+#include "larlite/LArUtil/LArProperties.h"
+#include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 #include "larflow/RecoUtils/cluster_functions.h"
 #include <highfive/H5Easy.hpp>
 
@@ -22,6 +24,8 @@ namespace prep {
       float edep_point_threshold )
   {
 
+    LARCV_INFO() << "Start" << std::endl;
+
     _fragment_data.clear();
 
     // loop through mcparticlegraph particles, look for showers
@@ -32,6 +36,7 @@ namespace prep {
     std::vector< std::vector<float> > shower_origin_v;
     std::vector<long> shower_keypt_index;
 
+    LARCV_DEBUG() << "Gather shower info from mcparticlegraph" << std::endl;
     for ( auto& node : mcpg.node_v ) {
       if ( abs(node.pid)==11 || node.pid==22 ) {
         
@@ -64,8 +69,10 @@ namespace prep {
     }
 
     // loop through the showers found
+    LARCV_DEBUG() << "Loop through showers" << std::endl;
     for (size_t ishower=0; ishower<shower_trackids.size(); ishower++) {
       long showerid = shower_trackids.at(ishower);
+      int showerpid = shower_pids.at(ishower);
 
       // do we have a keypoint for this trackid
       long kpd_index = -1;
@@ -90,6 +97,15 @@ namespace prep {
         // when does this happen?
         shower_origin = shower_origin_v.at(ishower);
         shower_start  = shower_start_v.at(ishower);
+
+        // need to t0 shift this.
+        if ( shower_origin.size()!=4 ) {
+          LARCV_CRITICAL() << "initial shower origin for non-keypoint-matched showers does not include time" << std::endl;
+        }
+        std::vector<float> origin_t0shifted = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( shower_origin[0], shower_origin[1], shower_origin[2], shower_origin[3]);
+        std::vector<float> start_t0shifted  = ublarcvapp::mctools::MCPos2ImageUtils::Get()->truepos_to_recopos( shower_start[0], shower_start[1], shower_start[2], shower_start[3]);
+        shower_origin = origin_t0shifted;
+        shower_start  = start_t0shifted;
       }
       shower_keypt_index.push_back( kpd_index );
 
@@ -123,6 +139,16 @@ namespace prep {
         }
       }
 
+      LARCV_INFO() << " shower[" << showerid << "] "
+        << " num points=" << points_v.size() 
+        << " kpd_index=" << kpd_index 
+        << " pid=" << showerpid
+        << std::endl;
+      LARCV_INFO() << "  origin=(" << shower_origin[0] << "," << shower_origin[1] << "," << shower_origin[2] << ")" << std::endl;
+      LARCV_INFO() << "  start=(" << shower_start[0] << "," << shower_start[1] << "," << shower_start[2] << ")" << std::endl;
+      if ( points_v.size()==0 )
+        continue;
+
       // now we cluster these points using dbscan
       float maxdist = 3.0;
       float minsize = 4;
@@ -130,14 +156,10 @@ namespace prep {
       std::vector< larflow::recoutils::cluster_t > cluster_v;
       larflow::recoutils::cluster_sdbscan_spacepoints( points_v, cluster_v, maxdist, minsize, maxkd);
       int nclusters = cluster_v.size(); // skip the last cluster which are noise points
-
       LARCV_INFO() << " shower[" << showerid << "] "
-        << " num points=" << points_v.size() 
         << " num clusters=" << nclusters
         << std::endl;
-      LARCV_INFO() << "  origin=(" << shower_origin[0] << "," << shower_origin[1] << "," << shower_origin[2] << ")" << std::endl;
-      LARCV_INFO() << "  start=(" << shower_start[0] << "," << shower_start[1] << "," << shower_start[2] << ")" << std::endl;
-      
+
       // for each cluster, define the "start" as the closest point to the origin
       // we also enforce a minimum cluster size
       for ( int icluster=0; icluster<nclusters; icluster++ ){
@@ -178,18 +200,23 @@ namespace prep {
           std::vector<float> most_upstream_edep(3,0);
           std::vector<float> most_upstream_pt_all(3,0);
           std::vector<float> most_upstream_edep_all(3,0);
+          std::vector<float> closest_pt(3,0);
+          std::vector<float> closest_pt_edep(3,0);
+
+          float min_dist = 1e9;
           float min_s = 1e9;
           float min_s_all = 1e9;
           bool found_qualifying_pt = false;
           bool found_qual_pt_all = false;
           std::vector<float> shower_forward(3,0);
-          for (int i=0; i<3; i++)
+          for (int i=0; i<3; i++) 
             shower_forward[i] = shower_origin[i] + 10.0*showerdir[i];
 
           for ( auto& testpt : cluster.points_v ) {
             float s = larflow::recoutils::pointRayProjection3f( shower_origin, showerdir, testpt );
             float s_origin = larflow::recoutils::pointRayProjection3f( shower_origin, showerdir, testpt );
             float r_origin = larflow::recoutils::pointLineDistance3f( shower_origin, shower_forward, testpt );
+
             if ( s < min_s && s_origin>-3.0 && r_origin/s_origin<0.5 ) {
               min_s = s;
               most_upstream_pt = testpt;
@@ -202,6 +229,17 @@ namespace prep {
               found_qual_pt_all = true;
               most_upstream_edep_all = edep_planesum;
             }
+
+            float test_dist = 0.0;
+            for ( int i=0; i<3; i++ ) {
+              test_dist += ( testpt[i]-shower_origin[i] )*( testpt[i]-shower_origin[i] );
+            }
+            test_dist = sqrt( test_dist );
+            if ( test_dist < min_dist ) {
+              min_dist = test_dist;
+              closest_pt = testpt;
+              closest_pt_edep = edep_planesum;
+            }
           }
 
           if ( !found_qualifying_pt && found_qual_pt_all ) {
@@ -209,12 +247,21 @@ namespace prep {
             most_upstream_edep = most_upstream_edep_all;
           }
 
+          if ( min_dist<1.0 ) {
+            // forget upstream of shower axis, use the closet point
+            // showers can evolve in weird ways
+            most_upstream_pt = closest_pt;
+            most_upstream_edep = closest_pt_edep;
+            LARCV_INFO() << "  [shower id=" << showerid << "] use closest dist pt" << std::endl;
+          }
+
 
           LARCV_INFO() << "  [shower id=" << showerid << "] "
                        << "   most upstream pt: " 
                        <<  most_upstream_pt[0] << ", "
                        <<  most_upstream_pt[1] << ", "
-                       <<  most_upstream_pt[2] << " MeV"
+                       <<  most_upstream_pt[2]
+                       << " min-dist=" << min_dist
                        << std::endl;
 
           // save shower fragment info
@@ -261,6 +308,7 @@ namespace prep {
             }
             _fragment_data.shower_type_v.push_back( shower_type );
           }
+
           _fragment_data.shower_startpt_v.push_back( most_upstream_pt );
           _fragment_data.shower_originpt_v.push_back( shower_origin );
           
@@ -313,11 +361,37 @@ namespace prep {
             _fragment_data.shower_istrunk_v[ifrag] = (ifrag == trunk_idx_all) ? 1 : 2;
           }
 
+          // cases when we want to set the originpt to the trunk start pt
+          bool replace_origin_w_trunk_start = false;
+
+          // is the origin outside the image bounds?
+          // if it is, then its unfair to ask for it to predict a shower start in a region it cannot see
+          // we then move the origin to be the same as the trunk start.
+          float tick = 3200 + shower_origin[0]/larutil::LArProperties::GetME()->DriftVelocity()/0.5;
+          if ( (tick<2410 || tick>8438) ) {
+            replace_origin_w_trunk_start = true;
+          }
+
+          // is the the shower origin type outside?
+          // if so, its not possible to determine the origin location since there is no info to do so
+          // so we ask to label the origin as the trunk fragment startpt
+          if ( _fragment_data.shower_type_v[trunk_idx_all]==1 ) {
+            replace_origin_w_trunk_start = true;
+          }
+
           // if we did not have a keypt object we matched to, then the detprofile position was outside the TPC
           // we use the trunk startpt (the first visible shower pt) as the origin pt
           if ( kpd_index==-1 && trunk_idx_all>=first_frag && trunk_idx_all<nfrags  ) {
-            _fragment_data.shower_originpt_v[trunk_idx_all] = _fragment_data.shower_startpt_v[trunk_idx_all];
+            replace_origin_w_trunk_start = true;
           }
+
+          if ( replace_origin_w_trunk_start ) {
+            for ( int ifrag = first_frag; ifrag < nfrags; ifrag++ ) {
+              _fragment_data.shower_originpt_v[ifrag] = _fragment_data.shower_startpt_v[trunk_idx_all];
+            }
+          }
+
+
         }
 
 
