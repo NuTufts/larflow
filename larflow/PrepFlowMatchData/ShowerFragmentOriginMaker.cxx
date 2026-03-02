@@ -173,6 +173,9 @@ namespace prep {
         << " num clusters=" << nclusters
         << std::endl;
 
+      if ( nclusters==0 )
+        continue;
+
       // for each cluster, define the "start" as the closest point to the origin
       // we also enforce a minimum cluster size
       for ( int icluster=0; icluster<nclusters; icluster++ ){
