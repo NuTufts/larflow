@@ -32,6 +32,9 @@ public:
 
   ~SimChTripletLabelMaker();
 
+  void set_is_data() { _is_mc = false; };
+  void set_is_mc() { _is_mc = true; };
+
   void process( larlite::storage_manager& ioll, 
                 larcv::IOManager& iolcv );
 
@@ -116,6 +119,9 @@ public:
   HighFive::File* _hdf_file;
   bool _save_weights_to_hdf;
   bool _save_truth_triplet_info;
+
+  // flag for running on data
+  bool _is_mc;
 
 };
 

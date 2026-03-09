@@ -98,7 +98,8 @@ namespace prep {
     _psce(nullptr),
     _hdf_file(nullptr),
     _save_weights_to_hdf(false),
-    _save_truth_triplet_info(false)
+    _save_truth_triplet_info(false),
+    _is_mc(true)
   {
 
     // utility for moving real position to apparent position
@@ -128,35 +129,39 @@ namespace prep {
     _ev_reco_triplets.clear();
     _final_keypoint_list.clear();
 
-    _mcpgraph.buildgraph(ioll);
-    _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, _psce );
+    if ( _is_mc ) {
+      _mcpgraph.buildgraph(ioll);
+      _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, _psce );
+    }
 
     make_reco_triplets(iolcv);
 
-    label_reco_triplets( _mcpixelmaker._pixels_v, _ev_reco_triplets );
+    if ( _is_mc ) {
+      label_reco_triplets( _mcpixelmaker._pixels_v, _ev_reco_triplets );
 
-    _mckpmaker.set_mcparticle_graph( &_mcpgraph );
-    _mckpmaker.set_spacecharge_instance( _psce );
-    _mckpmaker.setADCimageTreeName( "wiremc" );
-    _mckpmaker.clear();
-    //_mckpmaker.set_verbosity(larcv::msg::kINFO);
-    _mckpmaker.process( iolcv, ioll, &_mcpixelmaker );
+      _mckpmaker.set_mcparticle_graph( &_mcpgraph );
+      _mckpmaker.set_spacecharge_instance( _psce );
+      _mckpmaker.setADCimageTreeName( "wiremc" );
+      _mckpmaker.clear();
+      //_mckpmaker.set_verbosity(larcv::msg::kINFO);
+      _mckpmaker.process( iolcv, ioll, &_mcpixelmaker );
 
-    adjust_keypoints( 
-      _mckpmaker.getMCKeypoint(),
-      _ev_reco_triplets, 
-      _mcpgraph );
+      adjust_keypoints( 
+        _mckpmaker.getMCKeypoint(),
+        _ev_reco_triplets, 
+        _mcpgraph );
 
-    make_keypoint_labels( 3.0, 0.01 );
+      make_keypoint_labels( 3.0, 0.01 );
 
-    make_ssnet_labels( _mcpgraph );
+      make_ssnet_labels( _mcpgraph );
 
-    _shower_fragment_maker.clear();
-    _shower_fragment_maker.build_shower_fragments(
-      _mckpmaker.getMCKeypoint(),
-      _mcpgraph,
-      _ev_reco_triplets,
-      1.0, 5, 0.5 );
+      _shower_fragment_maker.clear();
+      _shower_fragment_maker.build_shower_fragments(
+        _mckpmaker.getMCKeypoint(),
+        _mcpgraph,
+        _ev_reco_triplets,
+        1.0, 5, 0.5 );
+    }
 
   }
 
@@ -168,12 +173,14 @@ namespace prep {
     _ev_reco_triplets.clear();
     _tripletmaker.clear();
 
+    std::string wireplane_tree_name = ( _is_mc ) ? "wiremc" : "wire";
+
     // make reco triplets
-    _tripletmaker.process( iolcv, "wiremc", "wiremc", 10.0, true );
+    _tripletmaker.process( iolcv, wireplane_tree_name, wireplane_tree_name, 10.0, true );
 
     // copy over triplets
-    larcv::EventImage2D* ev_img = 
-      (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,"wiremc");
+    larcv::EventImage2D* ev_img 
+      = (larcv::EventImage2D*)iolcv.get_data(larcv::kProductImage2D,wireplane_tree_name);
 
     auto const& img_v = ev_img->as_vector();
     int nplanes = (int)img_v.size();
@@ -1267,53 +1274,55 @@ namespace prep {
     dump_compressed( file, recotriplet_groupname+"/vwire",    reco_vwire );
     dump_compressed( file, recotriplet_groupname+"/ywire",    reco_ywire );
     dump_compressed( file, recotriplet_groupname+"/tick",     reco_tick  );
-    dump_compressed( file, recotriplet_groupname+"/pid",      reco_pid);
-    dump_compressed( file, recotriplet_groupname+"/aid",      reco_aid);
-    dump_compressed( file, recotriplet_groupname+"/origin",   reco_origin);
-    dump_compressed( file, recotriplet_groupname+"/trackid",  reco_trackid);
-    dump_compressed( file, recotriplet_groupname+"/hasmatch", reco_hasmatch  );
-    dump_compressed( file, recotriplet_groupname+"/kpscores", reco_kpscores );
-    dump_compressed( file, recotriplet_groupname+"/ssnet_label",    reco_ssnet_label );
-    dump_compressed( file, recotriplet_groupname+"/ssnet_boundary", reco_ssnet_boundary );
-    if ( _save_weights_to_hdf )
-      dump_compressed( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
 
-    //_mckpmaker.save_entry_to_hdf(file,"");
-    std::string kp_groupname = "/mckeypoints";
-    if ( groupname_prefix!="" ) {
-      kp_groupname = groupname_prefix + "/mckeypoints";
+    if ( _is_mc ) {
+      dump_compressed( file, recotriplet_groupname+"/pid",      reco_pid);
+      dump_compressed( file, recotriplet_groupname+"/aid",      reco_aid);
+      dump_compressed( file, recotriplet_groupname+"/origin",   reco_origin);
+      dump_compressed( file, recotriplet_groupname+"/trackid",  reco_trackid);
+      dump_compressed( file, recotriplet_groupname+"/hasmatch", reco_hasmatch  );
+      dump_compressed( file, recotriplet_groupname+"/kpscores", reco_kpscores );
+      dump_compressed( file, recotriplet_groupname+"/ssnet_label",    reco_ssnet_label );
+      dump_compressed( file, recotriplet_groupname+"/ssnet_boundary", reco_ssnet_boundary );
+      if ( _save_weights_to_hdf )
+        dump_compressed( file, recotriplet_groupname+"/ssnet_weight",   reco_ssnet_weight );
+
+      //_mckpmaker.save_entry_to_hdf(file,"");
+      std::string kp_groupname = "/mckeypoints";
+      if ( groupname_prefix!="" ) {
+        kp_groupname = groupname_prefix + "/mckeypoints";
+      }
+      LARCV_INFO() << "create groupname: " << kp_groupname << std::endl;
+      file.createGroup(kp_groupname);
+
+      // export different arrays for export
+      int nkeypoints = _final_keypoint_list.size();
+
+      std::vector< std::vector<float> > pos_appear(nkeypoints);
+      std::vector< std::vector<float> > startpos_appear(nkeypoints);
+      std::vector< std::vector<int> >   imgcoord(nkeypoints);
+      std::vector< int > kptype(nkeypoints);
+      std::vector< int > kppid(nkeypoints);
+      std::vector< int > kptrackid(nkeypoints);
+
+      int ikp=0;
+      for ( auto const& kpd : _final_keypoint_list ) {
+        pos_appear[ikp] = kpd.keypt_appear;
+        imgcoord[ikp]   = kpd.imgcoord;
+        kptype[ikp]     = kpd.kptype;
+        kppid[ikp]      = kpd.pid;
+        kptrackid[ikp]  = kpd.trackid;
+        startpos_appear[ikp] = kpd.startpt_appear;
+        ikp++;
+      }
+
+      dump_compressed( file, kp_groupname+"/pos",      pos_appear);
+      dump_compressed( file, kp_groupname+"/imgcoord", imgcoord);
+      dump_compressed( file, kp_groupname+"/kptype",   kptype);
+      dump_compressed( file, kp_groupname+"/pid",      kppid);
+      dump_compressed( file, kp_groupname+"/trackid",  kptrackid);
+      dump_compressed( file, kp_groupname+"/startpos", startpos_appear);
     }
-    LARCV_INFO() << "create groupname: " << kp_groupname << std::endl;
-    file.createGroup(kp_groupname);
-
-    // export different arrays for export
-    int nkeypoints = _final_keypoint_list.size();
-
-    std::vector< std::vector<float> > pos_appear(nkeypoints);
-    std::vector< std::vector<float> > startpos_appear(nkeypoints);
-    std::vector< std::vector<int> >   imgcoord(nkeypoints);
-    std::vector< int > kptype(nkeypoints);
-    std::vector< int > kppid(nkeypoints);
-    std::vector< int > kptrackid(nkeypoints);
-
-    int ikp=0;
-    for ( auto const& kpd : _final_keypoint_list ) {
-      pos_appear[ikp] = kpd.keypt_appear;
-      imgcoord[ikp]   = kpd.imgcoord;
-      kptype[ikp]     = kpd.kptype;
-      kppid[ikp]      = kpd.pid;
-      kptrackid[ikp]  = kpd.trackid;
-      startpos_appear[ikp] = kpd.startpt_appear;
-      ikp++;
-    }
-
-    dump_compressed( file, kp_groupname+"/pos",      pos_appear);
-    dump_compressed( file, kp_groupname+"/imgcoord", imgcoord);
-    dump_compressed( file, kp_groupname+"/kptype",   kptype);
-    dump_compressed( file, kp_groupname+"/pid",      kppid);
-    dump_compressed( file, kp_groupname+"/trackid",  kptrackid);
-    dump_compressed( file, kp_groupname+"/startpos", startpos_appear);
-
   }
 
   /**
