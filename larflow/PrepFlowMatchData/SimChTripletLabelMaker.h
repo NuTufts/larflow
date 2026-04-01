@@ -34,6 +34,8 @@ public:
 
   void set_is_data() { _is_mc = false; };
   void set_is_mc() { _is_mc = true; };
+  void process_mcc9_sim() { _is_mc = true; _process_ub_mcc9=true; };
+  void set_adc_treename( std::string treename ) { _adc_treename=treename; };
 
   void process( larlite::storage_manager& ioll, 
                 larcv::IOManager& iolcv );
@@ -120,8 +122,14 @@ public:
   bool _save_weights_to_hdf;
   bool _save_truth_triplet_info;
 
+  // name of producer with wire plane images (default "wiremc")
+  std::string _adc_treename;
+
   // flag for running on data
   bool _is_mc;
+
+  // flag for getting truth from PrepMatchTriplets, needed for old MicroBooNE MCC9 files
+  bool _process_ub_mcc9;
 
 };
 

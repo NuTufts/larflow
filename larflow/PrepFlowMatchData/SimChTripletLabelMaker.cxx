@@ -15,6 +15,8 @@
 #include "ublarcvapp/MCTools/MCPos2ImageUtils.h"
 
 #include "larflow/PrepFlowMatchData/PrepMatchTriplets.h"
+#include "larflow/PrepFlowMatchData/TripletTruthFixer.h"
+#include "larflow/PrepFlowMatchData/ConvertMatchTripletsToEventTriplets.h"
 #include "larflow/RecoUtils/cluster_functions.h" 
 
 namespace larflow {
@@ -99,7 +101,9 @@ namespace prep {
     _hdf_file(nullptr),
     _save_weights_to_hdf(false),
     _save_truth_triplet_info(false),
-    _is_mc(true)
+    _adc_treename("wiremc"),
+    _is_mc(true),
+    _process_ub_mcc9(false)
   {
 
     // utility for moving real position to apparent position
@@ -130,18 +134,34 @@ namespace prep {
     _final_keypoint_list.clear();
 
     if ( _is_mc ) {
+      // if simulated data, use the truth information to make a graph
+      //  of most particles tracked by geant4 in the event.
+      // the graph encodes the mother-daugher relationships between particles.
       _mcpgraph.buildgraph(ioll);
-      _mcpixelmaker.make_truthlabels_fromsimch( "wiremc", ioll, iolcv, _mcpgraph, _psce );
     }
 
     make_reco_triplets(iolcv);
+
+    if ( _is_mc ) {
+      if ( _process_ub_mcc9 ) {
+        // get truth from 2D images and assign them back to the 3D points
+        _tripletmaker.process_truth_labels( iolcv, ioll, "wire" );
+        // create class that adjusts for deficiencies in old truth data
+        larflow::prep::TripletTruthFixer mcc9_truthfixer;
+        mcc9_truthfixer.calc_reassignments( _tripletmaker, iolcv, ioll );
+        // extract triplet points with truth labels into EventMCPixelLabels class in _mcpixelmaker
+        larflow::prep::ConvertMatchTripletsToEventTriplets::convert( _mcpixelmaker, _tripletmaker );
+      } else {
+        _mcpixelmaker.make_truthlabels_fromsimch( _adc_treename, ioll, iolcv, _mcpgraph, _psce );
+      }
+    }
 
     if ( _is_mc ) {
       label_reco_triplets( _mcpixelmaker._pixels_v, _ev_reco_triplets );
 
       _mckpmaker.set_mcparticle_graph( &_mcpgraph );
       _mckpmaker.set_spacecharge_instance( _psce );
-      _mckpmaker.setADCimageTreeName( "wiremc" );
+      _mckpmaker.setADCimageTreeName( _adc_treename );
       _mckpmaker.clear();
       //_mckpmaker.set_verbosity(larcv::msg::kINFO);
       _mckpmaker.process( iolcv, ioll, &_mcpixelmaker );
@@ -173,7 +193,7 @@ namespace prep {
     _ev_reco_triplets.clear();
     _tripletmaker.clear();
 
-    std::string wireplane_tree_name = ( _is_mc ) ? "wiremc" : "wire";
+    std::string wireplane_tree_name = ( _is_mc ) ? _adc_treename : "wire";
 
     // make reco triplets
     _tripletmaker.process( iolcv, wireplane_tree_name, wireplane_tree_name, 10.0, true );

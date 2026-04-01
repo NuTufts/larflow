@@ -14,6 +14,7 @@ set( HEADERS
   TripletTruthFixer.h
   TripletLabels_t.h
   EventTriplets_t.h
+  ConvertMatchTripletsToEventTriplets.h
   SimChTripletLabelMaker.h
   MCKeypoint.h
   MCKeypointMaker.h
@@ -32,6 +33,7 @@ add_library( ${LIBNAME} SHARED
   TripletTruthFixer.cxx
   TripletLabels_t.cxx
   EventTriplets_t.cxx
+  ConvertMatchTripletsToEventTriplets.cxx
   SimChTripletLabelMaker.cxx
   MCKeypoint.cxx
   MCKeypointMaker.cxx

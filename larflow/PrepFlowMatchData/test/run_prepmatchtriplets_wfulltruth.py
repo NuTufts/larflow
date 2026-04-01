@@ -68,8 +68,8 @@ for ientry in range(start_entry, end_entry+1):
     tripmaker.process( io, args.adc_name, args.adc_name, 10.0, True )
     tripmaker.process_truth_labels( io, ioll, args.adc_name ) 
 
-    #truthfixer = larflow.prep.TripletTruthFixer()
-    #truthfixer.calc_reassignments( tripmaker, io, ioll )
+    truthfixer = larflow.prep.TripletTruthFixer()
+    truthfixer.calc_reassignments( tripmaker, io, ioll )
     
     outtree.Fill()
     
