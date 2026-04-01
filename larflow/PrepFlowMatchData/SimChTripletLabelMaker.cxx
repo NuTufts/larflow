@@ -430,6 +430,15 @@ namespace prep {
             nabove_threshold++;
         }
 
+        // fallback for MCC9 data where edep is not available:
+        // use pixval (ADC) with a 10.0 threshold instead
+        if ( nabove_threshold==0 ) {
+          for (int i=0; i<3; i++) {
+            if ( ptriplet->pixval[i] > 10.0 )
+              nabove_threshold++;
+          }
+        }
+
         if ( nabove_threshold>=2 ) {
           points_v.push_back( trip_pos );
           edep_vv.push_back( trip_edep );
