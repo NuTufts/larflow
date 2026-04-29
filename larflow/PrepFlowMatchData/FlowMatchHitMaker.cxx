@@ -588,13 +588,13 @@ namespace prep {
     clock_t begin = clock();
 
     larcv::EventSparseImage* ev_ssnet
-      = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,"sparseuresnetout");
+      = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,_ssnet_sparseimg_tree_name);
     larcv::EventImage2D* ev_adc
       = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
     auto const& adc_v = ev_adc->as_vector();
     
     auto const& sparseimg_v = ev_ssnet->SparseImageArray();
-    std::cout << "number of sparse images: " << sparseimg_v.size() << std::endl;
+    std::cout << "number of sparse images [from " << _ssnet_sparseimg_tree_name << "]: " << sparseimg_v.size() << std::endl;
 
     if ( sparseimg_v.size()==0 )
       return;

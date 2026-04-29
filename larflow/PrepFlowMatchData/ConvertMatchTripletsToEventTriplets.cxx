@@ -1,8 +1,32 @@
 #include "ConvertMatchTripletsToEventTriplets.h"
 #include "PrepMatchTriplets.h"
 
+#include "larcv/core/DataFormat/DataFormatTypes.h"
+
 namespace larflow {
 namespace prep {
+
+  namespace {
+    // Map larcv::ROIType_t enum values (which the legacy MCC9 PrepMatchTriplets
+    // path stores in _pdg_v) onto real PDG codes, so downstream consumers that
+    // expect PDGs (notably ShowerFragmentOriginMaker and the Pointcept-side
+    // shower-origin merger) work without special-casing the MCC9 path. Sign is
+    // not recoverable from the segment image (e.g. e+ vs e-), so we return the
+    // negatively-charged PDG by convention.
+    inline int roitype_to_pdg(int roi)
+    {
+      switch (roi) {
+        case (int)larcv::kROIEminus:  return 11;
+        case (int)larcv::kROIGamma:   return 22;
+        case (int)larcv::kROIPizero:  return 111;
+        case (int)larcv::kROIMuminus: return 13;
+        case (int)larcv::kROIKminus:  return 321;
+        case (int)larcv::kROIPiminus: return 211;
+        case (int)larcv::kROIProton:  return 2212;
+        default:                      return 0;  // Unknown / Cosmic / BNB
+      }
+    }
+  }
 
   void ConvertMatchTripletsToEventTriplets::convert(
     ublarcvapp::mctools::MCPixelLabelMaker & mclabelmaker,
@@ -51,7 +75,7 @@ namespace prep {
         if ( (int)tripletmaker._ancestor_id_v.size() > (int)itrip && tripletmaker._ancestor_id_v[itrip] != 0 )
           existing.aids.insert( (long)tripletmaker._ancestor_id_v[itrip] );
         if ( (int)tripletmaker._pdg_v.size() > (int)itrip )
-          existing.pids.insert( tripletmaker._pdg_v[itrip] );
+          existing.pids.insert( roitype_to_pdg( tripletmaker._pdg_v[itrip] ) );
         if ( (int)tripletmaker._origin_v.size() > (int)itrip )
           existing.origin.insert( tripletmaker._origin_v[itrip] );
         continue;
@@ -70,8 +94,11 @@ namespace prep {
       label.pos_reco[1] = tripletmaker._pos_v[itrip][1];
       label.pos_reco[2] = tripletmaker._pos_v[itrip][2];
 
-      // energy deposition not available from old files
-      label.edep = {0.0, 0.0, 0.0};
+      // Old MCC9 files do not carry per-spacepoint edep. Use the per-plane
+      // ADC pixval as an edep stand-in so consumers that gate on edep
+      // (e.g. ShowerFragmentOriginMaker) don't reject every point. Thresholds
+      // need to be re-tuned for ADC units when running in MCC9 mode.
+      label.edep = { (double)pixval[0], (double)pixval[1], (double)pixval[2] };
 
       label.pixval = pixval;
 
@@ -81,7 +108,7 @@ namespace prep {
       if ( (int)tripletmaker._ancestor_id_v.size() > (int)itrip && tripletmaker._ancestor_id_v[itrip] != 0 )
         label.aids.insert( (long)tripletmaker._ancestor_id_v[itrip] );
       if ( (int)tripletmaker._pdg_v.size() > (int)itrip )
-        label.pids.insert( tripletmaker._pdg_v[itrip] );
+        label.pids.insert( roitype_to_pdg( tripletmaker._pdg_v[itrip] ) );
       if ( (int)tripletmaker._origin_v.size() > (int)itrip )
         label.origin.insert( tripletmaker._origin_v[itrip] );
 

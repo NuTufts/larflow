@@ -40,7 +40,8 @@ namespace prep {
       _match_score_threshold(0.5),
       has_ssnet_scores(false),
       has_kplabel_scores(false),
-      has_paf(false)
+      has_paf(false),
+      _ssnet_sparseimg_tree_name("sparseuresnetout")
     {};
     virtual ~FlowMatchHitMaker() {};
 
@@ -138,6 +139,7 @@ namespace prep {
     bool has_ssnet_scores; ///< ssnet scores have been provided through add_triplet_ssnet_scores(...)
     bool has_kplabel_scores; ///< keypoint scores have been provided through add add_triplet_keypoint_scores(...)
     bool has_paf; ///< particle affinity field directions have been provided through add_triplet_affinity_field(...)
+    std::string _ssnet_sparseimg_tree_name;  ///< name of tree containing SSNet info in sparseimg format
 
     /**
      * \brief reset state and clear member containers

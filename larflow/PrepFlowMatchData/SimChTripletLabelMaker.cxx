@@ -176,11 +176,19 @@ namespace prep {
       make_ssnet_labels( _mcpgraph );
 
       _shower_fragment_maker.clear();
+      // MCC9 path stuffs ADC pixval into edep (see
+      // ConvertMatchTripletsToEventTriplets::convert), so the ShowerFragmentOriginMaker
+      // edep thresholds need to be in ADC units rather than MeV.
+      // Per-point ADC of 0.5 lets through almost everything above zero;
+      // per-cluster sum of 5 ADC gates out clusters with no real charge.
+      float cluster_edep_thresh = _process_ub_mcc9 ? 5.0  : 1.0;  // sum-edep cut
+      int   cluster_size_thresh = 5;
+      float point_edep_thresh   = _process_ub_mcc9 ? 0.5  : 0.5;  // per-point cut
       _shower_fragment_maker.build_shower_fragments(
         _mckpmaker.getMCKeypoint(),
         _mcpgraph,
         _ev_reco_triplets,
-        1.0, 5, 0.5 );
+        cluster_edep_thresh, cluster_size_thresh, point_edep_thresh );
     }
 
   }
