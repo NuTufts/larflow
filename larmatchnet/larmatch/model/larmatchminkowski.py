@@ -81,7 +81,7 @@ class LArMatchMinkowski(nn.Module):
         if self.run_paf:     self.affinity_head = LArMatchAffinityFieldRegressor(layer_nfeatures=[8,8,8],input_features=features_per_layer)
         
 
-    def forward( self, input_wireplane_sparsetensors, matchtriplets, batch_size ):
+    def forward( self, input_wireplane_sparsetensors, matchtriplets, batch_size, return_feats=False ):
 
         # check input
         
@@ -108,6 +108,7 @@ class LArMatchMinkowski(nn.Module):
 
         # we pass the features through the different classifiers
         batch_output = []
+        batch_feats = []
         for b,spacepoint_feat in enumerate(batch_spacepoint_feat):
             output = {}            
             x = spacepoint_feat.unsqueeze(0)
@@ -123,8 +124,13 @@ class LArMatchMinkowski(nn.Module):
                 output["kp"] = self.kplabel_head( x )
             
             batch_output.append( output )
+            if return_feats:
+                batch_feats.append( x )
 
-        return batch_output
+        if return_feats:
+            return batch_output, batch_feats
+        else:
+            return batch_output
                                         
     def extract_features(self, feat_v, index_t, batch_size, verbose=False ):
         """ 

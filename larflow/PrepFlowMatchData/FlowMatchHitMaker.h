@@ -39,7 +39,9 @@ namespace prep {
 	_match_score_threshold(0.5),
 	has_ssnet_scores(false),
 	has_kplabel_scores(false),
-	has_paf(false)
+	has_paf(false),
+  has_larmatch_feats(false),
+  _lm_feats_dims(0)
     {};
     virtual ~FlowMatchHitMaker() {};
 
@@ -142,9 +144,13 @@ namespace prep {
     void clear() {
       _matches_v.clear();
       _match_map.clear();
+      _larmatch_feat_vv.clear();
       has_ssnet_scores=false;
       has_kplabel_scores=false;
-      has_paf=false; };
+      has_paf=false;
+      has_larmatch_feats=false; 
+    };
+
     int add_match_data( PyObject* pair_probs,
                         PyObject* source_sparseimg, PyObject* target_sparseimg,
                         PyObject* matchpairs,
@@ -194,8 +200,19 @@ namespace prep {
 				   std::vector<larlite::larflow3dhit>& hit_v )  const;
     
     void store_2dssnet_score( larcv::IOManager& iolcv,
-			      std::vector<larlite::larflow3dhit>& larmatch_hit_v );
+			      std::vector<larlite::larflow3dhit>& larmatch_hit_v,
+            std::string adc_name="wire" );
     
+
+    std::map< std::vector<long>, std::vector<float> > _larmatch_feat_vv;
+    bool has_larmatch_feats;
+    int  _lm_feats_dims;
+    int save_larmatch_feats( PyObject* larmatch_feats,
+                             PyObject* triplet_indices,
+                             PyObject* imgu_sparseimg,
+                             PyObject* imgv_sparseimg,
+                             PyObject* imgy_sparseimg,
+                             const std::vector<larcv::Image2D>& adc_v );
 
   };
 

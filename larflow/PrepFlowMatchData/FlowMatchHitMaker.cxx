@@ -271,7 +271,15 @@ namespace prep {
     ncolumns += 3; // flow directions    
     // = 29 columns
 
+    if ( has_larmatch_feats ) {
+      ncolumns += _lm_feats_dims; // 29+16x3 = 77
+      std::cout << "[FlowMatchHitMaker] append larmatch vectors "
+                << "(+ " << _lm_feats_dims << " = " << ncolumns << ")" << std::endl;
+    }
+
     auto const& meta = img_v.front().meta();
+
+    long n_larmatch_feat_filled = 0;
     
     int idx = 0;
     unsigned long maxsize = hit_v.size() + _matches_v.size()+10;
@@ -349,11 +357,31 @@ namespace prep {
       catch ( const std::exception& e ) {
 	throw std::runtime_error("ERROR STORING PAF SCORES");
       }
+
+      // larmatch feats
+      std::vector<long> triple_key(5,0);
+      triple_key[0] = m.U;
+      triple_key[1] = m.V;
+      triple_key[2] = m.Y;
+      triple_key[3] = (long)hit.tick;
+      triple_key[4] = (m.istruth) ? 1 : 0;
+      auto it_lmfeat = _larmatch_feat_vv.find( triple_key );
+      if ( it_lmfeat!=_larmatch_feat_vv.end() ) {
+        n_larmatch_feat_filled++;
+        const std::vector<float>& lmfeat = it_lmfeat->second;
+        for (int i=0; i<(int)lmfeat.size(); i++) {
+          if ( 29+i>=ncolumns)
+            break;
+          hit[29+i] = lmfeat.at(i);
+        }
+      }
       
       hit_v.emplace_back( std::move(hit) );
     }
     std::cout << "[FlowMatchHitMaker::make_hits] saved " << hit_v.size() << " hits "
-              << " from "  << _matches_v.size() << " matches" << std::endl;
+              << " from "  << _matches_v.size() << " matches " 
+              << " with " << n_larmatch_feat_filled << " hits w larmatch features"
+              << std::endl;
     
   };
 
@@ -470,7 +498,8 @@ namespace prep {
    * @param[inout] larmatch_hit_v        LArMatch hits, modified
    */
   void FlowMatchHitMaker::store_2dssnet_score( larcv::IOManager& iolcv,
-					       std::vector<larlite::larflow3dhit>& larmatch_hit_v )
+					       std::vector<larlite::larflow3dhit>& larmatch_hit_v,
+                std::string adc_name )
   {
     
     clock_t begin = clock();
@@ -478,7 +507,7 @@ namespace prep {
     larcv::EventSparseImage* ev_ssnet
       = (larcv::EventSparseImage*)iolcv.get_data( larcv::kProductSparseImage,"sparseuresnetout");
     larcv::EventImage2D* ev_adc
-      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, "wire" );
+      = (larcv::EventImage2D*)iolcv.get_data( larcv::kProductImage2D, adc_name );
     auto const& adc_v = ev_adc->as_vector();
     
     auto const& sparseimg_v = ev_ssnet->SparseImageArray();
@@ -1054,6 +1083,70 @@ namespace prep {
     
     return 0;
   }
+
+
+  /**
+   * Store larmatch feature vectors for each 
+   * "match triplet" spacepoint.
+   *
+   */
+  int FlowMatchHitMaker::save_larmatch_feats( PyObject* larmatch_feats,
+                                              PyObject* triplet_indices,
+                                              PyObject* imgu_sparseimg,
+                                              PyObject* imgv_sparseimg,
+                                              PyObject* imgy_sparseimg,
+                                              const std::vector<larcv::Image2D>& adc_v )
+  {
+
+    // 
+    int pair_ndims = PyArray_NDIM( (PyArrayObject*)triplet_indices );
+    npy_intp* pair_dims = PyArray_DIMS( (PyArrayObject*)triplet_indices );
+    std::cout << "[FlowMatchHitMaker] pair prob dims=(" << pair_dims[0] << ")" << std::endl;
+
+    int feat_ndims      = PyArray_NDIM( (PyArrayObject*)larmatch_feats );
+    npy_intp* feat_dims = PyArray_DIMS( (PyArrayObject*)larmatch_feats );
+    _lm_feats_dims = feat_dims[1];
+
+    if ( pair_dims[0]!=feat_dims[0] ) {
+      throw std::runtime_error("[FlowMatchHitMaker] num triplets do not match");
+    }
+    if ( feat_ndims!=2 ) {
+      throw std::runtime_error("[FlowMatchHitMaker] expected a 2D feature array");
+    }
+
+    size_t nmatches = feat_dims[0];
+    for (size_t imatch=0; imatch<nmatches; imatch++) {
+
+      // convert triplet indices into img index (u,v,y,tick,truth)
+      long index[4] = { *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, imatch, 0 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, imatch, 1 ),
+                        *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, imatch, 2 ),
+			                  *(long*)PyArray_GETPTR2( (PyArrayObject*)triplet_indices, imatch, 3 ) };
+
+      
+      std::vector<long> triple(5,0); // (col,col,col,tick,istruth)
+      triple[ 0 ] = *(long*)PyArray_GETPTR2( (PyArrayObject*)imgu_sparseimg, index[0], 1 );
+      triple[ 1 ] = *(long*)PyArray_GETPTR2( (PyArrayObject*)imgv_sparseimg, index[1], 1 );
+      triple[ 2 ] = *(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 1 );
+      long row    = *(long*)PyArray_GETPTR2( (PyArrayObject*)imgy_sparseimg, index[2], 0 );
+      triple[ 3 ] = (long)adc_v[2].meta().pos_y( (int)row );
+      triple[ 4 ] = (long)index[3]; //truth
+
+      std::vector<float> feat_v( feat_dims[1], 0.0 );
+      for (int f_idx=0; f_idx<feat_dims[1]; f_idx++ ){
+        feat_v[f_idx] = *(float*)PyArray_GETPTR2( (PyArrayObject*)larmatch_feats, imatch, f_idx );
+      }
+
+      // insert into map
+      _larmatch_feat_vv[ triple ] = feat_v;
+    }//end of loop over triplets
+
+    if ( _larmatch_feat_vv.size()>0 )
+      has_larmatch_feats = true;
+
+    return 0;
+  }
+
   
 }  
 }

@@ -11,6 +11,7 @@ parser.add_argument("--output", "-o",required=True,type=str,help="Stem name of o
 parser.add_argument("--tickbackwards","-tb",action='store_true',default=False,help="Indicate that input larcv file is tick-backward [default: F]")
 parser.add_argument("--min-score","-p",type=float,default=0.5,help="Minimum Score to save point [default: 0.5]")
 parser.add_argument("--num-events","-n",type=int,default=-1,help="Number of events [default: -1 -> All]")
+parser.add_argument("--start-entry","-e",type=int,default=0,help="First entry index to process [default: 0]")
 parser.add_argument("--has-mc","-mc",action="store_true",default=False,help="If argument given, input file assumed to have mc truth [default: F]")
 parser.add_argument("--larlite-mcinfo","-llmc",type=str,default=None,help="larlite file containing MC truth [default: None]")
 parser.add_argument("--has-wirecell","-wc",action="store_true",default=False,help="If flag given, will use WC tagger image to mask cosmics [default: F]")
@@ -18,6 +19,7 @@ parser.add_argument("--adc-name","-adc",default="wire",type=str,help="Name of AD
 parser.add_argument("--chstatus-name","-ch",default="wire",type=str,help="Name of the Channel Status tree [default: wire]")
 parser.add_argument("--device-name","-d",default="cpu",type=str,help="Name of device. [default: cpu; e.g. cuda:0]")
 parser.add_argument("--use-skip-limit",default=False,action='store_true',help="Specify a max triplet let. If surpassed, skip network eval.")
+parser.add_argument("--save-larmatch-feats",default=False,action='store_true',help="If option provided, save 48-dim larmatch feat vector for each saved hit.")
 args = parser.parse_args( sys.argv[1:] )
 
 from ctypes import c_int,c_double
@@ -116,10 +118,11 @@ out.open()
 sigmoid = torch.nn.Sigmoid()
 ssnet_softmax = torch.nn.Softmax(dim=1)
 
-NENTRIES = io.get_n_entries()
-
-if args.num_events>0 and args.num_events<NENTRIES:
-    NENTRIES = args.num_events
+TOTAL_NENTRIES = io.get_n_entries()
+START_ENTRY = max(0, args.start_entry)
+END_ENTRY = TOTAL_NENTRIES
+if args.num_events > 0:
+    END_ENTRY = min(START_ENTRY + args.num_events, TOTAL_NENTRIES)
 
 dt_prep  = 0.
 dt_chunk = 0.
@@ -138,7 +141,7 @@ sys.stdout.flush()
 
 print("Start event loop")
 
-for ientry in range(NENTRIES):
+for ientry in range(START_ENTRY, END_ENTRY):
 
     tstart = time.time()
     
@@ -159,6 +162,7 @@ for ientry in range(NENTRIES):
     ev_adc = io.get_data( "image2d", args.adc_name )
     ev_chstatus = io.get_data( "chstatus", args.chstatus_name )
     adc_v = ev_adc.as_vector()
+    print("Number of images from ",args.adc_name,": ",adc_v.size())
     
     # clear the hit maker
     hitmaker.clear();
@@ -221,8 +225,15 @@ for ientry in range(NENTRIES):
     print("Number of triplets: ",ntriplets)
     if ntriplets>0:    
         with torch.no_grad():
+            # call forward
             tstart_model = time.time()
-            pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
+            if not args.save_larmatch_feats:
+                pred_dict = single_model( wireplane_sparsetensors, matchtriplet_v, 1 )[0]
+            else:
+                pred_dict,larmatch_feats = single_model( wireplane_sparsetensors, matchtriplet_v, 1, return_feats=True )
+                pred_dict = pred_dict[0]
+                larmatch_feats = torch.transpose( larmatch_feats[0].squeeze(), 1, 0 ).numpy()
+                print("larmatch_feats: ",larmatch_feats.shape)
             print("Ran model: ",pred_dict.keys())            
 
             if "cuda" in args.device_name:
@@ -272,6 +283,14 @@ for ientry in range(NENTRIES):
                                              pos_v,
                                              adc_v )
 
+            if args.save_larmatch_feats:
+                hitmaker.save_larmatch_feats( larmatch_feats, 
+                                               matchtriplet_np,
+                                               sparse_np_v[0],
+                                               sparse_np_v[1],
+                                               sparse_np_v[2],
+                                               adc_v )
+
             if config["RUN_SSNET"]:
                 print("  add ssnet data to hitmaker(...). probshape=",ssnet_pred_t.shape)
                 ssnet_np = ssnet_pred_t.to(torch.device("cpu")).detach().numpy()
@@ -313,7 +332,7 @@ for ientry in range(NENTRIES):
 
             print("try to store 2D ssnet data")
             tstart = time.time()
-            hitmaker.store_2dssnet_score( io, evout_lfhits )
+            hitmaker.store_2dssnet_score( io, evout_lfhits, args.adc_name )
             dt_save_ssnet2d = time.time()-tstart
             dt_save += dt_save_ssnet2d
             
@@ -343,12 +362,13 @@ for ientry in range(NENTRIES):
     io.clear_entry()
     sys.stdout.flush()
 
-if NENTRIES>0:
+_n_processed = END_ENTRY - START_ENTRY
+if _n_processed > 0:
     print("time of each stage per event")
-    print("  prep=",dt_prep/float(NENTRIES))
-    print("  chunk=",dt_chunk/float(NENTRIES))
-    print("  net=",dt_net/float(NENTRIES))
-    print("  save=",dt_save/float(NENTRIES))
+    print("  prep=",dt_prep/float(_n_processed))
+    print("  chunk=",dt_chunk/float(_n_processed))
+    print("  net=",dt_net/float(_n_processed))
+    print("  save=",dt_save/float(_n_processed))
 
 print("Close output")
 out.close()
